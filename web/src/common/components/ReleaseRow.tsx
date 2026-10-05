@@ -7,9 +7,9 @@ import type { Retour } from '@/common/lib/retour'
 import type { ReleaseEntryDto } from '@/common/types/api'
 
 /**
- * Ce qui appelle une pastille : à acheter est l'action, envie l'attente.
- * Possédé n'appelle rien - un relevé discret suffit, une pastille de plus
- * ferait crier une ligne qui n'a rien à demander.
+ * What calls for a pill: to buy is the action, wish is the expectation.
+ * Owned calls for nothing - a discreet note is enough, one more pill
+ * would make a row shout that has nothing to ask.
  */
 const PASTILLES: Record<string, string> = {
   MISSING: 'bg-accentTint text-accentText',
@@ -17,18 +17,18 @@ const PASTILLES: Record<string, string> = {
 }
 
 /**
- * Une sortie du calendrier : la jaquette de ce qui sort, l'œuvre, ce qui sort
- * en son sein, et ce que ça représente pour la collection - toujours écrit,
- * comme la raison d'une opportunité de Découvrir. Partagée par le calendrier
- * et par son aperçu de Découvrir (lot 146), d'où sa place dans `common`.
+ * One release of the calendar: the cover of what is coming out, the work, what comes out
+ * within it, and what it means for the collection - always written,
+ * like the reason of an opportunity in Discover. Shared by the calendar
+ * and by its preview in Discover (batch 146), hence its place in `common`.
  *
- * <p>D'où vient la date ne s'écrit pas ici : c'est de la plomberie, et la
- * fiche de l'œuvre la porte déjà pour qui veut savoir.
+ * <p>Where the date comes from is not written here: it is plumbing, and the
+ * detail page of the work already carries it for whoever wants to know.
  *
- * @param date       le libellé de date à écrire en tête de ligne - absent quand
- *                   la liste est déjà groupée par jour
- * @param typeLabel  la catégorie, écrite quand rien de plus précis ne dit ce
- *                   qui sort (un jeu, une œuvre datée à la main)
+ * @param date       the date label to write at the start of the row - absent when
+ *                   the list is already grouped by day
+ * @param typeLabel  the category, written when nothing more precise says what
+ *                   is coming out (a game, a work dated by hand)
  */
 export function ReleaseRow({
   entry,

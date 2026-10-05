@@ -1,11 +1,11 @@
 import SwiftUI
 import SwiftData
 
-/// Formulaire de création/édition d'un type. Les types d'expérience
-/// autorisés et les champs personnalisés sont des listes libres (chaque
-/// type MVP historique a la sienne, il n'existe pas de liste canonique
-/// commune côté backend à choisir dans un multi-select) - même saisie
-/// "texte + bouton Ajouter, retirable" que ManageTagsSheet pour les tags.
+/// Form to create/edit a type. The allowed experience types
+/// and the custom fields are free lists (each historical MVP
+/// type has its own, there is no common canonical list
+/// on the backend side to pick from in a multi-select) - same input
+/// "text + Add button, removable" as ManageTagsSheet for the tags.
 struct EntityTypeFormView: View {
     enum Mode {
         case create
@@ -39,7 +39,7 @@ struct EntityTypeFormView: View {
                 if isEditing {
                     LabeledContent("Code", value: code)
                 } else {
-                    // Normalisé côté backend en UPPER_SNAKE_CASE quoi qu'on saisisse ici.
+                    // Normalized on the backend side to UPPER_SNAKE_CASE whatever is typed here.
                     TextField("Code (ex : FILM, VINYLE...)", text: $code)
                         .textInputAutocapitalization(.characters)
                         .disableAutocorrection(true)

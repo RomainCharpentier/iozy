@@ -19,27 +19,27 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La lecture des codes-barres, sur de <b>vraies</b> images.
+ * Reading barcodes, on <b>real</b> images.
  *
- * <h2>Des images générées, jamais des photos</h2>
- * Chaque test dessine son propre code-barres avec l'encodeur de ZXing, puis
- * demande au décodeur de le relire. Aucune couverture protégée, aucune photo
- * d'annonce, rien de téléchargé, rien de commité — et un test parfaitement
- * déterministe.
+ * <h2>Generated images, never photos</h2>
+ * Each test draws its own barcode with the ZXing encoder, then
+ * asks the decoder to read it back. No protected cover, no listing
+ * photo, nothing downloaded, nothing committed — and a perfectly
+ * deterministic test.
  *
- * <p>Ce que cela prouve : la chaîne octets → pixels → luminance → code
- * fonctionne, y compris la conversion en niveaux de gris et la rotation
- * écrites à la main. Ce que cela ne prouve pas : le taux de réussite sur une
- * photo prise à main levée, qu'une poignée d'images ne permettrait pas de
- * mesurer.
+ * <p>What this proves: the chain bytes → pixels → luminance → code
+ * works, including the grayscale conversion and the rotation
+ * written by hand. What it does not prove: the success rate on a
+ * hand-held photo, which a handful of images could not
+ * measure.
  */
 class BarcodeImageDecoderTest {
 
-    /** Un EAN-13 valide - clé de contrôle comprise, sinon l'encodeur refuse. */
+    /** A valid EAN-13 - check digit included, otherwise the encoder refuses. */
     private static final String EAN_NARUTO_T9 = "9782505011118";
     private static final String EAN_AUTRE = "9782344029572";
 
-    // ============================================ Lecture nominale
+    // ============================================ Nominal reading
 
     @Test
     void reads_an_ean13_from_a_png() {
@@ -50,8 +50,8 @@ class BarcodeImageDecoderTest {
 
     @Test
     void reads_an_ean13_from_a_jpeg_too() {
-        // Le JPEG introduit des artefacts de compression : c'est le format des
-        // photos d'annonce, donc le cas réel.
+        // JPEG introduces compression artefacts: it is the format of
+        // listing photos, so the real case.
         RecognitionImage image = imageAvecCode(EAN_NARUTO_T9, "jpg");
 
         assertThat(BarcodeImageDecoder.decode(image)).containsExactly(EAN_NARUTO_T9);
@@ -59,9 +59,9 @@ class BarcodeImageDecoderTest {
 
     @Test
     void reads_a_barcode_printed_vertically() {
-        // Sur une tranche de manga le code est imprimé verticalement, et un
-        // décodeur 1D balaie par lignes horizontales : sans la passe pivotée,
-        // il ne verrait rien du tout.
+        // On the spine of a manga the code is printed vertically, and a
+        // 1D decoder sweeps along horizontal lines: without the rotated pass,
+        // it would see nothing at all.
         RecognitionImage image = pivotee(imageAvecCode(EAN_NARUTO_T9, "png"));
 
         assertThat(BarcodeImageDecoder.decode(image)).containsExactly(EAN_NARUTO_T9);
@@ -69,15 +69,15 @@ class BarcodeImageDecoderTest {
 
     @Test
     void reads_several_barcodes_from_a_single_photo() {
-        // La photo la plus utile d'un lot : une pile vue de dos, un code par
-        // tome. S'arrêter au premier ferait perdre tout le reste.
+        // The most useful photo of a batch: a stack seen from behind, one code per
+        // volume. Stopping at the first one would lose all the rest.
         RecognitionImage image = imageAvecDeuxCodes(EAN_NARUTO_T9, EAN_AUTRE);
 
         assertThat(BarcodeImageDecoder.decode(image))
                 .containsExactlyInAnyOrder(EAN_NARUTO_T9, EAN_AUTRE);
     }
 
-    // ============================================ Robustesse
+    // ============================================ Robustness
 
     @Test
     void a_photo_without_any_barcode_yields_nothing_rather_than_failing() {
@@ -88,9 +88,9 @@ class BarcodeImageDecoderTest {
 
     @Test
     void bytes_that_are_not_an_image_yield_nothing_rather_than_throwing() {
-        // Le lecteur d'images en amont valide déjà le type MIME sur les octets,
-        // mais un décodeur qui lève ferait tomber toute l'analyse - pour une
-        // seule photo.
+        // The upstream image reader already validates the MIME type on the bytes,
+        // but a decoder that throws would bring down the whole analysis - for a
+        // single photo.
         RecognitionImage image = new RecognitionImage(0, null,
                 "pas une image".getBytes(StandardCharsets.UTF_8), "image/png");
 
@@ -104,7 +104,7 @@ class BarcodeImageDecoderTest {
         assertThat(BarcodeImageDecoder.decodeAll(List.of())).isEmpty();
     }
 
-    // ============================================ Sur plusieurs photos
+    // ============================================ On several photos
 
     @Test
     void the_same_volume_photographed_twice_is_not_two_volumes() {
@@ -126,19 +126,19 @@ class BarcodeImageDecoderTest {
 
     @Test
     void only_book_barcode_formats_are_searched() {
-        // Pas de QR code : sur une photo d'annonce, un QR mène à une page
-        // marchande, jamais à une œuvre.
+        // No QR code: on a listing photo, a QR leads to a shop
+        // page, never to a work.
         assertThat(BarcodeImageDecoder.formatsCherches())
                 .containsExactlyInAnyOrder(BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A);
     }
 
-    // ============================================ Fabriques d'images
+    // ============================================ Image factories
 
     private static RecognitionImage imageAvecCode(String ean, String format) {
         return enveloppe(dessiner(ean, 400, 200), format);
     }
 
-    /** Deux codes côte à côte, comme deux tranches voisines sur une étagère. */
+    /** Two codes side by side, like two neighbouring spines on a shelf. */
     private static RecognitionImage imageAvecDeuxCodes(String premier, String second) {
         BufferedImage gauche = dessiner(premier, 400, 260);
         BufferedImage droite = dessiner(second, 400, 260);

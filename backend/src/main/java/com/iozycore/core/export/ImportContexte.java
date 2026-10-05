@@ -8,24 +8,24 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Ce qu'un univers voit d'un import en cours (Lot 133) : le document, le
- * mode (simulation ou écriture), le rapport, et les correspondances déjà
- * établies entre les identifiants du fichier et ceux de la base - œuvres,
- * tomes, éditions. La table des éditions est remplie par le module et lue
- * par le cœur, qui relie les tomes à leur édition.
+ * What a universe sees of an import in progress (Batch 133): the document, the
+ * mode (simulation or write), the report, and the matches already
+ * made between the ids of the file and those of the database - works,
+ * volumes, editions. The editions table is filled by the module and read
+ * by the core, which links the volumes to their edition.
  */
 public final class ImportContexte {
 
     public final ExportDocument doc;
     public final boolean ecrire;
     public final ImportReport.Cumul cumul;
-    /** Identifiant d'œuvre du fichier → œuvre en base (créée ou retrouvée). */
+    /** Work id from the file -> work in the database (created or found). */
     public final Map<UUID, Entity> oeuvres;
-    /** Identifiant de tome du fichier → identifiant du tome en base. */
+    /** Volume id from the file -> volume id in the database. */
     public final Map<UUID, UUID> tomes;
-    /** Identifiant d'édition du fichier → identifiant de l'édition en base. */
+    /** Edition id from the file -> edition id in the database. */
     public final Map<UUID, UUID> editions;
-    /** Les œuvres que cet import crée (par opposition à celles déjà au catalogue). */
+    /** The works that this import creates (as opposed to those already in the catalog). */
     public final Set<UUID> oeuvresACreer;
 
     public ImportContexte(ExportDocument doc, boolean ecrire, ImportReport.Cumul cumul, Map<UUID, Entity> oeuvres,
@@ -39,7 +39,7 @@ public final class ImportContexte {
         this.oeuvresACreer = oeuvresACreer;
     }
 
-    /** L'identifiant en base de l'œuvre que le fichier désigne ainsi, ou null si elle n'a pas été importée. */
+    /** The database id of the work that the file designates this way, or null if it was not imported. */
     public UUID oeuvreId(UUID ancienId) {
         if (ancienId == null) {
             return null;

@@ -32,19 +32,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Valide que le module de persistance (Flyway + JPA) fonctionne réellement
- * contre un PostgreSQL réel, pas seulement contre le domaine en mémoire.
- * Couvre le scénario UC1 → UC2 → UC5 : création d'une Entity, ajout d'un
- * Tag, ajout d'une Ownership, puis vérification qu'une Entity récupérée
- * depuis la base porte bien ses Variant/Tag/Ownership associés.
+ * Checks that the persistence module (Flyway + JPA) really works
+ * against a real PostgreSQL, not only against the in-memory domain.
+ * Covers the scenario UC1 → UC2 → UC5: creation of an Entity, adding a
+ * Tag, adding an Ownership, then checking that an Entity loaded
+ * from the database carries its Variant/Tag/Ownership correctly.
  *
- * @Transactional isole chaque méthode : les repositories (eux-mêmes
- * @Transactional, propagation REQUIRED) rejoignent la transaction ouverte
- * par le test au lieu d'en ouvrir une nouvelle, et Spring la rollback à la
- * fin de chaque méthode - sans ça les 3 méthodes partagent le même
- * conteneur Postgres statique et polluent les résultats les unes des
- * autres (constaté : le filtre par tag remontait aussi une Entity créée
- * par une méthode précédente).
+ * @Transactional isolates each method: the repositories (themselves
+ * @Transactional, propagation REQUIRED) join the transaction opened
+ * by the test instead of opening a new one, and Spring rolls it back at the
+ * end of each method - without it the 3 methods share the same
+ * static Postgres container and pollute each other's
+ * results (seen: the tag filter also returned an Entity created
+ * by a previous method).
  */
 class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
 
@@ -102,7 +102,7 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
 
         Ownership afterSale = ownershipRepository.findById(ownership.id()).orElseThrow();
         assertThat(afterSale.isActive()).isFalse();
-        assertThat(ownershipRepository.existsByEntityId(entity.id())).isTrue(); // existe encore, juste vendue
+        assertThat(ownershipRepository.existsByEntityId(entity.id())).isTrue(); // still exists, just sold
     }
 
     @Test
@@ -142,7 +142,7 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
         Entity afterMerge = entityRepository.findById(entity.id()).orElseThrow();
         Variant updatedVariant = afterMerge.variants().get(0);
         assertThat(updatedVariant.attributes()).containsEntry("coverImageUrl", "https://example.com/tome1.jpg");
-        assertThat(updatedVariant.attributes()).containsEntry("volumeNumber", 1); // conservé, pas écrasé
+        assertThat(updatedVariant.attributes()).containsEntry("volumeNumber", 1); // kept, not overwritten
         assertThat(updatedVariant.attributes()).containsEntry("edition", "Black Edition");
     }
 
@@ -155,7 +155,7 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
         entityRepository.save(entity);
 
         Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
-        assertThat(reloaded.variants().get(0).mangaEditionId()).isNull(); // pas encore lié
+        assertThat(reloaded.variants().get(0).mangaEditionId()).isNull(); // not linked yet
 
         reloaded.linkVariantToEdition(variant.id(), edition.id());
         entityRepository.save(reloaded);
@@ -166,8 +166,8 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void an_unreferenced_variant_can_be_deleted_and_a_sibling_variant_keeps_the_entity_alive() {
-        // Un second tome garde la Série non-vide, pour isoler ce test de la cascade
-        // "0 tome -> suppression de la Série" (voir deleting_the_last_tome_of_a_series_... plus bas).
+        // A second volume keeps the Series non-empty, to isolate this test from the cascade
+        // "0 volume -> deletion of the Series" (see deleting_the_last_tome_of_a_series_... below).
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
         entity.addVariant("Tome 2", Map.of("volumeNumber", 2));
@@ -181,9 +181,9 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void a_variant_referenced_by_a_real_ownership_row_cannot_be_deleted() {
-        // Round-trip réel : sans la garde applicative, la contrainte FK
-        // ownership.variant_id (V1__init_schema.sql, sans ON DELETE) rejetterait
-        // la suppression avec une erreur SQL brute plutôt qu'un message clair.
+        // Real round-trip: without the application guard, the FK constraint
+        // ownership.variant_id (V1__init_schema.sql, without ON DELETE) would reject
+        // the deletion with a raw SQL error instead of a clear message.
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
         entityRepository.save(entity);
@@ -193,16 +193,16 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
                 .isInstanceOf(VariantDeletionNotAllowedException.class);
 
         Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
-        assertThat(reloaded.variants()).hasSize(1); // toujours là
+        assertThat(reloaded.variants()).hasSize(1); // still there
     }
 
     @Test
     void deleting_the_last_tome_of_an_edition_cascades_all_the_way_to_the_series_for_real() {
-        // Round-trip réel bout en bout (étape 5) : Édition ET Série effectivement absentes
-        // de la base ensuite, pas seulement du domaine en mémoire.
+        // Real end-to-end round-trip (step 5): Edition AND Series really absent
+        // from the database afterwards, not only from the in-memory domain.
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
-        entityRepository.save(entity); // la Série doit exister avant qu'une Édition puisse la référencer (FK)
+        entityRepository.save(entity); // the Series must exist before an Edition can reference it (FK)
         MangaEdition edition = mangaEditionRepository.save(MangaEdition.create(entity.id(), entity.title(),
                 "Perfect Edition", EditionTier.DELUXE, "Kana", 6, null, false, false, null));
         entity.linkVariantToEdition(variant.id(), edition.id());
@@ -216,13 +216,13 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void a_manga_edition_with_a_real_market_observation_survives_losing_its_last_tome() {
-        // Preuve par la contrainte FK réelle (market_price_observation.manga_edition_id) :
-        // sans le rattrapage de DataIntegrityViolationException dans VariantDeletionService,
-        // cet appel lèverait une erreur SQL brute plutôt que de simplement conserver
-        // l'Édition comme donnée de référence.
+        // Proof by the real FK constraint (market_price_observation.manga_edition_id):
+        // without catching DataIntegrityViolationException in VariantDeletionService,
+        // this call would throw a raw SQL error instead of simply keeping
+        // the Edition as reference data.
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Sanctuary " + UUID.randomUUID());
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
-        entityRepository.save(entity); // la Série doit exister avant qu'une Édition puisse la référencer (FK)
+        entityRepository.save(entity); // the Series must exist before an Edition can reference it (FK)
         MangaEdition edition = mangaEditionRepository.save(MangaEdition.create(entity.id(), entity.title(),
                 "Perfect Edition", EditionTier.PERFECT, "Glénat", 6, null, false, false, null));
         entity.linkVariantToEdition(variant.id(), edition.id());
@@ -230,15 +230,15 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
         marketPriceObservationRepository.save(MarketPriceObservation.record_(edition.id(), null,
                 new BigDecimal("150"), ListingPlatform.VINTED, null, LocalDate.now(), "Lot Vinted"));
 
-        variantDeletionService.delete(entity.id(), variant.id()); // ne lève rien
+        variantDeletionService.delete(entity.id(), variant.id()); // throws nothing
 
-        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // conservée
+        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // kept
         Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
-        assertThat(reloaded.variants()).isEmpty(); // le Tome, lui, a bien disparu
+        assertThat(reloaded.variants()).isEmpty(); // the Volume itself is really gone
 
-        // La Série reste aussi (le cascade s'est arrêté), et une tentative de suppression
-        // directe de la Série est bloquée avec un message clair - jamais l'erreur SQL brute
-        // que la contrainte FK manga_edition.entity_id lèverait sans la garde étendue à l'étape 5.
+        // The Series also stays (the cascade stopped), and an attempt to delete
+        // the Series directly is blocked with a clear message - never the raw SQL error
+        // that the FK constraint manga_edition.entity_id would throw without the guard extended in step 5.
         assertThatThrownBy(() -> entityDeletionService.delete(entity.id()))
                 .isInstanceOf(EntityDeletionNotAllowedException.class)
                 .hasMessageContaining("1 édition");
@@ -254,24 +254,24 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
         Entity hollowKnight = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
         entityRepository.save(hollowKnight);
 
-        // Recherche transversale par titre, sans filtre de type : ne doit
-        // remonter que l'Entity dont le titre correspond, quel que soit son type.
+        // Cross-type search by title, without type filter: must
+        // return only the Entity whose title matches, whatever its type.
         assertThat(entityRepository.search("death", null, null))
                 .extracting(Entity::id)
                 .containsExactly(deathNote.id());
 
-        // Recherche vide + filtre de type uniquement : tous les mangas.
+        // Empty search + type filter only: all the mangas.
         assertThat(entityRepository.search(null, EntityTypeFixtures.MANGA.id(), null))
                 .extracting(Entity::id)
                 .contains(deathNote.id())
                 .doesNotContain(hollowKnight.id());
 
-        // Filtre par tag : seule l'Entity taguée doit remonter.
+        // Filter by tag: only the tagged Entity must be returned.
         assertThat(entityRepository.search(null, null, seinen.id()))
                 .extracting(Entity::id)
                 .containsExactly(deathNote.id());
 
-        // Un titre qui ne correspond à rien renvoie une liste vide, pas une erreur.
+        // A title that matches nothing returns an empty list, not an error.
         assertThat(entityRepository.search("un titre qui n'existe vraiment pas", null, null)).isEmpty();
     }
 }

@@ -25,10 +25,10 @@ class OwnershipTest {
 
     @Test
     void acquerir_ne_choisit_pas_de_proprietaire_la_session_le_fera() {
-        // Le domaine ne sait pas qui écrit, et ne doit pas le deviner : le
-        // propriétaire est posé à l'écriture, depuis la session (@TenantId,
-        // voir ProprietaireCourant). Hibernate refuse même une valeur déjà
-        // fixée qui différerait de la sienne.
+        // The domain does not know who writes, and must not guess: the
+        // owner is set at write time, from the session (@TenantId,
+        // see ProprietaireCourant). Hibernate even refuses an already
+        // set value that would differ from its own.
         Ownership ownership = Ownership.acquire(UUID.randomUUID(), null,
                 OwnershipCondition.NEW, LocalDate.now(), null);
 
@@ -85,8 +85,8 @@ class OwnershipTest {
         assertTrue(ownership.purchasePrice().isEmpty());
     }
 
-    // "Annuler" propose juste apres "Marquer vendu"/"Marquer perdu" ne doit pas
-    // etre decoratif : ces deux cas garantissent qu'il restaure vraiment.
+    // "Undo" offered just after "Mark sold"/"Mark lost" must not
+    // be decorative: these two cases guarantee it really restores.
     @Test
     void a_sold_copy_can_be_restored_to_owned() {
         Ownership ownership = Ownership.acquire(UUID.randomUUID(), null, OwnershipCondition.USED, LocalDate.now(), null);

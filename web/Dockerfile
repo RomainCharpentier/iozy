@@ -1,16 +1,15 @@
-# --- Étape de build ---
+# --- Build step ---
 FROM node:24-alpine AS build
 WORKDIR /build
 
-# Le numéro de livraison est figé À LA COMPILATION : le bundle est un fichier
-# statique, il ne peut pas le demander plus tard. `VITE_` est le préfixe
-# qu'exige Vite pour qu'une variable d'environnement franchisse la frontière
-# du build.
+# The release number is fixed AT BUILD TIME: the bundle is a static file, so it
+# cannot ask for it later. `VITE_` is the prefix Vite requires for an
+# environment variable to cross the build boundary.
 #
-# Elle sert à repérer le cas où l'interface et le serveur ne viennent pas de la
-# même livraison - un service worker qui garde l'ancienne coquille, une image
-# sur deux qui n'a pas été tirée. Sans elle, l'app afficherait la version du
-# SERVEUR en la faisant passer pour la sienne.
+# It is used to detect the case where the interface and the server do not come
+# from the same release - a service worker that keeps the old shell, or one
+# image out of two that was not pulled. Without it, the app would show the
+# SERVER version and pass it off as its own.
 ARG VERSION=dev
 ENV VITE_VERSION=$VERSION
 
@@ -19,11 +18,11 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# --- Étape de service ---
-# nginx sert le build statique ET proxy /api en interne vers le backend
-# (voir nginx.conf) - le navigateur ne voit qu'une seule origine, donc pas
-# besoin de CORS en prod (contrairement au dev où vite.config.ts joue ce
-# rôle de proxy). C'est l'option recommandée dans le TODO de
+# --- Serving step ---
+# nginx serves the static build AND proxies /api internally to the backend
+# (see nginx.conf) - the browser sees only one origin, so no CORS is needed
+# in prod (unlike dev, where vite.config.ts plays this proxy role). This is
+# the option recommended in the TODO of
 # backend/src/main/java/com/iozycore/api/config/CorsConfig.java.
 FROM nginx:alpine
 COPY --from=build /build/dist /usr/share/nginx/html

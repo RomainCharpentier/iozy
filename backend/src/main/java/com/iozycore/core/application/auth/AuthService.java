@@ -9,45 +9,45 @@ import org.springframework.stereotype.Service;
 import java.util.regex.Pattern;
 
 /**
- * Créer un compte — et décider qui a le droit d'en créer un.
+ * Create an account - and decide who has the right to create one.
  *
- * <h2>Le premier compte n'est pas comme les autres</h2>
- * Tant qu'aucun compte n'existe, la création est <b>ouverte</b> : il faut bien
- * que quelqu'un puisse entrer le premier, et une instance fraîchement déployée
- * n'a rien à protéger. Ce premier compte <b>reprend</b> l'identifiant du
- * propriétaire par défaut : la collection déjà saisie devient la sienne, sans
- * qu'une seule ligne ne bouge (voir {@link AppUser#premier}).
+ * <h2>The first account is not like the others</h2>
+ * As long as no account exists, creation is <b>open</b>: someone has to be
+ * able to enter first, and a freshly deployed instance
+ * has nothing to protect. This first account <b>takes over</b> the id of the
+ * default owner: the collection already entered becomes its own, without
+ * a single row moving (see {@link AppUser#premier}).
  *
- * <h2>Ensuite, sur invitation seulement</h2>
- * Une inscription libre sur une application exposée à Internet, c'est une base
- * ouverte à n'importe qui. Les comptes suivants demandent donc un code
- * d'invitation, défini par l'exploitant de l'instance
- * ({@code IOZYCORE_INVITE_CODE}). <b>Non défini, la création est fermée</b> :
- * l'absence de configuration ne doit jamais ouvrir une porte - elle la ferme.
+ * <h2>Then, by invitation only</h2>
+ * A free sign-up on an application exposed to the Internet is a database
+ * open to anyone. The following accounts therefore need an invitation
+ * code, defined by the operator of the instance
+ * ({@code IOZYCORE_INVITE_CODE}). <b>If not defined, creation is closed</b>:
+ * the absence of configuration must never open a door - it closes it.
  *
- * <h2>Le pseudo est vérifié ICI, pas seulement en base</h2>
- * L'index unique de la V27 garantit qu'aucun doublon ne s'écrit ; il ne
- * garantit pas qu'on l'explique. Une violation d'index remonte en 500, avec un
- * message qui parle de contrainte à quelqu'un qui voulait juste choisir un
- * nom. La vérification préalable existe pour la PHRASE, l'index pour la
- * certitude - deux besoins distincts, et aucun ne remplace l'autre.
+ * <h2>The pseudo is checked HERE, not only in the database</h2>
+ * The unique index of V27 guarantees that no duplicate is written; it does not
+ * guarantee that it is explained. An index violation comes up as a 500, with a
+ * message that talks about a constraint to someone who just wanted to choose a
+ * name. The prior check exists for the SENTENCE, the index for
+ * certainty - two distinct needs, and neither replaces the other.
  */
 @Service
 public class AuthService {
 
     /**
-     * Dix caractères, et non huit. C'est le seul secret devant toute une
-     * collection, et il n'y a pas de second facteur derrière : autant que la
-     * borne basse ne soit pas celle d'un coffre qu'on ouvre au chalumeau.
+     * Ten characters, not eight. It is the only secret in front of a whole
+     * collection, and there is no second factor behind it: the lower
+     * bound might as well not be that of a safe opened with a blowtorch.
      */
     static final int LONGUEUR_MINIMALE_MOT_DE_PASSE = 10;
 
     /**
-     * Volontairement permissif : une adresse e-mail ne se valide pas par une
-     * expression régulière (la vraie grammaire tient sur plusieurs pages), et
-     * la seule vérification qui compte - « est-ce que tu la relèves ? » -
-     * demanderait d'y envoyer un message. On refuse donc ce qui n'est
-     * manifestement pas une adresse, sans prétendre valider les autres.
+     * Deliberately permissive: an e-mail address is not validated by a
+     * regular expression (the real grammar takes several pages), and
+     * the only check that matters - "do you read it?" -
+     * would require sending a message to it. So we refuse what is
+     * obviously not an address, without claiming to validate the others.
      */
     private static final Pattern FORME_D_ADRESSE = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
@@ -62,12 +62,12 @@ public class AuthService {
         this.codeInvitation = codeInvitation == null ? "" : codeInvitation.trim();
     }
 
-    /** Vrai tant que personne n'a créé de compte : le client propose alors « créer le premier compte ». */
+    /** True as long as nobody has created an account: the client then offers "create the first account". */
     public boolean aucunCompte() {
         return comptes.isEmpty();
     }
 
-    /** Vrai si un compte de plus peut être créé - premier compte, ou code d'invitation configuré. */
+    /** True if one more account can be created - first account, or invitation code configured. */
     public boolean creationOuverte() {
         return aucunCompte() || !codeInvitation.isEmpty();
     }
@@ -111,14 +111,14 @@ public class AuthService {
         return comptes.save(compte);
     }
 
-    /** Une demande mal formée : l'utilisateur peut la corriger (400). */
+    /** A badly formed request: the user can fix it (400). */
     public static class CreationRefusee extends RuntimeException {
         public CreationRefusee(String message) {
             super(message);
         }
     }
 
-    /** Une demande bien formée, mais pas autorisée ici (403). */
+    /** A well-formed request, but not allowed here (403). */
     public static class CreationInterdite extends RuntimeException {
         public CreationInterdite(String message) {
             super(message);

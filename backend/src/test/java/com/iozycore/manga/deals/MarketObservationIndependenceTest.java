@@ -13,17 +13,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.core.listing.ListingPlatform;
 
 /**
- * <b>Un échantillon compte des vendeurs, pas des lignes en base.</b>
+ * <b>A sample counts sellers, not rows in the database.</b>
  *
- * <h2>Le défaut que ces tests interdisent</h2>
- * Une même annonce analysée cinq fois produit cinq relevés. Si chacun comptait,
- * il suffirait de recharger une page pour faire passer une référence à HIGH sur
- * une seule offre : un chiffre précis tiré d'une observation unique du marché,
- * exactement ce que la confiance est censée empêcher.
+ * <h2>The flaw these tests forbid</h2>
+ * The same listing analysed five times produces five records. If each one counted,
+ * reloading a page would be enough to push a reference to HIGH on
+ * a single offer: a precise figure drawn from one single observation of the market,
+ * exactly what confidence is supposed to prevent.
  * <p>
- * Et une annonce ne se compare pas à elle-même : dès la deuxième analyse d'une
- * URL, son propre prix serait dans l'échantillon, et toute annonce se dirait
- * « au prix du marché » - le sien.
+ * And a listing is not compared with itself: from the second analysis of a
+ * URL, its own price would be in the sample, and every listing would call itself
+ * "at the market price" - its own.
  */
 class MarketObservationIndependenceTest {
 
@@ -34,12 +34,12 @@ class MarketObservationIndependenceTest {
                 20, new BigDecimal("8.50"), false, false, null);
     }
 
-    /** Un relevé issu d'une annonce, avec son identité et son ancienneté d'écriture. */
+    /** A record coming from a listing, with its identity and its write age. */
     private static MarketPriceObservation depuisAnnonce(MangaEdition edition, String identite, String prix,
                                                          LocalDate date, int ordreEcriture) {
         return new MarketPriceObservation(java.util.UUID.randomUUID(), edition.id(), new VolumeRange(1, 12),
                 new BigDecimal(prix), ListingPlatform.VINTED, Condition.VERY_GOOD, date, null,
-                Instant.parse("2026-08-01T10:00:00Z").plusSeconds(ordreEcriture), // départage à date égale
+                Instant.parse("2026-08-01T10:00:00Z").plusSeconds(ordreEcriture), // breaks ties on equal date
                 MarketObservationOrigin.LISTING_ANALYSIS, 12, identite, "https://www.vinted.fr/items/" + identite);
     }
 
@@ -49,7 +49,7 @@ class MarketObservationIndependenceTest {
                 MarketComparableSelector.selectFor(edition, 14, releves, AUJOURD_HUI, annonceCourante), AUJOURD_HUI);
     }
 
-    // =============================================== B, C : une annonce suivie
+    // =============================================== B, C: a tracked listing
 
     @Test
     void trois_releves_de_la_meme_annonce_ne_font_qu_un_comparable() {
@@ -61,10 +61,10 @@ class MarketObservationIndependenceTest {
 
         MarketReference reference = referencePour(edition, releves, null);
 
-        // L'historique existe - trois relevés - mais il décrit UNE offre.
+        // The history exists - three records - but it describes ONE offer.
         assertThat(reference.temporalCount()).isEqualTo(3);
         assertThat(reference.sampleSize()).isEqualTo(1);
-        // Et donc jamais HIGH : c'est tout l'enjeu.
+        // And therefore never HIGH: that is the whole point.
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.LOW);
         assertThat(reference.isUsable()).isFalse();
     }
@@ -72,16 +72,16 @@ class MarketObservationIndependenceTest {
     @Test
     void le_prix_retenu_pour_une_annonce_suivie_est_le_plus_recent() {
         MangaEdition edition = edition();
-        // Volontairement dans le désordre : c'est la DATE qui tranche, pas l'ordre.
+        // Deliberately out of order: the DATE decides, not the order.
         List<MarketPriceObservation> releves = List.of(
                 depuisAnnonce(edition, "VINTED:A", "60.00", AUJOURD_HUI.minusDays(1), 3),
                 depuisAnnonce(edition, "VINTED:A", "70.00", AUJOURD_HUI.minusDays(6), 1));
 
         MarketReference reference = referencePour(edition, releves, null);
 
-        // 60 / 12 tomes = 5,00 le tome, x 14 tomes visés = 70,00.
-        // Le prix d'hier decrit cette offre ; celui d'il y a six jours ne la
-        // decrit plus.
+        // 60 / 12 volumes = 5.00 a volume, x 14 target volumes = 70.00.
+        // Yesterday's price describes this offer; the one from six days ago no
+        // longer does.
         assertThat(reference.price()).isEqualByComparingTo("70.00");
         assertThat(reference.mostRecentObservation()).isEqualTo(AUJOURD_HUI.minusDays(1));
     }
@@ -104,7 +104,7 @@ class MarketObservationIndependenceTest {
                 .isEqualTo(PricePosition.REFERENCE_UNAVAILABLE);
     }
 
-    // ================================================ D : trois vraies annonces
+    // ================================================ D: three real listings
 
     @Test
     void trois_annonces_distinctes_font_trois_comparables_independants() {
@@ -137,7 +137,7 @@ class MarketObservationIndependenceTest {
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.MEDIUM);
     }
 
-    // ============================================ E : l'annonce courante exclue
+    // ============================================ E: the current listing excluded
 
     @Test
     void une_annonce_ne_se_compare_jamais_a_elle_meme() {
@@ -147,16 +147,16 @@ class MarketObservationIndependenceTest {
                 depuisAnnonce(edition, "VINTED:B", "45.00", AUJOURD_HUI.minusDays(7), 2),
                 depuisAnnonce(edition, "VINTED:C", "96.00", AUJOURD_HUI.minusDays(1), 3));
 
-        // On réévalue C : son propre prix, très au-dessus, ne doit pas tirer la
-        // référence vers lui et le faire passer pour « au prix du marché ».
+        // We re-assess C: its own price, far above, must not pull the
+        // reference toward itself and make it pass for "at the market price".
         MarketReference sansSoi = referencePour(edition, releves, "VINTED:C");
         MarketReference avecSoi = referencePour(edition, releves, null);
 
         assertThat(sansSoi.sampleSize()).isEqualTo(2);
-        // 42/12 = 3,50 et 45/12 = 3,75 -> médiane 3,63 x 14 = 50,82.
+        // 42/12 = 3.50 and 45/12 = 3.75 -> median 3.63 x 14 = 50.82.
         assertThat(sansSoi.price()).isEqualByComparingTo("50.82");
-        // Avec elle-même : 3,50 / 3,75 / 8,00 -> médiane 3,75 x 14 = 52,50, et
-        // surtout un échantillon gonflé d'une offre qui n'en est pas une.
+        // With itself: 3.50 / 3.75 / 8.00 -> median 3.75 x 14 = 52.50, and
+        // above all a sample inflated by an offer that is not one.
         assertThat(avecSoi.sampleSize()).isEqualTo(3);
         assertThat(avecSoi.price()).isNotEqualByComparingTo(sansSoi.price());
     }
@@ -164,27 +164,27 @@ class MarketObservationIndependenceTest {
     @Test
     void exclure_l_annonce_courante_peut_rendre_la_reference_indisponible_et_c_est_correct() {
         MangaEdition edition = edition();
-        // Le seul comparable EST l'annonce évaluée : il ne reste rien.
+        // The only comparable IS the assessed listing: nothing is left.
         List<MarketPriceObservation> releves = List.of(
                 depuisAnnonce(edition, "VINTED:C", "96.00", AUJOURD_HUI.minusDays(1), 1));
 
         MarketReference reference = referencePour(edition, releves, "VINTED:C");
 
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.UNAVAILABLE);
-        // Mieux vaut « aucune référence » qu'une référence égale au prix demandé.
+        // Better "no reference" than a reference equal to the asking price.
         assertThat(reference.price()).isNull();
-        // Et l'absence est nommée pour ce qu'elle est : il manque une AUTRE
-        // offre, pas un relevé de plus sur celle-ci.
+        // And the absence is named for what it is: ANOTHER
+        // offer is missing, not one more record on this one.
         assertThat(reference.gap()).isEqualTo(ReferenceGap.ONLY_CURRENT_LISTING);
     }
 
-    // ========================================== J : les relevés manuels intacts
+    // ========================================== J: manual records untouched
 
     @Test
     void deux_releves_manuels_restent_deux_comparables() {
         MangaEdition edition = edition();
-        // Sans annonce derrière, rien ne permet - ni ne justifie - de les fondre :
-        // l'utilisateur a vu deux prix et en a noté deux.
+        // Without a listing behind them, nothing allows - or justifies - merging them:
+        // the user saw two prices and noted two.
         List<MarketPriceObservation> releves = List.of(
                 MarketPriceObservation.record_(edition.id(), new VolumeRange(1, 12), new BigDecimal("48.00"),
                         ListingPlatform.VINTED, Condition.VERY_GOOD, AUJOURD_HUI.minusDays(9), null),
@@ -210,17 +210,17 @@ class MarketObservationIndependenceTest {
 
         MarketReference reference = referencePour(edition, releves, null);
 
-        // Les deux origines valent autant : ce sont des prix vus.
+        // Both origins are worth the same: they are seen prices.
         assertThat(reference.sampleSize()).isEqualTo(3);
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.HIGH);
     }
 
-    // ============================================== L'identité, cas par cas
+    // ============================================== Identity, case by case
 
     @Test
     void l_identifiant_de_source_prime_sur_l_url() {
-        // Deux liens vers la même annonce, l'un avec le slug du titre : même id,
-        // donc une seule offre.
+        // Two links to the same listing, one with the title slug: same id,
+        // so a single offer.
         String avecSlug = ListingIdentity.of(ListingPlatform.VINTED, "6789012345",
                 "https://www.vinted.fr/items/6789012345-platinum-end-1-14");
         String sansSlug = ListingIdentity.of(ListingPlatform.VINTED, "6789012345",
@@ -247,7 +247,7 @@ class MarketObservationIndependenceTest {
 
     @Test
     void sans_identifiant_ni_url_aucune_deduplication_n_est_possible() {
-        // Assumé et documenté : deux saisies manuelles sont deux comparables.
+        // Accepted and documented: two manual entries are two comparables.
         assertThat(ListingIdentity.of(ListingPlatform.VINTED, null, null)).isNull();
         assertThat(ListingIdentity.of(ListingPlatform.VINTED, "  ", "   ")).isNull();
         assertThat(ListingIdentity.of(ListingPlatform.VINTED, null, "pas une url")).isNull();

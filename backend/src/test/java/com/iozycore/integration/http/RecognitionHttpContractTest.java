@@ -29,13 +29,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP du seul endpoint créé par ce chantier.
+ * The HTTP contract of the only endpoint created by this work.
  *
- * <p>La campagne C2 est close ; celle-ci ne la rouvre pas. Un endpoint neuf
- * naît simplement avec son contrat, plutôt que d'attendre une campagne pour
- * l'obtenir.
+ * <p>The C2 campaign is closed; this one does not reopen it. A new endpoint
+ * is simply born with its contract, rather than waiting for a campaign to
+ * get one.
  *
- * <p>Aucun appel réseau, aucun appel IA : voir {@link FakeRecognitionProvider}.
+ * <p>No network call, no AI call: see {@link FakeRecognitionProvider}.
  */
 @Import(FakeRecognitionProvider.class)
 class RecognitionHttpContractTest extends HttpContractTestBase {
@@ -54,7 +54,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
     @Autowired
     private OwnershipRepository ownershipRepository;
 
-    /** Une demande AVEC photos : c'est le seul chemin qui sollicite un moteur. */
+    /** A request WITH photos: this is the only path that calls an engine. */
     private Map<String, Object> corps(String declencheur, int photos) {
         List<String> urls = new ArrayList<>();
         for (int i = 0; i < photos; i++) {
@@ -63,7 +63,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
         return Map.of("imageUrls", urls, "title", "Lot de test", "entityTypeCode", "MANGA");
     }
 
-    /** Une demande SANS photos : texte seul, aucun moteur appelé. */
+    /** A request WITHOUT photos: text only, no engine called. */
     private Map<String, Object> texteSeul(String titre) {
         return Map.of("title", titre, "entityTypeCode", "MANGA");
     }
@@ -82,7 +82,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 EditionTier.STANDARD, null, tomes, null, false, false, null, null, maintenant, maintenant));
     }
 
-    // ====================================================== Succès
+    // ====================================================== Success
 
     @Test
     void recognized_volumes_come_back_matched_to_the_catalog() throws Exception {
@@ -107,7 +107,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps("normal", 1))))
                 .andExpect(status().isOk())
-                // L'utilisateur doit pouvoir comprendre POURQUOI on lui propose ça.
+                // The user must be able to understand WHY this is proposed to them.
                 .andExpect(jsonPath("$.items[0].evidence[0]").value("lecture de test"))
                 .andExpect(jsonPath("$.items[0].sourceImages[0]").value(0))
                 .andExpect(jsonPath("$.items[0].confidence").value("HIGH"));
@@ -126,7 +126,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.items[1].preselected").value(false));
     }
 
-    // ====================================================== Doublons
+    // ====================================================== Duplicates
 
     @Test
     void one_volume_seen_on_three_photos_is_one_item_in_the_response() throws Exception {
@@ -140,7 +140,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.items[0].sourceImages", hasSize(3)));
     }
 
-    // ====================================================== Résultat partiel
+    // ====================================================== Partial result
 
     @Test
     void unidentified_items_are_reported_rather_than_hidden() throws Exception {
@@ -180,7 +180,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.notInCatalogCount").value(1));
 
         assertThat(entityRepository.findAllByType(manga.id()))
-                .as("aucune fiche catalogue créée par une reconnaissance").hasSize(avant);
+                .as("no catalogue detail page created by a recognition").hasSize(avant);
     }
 
     @Test
@@ -199,7 +199,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.items[0].readyForAnalysis").value(false));
     }
 
-    // ====================================================== Aucune écriture
+    // ====================================================== No write
 
     @Test
     void analyzing_photos_never_creates_an_ownership() throws Exception {
@@ -210,11 +210,11 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps("normal", 2))))
                 .andExpect(status().isOk());
 
-        // Reconnaître ce que contient une annonce n'est pas l'avoir achetée.
+        // Recognising what a listing contains is not having bought it.
         assertThat(ownershipRepository.findAll()).hasSize(avant);
     }
 
-    // ====================================================== Panne moteur
+    // ====================================================== Engine failure
 
     @Test
     void an_unavailable_engine_is_a_200_with_a_status_the_screen_can_explain() throws Exception {
@@ -235,7 +235,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.requestedImageCount").value(1));
     }
 
-    // ====================================================== Texte seul
+    // ====================================================== Text only
 
     @Test
     void a_listing_title_alone_yields_proposals_without_any_photo() throws Exception {
@@ -245,8 +245,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(texteSeul("Platinum End intégrale tomes 1 à 14"))))
                 .andExpect(status().isOk())
-                // Aucune photo demandée : ce n'est pas un échec de lecture,
-                // c'est l'absence de question.
+                // No photo asked for: this is not a reading failure,
+                // it is the absence of a question.
                 .andExpect(jsonPath("$.visionStatus").doesNotExist())
                 .andExpect(jsonPath("$.items", hasSize(14)))
                 .andExpect(jsonPath("$.textItemCount").value(14))
@@ -256,8 +256,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
 
     @Test
     void a_text_only_request_never_calls_the_vision_engine() throws Exception {
-        // Le test le plus important de cette passe : une annonce bien rédigée
-        // est comprise sans le moindre appel payant.
+        // The most important test of this pass: a well written listing
+        // is understood without a single paid call.
         int avant = FakeRecognitionProvider.appelsAuMoteur();
 
         mockMvc.perform(post(ROUTE).contentType("application/json")
@@ -265,7 +265,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isOk());
 
         assertThat(FakeRecognitionProvider.appelsAuMoteur())
-                .as("aucun moteur de vision sollicité pour analyser du texte")
+                .as("no vision engine called to analyse text")
                 .isEqualTo(avant);
     }
 
@@ -278,7 +278,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                         .content(json(texteSeul("Platinum End tomes 1 à 3"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].sources[0]").value("TEXT"))
-                // Le libellé parle de la donnée, jamais du fournisseur d'IA.
+                // The label talks about the data, never about the AI provider.
                 .andExpect(jsonPath("$.items[0].sourceLabels[0]").value("annonce"))
                 .andExpect(jsonPath("$.items[0].sourceImages", hasSize(0)))
                 .andExpect(jsonPath("$.items[0].editionHint").doesNotExist());
@@ -293,7 +293,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.textItemCount").value(0));
     }
 
-    // ====================================================== Texte + photos
+    // ====================================================== Text + photos
 
     @Test
     void text_and_photos_produce_a_single_merged_list() throws Exception {
@@ -305,8 +305,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 "imageUrls", List.of(FakeRecognitionProvider.photo("normal", 0)),
                 "entityTypeCode", "MANGA");
 
-        // Le faux moteur voit les tomes 1 et 2 en Standard. Le texte en annonce
-        // trois. Une seule liste en sort, pas deux.
+        // The fake engine sees volumes 1 and 2 in Standard. The text announces
+        // three. Only one list comes out, not two.
         mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.visionStatus").value("OK"))
@@ -324,7 +324,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 "imageUrls", List.of(FakeRecognitionProvider.photo("normal", 0)),
                 "entityTypeCode", "MANGA");
 
-        // Une photo qui ne montre pas un livre ne prouve pas son absence.
+        // A photo that does not show a book does not prove its absence.
         mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(5)));
@@ -343,15 +343,15 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.visionStatus").value("UNAVAILABLE"))
-                // Ce que le texte disait reste vrai même si le moteur tombe.
+                // What the text said stays true even if the engine fails.
                 .andExpect(jsonPath("$.items", hasSize(4)));
     }
 
-    // ====================================================== Corps invalide
+    // ====================================================== Invalid body
 
     @Test
     void a_request_with_neither_text_nor_photo_is_a_400() throws Exception {
-        // Il n'y a littéralement rien à analyser.
+        // There is literally nothing to analyse.
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(Map.of("imageUrls", List.of()))))
                 .andExpect(status().isBadRequest());
@@ -372,9 +372,9 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(Map.of("imageUrls", trop))))
-                // Status seul : MockMvc ne rejoue pas la redirection d'erreur du
-                // conteneur, donc le corps d'un ResponseStatusException y est vide
-                // alors qu'il est bien rempli en HTTP réel.
+                // Status only: MockMvc does not replay the error redirection of the
+                // container, so the body of a ResponseStatusException is empty there
+                // whereas it is well filled in real HTTP.
                 .andExpect(status().isBadRequest());
     }
 
@@ -399,19 +399,19 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
     }
 
     // ==================================================================
-    //  Photos ENVOYÉES par l'utilisateur - /analyze-photos
+    //  Photos SENT by the user - /analyze-photos
     // ==================================================================
     //
-    //  L'autre porte du moteur. Elle existe parce qu'une plateforme qui refuse
-    //  la lecture automatique (Leboncoin), une annonce dont le texte ne nomme
-    //  aucune série (« mangas en tout genre ») et une étagère photographiée
-    //  chez soi ont un point commun : les photos existent, mais aucune URL
-    //  n'est joignable. Ce que ces tests protègent, c'est qu'elle applique les
-    //  MÊMES règles que l'autre - sans en hériter la surface réseau.
+    //  The other door of the engine. It exists because a platform that refuses
+    //  automatic reading (Leboncoin), a listing whose text names
+    //  no series ("mangas en tout genre") and a shelf photographed
+    //  at home have one thing in common: the photos exist, but no URL
+    //  is reachable. What these tests protect is that it applies the
+    //  SAME rules as the other one - without inheriting its network surface.
 
     private static final String ROUTE_PHOTOS = "/api/recognition/analyze-photos";
 
-    /** Un JPEG réel dont les octets portent le mot-clé attendu par le faux moteur. */
+    /** A real JPEG whose bytes carry the keyword expected by the fake engine. */
     private static MockMultipartFile photoEnvoyee(String declencheur) {
         byte[] mot = declencheur.getBytes(StandardCharsets.ISO_8859_1);
         byte[] octets = new byte[Math.max(64, mot.length + 16)];
@@ -427,8 +427,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
     void uploaded_photos_are_analyzed_and_answer_the_same_shape_as_the_url_route() throws Exception {
         mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee("normal")).param("entityTypeCode", "MANGA"))
                 .andExpect(status().isOk())
-                // Même enveloppe exactement : l'écran ne doit pas avoir deux
-                // lectures de réponse selon l'origine des photos.
+                // Exactly the same envelope: the screen must not have two
+                // ways of reading the response depending on the origin of the photos.
                 .andExpect(jsonPath("$.visionStatus").exists())
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.requestedImageCount").value(1))
@@ -437,8 +437,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
 
     @Test
     void uploaded_photos_work_with_NO_text_at_all() throws Exception {
-        // Le cas « mangas en tout genre » : le titre n'apprend rien, les photos
-        // sont la seule source. La route ne doit pas exiger de texte.
+        // The case "mangas en tout genre": the title teaches nothing, the photos
+        // are the only source. The route must not require text.
         mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee("normal")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.textItemCount").value(0));
@@ -450,8 +450,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                         .param("title", "Naruto tomes 1 à 3")
                         .param("entityTypeCode", "MANGA"))
                 .andExpect(status().isOk())
-                // Les deux sources sont consolidées ensemble, exactement comme
-                // sur l'autre route - pas deux listes renvoyées côte à côte.
+                // Both sources are consolidated together, exactly as
+                // on the other route - not two lists returned side by side.
                 .andExpect(jsonPath("$.textItemCount").value(3));
     }
 
@@ -462,7 +462,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(multipart(ROUTE_PHOTOS).file(faux))
                 .andExpect(status().isOk())
-                // Envoyée mais pas analysée : l'écart est dit, pas masqué.
+                // Sent but not analysed: the gap is said, not hidden.
                 .andExpect(jsonPath("$.requestedImageCount").value(1))
                 .andExpect(jsonPath("$.analyzedImageCount").value(0))
                 .andExpect(jsonPath("$.visionStatus").value("NO_USABLE_IMAGE"));
@@ -507,8 +507,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
 
     @Test
     void the_upload_route_writes_nothing() throws Exception {
-        // On compte les séries de l'univers manga : c'est là qu'une fiche
-        // serait créée si la route se mettait à « compléter » le catalogue.
+        // We count the series of the manga universe: this is where a detail page
+        // would be created if the route started to "complete" the catalogue.
         java.util.UUID typeManga = serieCataloguee("Une série témoin").entityTypeId();
         int possessionsAvant = ownershipRepository.findAll().size();
         int seriesAvant = entityRepository.findAllByType(typeManga).size();
@@ -518,13 +518,13 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                         .param("entityTypeCode", "MANGA"))
                 .andExpect(status().isOk());
 
-        // Proposer n'est pas posséder, et lire n'est pas cataloguer.
+        // Proposing is not owning, and reading is not cataloguing.
         assertThat(ownershipRepository.findAll()).hasSize(possessionsAvant);
         assertThat(entityRepository.findAllByType(typeManga)).hasSize(seriesAvant);
     }
 
     // ==================================================================
-    //  « 9 tomes de Naruto » - l'annonce dit combien, pas lesquels
+    //  "9 tomes de Naruto" - the listing says how many, not which ones
     // ==================================================================
 
     @Test
@@ -534,11 +534,11 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(texteSeul("9 tomes de Naruto"))))
                 .andExpect(status().isOk())
-                // Aucune proposition : dérouler 1 à 9 fabriquerait un verdict
-                // d'achat calculé sur des tomes que personne n'a vus.
+                // No proposal: unrolling 1 to 9 would make up a purchase
+                // verdict computed on volumes that nobody has seen.
                 .andExpect(jsonPath("$.items", hasSize(0)))
                 .andExpect(jsonPath("$.textItemCount").value(0))
-                // Mais ce que l'annonce dit vraiment est conservé.
+                // But what the listing really says is kept.
                 .andExpect(jsonPath("$.announcedVolumeCount").value(9))
                 .andExpect(jsonPath("$.announcedSeriesTitle").value("Naruto"));
     }
@@ -549,8 +549,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                         .content(json(texteSeul("Naruto tomes 1 à 9"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(9)))
-                // Sinon l'écran dirait « 9 tomes annoncés » à côté de neuf
-                // tomes déjà identifiés, comme si quelque chose manquait.
+                // Otherwise the screen would say "9 tomes annoncés" next to nine
+                // already identified volumes, as if something was missing.
                 .andExpect(jsonPath("$.announcedVolumeCount").doesNotExist());
     }
 
@@ -564,14 +564,14 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
     }
 
     // ==================================================================
-    //  Lots enumerant PLUSIEURS series
+    //  Batches listing SEVERAL series
     // ==================================================================
 
     @Test
     void two_series_in_one_title_produce_two_series_and_the_right_total() throws Exception {
-        // Avant : trois tomes sous une serie nommee « Death Note + Bakuman ».
-        // Deux livres disparaissaient du decompte, et le prix par tome en
-        // ressortait flatteur - donc un verdict d'achat trop favorable.
+        // Before: three volumes under a series named "Death Note + Bakuman".
+        // Two books disappeared from the count, and the price per volume
+        // came out flattering - so a purchase verdict that was too favourable.
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(texteSeul("Death Note 1-3 + Bakuman 1-2"))))
                 .andExpect(status().isOk())
@@ -583,8 +583,8 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
 
     @Test
     void a_volume_list_is_still_not_mistaken_for_a_list_of_series() throws Exception {
-        // La virgule separe aussi des tomes : « tomes 1, 2, 4 ». Le decoupage
-        // ne doit pas s'y declencher, sinon la lecture qui marchait casse.
+        // The comma also separates volumes: "tomes 1, 2, 4". The splitting
+        // must not trigger on it, otherwise the reading that worked breaks.
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(texteSeul("Platinum End tomes 1, 2, 4"))))
                 .andExpect(status().isOk())
@@ -594,9 +594,9 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
 
     @Test
     void a_trailing_separator_no_longer_pollutes_the_series_title() throws Exception {
-        // « Naruto 1-3 + TBE » rendait « Naruto + », que le catalogue ne
-        // pouvait pas rapprocher : un appariement perdu sur un signe de
-        // ponctuation reste seul en bout de ligne.
+        // "Naruto 1-3 + TBE" returned "Naruto +", which the catalogue could not
+        // match: a pairing lost on a punctuation mark that stays alone
+        // at the end of the line.
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(texteSeul("Naruto 1-3 + TBE"))))
                 .andExpect(status().isOk())

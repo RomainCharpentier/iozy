@@ -5,23 +5,23 @@ export function listOwnerships(entityId: string): Promise<OwnershipResponse[]> {
   return get<OwnershipResponse[]>(`/ownerships${buildQuery({ entityId })}`)
 }
 
-/** Toutes les Ownership, tous types confondus - pour calculer une progression
- * réelle (possédé, pas juste catalogué) par série sans une requête par série
- * (voir Ma collection). */
+/** All Ownership items, all types together - to compute a real progress
+ * (owned, not just cataloged) per series without one request per series
+ * (see Ma collection). */
 export function listAllOwnerships(): Promise<OwnershipResponse[]> {
   return get<OwnershipResponse[]>('/ownerships')
 }
 
 /**
- * Suppression définitive d'un exemplaire. Le backend peut la refuser en 409 ;
- * son message est affiché tel quel.
+ * Permanent deletion of a copy. The backend can refuse it with 409;
+ * its message is displayed as it is.
  *
- * <h2>Le seul geste d'écriture qui reste ici</h2>
- * « Vendu », « perdu », « annuler », la note de l'exemplaire et le prix payé
- * avaient chacun leur fonction dans ce fichier - elles ont perdu leur écran aux
- * lots 53 à 55, et personne ne les appelait plus. Les routes serveur
- * correspondantes ont suivi, sauf `/sell` et `/lose` que le client iOS utilise
- * encore, et `/restore` qui les annule (voir OwnershipController).
+ * <h2>The only write action that remains here</h2>
+ * "Sold", "lost", "cancel", the rating of the copy and the price paid
+ * each had their own function in this file - they lost their screen in
+ * batches 53 to 55, and nobody called them anymore. The matching server routes
+ * followed, except `/sell` and `/lose` which the iOS client still uses,
+ * and `/restore` which cancels them (see OwnershipController).
  */
 export function deleteOwnership(id: string): Promise<void> {
   return del<void>(`/ownerships/${id}`)

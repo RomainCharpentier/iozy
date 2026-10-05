@@ -2,21 +2,21 @@ import { useEffect, useState } from 'react'
 import type { MetadataCandidateDto } from '@/common/types/api'
 
 /**
- * Composition libre du titre affiché/sauvegardé pour les candidats
- * Jikan/MyAnimeList (mangas) - persistée en local (pas de backend : un
- * réglage d'affichage propre à cet appareil, cohérent avec la conception
- * mono-utilisateur sans compte de l'app).
+ * Free composition of the displayed/saved title for the Jikan/MyAnimeList
+ * candidates (manga) - persisted locally (no backend: a display setting
+ * specific to this device, consistent with the single-user design without
+ * accounts of the app).
  *
- * Une TitleComposition est une liste ORDONNÉE des 3 langues (toujours les 3,
- * dans l'ordre choisi via glisser-déposer dans Réglages), chacune
- * activable/désactivable indépendamment de sa position :
- * - la première langue ACTIVE dont la valeur est disponible pour ce candidat
- *   devient le titre "principal" (celui réellement saisi/sauvegardé) ;
- * - les langues actives suivantes dont la valeur est disponible apparaissent
- *   à la suite entre parenthèses, dans le même ordre.
- * "Disponible" dépend de la source : le romaji est toujours fourni par
- * Jikan/MAL, l'anglais seulement s'il existe, le français seulement si la
- * recherche best-effort (Open Library/Google Books) en a trouvé un.
+ * A TitleComposition is an ORDERED list of the 3 languages (always the 3,
+ * in the order chosen through drag and drop in Settings), each one
+ * enabled/disabled independently of its position:
+ * - the first ACTIVE language whose value is available for this candidate
+ *   becomes the "main" title (the one actually entered/saved);
+ * - the following active languages whose value is available appear after it
+ *   in parentheses, in the same order.
+ * "Available" depends on the source: romaji is always provided by
+ * Jikan/MAL, English only if it exists, French only if the best-effort
+ * search (Open Library/Google Books) found one.
  */
 export type TitleLanguage = 'FRENCH' | 'ENGLISH' | 'ROMAJI'
 
@@ -35,9 +35,9 @@ export const TITLE_LANGUAGE_LABELS: Record<TitleLanguage, string> = {
   ROMAJI: 'Romaji (titre japonais d\'origine)',
 }
 
-// Reproduit le comportement par défaut historique : français en priorité
-// (best-effort), romaji en repère secondaire, anglais non affiché (mais
-// toujours disponible si l'utilisateur le glisse/active dans Réglages).
+// Reproduces the historical default behavior: French first (best-effort),
+// romaji as a secondary mark, English not displayed (but still available if
+// the user drags/enables it in Settings).
 const DEFAULT_COMPOSITION: TitleComposition = [
   { language: 'FRENCH', enabled: true },
   { language: 'ROMAJI', enabled: true },
@@ -65,13 +65,13 @@ export function getTitleComposition(): TitleComposition {
 
 export function setTitleComposition(composition: TitleComposition): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(composition))
-  // Un seul onglet à la fois en pratique pour cette app, mais notifie quand
-  // même les autres instances de useTitleComposition dans la même page
-  // (le composant Settings et QuickAddPage, par exemple).
+  // Only one tab at a time in practice for this app, but still notify the
+  // other instances of useTitleComposition in the same page
+  // (the Settings component and QuickAddPage, for example).
   window.dispatchEvent(new CustomEvent(STORAGE_KEY))
 }
 
-/** Lit la composition et se met à jour si elle change ailleurs (Reglages, sur Profil). */
+/** Reads the composition and updates if it changes elsewhere (Settings, on Profile). */
 export function useTitleComposition(): TitleComposition {
   const [composition, setComposition] = useState(getTitleComposition)
 
@@ -92,9 +92,9 @@ export function isFrenchEnabled(composition: TitleComposition): boolean {
   return composition.some((item) => item.language === 'FRENCH' && item.enabled)
 }
 
-/** Valeur brute d'un candidat pour une langue donnée, ou undefined si la
- * source ne la fournit pas pour ce candidat précis (ex: pas de titre anglais
- * distinct, ou recherche française pas encore résolue/infructueuse). */
+/** Raw value of a candidate for a given language, or undefined if the
+ * source does not provide it for this specific candidate (e.g. no distinct
+ * English title, or French search not yet resolved/unsuccessful). */
 function languageValue(
   candidate: MetadataCandidateDto,
   language: TitleLanguage,
@@ -110,10 +110,11 @@ function languageValue(
   }
 }
 
-/** Valeurs disponibles pour ce candidat, dans l'ordre de la composition,
- * limitées aux langues activées - `candidate.title` en dernier repli si
- * aucune des langues activées n'a de valeur (ne devrait arriver que si tout
- * a été désactivé, ROMAJI y compris, ce que l'UI Réglages empêche déjà). */
+/** Values available for this candidate, in the order of the composition,
+ * limited to the enabled languages - `candidate.title` as a last fallback if
+ * none of the enabled languages has a value (should only happen if
+ * everything was disabled, ROMAJI included, which the Settings UI already
+ * prevents). */
 function availableValuesInOrder(
   candidate: MetadataCandidateDto,
   composition: TitleComposition,
@@ -126,9 +127,9 @@ function availableValuesInOrder(
   return values.length > 0 ? values : [candidate.title]
 }
 
-/** Titre "principal" résolu selon la composition - c'est celui réellement
- * saisi/sauvegardé (voir QuickAddPage.pickCandidate), jamais la chaîne avec
- * parenthèses de candidateDisplayTitle. */
+/** "Main" title resolved according to the composition - this is the one
+ * actually entered/saved (see QuickAddPage.pickCandidate), never the string
+ * with parentheses of candidateDisplayTitle. */
 export function resolvePrimaryTitle(
   candidate: MetadataCandidateDto,
   composition: TitleComposition,
@@ -137,10 +138,10 @@ export function resolvePrimaryTitle(
   return availableValuesInOrder(candidate, composition, frenchTitle)[0]
 }
 
-/** ex: "L'Attaque des Titans (Shingeki no Kyojin)" - la première langue
- * active disponible devient le titre principal, les suivantes (actives et
- * disponibles) suivent entre parenthèses dans l'ordre choisi. Jamais
- * intégré au titre réellement saisi/sauvegardé (voir resolvePrimaryTitle). */
+/** e.g. "L'Attaque des Titans (Shingeki no Kyojin)" - the first available
+ * active language becomes the main title, the following ones (active and
+ * available) follow in parentheses in the chosen order. Never built into the
+ * title actually entered/saved (see resolvePrimaryTitle). */
 export function candidateDisplayTitle(
   candidate: MetadataCandidateDto,
   composition: TitleComposition,

@@ -12,8 +12,8 @@ public interface EntityTypeRepository {
 
     Optional<EntityType> findByCode(String code);
 
-    /** Utilisé par QuickAdd/EntityDetail (les 2 clients) pour afficher la liste des types disponibles,
-     * et par {@link com.iozycore.core.insights.StatsService} pour les statistiques par type. */
+    /** Used by QuickAdd/EntityDetail (the 2 clients) to show the list of available types,
+     * and by {@link com.iozycore.core.insights.StatsService} for the statistics by type. */
     List<EntityType> findAll();
 
     void deleteById(UUID id);

@@ -3,9 +3,9 @@ package com.iozycore.manga.metadata;
 import java.time.Instant;
 
 /**
- * La clé et la fraîcheur d'un résultat stocké, sans ses tomes - ce que le
- * rafraîchissement nocturne du calendrier des sorties lit pour choisir quoi
- * relire, sans charger le JSON de chaque série (lot 146).
+ * The key and the freshness of a stored result, without its volumes - what the
+ * nightly refresh of the release calendar reads to choose what to
+ * read again, without loading the JSON of each series (batch 146).
  */
 public record StoredVolumeSearchKey(String seriesTitle, String author, Instant fetchedAt) {
 

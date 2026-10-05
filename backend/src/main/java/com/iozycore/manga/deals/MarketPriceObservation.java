@@ -9,39 +9,39 @@ import java.util.UUID;
 import com.iozycore.core.listing.ListingPlatform;
 
 /**
- * Un prix <b>demandé</b>, constaté une fois, pour une {@link MangaEdition} -
- * journal en ajout seul, jamais modifié après coup.
+ * An <b>asking</b> price, noted once, for a {@link MangaEdition} -
+ * an append-only log, never changed afterwards.
  *
- * <h2>Ce que c'est, et ce que ce n'est pas</h2>
- * Un prix affiché par un vendeur à une date. <b>Pas</b> une vente conclue, pas
- * une preuve de valeur, pas une estimation. IozyCore n'a accès à aucune donnée
- * transactionnelle, et l'interface le rappelle partout où ces chiffres
- * apparaissent. Deux choses n'y entrent donc jamais : une estimation IA
- * ({@link PriceBasis#AI_ESTIMATED}) et un prix neuf catalogue - la première est
- * une supposition, le second décrit un autre marché.
+ * <h2>What it is, and what it is not</h2>
+ * A price shown by a seller on a date. <b>Not</b> a completed sale, not
+ * a proof of value, not an estimate. IozyCore has no access to any transaction
+ * data, and the interface reminds people of it wherever these numbers
+ * appear. Two things therefore never enter it: an AI estimate
+ * ({@link PriceBasis#AI_ESTIMATED}) and a catalogue new price - the first is
+ * a guess, the second describes another market.
  *
- * <h2>Hors frais, toujours</h2>
- * {@code observedPrice} est le prix de l'article seul. Protection acheteur et
- * livraison appartiennent au coût d'acquisition de l'acheteur, pas à ce que
- * vaut le produit : les inclure ici comparerait des annonces hors frais à des
- * totaux frais compris (voir {@code PriceSemanticsTest}).
+ * <h2>Without fees, always</h2>
+ * {@code observedPrice} is the price of the item alone. Buyer protection and
+ * shipping belong to the buyer's acquisition cost, not to what the
+ * product is worth: including them here would compare listings without fees to
+ * totals with fees (see {@code PriceSemanticsTest}).
  *
- * <h2>Deux origines, une seule nature</h2>
- * Saisie manuelle ou annonce réellement analysée : dans les deux cas c'est un
- * prix vu par l'utilisateur. {@link MarketObservationOrigin} les distingue pour
- * qu'on sache d'où vient un chiffre qui surprend, sans en faire une hiérarchie.
+ * <h2>Two origins, one nature</h2>
+ * Manual entry or a listing really analysed: in both cases it is a
+ * price seen by the user. {@link MarketObservationOrigin} tells them apart so
+ * that we know where a surprising number comes from, without making it a hierarchy.
  *
- * @param scope           nullable - null signifie que le relevé porte sur l'édition entière plutôt
- *                        que sur une plage précise
- * @param volumeCount     nombre de tomes réellement concernés, quand il est connu. Fait autorité
- *                        sur {@code scope} : un lot 1-4 + 7-10 compte 8 tomes, là où la plage
- *                        1-10 en dirait 10. Null pour les relevés antérieurs à ce champ.
- * @param listingIdentity identité de l'annonce d'origine (voir {@link ListingIdentity}), ou null
- *                        quand il n'y en a pas - une saisie manuelle, typiquement. Plusieurs
- *                        relevés de MÊME identité décrivent une seule offre dans le temps, pas
- *                        plusieurs vendeurs.
- * @param sourceUrl       lien de l'annonce d'origine, pour pouvoir y retourner. Jamais utilisé
- *                        comme identité directement : c'est {@code listingIdentity} qui l'est.
+ * @param scope           nullable - null means the observation covers the whole edition rather
+ *                        than a precise range
+ * @param volumeCount     number of volumes really concerned, when known. Takes precedence
+ *                        over {@code scope}: a lot 1-4 + 7-10 counts 8 volumes, where the range
+ *                        1-10 would say 10. Null for observations older than this field.
+ * @param listingIdentity identity of the original listing (see {@link ListingIdentity}), or null
+ *                        when there is none - a manual entry, typically. Several
+ *                        observations with the SAME identity describe a single offer over time, not
+ *                        several sellers.
+ * @param sourceUrl       link of the original listing, to be able to go back to it. Never used
+ *                        as identity directly: it is {@code listingIdentity} that is.
  */
 public record MarketPriceObservation(UUID id, UUID mangaEditionId, VolumeRange scope, BigDecimal observedPrice,
                                       ListingPlatform platform, Condition observedCondition, LocalDate observedAt,
@@ -57,15 +57,15 @@ public record MarketPriceObservation(UUID id, UUID mangaEditionId, VolumeRange s
         if (observedAt == null) {
             throw new IllegalArgumentException("Un prix relevé doit porter une date");
         }
-        // Relevés antérieurs à ce champ : saisis à la main, puisque c'était le
-        // seul chemin possible. On le dit plutôt que de laisser un trou.
+        // Observations older than this field: entered by hand, since that was the
+        // only possible path. We say so rather than leave a hole.
         origin = origin == null ? MarketObservationOrigin.MANUAL_ENTRY : origin;
         if (volumeCount != null && volumeCount <= 0) {
             throw new IllegalArgumentException("Un nombre de tomes relevé doit être positif");
         }
     }
 
-    /** Le parcours manuel, inchangé : un prix vu, noté depuis la fiche d'une édition. */
+    /** The manual path, unchanged: a price seen, noted from the page of an edition. */
     public static MarketPriceObservation record_(UUID mangaEditionId, VolumeRange scope, BigDecimal observedPrice,
                                                    ListingPlatform platform, Condition observedCondition,
                                                    LocalDate observedAt, String note) {
@@ -75,10 +75,10 @@ public record MarketPriceObservation(UUID id, UUID mangaEditionId, VolumeRange s
     }
 
     /**
-     * Le prix d'une annonce réellement analysée par l'utilisateur.
+     * The price of a listing really analysed by the user.
      *
-     * @param askingPrice le prix de l'annonce, <b>hors frais</b> - jamais le coût d'acquisition
-     * @param volumeCount les tomes du lot, comptés sur leur liste réelle et non sur une plage
+     * @param askingPrice the price of the listing, <b>without fees</b> - never the acquisition cost
+     * @param volumeCount the volumes of the lot, counted on their real list and not on a range
      */
     public static MarketPriceObservation fromAnalyzedListing(UUID mangaEditionId, VolumeRange scope, int volumeCount,
                                                               BigDecimal askingPrice, ListingPlatform platform,
@@ -90,13 +90,13 @@ public record MarketPriceObservation(UUID id, UUID mangaEditionId, VolumeRange s
     }
 
     /**
-     * Ce qui compte comme <b>un</b> comparable. Deux relevés de même clé
-     * décrivent la même offre suivie dans le temps ; deux clés distinctes, deux
-     * offres.
+     * What counts as <b>one</b> comparable. Two observations with the same key
+     * describe the same offer followed over time; two distinct keys, two
+     * offers.
      * <p>
-     * Faute d'identité - une saisie manuelle - chaque relevé est sa propre clé :
-     * l'utilisateur qui note deux prix note deux choses vues, et rien ne permet
-     * ni ne justifie de les fondre.
+     * Without an identity - a manual entry - each observation is its own key:
+     * a user who notes two prices notes two things seen, and nothing allows
+     * or justifies merging them.
      */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public String comparableKey() {

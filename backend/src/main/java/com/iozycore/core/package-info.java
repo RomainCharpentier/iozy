@@ -1,16 +1,16 @@
 /**
- * Le CŒUR : ce qui vaut pour tous les types de collection - le catalogue
- * générique (œuvres, tomes, types), les possessions, les envies, les tier
- * lists, les comptes, le partage, l'export, les statistiques, les annonces,
- * et les points d'extension que les univers implémentent (fournisseur de
- * métadonnées, code-barres, découverte, progression, valeur, jaquette,
- * édition rattachée, suppression, export).
+ * The CORE: what holds for all collection types - the generic catalog
+ * (works, volumes, types), ownerships, wishes, tier
+ * lists, accounts, sharing, export, statistics, listings,
+ * and the extension points that the universes implement (metadata
+ * provider, barcode, discovery, progress, value, cover,
+ * linked edition, deletion, export).
  *
- * <p>Module OUVERT : les univers ({@code manga}, {@code videogame},
- * {@code boardgame}, {@code custom}) s'appuient sur son domaine, ses cas
- * d'usage et ses contrats. Lui ne connaît aucun univers - c'est ce que le
- * test des modules vérifie, et ce qui permet d'en sortir un en service plus
- * tard (Lot 133).
+ * <p>OPEN module: the universes ({@code manga}, {@code videogame},
+ * {@code boardgame}, {@code custom}) rely on its domain, its use
+ * cases and its contracts. It knows no universe - this is what the
+ * module test checks, and what lets us take one out into its own service later
+ * (Batch 133).
  */
 @org.springframework.modulith.ApplicationModule(displayName = "Cœur", type = org.springframework.modulith.ApplicationModule.Type.OPEN)
 package com.iozycore.core;

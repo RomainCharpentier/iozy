@@ -1,16 +1,16 @@
 /**
- * Les objets que le serveur renvoie, construits en une ligne.
+ * The objects that the server returns, built in one line.
  *
- * <h2>Pourquoi des constructeurs plutôt que des littéraux</h2>
- * `EntityResponse` porte six champs dont un seul intéresse un test donné. Écrit
- * à la main, chaque cas noierait sa règle sous cinq champs de remplissage - et
- * le jour où le DTO en gagne un, ce sont tous les tests qu'il faut rouvrir.
- * Ici, un test ne nomme QUE ce qui le concerne : `oeuvre({ titre: 'Berserk',
- * tomes: [tome(1)] })` se lit comme la phrase qu'il vérifie.
+ * <h2>Why builders rather than literals</h2>
+ * `EntityResponse` carries six fields of which only one matters for a given
+ * test. Written by hand, each case would drown its rule under five filler
+ * fields - and the day the DTO gains one, all the tests have to be reopened.
+ * Here, a test names ONLY what concerns it: `oeuvre({ titre: 'Berserk',
+ * tomes: [tome(1)] })` reads like the sentence it checks.
  *
- * <p>Les identifiants sont dérivés de ce qu'on donne (`tome-1`, `berserk`)
- * plutôt que tirés au hasard : un test qui échoue nomme alors l'objet fautif au
- * lieu d'un UUID que personne ne peut relier à quoi que ce soit.
+ * <p>The identifiers are derived from what is given (`tome-1`, `berserk`)
+ * rather than drawn at random: a failing test then names the faulty object
+ * instead of a UUID that nobody can link to anything.
  */
 import type {
   CollectionProgressDto,
@@ -22,7 +22,7 @@ import type {
   VariantDto,
 } from '@/common/types/api'
 
-/** Un identifiant lisible : le titre réduit à ce qui peut servir de clé. */
+/** A readable identifier: the title reduced to what can serve as a key. */
 function idDe(valeur: string): string {
   return valeur.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
@@ -61,12 +61,12 @@ export function oeuvre(options: {
   }
 }
 
-/** Un tag, tel que `GET /tags` le renvoie. */
+/** A tag, as `GET /tags` returns it. */
 export function tag(label: string): TagDto {
   return { id: idDe(label), label }
 }
 
-/** Une possession, active sauf mention contraire - c'est le cas courant. */
+/** An ownership, active unless stated otherwise - this is the common case. */
 export function possession(options: {
   entityId: string
   variantId?: string
@@ -86,9 +86,9 @@ export function possession(options: {
 }
 
 /**
- * Une édition telle que `GET /insights/progress` la décrit. `total: null` est
- * le cas « total inconnu », qui a ses propres règles partout dans l'app - il
- * s'écrit donc explicitement, jamais par omission.
+ * An edition as `GET /insights/progress` describes it. `total: null` is
+ * the "unknown total" case, which has its own rules everywhere in the app - it
+ * is therefore written explicitly, never by omission.
  */
 export function edition(options: {
   nom?: string
@@ -105,7 +105,7 @@ export function edition(options: {
   }
 }
 
-/** L'index que les écrans consomment : une œuvre, son édition dominante. */
+/** The index that the screens consume: a work, its dominant edition. */
 export function progressionDe(
   entity: EntityResponse,
   dominante: EditionProgressDto | null,

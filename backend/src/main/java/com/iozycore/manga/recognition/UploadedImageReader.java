@@ -11,45 +11,45 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Les photos envoyées par l'utilisateur, transformées en octets analysables.
+ * The photos sent by the user, turned into analysable bytes.
  *
- * <h2>Pourquoi cette seconde porte existe</h2>
- * La reconnaissance visuelle n'avait qu'une entrée : des URLs récupérées d'une
- * annonce, sur des hôtes en liste blanche. Trois situations restaient donc
- * hors de portée, alors que le moteur savait parfaitement les traiter :
+ * <h2>Why this second door exists</h2>
+ * Visual recognition had only one entry: URLs fetched from a
+ * listing, on whitelisted hosts. Three situations therefore stayed
+ * out of reach, although the engine could handle them perfectly:
  * <ul>
- *   <li>une plateforme qui <b>refuse</b> la lecture automatique — Leboncoin
- *       protège ses pages, ses photos sont donc inatteignables ;</li>
- *   <li>une annonce du genre « <i>mangas en tout genre</i> », dont le texte ne
- *       nomme aucune série : les photos sont la <b>seule</b> source ;</li>
- *   <li>une étagère photographiée chez soi, qui n'est l'annonce de personne.</li>
+ *   <li>a platform that <b>refuses</b> automatic reading - Leboncoin
+ *       protects its pages, so its photos are unreachable;</li>
+ *   <li>a listing of the kind "<i>mangas en tout genre</i>", whose text names
+ *       no series: the photos are the <b>only</b> source;</li>
+ *   <li>a shelf photographed at home, which is nobody's listing.</li>
  * </ul>
- * Dans les trois cas, l'utilisateur a les images sous les yeux. Il lui manquait
- * seulement le moyen de les donner.
+ * In all three cases, the user has the images in front of them. What was missing
+ * was only the way to give them.
  *
- * <h2>Aucune requête sortante, par construction</h2>
- * Cette classe ne connaît ni {@code HttpClient}, ni URL, ni liste blanche —
- * elle lit un flux déjà reçu. Il n'existe donc <b>aucune</b> adresse qu'un
- * appelant pourrait faire joindre au serveur : la question du SSRF ne se pose
- * pas ici, elle est absente. C'est aussi pourquoi cette porte est plus simple
- * que {@link RecognitionImageFetcher}, pas plus risquée.
+ * <h2>No outgoing request, by construction</h2>
+ * This class knows no {@code HttpClient}, no URL, no whitelist -
+ * it reads a stream that was already received. There is therefore <b>no</b> address that a
+ * caller could make the server reach: the question of SSRF does not arise
+ * here, it is absent. This is also why this door is simpler
+ * than {@link RecognitionImageFetcher}, not riskier.
  *
- * <h2>Ce qui remplace la liste blanche</h2>
- * Les mêmes bornes exactement — huit images, 3 Mo chacune, 12 Mo cumulés
- * ({@link RecognitionImageLimits}) — plus une vérification que le fetcher n'a
- * pas à faire : le type MIME est <b>constaté sur les octets</b>, jamais lu dans
- * l'en-tête déclaré par le client.
+ * <h2>What replaces the whitelist</h2>
+ * Exactly the same limits - eight images, 3 MB each, 12 MB cumulated
+ * ({@link RecognitionImageLimits}) - plus a check that the fetcher does not
+ * have to do: the MIME type is <b>observed on the bytes</b>, never read from the
+ * header declared by the client.
  *
- * <h2>Les octets ne sont jamais journalisés</h2>
- * Ni le contenu, ni le nom du fichier : celui-ci vient du téléphone de
- * l'utilisateur et porte parfois plus qu'il n'y paraît.
+ * <h2>The bytes are never logged</h2>
+ * Neither the content nor the file name: the latter comes from the phone of
+ * the user and sometimes carries more than it seems.
  */
 @Component
 public class UploadedImageReader {
 
     private static final Logger log = LoggerFactory.getLogger(UploadedImageReader.class);
 
-    /** Ce qui a été retenu, et ce qui a été écarté — l'écran doit pouvoir le dire. */
+    /** What was kept, and what was dropped - the screen must be able to say it. */
     public record Intake(List<RecognitionImage> images, int rejectedCount) {
 
         public Intake {
@@ -58,11 +58,11 @@ public class UploadedImageReader {
     }
 
     /**
-     * @param fichiers les parties reçues ; {@code null}, vide et parties vides
-     *                 sont tolérés et simplement ignorés
-     * @return les images retenues, dans l'ordre d'envoi, avec leur index
-     *         d'affichage — <b>jamais d'exception</b> : une photo refusée est
-     *         une photo en moins, pas un parcours cassé
+     * @param fichiers the parts received; {@code null}, empty and empty parts
+     *                 are tolerated and simply ignored
+     * @return the images kept, in the order sent, with their display
+     *         index - <b>never an exception</b>: a refused photo is
+     *         one photo less, not a broken flow
      */
     public Intake read(List<MultipartFile> fichiers) {
         if (fichiers == null || fichiers.isEmpty()) {
@@ -77,9 +77,9 @@ public class UploadedImageReader {
         for (MultipartFile fichier : fichiers) {
             if (retenues.size() >= RecognitionImageLimits.MAX_IMAGES
                     || cumule >= RecognitionImageLimits.MAX_TOTAL_BYTES) {
-                // Le surplus est écarté, mais compté : le contrôleur refuse déjà
-                // au-delà de MAX_IMAGES, donc n'arriver ici que par le plafond
-                // cumulé doit rester visible.
+                // The surplus is dropped, but counted: the controller already refuses
+                // beyond MAX_IMAGES, so arriving here only through the cumulated
+                // ceiling must stay visible.
                 refusees++;
                 continue;
             }
@@ -95,23 +95,23 @@ public class UploadedImageReader {
             try {
                 octets = lireBorne(fichier, plafond);
             } catch (IOException e) {
-                // Un envoi interrompu est une photo en moins.
-                log.info("Photo envoyée illisible : {}", e.getClass().getSimpleName());
+                // An interrupted upload is one photo less.
+                log.info("Uploaded photo unreadable: {}", e.getClass().getSimpleName());
                 refusees++;
                 continue;
             }
 
-            // Le type est CONSTATÉ, pas cru sur parole : fichier.getContentType()
-            // n'est qu'une chaîne écrite par le client.
+            // The type is OBSERVED, not taken on trust: fichier.getContentType()
+            // is only a string written by the client.
             String mediaType = RecognitionImageLimits.sniff(octets);
             if (mediaType == null) {
-                log.info("Photo envoyée écartée : ces octets ne sont pas une image JPEG, PNG ou WebP");
+                log.info("Uploaded photo dropped: these bytes are not a JPEG, PNG or WebP image");
                 refusees++;
                 continue;
             }
 
-            // sourceUrl null : cette photo ne vient d'aucune adresse, et lui en
-            // inventer une ferait croire qu'on pourrait y retourner.
+            // sourceUrl null: this photo comes from no address, and inventing
+            // one would make us believe that we could go back to it.
             retenues.add(new RecognitionImage(positionAffichee, null, octets, mediaType));
             cumule += octets.length;
         }
@@ -119,11 +119,11 @@ public class UploadedImageReader {
     }
 
     /**
-     * Lecture bornée : on s'arrête au plafond plutôt que de charger puis mesurer.
+     * Bounded reading: we stop at the ceiling rather than loading then measuring.
      *
-     * <p>Un fichier plus gros que le plafond est <b>tronqué</b>, comme côté
-     * fetcher. Une image tronquée que le moteur ne saura pas lire vaut mieux
-     * qu'un refus sec : le reste du lot passe quand même.
+     * <p>A file larger than the ceiling is <b>truncated</b>, as on the
+     * fetcher side. A truncated image that the engine cannot read is better
+     * than a flat refusal: the rest of the batch goes through anyway.
      */
     private static byte[] lireBorne(MultipartFile fichier, int plafond) throws IOException {
         try (InputStream stream = fichier.getInputStream();

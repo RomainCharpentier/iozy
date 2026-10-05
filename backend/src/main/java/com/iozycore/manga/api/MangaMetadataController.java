@@ -27,14 +27,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Les mangas : le titre de l'édition française, les tomes et leurs éditions.
- * Mêmes routes qu'avant le Lot 132 (/api/metadata/french-title, /volumes,
- * /volumes/known-empty), dans le paquet de leur univers, adossé aux services
- * de {@code metadata.manga}.
+ * Mangas: the title of the French edition, the volumes and their editions.
+ * Same routes as before Batch 132 (/api/metadata/french-title, /volumes,
+ * /volumes/known-empty), in the package of their universe, backed by the services
+ * of {@code metadata.manga}.
  */
 @RestController
 @RequestMapping("/api/metadata")
-@Tag(name = "Metadata - mangas", description = "Titre français, tomes et éditions d'une série (BnF, Google Books, "
+@Tag(name = "Metadata - mangas", description = "French title, volumes and editions of a series (BnF, Google Books, "
         + "Open Library)")
 public class MangaMetadataController {
 
@@ -59,19 +59,19 @@ public class MangaMetadataController {
         this.ownershipRepository = ownershipRepository;
     }
 
-    @Operation(summary = "Recherche best-effort d'un titre d'édition française (Open Library, puis Google Books en "
-            + "repli) pour un titre déjà choisi (mangas) - ni Jikan ni MyAnimeList n'en connaissent. Déclenché "
-            + "uniquement à la sélection d'une suggestion côté client, jamais pour toute une liste de résultats de "
-            + "recherche (coût en appels externes) - voir FrenchTitleService.findFrenchTitle. 404 si rien "
-            + "trouvé, pas une erreur : le client retombe alors sur le titre anglais/romaji déjà affiché - c'est "
-            + "aussi la réponse quand le seul titre candidat vient du dernier recours \"auteur seul\" et se "
-            + "révèle être le titre catalogué d'une AUTRE œuvre du même auteur (voir "
+    @Operation(summary = "Best-effort search of a French edition title (Open Library, then Google Books as "
+            + "fallback) for an already chosen title (mangas) - neither Jikan nor MyAnimeList know it. Triggered "
+            + "only when a suggestion is selected on the client side, never for a whole list of search results "
+            + "(cost in external calls) - see FrenchTitleService.findFrenchTitle. 404 if nothing "
+            + "found, not an error: the client then falls back to the English/romaji title already shown - this is "
+            + "also the answer when the only candidate title comes from the last resort \"author only\" and turns "
+            + "out to be the catalogued title of ANOTHER work by the same author (see "
             + "FrenchTitleService.namesAnotherKnownWork). malId "
-            + "(déjà connu du candidat sélectionné) permet d'écarter une suite/spin-off connu(e) (voir "
-            + "RelatedSeriesService) mal résolu(e) à la place du titre cherché - ex: \"Dragon Ball Super\" pour "
-            + "\"Dragon Ball\" - best-effort, sans effet si absent. titleRomaji (voir "
-            + "MyAnimeListMetadataProvider.titleRomaji) est essayé en repli de 'query' pour cette même détection "
-            + "quand un spin-off est indexé sous le titre romaji plutôt que le titre affiché (ex: \"Attack on "
+            + "(already known from the selected candidate) lets us discard a known sequel/spin-off (see "
+            + "RelatedSeriesService) wrongly resolved in place of the searched title - e.g. \"Dragon Ball Super\" for "
+            + "\"Dragon Ball\" - best-effort, no effect if absent. titleRomaji (see "
+            + "MyAnimeListMetadataProvider.titleRomaji) is tried as a fallback to 'query' for this same detection "
+            + "when a spin-off is indexed under the romaji title rather than the displayed title (e.g. \"Attack on "
             + "Titan\"/\"Shingeki no Kyojin\").")
     @GetMapping("/french-title")
     public FrenchTitleResponse frenchTitle(@RequestParam UUID entityTypeId, @RequestParam String query,
@@ -95,11 +95,11 @@ public class MangaMetadataController {
     public record FrenchTitleResponse(String frenchTitle) {
     }
 
-    /** Un tome trouvé (voir VolumeCandidate), enrichi de alreadyOwned - vrai si
-     * une Ownership active référence déjà un Variant de la série existante
-     * correspondant à cette édition+ce numéro de tome. Ce croisement se fait
-     * ici (couche présentation), jamais dans TomeSearchService qui ne
-     * connaît que des sources externes, jamais la collection de l'utilisateur. */
+    /** A volume found (see VolumeCandidate), enriched with alreadyOwned - true if
+     * an active Ownership already references a Variant of the existing series
+     * matching this edition + this volume number. This cross-check is done
+     * here (presentation layer), never in TomeSearchService which only
+     * knows external sources, never the user's collection. */
     public record VolumeCandidateResponse(String edition, int volumeNumber, String imageUrl, String title, boolean alreadyOwned) {
         static VolumeCandidateResponse from(VolumeCandidate candidate, boolean alreadyOwned) {
             return new VolumeCandidateResponse(
@@ -107,36 +107,36 @@ public class MangaMetadataController {
         }
     }
 
-    /** {@code quotaExceeded} distingue une liste vide "aucune édition
-     * trouvée" d'un échec TRANSITOIRE du fournisseur externe - quota dépassé
-     * sur toutes les clés configurées, ou source qui n'a pas répondu du tout
-     * (voir VolumeSearchResult) - le client peut alors afficher un message
-     * adapté ("réessaie plus tard") plutôt que de laisser croire à tort que
-     * la série n'a aucune édition française.
+    /** {@code quotaExceeded} tells an empty list "no edition
+     * found" apart from a TRANSIENT failure of the external provider - quota exceeded
+     * on all the configured keys, or a source that did not answer at all
+     * (see VolumeSearchResult) - the client can then show an
+     * adapted message ("try again later") instead of wrongly letting believe
+     * that the series has no French edition.
      * <p>
-     * Le nom du champ dit "quota" et couvre désormais les deux causes : il
-     * est déjà décodé tel quel par le client iOS (voir
-     * APIClient+Collections.swift), le renommer casserait sa lecture pour un
-     * gain purement cosmétique - le drapeau se nomme {@code
-     * providerUnavailable} partout ailleurs, côté serveur. */
+     * The field name says "quota" and now covers both causes: it
+     * is already decoded as is by the iOS client (see
+     * APIClient+Collections.swift), renaming it would break its reading for a
+     * purely cosmetic gain - the flag is named {@code
+     * providerUnavailable} everywhere else, on the server side. */
     public record VolumesResponse(List<VolumeCandidateResponse> volumes, boolean quotaExceeded) {
     }
 
-    @Operation(summary = "Recherche best-effort des tomes réels (avec jaquette) des éditions françaises d'une "
-            + "série (Google Books) - pour proposer une sélection visuelle des tomes possédés plutôt qu'une saisie "
-            + "manuelle du numéro de tome. alreadyOwned indique les tomes déjà possédés (Ownership active sur le "
-            + "Variant correspondant, si la série existe déjà dans la collection). volumes vide si rien trouvé "
-            + "(jamais une erreur) : le client garde alors le parcours de saisie manuelle - quotaExceeded distingue "
-            + "ce cas d'un échec transitoire du fournisseur (quota dépassé, ou source qui n'a pas répondu). Résultat stocké durablement (voir V3__volume_search_cache.sql) - "
-            + "un résultat une fois trouvé n'est plus jamais rappelé automatiquement, forceRefresh=true (bouton "
-            + "'Actualiser' côté client, administrateur seulement - ignoré pour les autres comptes) est le seul moyen de relancer les requêtes Google Books derrière ce "
-            + "candidat - voir TomeSearchService.searchVolumes. Recherche par défaut limitée à quelques mots-clés "
-            + "d'édition courants ; deepSearch=true (bouton 'Chercher plus d'éditions') fusionne avec les mots-clés "
-            + "plus rares (voir TomeSearchService.searchAdditionalEditions) - incompatible avec forceRefresh, "
-            + "deepSearch est alors prioritaire. malId+originalTitle (déjà connus du candidat sélectionné) "
-            + "permettent d'écarter un spin-off/side-story connu (voir RelatedSeriesService) publié sous un titre "
-            + "structurellement identique à une vraie édition - best-effort, sans effet si l'un des deux manque. "
-            + "titleRomaji est essayé en repli d'originalTitle pour cette même détection (voir /french-title).")
+    @Operation(summary = "Best-effort search of the real volumes (with cover) of the French editions of a "
+            + "series (Google Books) - to offer a visual selection of the owned volumes instead of manual "
+            + "entry of the volume number. alreadyOwned shows the volumes already owned (active Ownership on the "
+            + "matching Variant, if the series already exists in the collection). volumes empty if nothing found "
+            + "(never an error): the client then keeps the manual entry flow - quotaExceeded tells this "
+            + "case apart from a transient provider failure (quota exceeded, or a source that did not answer). Result stored durably (see V3__volume_search_cache.sql) - "
+            + "a result once found is never called again automatically, forceRefresh=true ('Actualiser' button "
+            + "on the client side, administrator only - ignored for other accounts) is the only way to relaunch the Google Books requests behind this "
+            + "candidate - see TomeSearchService.searchVolumes. Default search limited to a few common "
+            + "edition keywords; deepSearch=true ('Chercher plus d'éditions' button) merges with the rarer "
+            + "keywords (see TomeSearchService.searchAdditionalEditions) - incompatible with forceRefresh, "
+            + "deepSearch then takes priority. malId+originalTitle (already known from the selected candidate) "
+            + "let us discard a known spin-off/side-story (see RelatedSeriesService) published under a title "
+            + "structurally identical to a real edition - best-effort, no effect if one of the two is missing. "
+            + "titleRomaji is tried as a fallback to originalTitle for this same detection (see /french-title).")
     @GetMapping("/volumes")
     public VolumesResponse volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
                                     @RequestParam(required = false) String author,
@@ -154,23 +154,23 @@ public class MangaMetadataController {
         }
 
         List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, originalTitle, titleRomaji);
-        // Recharger depuis la source est un geste d'ADMINISTRATEUR (demande
-        // utilisateur du 2026-09-04) : c'est lui qui repond des donnees
-        // uniformes de l'instance, et des quotas des fournisseurs. Pour un
-        // compte ordinaire la demande est servie depuis le cache, sans refus :
-        // le rattrapage de jaquettes (backfillCovers) force en seconde
-        // intention, et un 403 y passerait pour un fournisseur muet.
+        // Reloading from the source is an ADMINISTRATOR action (user
+        // request of 2026-09-04): they answer for the uniform data
+        // of the instance, and for the provider quotas. For an ordinary
+        // account the request is served from the cache, without refusal:
+        // the cover catch-up (backfillCovers) forces as a second
+        // intention, and a 403 would pass for a silent provider there.
         boolean rechargement = forceRefresh && estAdministrateur();
         VolumeSearchResult searchResult = deepSearch
                 ? tomeSearchService.searchAdditionalEditions(entityType, title, author, excludedTitleFragments)
                 : tomeSearchService.searchVolumes(entityType, title, author, rechargement, excludedTitleFragments, totalVolumes);
         Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
 
-        // Tries par numero, et le tri est STABLE : les editions gardent l'ordre
-        // de leur premiere apparition (celle du fournisseur en tete), seuls
-        // les tomes se rangent. Google Books rendait ses tomes deja en ordre,
-        // la BnF les rend dans l'ordre de son catalogue - constate sur Boruto
-        // (09, 03, 02, 08, 01, 18, 17) le jour ou elle est passee en premier.
+        // Sorted by number, and the sort is STABLE: editions keep the order
+        // of their first appearance (the provider's one first), only
+        // the volumes are sorted. Google Books already returned its volumes in order,
+        // BnF returns them in the order of its catalog - seen on Boruto
+        // (09, 03, 02, 08, 01, 18, 17) the day it came first.
         List<VolumeCandidateResponse> candidates = searchResult.volumes().stream()
                 .sorted(java.util.Comparator.comparingInt(VolumeCandidate::volumeNumber))
                 .map(candidate -> VolumeCandidateResponse.from(candidate, ownedKeys.contains(variantKey(candidate.edition(), candidate.volumeNumber()))))
@@ -185,25 +185,25 @@ public class MangaMetadataController {
     }
 
     /**
-     * Parmi ces séries, lesquelles sait-on DÉJÀ sans aucun tome ?
+     * Among these series, which ones do we ALREADY know have no volume at all?
      * <p>
-     * Répond depuis le seul cache durable des recherches de tomes, sans jamais
-     * appeler de fournisseur : c'est ce qui rend cette question utilisable sur
-     * une liste de résultats de recherche, là où la poser vraiment coûterait
-     * huit requêtes Google Books PAR SÉRIE (voir GoogleBooksVolumeSearchProvider)
-     * et épuiserait le quota en quelques frappes.
+     * Answers from the durable cache of volume searches only, never
+     * calling a provider: this is what makes this question usable on
+     * a list of search results, where really asking it would cost
+     * eight Google Books requests PER SERIES (see GoogleBooksVolumeSearchProvider)
+     * and would exhaust the quota in a few keystrokes.
      * <p>
-     * Conséquence assumée : une série jamais recherchée n'est pas signalée. On
-     * ne confond pas « on sait qu'il n'y en a pas » avec « on ne sait pas
-     * encore » - signaler la seconde reviendrait à marquer tout le catalogue.
+     * Accepted consequence: a series never searched is not flagged. We
+     * do not confuse "we know there are none" with "we do not know
+     * yet" - flagging the second would amount to marking the whole catalog.
      * <p>
-     * POST et non GET : la question porte sur une LISTE de couples
-     * (titre, auteur), dont des titres japonais et à ponctuation - les faire
-     * tenir dans une query string serait fragile pour une requête qui ne
-     * modifie rien mais ne se met de toute façon pas en cache HTTP.
+     * POST and not GET: the question carries a LIST of pairs
+     * (title, author), including Japanese titles and titles with punctuation - making them
+     * fit in a query string would be fragile for a request that does not
+     * change anything but is not cached by HTTP anyway.
      */
-    @Operation(summary = "Parmi ces séries, lesquelles sont déjà connues comme n'ayant aucun tome "
-            + "(cache uniquement, aucun appel à un fournisseur externe)")
+    @Operation(summary = "Among these series, which ones are already known to have no volume "
+            + "(cache only, no call to an external provider)")
     @PostMapping("/volumes/known-empty")
     public List<SerieInterrogee> volumesKnownEmpty(@RequestBody SeriesSansTomesRequest request) {
         EntityType entityType = entityTypeRepository.findById(request.entityTypeId())
@@ -218,10 +218,10 @@ public class MangaMetadataController {
                 .collect(Collectors.toList());
     }
 
-    /** Clés "édition|tome" (normalisées) des Variant de la série {@code title}
-     * (si elle existe déjà) référencés par au moins une Ownership active -
-     * vide si la série n'a jamais été ajoutée, ce qui est le cas le plus
-     * fréquent (on cherche des tomes avant même de savoir si on en possède déjà). */
+    /** "edition|volume" keys (normalised) of the Variant objects of the series {@code title}
+     * (if it already exists) referenced by at least one active Ownership -
+     * empty if the series was never added, which is the most
+     * frequent case (we look for volumes before even knowing if we already own any). */
     private Set<String> alreadyOwnedVariantKeys(UUID entityTypeId, String title) {
         Optional<Entity> existingEntity = entityRepository.findByTypeAndTitle(entityTypeId, title.trim());
         if (existingEntity.isEmpty()) {
@@ -245,18 +245,18 @@ public class MangaMetadataController {
         Object volumeNumber = variant.attributes().get("volumeNumber");
         Object edition = variant.attributes().get("edition");
         if (!(volumeNumber instanceof Number number)) {
-            return "unknown|" + variant.id(); // tome sans numéro exploitable - ne matchera jamais un VolumeCandidate, sans effet de bord
+            return "unknown|" + variant.id(); // volume without a usable number - will never match a VolumeCandidate, no side effect
         }
         return variantKey(edition == null ? "" : edition.toString(), number.intValue());
     }
 
-    /** La même identité que celle d'un {@link VolumeCandidate} - c'est
-     *  précisément ce qui permet de dire « ce tome-là, tu l'as déjà ». */
+    /** The same identity as that of a {@link VolumeCandidate} - this is
+     *  precisely what lets us say "this volume, you already have it". */
     private String variantKey(String edition, int volumeNumber) {
         return VolumeCandidate.key(edition, volumeNumber);
     }
 
-    /** Meme regle que ImportController : seul un administrateur recharge depuis la source. */
+    /** Same rule as ImportController: only an administrator reloads from the source. */
     private static boolean estAdministrateur() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()

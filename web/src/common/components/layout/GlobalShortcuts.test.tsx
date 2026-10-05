@@ -1,20 +1,20 @@
 /**
- * <b>Les deux boutons de l'en-tête : l'administration, et le profil.</b>
+ * <b>The two header buttons: administration, and the profile.</b>
  *
- * <p>C'est le seul accès, depuis n'importe quel écran, à ce qui n'appartient à
- * aucune des quatre intentions quotidiennes. Et ce sont <b>deux</b> boutons,
- * pas un : l'administration a mis trois essais à trouver sa place - sous
- * Paramètres, puis en lien sur Profil, puis dans un menu déroulant de l'avatar
- * - trois fois rangée derrière quelque chose qui appartient à l'utilisateur.
- * Déclarer les catégories de sa collection n'est pas un réglage personnel, et
- * ne se trouve pas en cherchant son profil.
+ * <p>This is the only access, from any screen, to what belongs to
+ * none of the four daily intentions. And there are <b>two</b> buttons,
+ * not one: administration took three tries to find its place - under
+ * Settings, then as a link on Profile, then in a dropdown menu of the avatar
+ * - three times put away behind something that belongs to the user.
+ * Declaring the categories of one's collection is not a personal setting, and
+ * is not found by looking for one's profile.
  *
- * <p>Deux <b>liens</b>, et aucun menu : un panneau à ouvrir puis à refermer
- * pour un choix entre deux entrées coûte plus qu'il ne range.
+ * <p>Two <b>links</b>, and no menu: a panel to open then close again
+ * for a choice between two entries costs more than it tidies.
  *
- * <p>Rien ici ne casse bruyamment. L'avatar affiche les mauvaises lettres, un
- * bouton change de cible : l'application continue de fonctionner, un écran
- * devient simplement introuvable autrement qu'en tapant son URL.
+ * <p>Nothing here breaks loudly. The avatar shows the wrong letters, a
+ * button changes target: the application keeps working, a screen
+ * simply becomes unreachable other than by typing its URL.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -48,29 +48,29 @@ beforeEach(() => {
   api.lireEtatAuth.mockResolvedValue({ aucunCompte: false, creationOuverte: false })
 })
 
-/** Rend l'en-tête pour un compte donné, une fois celui-ci connu. */
+/** Renders the header for a given account, once it is known. */
 async function avatarDe(pseudo: string) {
   api.lireCompte.mockResolvedValue({ id: 'u1', email: 'qui@example.com', pseudo, admin: false, invite: false })
   render(<GlobalShortcuts />, { wrapper: enrobage })
   return screen.findByRole('link', { name: `Mon profil — ${pseudo}` })
 }
 
-describe('l’avatar', () => {
-  it('porte les initiales du pseudo connecté', async () => {
+describe('the avatar', () => {
+  it('carries the initials of the signed-in pseudo', async () => {
     const avatar = await avatarDe('jean-dupont')
 
     expect(avatar).toHaveTextContent('JD')
   })
 
-  it('nomme la personne pour un lecteur d’écran, pas seulement deux lettres', async () => {
-    // « KE » lu à voix haute n'apprend rien : l'intitulé porte le pseudo entier.
+  it('names the person for a screen reader, not just two letters', async () => {
+    // "KE" read aloud tells nothing: the label carries the whole pseudo.
     const avatar = await avatarDe('kenshin')
 
     expect(avatar).toHaveAccessibleName('Mon profil — kenshin')
     expect(avatar).toHaveTextContent('KE')
   })
 
-  it('mène droit au profil, sans panneau à ouvrir', async () => {
+  it('leads straight to the profile, with no panel to open', async () => {
     const avatar = await avatarDe('kenshin')
 
     expect(avatar).toHaveAttribute('href', '/profile')
@@ -78,10 +78,10 @@ describe('l’avatar', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('retombe sur la marque tant que le compte n’est pas arrivé', async () => {
-    // Ce composant vit dans l'AppShell, qui ne se rend que connecté - mais le
-    // compte arrive par une requête, et il y a donc un instant sans lui. Deux
-    // lettres stables valent mieux qu'un trou qui se remplit.
+  it('falls back on the brand as long as the account has not arrived', async () => {
+    // This component lives in the AppShell, which only renders when signed in - but the
+    // account arrives through a request, so there is a moment without it. Two
+    // stable letters are better than a hole that fills in.
     api.lireCompte.mockRejectedValue(new ApiError(401, 'Non connecté'))
     render(<GlobalShortcuts />, { wrapper: enrobage })
 
@@ -89,19 +89,19 @@ describe('l’avatar', () => {
   })
 })
 
-describe('le bouton Administration', () => {
-  it('est un accès direct, à côté de l’avatar et non dedans', async () => {
+describe('the Administration button', () => {
+  it('is a direct access, next to the avatar and not inside it', async () => {
     await avatarDe('kenshin')
 
     const administration = screen.getByRole('link', { name: 'Administration' })
     expect(administration).toHaveAttribute('href', '/administration')
-    // Une icône seule : l'en-tête reste calme, et le nom est porté par
-    // aria-label - un title seul ne nomme rien au doigt.
+    // An icon only: the header stays calm, and the name is carried by
+    // aria-label - a title alone names nothing with a finger.
     expect(administration).toHaveAccessibleName('Administration')
   })
 
-  it('n’est pas rangé derrière le profil', async () => {
-    // Trois fois de suite, elle l'a été. Ce test est là pour la quatrième.
+  it('is not put away behind the profile', async () => {
+    // Three times in a row, it was. This test is here for the fourth.
     await avatarDe('kenshin')
 
     const acces = screen.getAllByRole('link')
@@ -111,15 +111,15 @@ describe('le bouton Administration', () => {
 })
 
 /**
- * <b>Pendant une visite, ces deux boutons ne parlent de personne.</b>
+ * <b>During a visit, these two buttons talk about nobody.</b>
  *
- * Ils désignent tous les deux « chez soi » - son profil, son instance - et un
- * visiteur n'a ni l'un ni l'autre. L'avatar est le pire des deux : il aurait
- * porté les initiales et la couleur de l'HÔTE, c'est-à-dire que le seul
- * endroit de l'application qui dit « c'est toi » aurait affiché le nom de
- * quelqu'un d'autre.
+ * They both designate "one's own home" - one's profile, one's instance - and a
+ * visitor has neither. The avatar is the worse of the two: it would have
+ * carried the initials and the color of the HOST, meaning that the only
+ * place in the application that says "this is you" would have shown the name of
+ * someone else.
  */
-describe('pendant une visite sans compte', () => {
+describe('during a visit without an account', () => {
   async function enVisite() {
     api.lireCompte.mockResolvedValue({
       id: null,
@@ -132,31 +132,31 @@ describe('pendant une visite sans compte', () => {
     await waitFor(() => expect(api.lireCompte).toHaveBeenCalled())
   }
 
-  // `waitFor` sur la DISPARITION, et pas une assertion sèche : le composant
-  // rend d'abord son repli (« IO », le temps que le compte arrive), et
-  // constater son absence à cet instant-là aurait été vert sans rien prouver.
-  it('n’affiche pas l’avatar de son hôte comme si c’était le sien', async () => {
+  // `waitFor` on the DISAPPEARANCE, and not a dry assertion: the component
+  // first renders its fallback ("IO", while the account arrives), and
+  // noting its absence at that moment would have been green without proving anything.
+  it('does not show the avatar of its host as if it were its own', async () => {
     await enVisite()
 
     await waitFor(() => expect(screen.queryByRole('link', { name: /Mon profil/ })).not.toBeInTheDocument())
   })
 
-  it('n’affiche pas l’administration de l’instance', async () => {
+  it('does not show the administration of the instance', async () => {
     await enVisite()
 
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Administration' })).not.toBeInTheDocument())
   })
 
-  it('garde le thème : un réglage de l’appareil, pas du compte', async () => {
+  it('keeps the theme: a setting of the device, not of the account', async () => {
     await enVisite()
 
     expect(await screen.findByRole('button', { name: /Passer en thème/ })).toBeInTheDocument()
   })
 })
 
-describe('le thème', () => {
-  it('se change d’un clic depuis l’en-tête, sans passer par les Paramètres', async () => {
-    // Il y vivait, à trois clics de n'importe quel écran (lot 138).
+describe('the theme', () => {
+  it('is changed in one click from the header, without going through the Settings', async () => {
+    // It lived there, three clicks from any screen (batch 138).
     await avatarDe('romain')
 
     expect(screen.getByRole('button', { name: /Passer en thème/ })).toBeInTheDocument()

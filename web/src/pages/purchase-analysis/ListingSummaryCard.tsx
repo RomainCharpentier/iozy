@@ -4,25 +4,25 @@ import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { formaterEuros } from '@/common/lib/formats'
 
 /**
- * Ce qu'IozyCore a compris de l'annonce, en quelques lignes.
+ * What IozyCore understood of the listing, in a few lines.
  *
- * <h2>Pourquoi un résumé plutôt qu'un formulaire</h2>
- * Quand une URL a été lue avec succès, plateforme, prix, port, protection,
- * titre et description sont **déjà connus**. Les laisser ouverts en
- * permanence demandait à l'utilisateur de relire six champs techniques avant
- * d'arriver à la seule question qui l'intéresse : que contient ce lot, et
- * est-ce une bonne affaire.
+ * <h2>Why a summary rather than a form</h2>
+ * When a URL has been read successfully, platform, price, shipping, protection,
+ * title and description are **already known**. Leaving them open
+ * all the time made the user reread six technical fields before
+ * reaching the only question they care about: what does this batch contain, and
+ * is it a good deal.
  *
- * Le résumé les montre en une phrase et les range derrière « Modifier ». Rien
- * n'est perdu : tout reste corrigeable, mais rien n'encombre le chemin de
- * celui qui n'a rien à corriger.
+ * The summary shows them in one sentence and puts them behind "Modifier". Nothing
+ * is lost: everything stays correctable, but nothing clutters the path of
+ * someone with nothing to correct.
  */
 
 /**
- * Le nom du total dit du même coup ce qui lui manque - même règle que
- * {@code PurchaseAnalysisResultCard}, à laquelle ce résumé doit rester
- * cohérent : deux formulations divergentes pour un même montant seraient pires
- * que pas de résumé du tout.
+ * The name of the total says at the same time what it lacks - same rule as
+ * {@code PurchaseAnalysisResultCard}, with which this summary must stay
+ * consistent: two diverging wordings for the same amount would be worse
+ * than no summary at all.
  */
 function libelleTotal(kind: ShippingEstimateKind): string {
   if (kind === 'FROM') return 'Coût minimum estimé'
@@ -58,7 +58,7 @@ export function ListingSummaryCard({
   const protection = buyerProtectionFee.trim() ? Number(buyerProtectionFee) : null
 
   const prixConnu = askingPrice.trim() !== '' && !Number.isNaN(prix)
-  // Le port inconnu ne vaut PAS zéro : le supposer offert minorerait le coût.
+  // Unknown shipping is NOT worth zero: assuming it is free would understate the cost.
   const totalCalculable = prixConnu && shippingKind !== 'UNKNOWN'
   const total = prixConnu ? prix + (port ?? 0) + (protection ?? 0) : null
 

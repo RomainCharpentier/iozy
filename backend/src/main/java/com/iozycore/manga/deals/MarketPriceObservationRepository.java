@@ -11,36 +11,36 @@ public interface MarketPriceObservationRepository {
     List<MarketPriceObservation> findByEditionId(UUID mangaEditionId);
 
     /**
-     * Combien de relevés se réfèrent à cette édition, <b>tous comptes
-     * confondus</b>.
+     * How many observations refer to this edition, <b>all accounts
+     * together</b>.
      *
-     * <p>Seule question de ce dépôt qui ignore délibérément le cloisonnement,
-     * parce qu'elle n'est pas une question de propriété mais d'intégrité :
-     * les éditions de référence sont PARTAGÉES, et en supprimer une que les
-     * relevés d'un autre compte utilisent encore casserait ses analyses. Sans
-     * ce compte global, le refus poli laisserait place à une violation de clé
-     * étrangère - une erreur de base de données affichée à quelqu'un qui n'a
-     * rien fait de mal.
+     * <p>The only question of this repository that deliberately ignores the separation,
+     * because it is not a question of ownership but of integrity:
+     * the reference editions are SHARED, and deleting one that the
+     * observations of another account still use would break its analyses. Without
+     * this global count, the polite refusal would give way to a foreign key
+     * violation - a database error shown to someone who did
+     * nothing wrong.
      */
     int countByEditionIdAllOwners(UUID mangaEditionId);
 
     /**
-     * Tout le journal, pour l'export complet - un relevé saisi a la main est
-     * irrecuperable ailleurs, et l'export promet l'absence d'enfermement
-     * (meme raison que les editions de reference au Lot 33). Une methode
-     * plutot qu'une boucle par edition cote appelant : l'export n'a aucune
-     * raison d'emettre une requete par edition.
+     * The whole log, for the full export - an observation entered by hand cannot
+     * be recovered elsewhere, and the export promises no lock-in
+     * (same reason as the reference editions in Batch 33). One method
+     * rather than a loop per edition on the caller side: the export has no
+     * reason to send one query per edition.
      */
     List<MarketPriceObservation> findAll();
 
     /**
-     * Retire un relevé saisi par erreur (une virgule mal placée, la mauvaise
-     * édition). C'est la SEULE écriture offerte en plus de l'ajout : un relevé
-     * est un fait constaté à une date, pas un champ qu'on ajuste. Le corriger
-     * après coup réécrirait une observation passée, et donc les analyses qui
-     * s'appuient dessus ; on retire le relevé faux et on en enregistre un juste.
+     * Removes an observation entered by mistake (a misplaced comma, the wrong
+     * edition). This is the ONLY write offered besides adding: an observation
+     * is a fact noted on a date, not a field that is adjusted. Correcting it
+     * afterwards would rewrite a past observation, and therefore the analyses that
+     * rely on it; we remove the wrong observation and record a correct one.
      * <p>
-     * Idempotent, comme les autres suppressions de données utilisateur du projet.
+     * Idempotent, like the other deletions of user data in the project.
      */
     void deleteById(UUID id);
 }

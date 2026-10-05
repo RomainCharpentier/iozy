@@ -12,32 +12,32 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * À qui appartient ce que Hibernate lit et écrit, en ce moment même.
+ * Who owns what Hibernate reads and writes, right now.
  *
- * <h2>Pourquoi le cloisonnement vit ICI et pas dans chaque requête</h2>
- * L'alternative était d'ajouter un {@code ownerId} à chaque méthode des huit
- * dépôts privés - quatre-vingts appels, et surtout une règle à se rappeler
- * <b>à chaque nouvelle requête écrite un an plus tard</b>. Une seule oubliée,
- * et un écran montre la collection de quelqu'un d'autre sans que rien ne le
- * signale.
+ * <h2>Why the isolation lives HERE and not in each query</h2>
+ * The alternative was to add an {@code ownerId} to every method of the eight
+ * private repositories - eighty calls, and above all a rule to remember
+ * <b>for every new query written a year later</b>. Just one forgotten,
+ * and a screen shows someone else's collection with nothing to
+ * warn about it.
  *
- * <p>Hibernate sait faire ça lui-même : une colonne marquée {@code @TenantId}
- * est ajoutée à la clause {@code WHERE} de toute requête sur l'entité, et
- * remplie à l'insertion. Ce n'est pas un filtre qu'on pense à poser, c'est un
- * filtre qu'on ne peut pas retirer.
+ * <p>Hibernate can do this by itself: a column marked {@code @TenantId}
+ * is added to the {@code WHERE} clause of every query on the entity, and
+ * filled on insert. It is not a filter you remember to add, it is a
+ * filter you cannot remove.
  *
- * <h2>Le défaut est « personne », jamais « le premier »</h2>
- * Hors de toute requête authentifiée, ce résolveur rend {@link DefaultOwner#PERSONNE} -
- * un identifiant qu'aucun compte ne peut porter, donc qui ne correspond à
- * aucune ligne. Un chemin qui oublierait de dire au nom de qui il travaille ne
- * voit <b>rien</b> ; il ne voit pas la collection du premier compte. C'est la
- * seule façon sûre de se tromper.
+ * <h2>The default is "nobody", never "the first one"</h2>
+ * Outside any authenticated request, this resolver returns {@link DefaultOwner#PERSONNE} -
+ * an identifier that no account can have, so it matches
+ * no row. A path that forgets to say on behalf of whom it works sees
+ * <b>nothing</b>; it does not see the collection of the first account. This is the
+ * only safe way to be wrong.
  *
- * <h2>Lire au nom d'un autre, explicitement</h2>
- * Un cas légitime existe : un lien de partage. Son destinataire n'a pas de
- * compte, et ce qu'il doit voir appartient à quelqu'un d'autre. Cela passe par
- * {@link AuNomDe}, qui le dit en toutes lettres à l'endroit où ça se produit -
- * plutôt que par une exception silencieuse dans le résolveur.
+ * <h2>Reading on behalf of another, explicitly</h2>
+ * One legitimate case exists: a share link. Its recipient has no
+ * account, and what they must see belongs to someone else. This goes through
+ * {@link AuNomDe}, which says it in plain words at the place where it happens -
+ * rather than through a silent exception in the resolver.
  */
 @Component
 public class ProprietaireCourant implements CurrentTenantIdentifierResolver<UUID>, HibernatePropertiesCustomizer {
@@ -54,17 +54,17 @@ public class ProprietaireCourant implements CurrentTenantIdentifierResolver<UUID
     }
 
     /**
-     * {@code false} : le propriétaire change d'une requête à l'autre, et
-     * Hibernate doit relire ce résolveur à chaque session plutôt que de valider
-     * qu'il n'a pas bougé. Répondre {@code true} ferait échouer la première
-     * requête servie à quelqu'un d'autre.
+     * {@code false}: the owner changes from one request to another, and
+     * Hibernate must read this resolver again at each session instead of checking
+     * that it has not changed. Answering {@code true} would make the first
+     * request served to someone else fail.
      */
     @Override
     public boolean validateExistingCurrentSessions() {
         return false;
     }
 
-    /** Branche ce résolveur dans Hibernate - sans cette ligne, il n'est jamais consulté. */
+    /** Plugs this resolver into Hibernate - without this line, it is never used. */
     @Override
     public void customize(Map<String, Object> proprietesHibernate) {
         proprietesHibernate.put(AvailableSettings.MULTI_TENANT_IDENTIFIER_RESOLVER, this);

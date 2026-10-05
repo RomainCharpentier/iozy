@@ -19,42 +19,42 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Télécharge les photos à analyser - et rien d'autre.
+ * Downloads the photos to analyse - and nothing else.
  *
- * <h2>Ce n'est pas un téléchargeur d'URL arbitraire</h2>
- * C'est le point de tout ce fichier. Un endpoint qui accepte une URL et va la
- * chercher côté serveur est une SSRF : on lui donne
- * {@code http://169.254.169.254/} et il rapporte les identifiants de la
- * machine. Trois barrières, franchies dans cet ordre :
+ * <h2>It is not an arbitrary URL downloader</h2>
+ * This is the point of this whole file. An endpoint that accepts a URL and goes
+ * to fetch it on the server side is an SSRF: we give it
+ * {@code http://169.254.169.254/} and it brings back the credentials of the
+ * machine. Three barriers, crossed in this order:
  * <ol>
- *   <li><b>Liste blanche d'hôtes</b>, assemblée à partir de ce que les
- *       {@link ListingProvider} déclarent en {@code allowedImageHosts()}. Il
- *       n'existe aucune liste globale, aucun caractère générique, et un hôte
- *       absent est refusé <b>avant</b> le moindre appel réseau ;</li>
- *   <li><b>{@link ListingUrlGuard}</b>, déjà écrit et déjà testé : HTTPS
- *       obligatoire, refus des adresses privées, locales et de lien-local ;</li>
- *   <li><b>Lecture bornée</b> : taille par image, taille cumulée, nombre
- *       d'images, délai, et un type MIME image constaté.</li>
+ *   <li><b>Host whitelist</b>, assembled from what the
+ *       {@link ListingProvider} objects declare in {@code allowedImageHosts()}. There
+ *       is no global list, no wildcard, and a missing host
+ *       is refused <b>before</b> any network call;</li>
+ *   <li><b>{@link ListingUrlGuard}</b>, already written and already tested: HTTPS
+ *       required, refusal of private, local and link-local addresses;</li>
+ *   <li><b>Bounded reading</b>: size per image, cumulated size, number
+ *       of images, timeout, and an observed image MIME type.</li>
  * </ol>
  *
- * <h2>Aucune redirection</h2>
- * Contrairement au chargeur de pages, celui-ci ne suit <b>aucune</b>
- * redirection. Un CDN d'images n'a pas de raison d'en émettre, et chaque saut
- * suivi est une occasion de sortir de la liste blanche.
+ * <h2>No redirect</h2>
+ * Unlike the page loader, this one follows <b>no</b>
+ * redirect. An image CDN has no reason to issue any, and each hop
+ * followed is a chance to leave the whitelist.
  *
- * <h2>Rien n'est archivé</h2>
- * Les octets vivent le temps de l'analyse, en mémoire. IozyCore ne conserve
- * aucune copie des photos d'une annonce - la plateforme reste seule
- * propriétaire de ses images.
+ * <h2>Nothing is archived</h2>
+ * The bytes live for the time of the analysis, in memory. IozyCore keeps
+ * no copy of the photos of a listing - the platform stays the only
+ * owner of its images.
  */
 @Component
 public class RecognitionImageFetcher {
 
     private static final Logger log = LoggerFactory.getLogger(RecognitionImageFetcher.class);
 
-    // Les bornes sont énoncées une seule fois, dans RecognitionImageLimits :
-    // l'envoi direct par l'utilisateur les applique aussi, et deux copies
-    // finiraient par diverger.
+    // The limits are stated only once, in RecognitionImageLimits:
+    // direct upload by the user applies them too, and two copies
+    // would end up drifting apart.
     private static final int MAX_IMAGES = RecognitionImageLimits.MAX_IMAGES;
     private static final int MAX_BYTES_PER_IMAGE = RecognitionImageLimits.MAX_BYTES_PER_IMAGE;
     private static final int MAX_TOTAL_BYTES = RecognitionImageLimits.MAX_TOTAL_BYTES;
@@ -70,7 +70,7 @@ public class RecognitionImageFetcher {
     public RecognitionImageFetcher(List<ListingProvider> providers) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
-                // NEVER : aucune redirection suivie, voir la Javadoc de la classe.
+                // NEVER: no redirect followed, see the Javadoc of the class.
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
         this.allowedImageHosts = collectHosts(providers);
@@ -93,9 +93,9 @@ public class RecognitionImageFetcher {
     }
 
     /**
-     * Rapporte ce qui a pu être téléchargé, en silence sur le reste : une photo
-     * refusée ou illisible n'est pas une erreur d'analyse, c'est une photo en
-     * moins. L'appelant voit la différence au nombre d'images rendues.
+     * Reports what could be downloaded, silently for the rest: a photo
+     * that is refused or unreadable is not an analysis error, it is one photo
+     * less. The caller sees the difference in the number of images returned.
      */
     public List<RecognitionImage> fetch(List<String> imageUrls) {
         if (imageUrls == null || imageUrls.isEmpty()) {
@@ -114,9 +114,9 @@ public class RecognitionImageFetcher {
 
             ListingUrlGuard.Result verdict = ListingUrlGuard.check(url, allowedImageHosts);
             if (!verdict.isAllowed()) {
-                // On journalise la raison, jamais l'URL complète : elle identifie
-                // une annonce précise, et ces journaux ne sont pas confidentiels.
-                log.info("Photo refusée avant tout appel réseau ({})", verdict.rejection());
+                // We log the reason, never the full URL: it identifies
+                // a precise listing, and these logs are not confidential.
+                log.info("Photo refused before any network call ({})", verdict.rejection());
                 continue;
             }
 
@@ -143,7 +143,7 @@ public class RecognitionImageFetcher {
                     httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
 
             if (response.statusCode() != 200) {
-                log.info("Photo non récupérée : status={}", response.statusCode());
+                log.info("Photo not fetched: status={}", response.statusCode());
                 return null;
             }
 
@@ -151,9 +151,9 @@ public class RecognitionImageFetcher {
                     .map(valeur -> valeur.split(";")[0].trim().toLowerCase(Locale.ROOT))
                     .orElse("");
             if (!ACCEPTED_MEDIA_TYPES.contains(mediaType)) {
-                // Un serveur qui rend du HTML ou du binaire quelconque sur une URL
-                // d'image n'a pas à voir ses octets partir vers un moteur.
-                log.info("Photo ignorée : type MIME inattendu ({})", mediaType.isBlank() ? "absent" : mediaType);
+                // A server that returns HTML or any binary on an image
+                // URL must not see its bytes sent to an engine.
+                log.info("Photo ignored: unexpected MIME type ({})", mediaType.isBlank() ? "absent" : mediaType);
                 return null;
             }
 
@@ -167,14 +167,14 @@ public class RecognitionImageFetcher {
             Thread.currentThread().interrupt();
             return null;
         } catch (Exception e) {
-            // Une photo injoignable est une photo en moins, jamais une exception
-            // qui remonterait jusqu'à casser le parcours d'analyse.
-            log.info("Photo injoignable : {}", e.getClass().getSimpleName());
+            // An unreachable photo is one photo less, never an exception
+            // that would bubble up and break the analysis flow.
+            log.info("Photo unreachable: {}", e.getClass().getSimpleName());
             return null;
         }
     }
 
-    /** Lecture bornée : on s'arrête au plafond, on ne mesure pas après coup. */
+    /** Bounded reading: we stop at the ceiling, we do not measure afterwards. */
     private static byte[] lireBorne(InputStream in, int plafond) throws Exception {
         try (InputStream stream = in; java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
             byte[] tampon = new byte[8192];
@@ -189,7 +189,7 @@ public class RecognitionImageFetcher {
         }
     }
 
-    /** Les hôtes réellement autorisés - exposé pour que les tests puissent l'affirmer. */
+    /** The hosts really allowed - exposed so that tests can assert it. */
     public Set<String> allowedImageHosts() {
         return allowedImageHosts;
     }

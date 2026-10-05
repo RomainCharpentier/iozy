@@ -4,29 +4,29 @@ package com.iozycore.core.domain.share;
 import java.util.UUID;
 
 /**
- * Le partage d'un espace personnel : <b>un lien, plusieurs sections</b>.
+ * The sharing of a personal space: <b>one link, several sections</b>.
  * <p>
- * Il y avait auparavant deux systèmes parallèles - {@code CollectionShareSettings}
- * et {@code WishlistShareSettings} - avec chacun sa table, son jeton, son
- * contrôleur public, sa page et sa section de réglages. Deux liens à
- * distribuer, deux fois les mêmes règles écrites, et pour la personne qui
- * reçoit : deux URL pour regarder le même espace. Or ma collection et mes
- * envies sont deux <b>vues</b> de cet espace, pas deux espaces.
+ * There used to be two parallel systems - {@code CollectionShareSettings}
+ * and {@code WishlistShareSettings} - each with its own table, its token, its
+ * public controller, its page and its settings section. Two links to
+ * hand out, the same rules written twice, and for the person who
+ * receives: two URLs to look at the same space. But my collection and my
+ * wishes are two <b>views</b> of this space, not two spaces.
  * <p>
- * Le jeton fait office de mot de passe (capability URL) : le posséder suffit,
- * il n'y a rien d'autre à présenter. {@code token} nul = aucun lien actif, et
- * la révocation remet le champ à null plutôt que de conserver une ligne
- * « désactivée » - un jeton qui n'existe plus nulle part ne peut pas fuiter.
- * Régénérer invalide donc l'ancien du même geste.
+ * The token acts as a password (capability URL): having it is enough,
+ * there is nothing else to present. {@code token} null = no active link, and
+ * revoking sets the field back to null rather than keeping a "disabled"
+ * row - a token that exists nowhere anymore cannot leak.
+ * Regenerating therefore invalidates the old one in the same move.
  * <p>
- * <b>Au moins une section visible.</b> Un lien qui n'expose rien n'est pas un
- * partage plus discret, c'est une URL active vers une page vide : l'invariant
- * est refusé ici, dans le domaine, pas seulement dans un formulaire.
+ * <b>At least one visible section.</b> A link that exposes nothing is not a
+ * more discreet share, it is an active URL to an empty page: the invariant
+ * is refused here, in the domain, not only in a form.
  * <p>
- * {@code includeTierLists} reste une sous-option de la collection, et
- * volontairement fausse par défaut y compris à la création d'un lien : un
- * classement personnel est un jugement, pas un inventaire, il ne part jamais
- * avec le reste sans avoir été demandé à part.
+ * {@code includeTierLists} stays a sub-option of the collection, and
+ * is false by default on purpose, including when a link is created: a
+ * personal ranking is a judgment, not an inventory, it never leaves
+ * with the rest without being asked for separately.
  */
 public record ShareSettings(UUID ownerId, String token, boolean shareCollection, boolean shareWishlist,
                              boolean includeTierLists) {
@@ -38,34 +38,34 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
         }
     }
 
-    /** Aucun lien. Les sections restent à leur valeur la plus ouverte pour le prochain lien créé. */
+    /** No link. The sections stay at their most open value for the next link created. */
     public static ShareSettings noLink(UUID proprietaire) {
         return new ShareSettings(proprietaire, null, true, true, false);
     }
 
     /**
-     * Un lien tout neuf, les deux sections visibles et les Tier Lists exclues.
+     * A brand new link, both sections visible and the Tier Lists excluded.
      * <p>
-     * Le jeton est un UUID v4, tiré d'un générateur cryptographique : ni
-     * séquentiel, ni dérivé de l'identifiant du propriétaire, et hors de portée
-     * d'une énumération ({@code /share/1}, {@code /share/2}…). C'est le
-     * mécanisme déjà en place dans le projet, conservé tel quel.
+     * The token is a UUID v4, drawn from a cryptographic generator: neither
+     * sequential, nor derived from the owner id, and out of reach
+     * of an enumeration ({@code /share/1}, {@code /share/2}...). This is the
+     * mechanism already in place in the project, kept as it is.
      */
     public static ShareSettings withNewToken(UUID proprietaire) {
         return new ShareSettings(proprietaire, UUID.randomUUID().toString(), true, true, false);
     }
 
     /**
-     * Change les sections visibles <b>sans toucher au jeton</b> : le lien déjà
-     * envoyé continue de fonctionner, il montre simplement autre chose.
+     * Changes the visible sections <b>without touching the token</b>: the link already
+     * sent keeps working, it just shows something else.
      *
-     * @throws IllegalArgumentException si les deux sections sont décochées alors qu'un lien est actif
+     * @throws IllegalArgumentException if both sections are unchecked while a link is active
      */
     public ShareSettings withSections(boolean shareCollection, boolean shareWishlist) {
         return new ShareSettings(ownerId, token, shareCollection, shareWishlist, includeTierLists);
     }
 
-    /** Bascule les Tier Lists sans casser le lien déjà distribué. */
+    /** Switches the Tier Lists without breaking the link already handed out. */
     public ShareSettings withTierLists(boolean includeTierLists) {
         return new ShareSettings(ownerId, token, shareCollection, shareWishlist, includeTierLists);
     }
@@ -77,10 +77,10 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
     }
 
     /**
-     * Les trois accesseurs ci-dessous répondent à la seule question qui compte
-     * côté public : « est-ce que ce visiteur a le droit de voir ça ? ». Ils
-     * exigent tous un lien actif, pour qu'un drapeau resté à vrai sur une ligne
-     * sans jeton n'expose jamais rien.
+     * The three accessors below answer the only question that matters
+     * on the public side: "is this visitor allowed to see this?". They
+     * all require an active link, so that a flag left true on a row
+     * without a token never exposes anything.
      */
     public boolean sharesCollection() {
         return hasLink() && shareCollection;
@@ -90,7 +90,7 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
         return hasLink() && shareWishlist;
     }
 
-    /** Les classements accompagnent la collection : sans elle, ils ne sortent pas. */
+    /** The rankings go with the collection: without it, they do not come out. */
     public boolean sharesTierLists() {
         return sharesCollection() && includeTierLists;
     }

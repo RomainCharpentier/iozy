@@ -13,7 +13,7 @@ class ExperienceTest {
 
     @Test
     void recording_an_experience_does_not_require_any_ownership() {
-        // Un tome peut être marqué "lu" sans jamais avoir été possédé.
+        // A volume can be marked "read" without ever having been owned.
         Experience experience = Experience.record_(UUID.randomUUID(), null, "READ", LocalDate.now(), 8, "Très bon tome");
 
         assertEquals(1, experience.pullDomainEvents().size());

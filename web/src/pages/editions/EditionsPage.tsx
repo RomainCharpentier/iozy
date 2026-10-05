@@ -13,21 +13,21 @@ import { LienRetour } from '@/common/components/LienRetour'
 import { Squelette } from '@/common/components/Squelette'
 
 /**
- * "Éditions de référence" - la seule vue d'ensemble du référentiel
- * MangaEdition, et le seul endroit d'où en supprimer une.
- * <p>
- * Ces fiches se créent jusqu'ici uniquement en contexte (fiche Série ->
- * « Éditer » puis les champs de l'édition dans l'inspecteur, ou "Évaluer un achat" -> EditionReferenceLookup) et
- * n'étaient visibles NULLE PART ensuite : une édition mal nommée, créée par
- * erreur ou par un test, restait dans la base sans moyen de la voir ni de
- * l'enlever. Elle continuait pourtant à compter - c'est ce référentiel qui
- * fournit le total de tomes affiché par Ma collection et par la fiche (voir
- * Lot 16).
- * <p>
- * Écran de LECTURE et de SUPPRESSION seulement : renseigner/corriger reste
- * là où l'information manque concrètement (la fiche de la série), pour ne
- * pas dupliquer un formulaire déjà existant à deux endroits.
- */
+  * "Reference editions" - the only overview of the MangaEdition
+  * reference data, and the only place to delete one from.
+  * <p>
+  * Until now these pages were only created in context (Series detail page ->
+  * "Edit" then the edition fields in the inspector, or "Evaluate a purchase" -> EditionReferenceLookup) and
+  * were visible NOWHERE afterwards: an edition with a wrong name, created by
+  * mistake or by a test, stayed in the database with no way to see or
+  * remove it. It still counted, though - this reference data
+  * provides the total number of volumes shown by My collection and by the detail page (see
+  * Batch 16).
+  * <p>
+  * A READ and DELETE screen only: filling in or fixing stays
+  * where the information is missing in practice (the series page), so as not to
+  * duplicate a form that already exists in two places.
+  */
 export function EditionsPage() {
   const queryClient = useQueryClient()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
@@ -42,9 +42,9 @@ export function EditionsPage() {
     },
   })
 
-  // Groupées par série : le référentiel n'a de sens que série par série (deux
-  // éditions d'une même série se comparent, deux éditions de séries
-  // différentes n'ont rien à voir).
+  // Grouped by series: the reference data only makes sense series by series (two
+  // editions of the same series can be compared, two editions of different
+  // series have nothing to do with each other).
   const bySeries = useMemo(() => {
     const groups = new Map<string, MangaEditionDto[]>()
     for (const edition of editionsQuery.data ?? []) {
@@ -98,10 +98,10 @@ export function EditionsPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    {/* Lien vers la série seulement quand l'édition y est
-                        réellement rattachée (entityId non nul) : une édition
-                        créée depuis "Évaluer un achat" pour une série pas
-                        encore possédée n'a nulle part où mener. */}
+                    {/* Link to the series only when the edition is actually
+                            attached to it (entityId not null): an edition
+                            created from "Évaluer un achat" for a series not yet
+                            owned has nowhere to lead. */}
                     {edition.entityId && (
                       <Link to={`/entity/${edition.entityId}`} className="inline-flex min-h-11 items-center text-xs font-semibold text-accentText">
                         Voir la série
@@ -118,9 +118,9 @@ export function EditionsPage() {
                   </div>
                 </div>
 
-                {/* Les prix relevés de cette édition : c'est leur contexte
-                    naturel, et le seul endroit d'où ils étaient jusqu'ici
-                    invisibles après enregistrement. */}
+                {/* The recorded prices of this edition: this is their natural
+                        context, and the only place where they were until now
+                        invisible after being saved. */}
                 <EditionObservations editionId={edition.id} editionName={edition.editionName} />
 
                 {(edition.outOfPrint || edition.betterEditionAnnounced) && (

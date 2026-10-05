@@ -2,28 +2,28 @@ import { useQuery } from '@tanstack/react-query'
 import { searchEditionsForSeries } from '@/common/api/purchaseAnalysis'
 
 /**
- * Choisir l'édition d'un lot sans avoir à la deviner.
+ * Choose the edition of a batch without having to guess it.
  *
- * Le champ était libre, sans liste ni exemple utilisable : il fallait taper
- * « Standard » ou « Perfect Edition » de mémoire. Deux façons de se tromper,
- * et la seconde est silencieuse :
+ * The field was free, with no list and no usable example: you had to type
+ * "Standard" or "Perfect Edition" from memory. Two ways to get it wrong,
+ * and the second is silent:
  *
- * - le libellé ne correspond à rien au catalogue → l'analyse tourne quand même
- *   mais porte une étiquette fictive ;
- * - le libellé correspond **par accident** à une autre édition → la référence
- *   marché est fausse, sans que rien ne le signale.
+ * - the label matches nothing in the catalogue → the analysis still runs
+ *   but carries a fictitious label;
+ * - the label matches **by accident** another edition → the market
+ *   reference is wrong, and nothing signals it.
  *
- * On propose donc ce qui existe réellement pour cette série, plus un choix
- * explicite « je ne sais pas ». Déclarer son ignorance vaut mieux que
- * l'inventer : l'analyse le sait et dégrade honnêtement (complétude inconnue,
- * pas de valeur neuve), au lieu de calculer sur une fiction.
+ * So we offer what really exists for this series, plus an
+ * explicit "I do not know" choice. Declaring one's ignorance is better than
+ * inventing: the analysis knows it and degrades honestly (unknown completeness,
+ * no new value), instead of computing on a fiction.
  */
 
 /**
- * Doit rester identique à {@code ListingItem.EDITION_INCONNUE} côté backend :
- * c'est ce libellé exact qui déclenche le message « l'édition n'est pas
- * précisée » plutôt que « complète sa fiche », lequel serait un conseil
- * inapplicable.
+ * Must stay identical to {@code ListingItem.EDITION_INCONNUE} on the backend:
+ * this exact label triggers the message "the edition is not
+ * specified" rather than "complete its detail page", which would be an
+ * inapplicable piece of advice.
  */
 export const EDITION_INCONNUE = 'Édition inconnue'
 
@@ -45,8 +45,8 @@ export function EditionPicker({
   const editionsQuery = useQuery({
     queryKey: ['purchase-analysis', 'editions', 'search', serie.toLowerCase()],
     queryFn: () => searchEditionsForSeries(serie),
-    // Rien à chercher tant que la série n'est pas nommée, et pas la peine de
-    // solliciter le serveur sur deux lettres.
+    // Nothing to search while the series is not named, and no need to
+    // ask the server for two letters.
     enabled: serie.length >= 3,
     staleTime: 5 * 60 * 1000,
   })
@@ -86,8 +86,8 @@ export function EditionPicker({
           </button>
         ))}
 
-        {/* Toujours offert, même quand des éditions sont proposées : le
-            catalogue peut parfaitement ignorer celle qu'on a sous les yeux. */}
+        {/* Always offered, even when editions are proposed: the
+            catalogue may perfectly well not know the one we have in front of us. */}
         <button
           type="button"
           onClick={() => onChange(EDITION_INCONNUE)}

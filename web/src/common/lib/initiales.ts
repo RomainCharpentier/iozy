@@ -1,22 +1,22 @@
 /**
- * Les deux lettres qu'un avatar porte à la place d'une photo.
+ * The two letters that an avatar carries in place of a photo.
  *
- * <h2>Pourquoi une règle écrite plutôt qu'un `slice(0, 2)`</h2>
- * Un pseudo peut être un mot (« kenshin »), ou deux morceaux séparés
- * (« jean-dupont », « marie_c », « r.charpentier »). Découpé au caractère, le
- * second donne « JE » — le début du prénom deux fois, et deux personnes de la
- * même famille deviennent indistinguables. Découpé aux séparateurs, il donne
- * « JD », qui est ce qu'on attend d'un avatar.
+ * <h2>Why a written rule rather than a `slice(0, 2)`</h2>
+ * A username can be one word ("kenshin"), or two separate pieces
+ * ("jean-dupont", "marie_c", "r.charpentier"). Cut by character, the second
+ * gives "JE" — the start of the first name twice, and two people of the same
+ * family become indistinguishable. Cut at the separators, it gives "JD",
+ * which is what is expected from an avatar.
  *
- * <p>Les séparateurs sont ceux que le pseudo autorise (voir `AppUser` côté
- * serveur : point, tiret, tiret bas) — l'espace y est refusé, mais reste
- * découpé ici : cette fonction sert aussi à des noms qui ne viennent pas d'un
- * pseudo, et un « Jean Dupont » ne doit pas rendre « JE ».
+ * <p>The separators are the ones the username allows (see `AppUser` on the
+ * server side: dot, hyphen, underscore) — the space is refused there, but is
+ * still split here: this function also serves names that do not come from a
+ * username, and a "Jean Dupont" must not give "JE".
  *
- * <h2>`Array.from`, et pas `[0]`</h2>
- * Un pseudo accepte n'importe quelle lettre Unicode, et certaines s'écrivent
- * sur deux unités de code. `pseudo[0]` en rendrait la moitié — un caractère de
- * remplacement à l'écran, sur l'élément le plus visible de l'en-tête.
+ * <h2>`Array.from`, and not `[0]`</h2>
+ * A username accepts any Unicode letter, and some are written on two code
+ * units. `pseudo[0]` would render half of it — a replacement character on
+ * the screen, on the most visible element of the header.
  */
 const SEPARATEURS = /[-_. ]+/
 

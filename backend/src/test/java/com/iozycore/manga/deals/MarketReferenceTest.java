@@ -12,28 +12,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.core.listing.ListingPlatform;
 
 /**
- * <b>Deux offres ne sont comparables que si c'est le même produit.</b>
+ * <b>Two offers are comparable only if they are the same product.</b>
  *
- * <h2>Le défaut que ces tests interdisent</h2>
- * Tout relevé rattaché à l'édition entrait dans la médiane, ramené à un prix au
- * tome. Un tome dépareillé se vend proche du neuf ; une intégrale se brade.
- * Mélanger les deux donne un chiffre précis, présenté comme sûr dès trois
- * relevés, et faux.
+ * <h2>The flaw these tests forbid</h2>
+ * Every record attached to the edition went into the median, brought down to a price per
+ * volume. A single odd volume sells close to new; a complete set is sold off cheap.
+ * Mixing the two gives a precise figure, presented as reliable from three
+ * records, and wrong.
  * <p>
- * Le cas nommé dans le cahier des charges - <i>Platinum End 1-14</i> face à un
- * T.1, un lot 1-4 et un lot 7-10 - est vérifié ici deux fois : la sélection ne
- * retient rien, et la référence qui en découle est UNAVAILABLE plutôt qu'un
- * faux prix marché.
+ * The case named in the specification - <i>Platinum End 1-14</i> against a
+ * T.1, a 1-4 batch and a 7-10 batch - is checked here twice: the selection
+ * keeps nothing, and the reference that follows is UNAVAILABLE rather than a
+ * false market price.
  */
 class MarketReferenceTest {
 
     private static final LocalDate AUJOURD_HUI = LocalDate.of(2026, 8, 23);
 
     /**
-     * Une édition plus longue que le lot évalué : un lot de 14 y est un LOT
-     * PARTIEL. Sur Platinum End (14 tomes en tout), 1-14 est au contraire
-     * l'intégrale - c'est justement la distinction que ces règles portent, et
-     * elle change le jeu de comparables retenu.
+     * An edition longer than the assessed batch: a batch of 14 is a PARTIAL
+     * BATCH there. On Platinum End (14 volumes in all), 1-14 is on the contrary
+     * the complete set - this is precisely the distinction these rules carry, and
+     * it changes the set of comparables kept.
      */
     private static MangaEdition serieLongue() {
         return MangaEdition.create("Berserk", "Standard", EditionTier.STANDARD, "Glénat",
@@ -62,35 +62,35 @@ class MarketReferenceTest {
                 MarketComparableSelector.selectFor(edition, tomesCibles, releves, AUJOURD_HUI), AUJOURD_HUI);
     }
 
-    // ============================================ LE test : Platinum End 1-14
+    // ============================================ THE test: Platinum End 1-14
 
     @Test
     void un_lot_de_14_ne_se_compare_ni_a_un_tome_seul_ni_a_des_lots_de_4() {
         MangaEdition edition = platinumEnd(14);
         List<MarketPriceObservation> releves = List.of(
-                releve(edition, 1, 1, "8.00"),    // T.1 seul      -> 8,00 / tome
-                releve(edition, 1, 4, "20.00"),   // lot de 4      -> 5,00 / tome
-                releve(edition, 7, 10, "18.00")); // lot de 4      -> 4,50 / tome
+                releve(edition, 1, 1, "8.00"),    // T.1 alone     -> 8.00 / volume
+                releve(edition, 1, 4, "20.00"),   // batch of 4    -> 5.00 / volume
+                releve(edition, 7, 10, "18.00")); // batch of 4    -> 4.50 / volume
 
         MarketComparableSelector.Selection selection =
                 MarketComparableSelector.selectFor(edition, 14, releves, AUJOURD_HUI);
 
-        // Le T.1 sort par la FORME (tome seul contre lot), les deux lots de 4
-        // par la TAILLE (4 x 2 = 8 < 14, plus du simple au double).
+        // T.1 leaves by FORM (single volume against batch), the two batches of 4
+        // by SIZE (4 x 2 = 8 < 14, more than a simple double).
         assertThat(selection.retained()).isEmpty();
         assertThat(selection.examined()).isEqualTo(3);
         assertThat(selection.gap()).isEqualTo(ReferenceGap.NO_COMPARABLE_SHAPE);
 
         MarketReference reference = referencePour(edition, 14, releves);
 
-        // L'ancien calcul : médiane 5,00 / tome, HIGH parce que « trois
-        // relevés », donc 70 EUR presentés comme solides. Plus jamais.
+        // The old calculation: median 5.00 / volume, HIGH because "three
+        // records", so 70 EUR presented as solid. Never again.
         assertThat(reference.price()).isNull();
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.UNAVAILABLE);
         assertThat(reference.isUsable()).isFalse();
         assertThat(reference.source()).isEqualTo(MarketReferenceSource.NONE);
-        // On sait dire que des relevés EXISTENT : « aucune donnée » serait faux,
-        // et l'écran doit pouvoir conseiller quel relevé ajouter.
+        // We can say that records EXIST: "no data" would be false,
+        // and the screen must be able to advise which record to add.
         assertThat(reference.examinedCount()).isEqualTo(3);
         assertThat(reference.gap()).isEqualTo(ReferenceGap.NO_COMPARABLE_SHAPE);
     }
@@ -103,7 +103,7 @@ class MarketReferenceTest {
                 releve(edition, 1, 4, "20.00"),
                 releve(edition, 7, 10, "18.00")));
 
-        // 60 EUR se serait dit « bon prix » face aux 70 EUR inventés.
+        // 60 EUR would have called itself a "good price" against the invented 70 EUR.
         assertThat(DealAssessmentPolicy.positionOf(new BigDecimal("60"), reference))
                 .isEqualTo(PricePosition.REFERENCE_UNAVAILABLE);
     }
@@ -111,23 +111,23 @@ class MarketReferenceTest {
     @Test
     void des_lots_de_taille_voisine_restent_comparables_eux() {
         MangaEdition edition = serieLongue();
-        // 10, 12 et 13 tomes face a 14 : le meme produit, a peu de choses pres.
+        // 10, 12 and 13 volumes against 14: the same product, give or take a little.
         MarketReference reference = referencePour(edition, 14, List.of(
-                releve(edition, 1, 10, "40.00"),  // 4,00 / tome
-                releve(edition, 1, 12, "51.00"),  // 4,25 / tome
-                releve(edition, 2, 14, "58.50"))); // 4,50 / tome
+                releve(edition, 1, 10, "40.00"),  // 4.00 / volume
+                releve(edition, 1, 12, "51.00"),  // 4.25 / volume
+                releve(edition, 2, 14, "58.50"))); // 4.50 / volume
 
         assertThat(reference.sampleSize()).isEqualTo(3);
         assertThat(reference.comparedShape()).isEqualTo(LotShape.PARTIAL_LOT);
-        // Mediane 4,25 / tome x 14 tomes.
+        // Median 4.25 / volume x 14 volumes.
         assertThat(reference.price()).isEqualByComparingTo("59.50");
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.HIGH);
         assertThat(reference.source()).isEqualTo(MarketReferenceSource.OBSERVED_COMPARABLES);
-        // Dispersion faible : 0,50 d'amplitude sur une mediane de 4,25 = 12 %.
+        // Low dispersion: 0.50 of range on a median of 4.25 = 12 %.
         assertThat(reference.spreadPercent()).isEqualTo(12);
     }
 
-    // ================================================ Les formes, une par une
+    // ================================================ The shapes, one by one
 
     @Test
     void un_tome_seul_ne_se_compare_qu_a_des_tomes_seuls() {
@@ -135,13 +135,13 @@ class MarketReferenceTest {
         MarketReference reference = referencePour(edition, 1, List.of(
                 releve(edition, 3, 3, "7.00"),
                 releve(edition, 9, 9, "8.00"),
-                releve(edition, 1, 10, "40.00")));  // ecarte : ce n'est pas un tome seul
+                releve(edition, 1, 10, "40.00")));  // discarded: it is not a single volume
 
         assertThat(reference.sampleSize()).isEqualTo(2);
         assertThat(reference.comparedShape()).isEqualTo(LotShape.SINGLE_VOLUME);
         assertThat(reference.price()).isEqualByComparingTo("7.50");
-        // Le lot de 10 aurait tire la reference a 4,00 EUR le tome, soit 47 %
-        // trop bas pour un tome depareille.
+        // The batch of 10 would have pulled the reference to 4.00 EUR a volume, 47 %
+        // too low for an odd volume.
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.MEDIUM);
     }
 
@@ -150,19 +150,19 @@ class MarketReferenceTest {
         MangaEdition edition = platinumEnd(14);
         MarketReference reference = referencePour(edition, 14, List.of(
                 releve(edition, 1, 14, "56.00"),
-                releve(edition, null, null, "60.00"),  // relevé « sur l'édition entière »
-                releve(edition, 1, 12, "51.00")));     // lot partiel : ecarte
+                releve(edition, null, null, "60.00"),  // record "on the whole edition"
+                releve(edition, 1, 12, "51.00")));     // partial batch: discarded
 
         assertThat(reference.sampleSize()).isEqualTo(2);
         assertThat(reference.comparedShape()).isEqualTo(LotShape.COMPLETE_SET);
-        // 56/14 = 4,00 et 60/14 = 4,29 le tome ; médiane 4,15 x 14.
+        // 56/14 = 4.00 and 60/14 = 4.29 a volume; median 4.15 x 14.
         assertThat(reference.price()).isEqualByComparingTo("58.10");
     }
 
     @Test
     void une_edition_dont_on_ignore_le_nombre_de_tomes_plafonne_la_confiance() {
-        // Sans total, impossible d'affirmer qu'un lot de 14 n'est pas l'integrale :
-        // les comparables restent utilisables, la certitude non.
+        // Without a total, impossible to say that a batch of 14 is not the complete set:
+        // the comparables stay usable, the certainty does not.
         MangaEdition edition = platinumEnd(null);
         MarketReference reference = referencePour(edition, 14, List.of(
                 releve(edition, 1, 10, "40.00"),
@@ -179,12 +179,12 @@ class MarketReferenceTest {
         MarketReference reference = referencePour(edition, 14, List.of(
                 releve(edition, null, null, "60.00")));
 
-        // Combien de tomes valent ces 60 EUR ? On l'ignore, donc on ne divise pas.
+        // How many volumes are these 60 EUR worth? We do not know, so we do not divide.
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.UNAVAILABLE);
         assertThat(reference.gap()).isEqualTo(ReferenceGap.NO_COMPARABLE_SHAPE);
     }
 
-    // ============================================ Echantillon, age, dispersion
+    // ============================================ Sample, age, dispersion
 
     @Test
     void un_seul_comparable_ne_suffit_jamais_a_positionner_un_prix() {
@@ -194,7 +194,7 @@ class MarketReferenceTest {
         assertThat(reference.sampleSize()).isEqualTo(1);
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.LOW);
         assertThat(reference.isUsable()).isFalse();
-        // Le prix existe, il n'est simplement pas assez sûr pour trancher.
+        // The price exists, it is simply not reliable enough to decide.
         assertThat(reference.price()).isEqualByComparingTo("59.50");
         assertThat(DealAssessmentPolicy.positionOf(new BigDecimal("40"), reference))
                 .isEqualTo(PricePosition.REFERENCE_UNAVAILABLE);
@@ -204,12 +204,12 @@ class MarketReferenceTest {
     void des_comparables_qui_se_contredisent_font_baisser_la_confiance() {
         MangaEdition edition = serieLongue();
         MarketReference reference = referencePour(edition, 14, List.of(
-                releve(edition, 1, 12, "24.00"),   // 2,00 / tome
-                releve(edition, 1, 12, "51.00"),   // 4,25 / tome
-                releve(edition, 1, 12, "84.00"))); // 7,00 / tome
+                releve(edition, 1, 12, "24.00"),   // 2.00 / volume
+                releve(edition, 1, 12, "51.00"),   // 4.25 / volume
+                releve(edition, 1, 12, "84.00"))); // 7.00 / volume
 
-        // Trois comparables de forme et taille identiques, mais du simple au
-        // triple : la mediane ne decrit plus rien de stable.
+        // Three comparables of identical shape and size, but from simple to
+        // triple: the median no longer describes anything stable.
         assertThat(reference.sampleSize()).isEqualTo(3);
         assertThat(reference.spreadPercent()).isEqualTo(118);
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.MEDIUM);
@@ -225,8 +225,8 @@ class MarketReferenceTest {
         MarketReference reference = referencePour(edition, 14, releves);
 
         assertThat(reference.confidence()).isEqualTo(MarketReferenceConfidence.UNAVAILABLE);
-        // La raison est precise : ce ne sont pas de mauvais comparables, ce sont
-        // de vieux comparables. L'ecran peut le dire, et l'utilisateur agir.
+        // The reason is precise: they are not bad comparables, they are
+        // old comparables. The screen can say so, and the user can act.
         assertThat(reference.gap()).isEqualTo(ReferenceGap.ONLY_STALE_OBSERVATIONS);
     }
 
@@ -243,7 +243,7 @@ class MarketReferenceTest {
         assertThat(reference.mostRecentObservation()).isEqualTo(AUJOURD_HUI.minusMonths(15));
     }
 
-    // ================================================ Absences bien distinguées
+    // ================================================ Absences well distinguished
 
     @Test
     void une_edition_absente_du_catalogue_se_dit_autrement_qu_une_edition_sans_releve() {
@@ -254,11 +254,11 @@ class MarketReferenceTest {
 
         assertThat(sansEdition.gap()).isEqualTo(ReferenceGap.EDITION_NOT_IN_CATALOGUE);
         assertThat(sansReleve.gap()).isEqualTo(ReferenceGap.NO_OBSERVATION);
-        // Deux causes, deux conseils : « complète la fiche » contre « relève un prix ».
+        // Two causes, two pieces of advice: "complete the work page" against "record a price".
         assertThat(sansEdition.gap()).isNotEqualTo(sansReleve.gap());
     }
 
-    // ========================================================= Lots multi-séries
+    // ========================================================= Multi-series batches
 
     @Test
     void un_lot_multi_series_dont_une_serie_manque_n_a_pas_de_reference() {
@@ -271,8 +271,8 @@ class MarketReferenceTest {
 
         MarketReference lot = MarketReference.sum(List.of(connue, inconnue));
 
-        // Sommer la seule serie connue donnerait une reference trop basse, donc
-        // un lot systematiquement « trop cher ».
+        // Summing only the known series would give a reference that is too low, so
+        // a batch that is always "too expensive".
         assertThat(lot.price()).isNull();
         assertThat(lot.confidence()).isEqualTo(MarketReferenceConfidence.UNAVAILABLE);
         assertThat(lot.gap()).isEqualTo(ReferenceGap.INCOMPLETE_LOT_COVERAGE);
@@ -289,11 +289,11 @@ class MarketReferenceTest {
 
         MarketReference lot = MarketReference.sum(List.of(serie, serie));
 
-        // Juxtaposer deux references unitaires pour juger un lot reste une
-        // approximation, meme quand chaque terme est solide.
+        // Putting two unit references side by side to judge a batch remains an
+        // approximation, even when each term is solid.
         assertThat(lot.price()).isEqualByComparingTo("119.00");
         assertThat(lot.confidence()).isEqualTo(MarketReferenceConfidence.MEDIUM);
-        // L'echantillon annonce est celui du maillon faible, pas la somme.
+        // The announced sample is that of the weakest link, not the sum.
         assertThat(lot.sampleSize()).isEqualTo(3);
     }
 
@@ -304,9 +304,9 @@ class MarketReferenceTest {
 
         MarketReference lot = MarketReference.sum(List.of(faible));
 
-        // LOW n'est pas UNAVAILABLE : le prix ne se positionne pas, mais l'ecran
-        // peut dire « un seul comparable » plutot que « aucune donnee », ce qui
-        // est faux et n'aide personne.
+        // LOW is not UNAVAILABLE: the price cannot be positioned, but the screen
+        // can say "a single comparable" rather than "no data", which
+        // is false and helps nobody.
         assertThat(lot.confidence()).isEqualTo(MarketReferenceConfidence.LOW);
         assertThat(lot.sampleSize()).isEqualTo(1);
         assertThat(lot.gap()).isEqualTo(ReferenceGap.NONE);
@@ -315,7 +315,7 @@ class MarketReferenceTest {
 
     @Test
     void une_reference_sans_prix_ne_peut_pas_pretendre_positionner() {
-        // Le garde-fou structurel : la combinaison est refusee a la construction.
+        // The structural safeguard: the combination is refused at construction.
         assertThat(MarketReferenceConfidence.UNAVAILABLE.allowsPositioning()).isFalse();
         assertThat(MarketReferenceConfidence.LOW.allowsPositioning()).isFalse();
         assertThat(MarketReferenceConfidence.MEDIUM.allowsPositioning()).isTrue();

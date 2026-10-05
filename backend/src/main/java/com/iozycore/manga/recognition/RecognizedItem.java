@@ -9,44 +9,44 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Un élément qu'IozyCore croit voir dans une annonce - <b>avant</b> toute
- * confrontation au catalogue.
+ * An item that IozyCore thinks it sees in a listing - <b>before</b> any
+ * matching with the catalog.
  *
- * <h2>Une seule forme, plusieurs sources</h2>
- * Le même record décrit ce qui a été lu dans le titre, ce qui a été vu sur une
- * photo, et ce qu'un code-barres a confirmé. C'est délibéré : deux modèles
- * jumeaux (« TextCandidate », « VisionCandidate ») obligeraient à écrire deux
- * fois la consolidation, et l'utilisateur, lui, ne voit qu'une liste.
+ * <h2>One single form, several sources</h2>
+ * The same record describes what was read in the title, what was seen on a
+ * photo, and what a barcode confirmed. This is deliberate: two twin models
+ * ("TextCandidate", "VisionCandidate") would force us to write the consolidation
+ * twice, and the user sees only one list.
  *
- * <h2>Du texte, pas encore une œuvre</h2>
- * {@code seriesTitleRaw} est ce qui a été lu, tel quel : « Platinum end »,
- * « PLATINUM END ». Le rapprochement avec une Entity du catalogue vient plus
- * tard et ailleurs (voir {@link RecognitionCatalogResolver}). Mélanger les deux
- * ferait entrer une lecture approximative directement dans le catalogue.
+ * <h2>Text, not yet a work</h2>
+ * {@code seriesTitleRaw} is what was read, as is: "Platinum end",
+ * "PLATINUM END". The matching with a catalog Entity comes later
+ * and elsewhere (see {@link RecognitionCatalogResolver}). Mixing the two
+ * would bring an approximate reading directly into the catalog.
  *
- * <h2>Ce qui peut manquer, et doit pouvoir manquer</h2>
- * Un tome dont on lit le titre mais pas le numéro est un résultat utile.
- * {@code volumeNumber} et {@code editionHint} sont donc nullables, et
- * <b>jamais devinés</b> : voir « Death Note tome 1, édition à confirmer »
- * plutôt que de choisir Black Edition au hasard.
+ * <h2>What can be missing, and must be allowed to be missing</h2>
+ * A volume whose title is read but not the number is a useful result.
+ * {@code volumeNumber} and {@code editionHint} are therefore nullable, and
+ * <b>never guessed</b>: see "Death Note tome 1, édition à confirmer"
+ * rather than choosing Black Edition at random.
  *
- * @param seriesTitleRaw  le titre lu, brut - jamais null ni vide
- * @param volumeNumber    le numéro de tome lu, ou {@code null} s'il n'est pas connu
- * @param editionHint     un indice d'édition lu (« Perfect »), ou {@code null}
- * @param ean             un code EAN/ISBN lu, ou {@code null} - voir {@link #hasExactIdentifier()}
- * @param confidence      à quel point la LECTURE est sûre - voir {@link RecognitionConfidence}
- * @param sources         comment on l'a su - voir {@link RecognitionSource}
- * @param evidence        pourquoi cet élément est proposé, en clair - peut être vide
- * @param sourceImages    index des photos qui l'ont soutenu, 0-based. <b>Vide</b> pour une
- *                        proposition venue du seul texte : on ne lui invente pas une photo
- * @param boxes           où il a été vu sur ces photos - au plus une boîte par photo, souvent
- *                        aucune : le texte et les codes-barres n'ont pas de place sur une image
+ * @param seriesTitleRaw  the title read, raw - never null or empty
+ * @param volumeNumber    the volume number read, or {@code null} if it is not known
+ * @param editionHint     an edition hint read ("Perfect"), or {@code null}
+ * @param ean             an EAN/ISBN code read, or {@code null} - see {@link #hasExactIdentifier()}
+ * @param confidence      how sure the READING is - see {@link RecognitionConfidence}
+ * @param sources         how we know it - see {@link RecognitionSource}
+ * @param evidence        why this item is proposed, in plain words - may be empty
+ * @param sourceImages    index of the photos that supported it, 0-based. <b>Empty</b> for a
+ *                        proposal coming from the text alone: we do not invent a photo for it
+ * @param boxes           where it was seen on these photos - at most one box per photo, often
+ *                        none: the text and the barcodes have no place on an image
  */
 public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String editionHint, String ean,
                               RecognitionConfidence confidence, Set<RecognitionSource> sources,
                               List<String> evidence, Set<Integer> sourceImages, List<RecognizedBox> boxes) {
 
-    /** Au-delà, c'est une lecture erronée, pas un tome - même borne que ListingTextParser. */
+    /** Beyond that, it is a wrong reading, not a volume - same limit as ListingTextParser. */
     public static final int NUMERO_DE_TOME_MAX = 300;
 
     public RecognizedItem {
@@ -56,14 +56,14 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
         seriesTitleRaw = seriesTitleRaw.trim();
         editionHint = blankToNull(editionHint);
         ean = blankToNull(ean);
-        // Un numéro absurde est une lecture ratée, pas un tome : on l'oublie
-        // plutôt que de le propager jusqu'au prix par tome de l'analyse.
+        // An absurd number is a failed reading, not a volume: we forget it
+        // rather than propagate it to the price per volume of the analysis.
         if (volumeNumber != null && (volumeNumber < 1 || volumeNumber > NUMERO_DE_TOME_MAX)) {
             volumeNumber = null;
         }
         confidence = confidence == null ? RecognitionConfidence.LOW : confidence;
-        // Un EAN lu implique la source EAN, où qu'il ait été lu : c'est la
-        // présence de l'identifiant qui compte, pas qui l'a repéré.
+        // A read EAN implies the EAN source, wherever it was read: it is the
+        // presence of the identifier that counts, not who spotted it.
         Set<RecognitionSource> provenances = sources == null || sources.isEmpty()
                 ? EnumSet.of(RecognitionSource.VISION)
                 : EnumSet.copyOf(sources);
@@ -72,16 +72,16 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
         }
         sources = Collections.unmodifiableSet(provenances);
         evidence = evidence == null ? List.of() : List.copyOf(evidence);
-        // LinkedHashSet alimenté par un TreeSet, et non Set.copyOf : ce dernier
-        // rend un Set NON ordonné, qui restituerait « vu sur les photos 3 et 1 ».
-        // L'ordre des photos est celui que l'utilisateur a sous les yeux.
+        // LinkedHashSet fed by a TreeSet, and not Set.copyOf: the latter
+        // returns an UNORDERED Set, which would give back "seen on photos 3 and 1".
+        // The order of the photos is the one the user has in front of them.
         sourceImages = sourceImages == null
                 ? Set.of()
                 : Collections.unmodifiableSet(new LinkedHashSet<>(new TreeSet<>(sourceImages)));
         boxes = boxes == null ? List.of() : List.copyOf(boxes);
     }
 
-    /** Sans boîte : ce que le texte et les codes-barres produisent, et ce que la plupart des tests construisent. */
+    /** Without a box: what the text and the barcodes produce, and what most tests build. */
     public RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String editionHint, String ean,
                           RecognitionConfidence confidence, Set<RecognitionSource> sources,
                           List<String> evidence, Set<Integer> sourceImages) {
@@ -92,30 +92,30 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
         return valeur == null || valeur.isBlank() ? null : valeur.trim();
     }
 
-    /** Une proposition venue du seul texte de l'annonce - sans photo derrière. */
+    /** A proposal coming from the text of the listing alone - with no photo behind it. */
     public static RecognizedItem fromText(String seriesTitle, Integer volumeNumber, String evidence) {
         return fromText(seriesTitle, volumeNumber, null, evidence);
     }
 
     /**
-     * Une proposition venue du texte, avec l'édition que ce texte nomme.
+     * A proposal coming from the text, with the edition that this text names.
      *
-     * <p>{@code editionHint} reste un <b>indice</b> : « Perfect Edition » lu
-     * dans un titre ne prouve pas que le catalogue connaisse cette édition pour
-     * cette série. C'est {@code RecognitionCatalogResolver} qui tranche, et
-     * l'élément reste « édition à confirmer » s'il ne reconnaît rien.
+     * <p>{@code editionHint} stays a <b>hint</b>: "Perfect Edition" read
+     * in a title does not prove that the catalog knows this edition for
+     * this series. It is {@code RecognitionCatalogResolver} that decides, and
+     * the item stays "édition à confirmer" if it recognises nothing.
      */
     public static RecognizedItem fromText(String seriesTitle, Integer volumeNumber, String editionHint,
                                            String evidence) {
         return new RecognizedItem(seriesTitle, volumeNumber, editionHint, null,
-                // Le texte a été lu par des règles écrites : la LECTURE est sûre.
-                // Que le vendeur possède réellement ce tome est une autre question,
-                // que porte la source TEXT et non la confiance.
+                // The text was read by written rules: the READING is certain.
+                // That the seller really owns this volume is another question,
+                // carried by the TEXT source and not by the confidence.
                 RecognitionConfidence.HIGH, EnumSet.of(RecognitionSource.TEXT),
                 evidence == null ? List.of() : List.of(evidence), Set.of());
     }
 
-    /** Une proposition venue d'une photo. */
+    /** A proposal coming from a photo. */
     public static RecognizedItem fromVision(String seriesTitle, Integer volumeNumber, String editionHint, String ean,
                                              RecognitionConfidence confidence, List<String> evidence,
                                              Set<Integer> sourceImages) {
@@ -123,7 +123,7 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
                 EnumSet.of(RecognitionSource.VISION), evidence, sourceImages);
     }
 
-    /** La lecture d'une photo, avec l'endroit où le moteur a vu le livre. */
+    /** The reading of a photo, with the place where the engine saw the book. */
     public static RecognizedItem fromVision(String seriesTitle, Integer volumeNumber, String editionHint, String ean,
                                              RecognitionConfidence confidence, List<String> evidence,
                                              Set<Integer> sourceImages, List<RecognizedBox> boxes) {
@@ -132,16 +132,16 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
     }
 
     /**
-     * Une proposition venue d'un <b>code-barres lu sur une photo</b>.
+     * A proposal coming from a <b>barcode read on a photo</b>.
      *
-     * <p>Toujours {@link RecognitionConfidence#HIGH}, et c'est la seule source
-     * pour laquelle ce soit littéralement vrai : un EAN porte sa clé de
-     * contrôle, il correspond ou il ne correspond pas. Le texte annonce ce que
-     * le vendeur <i>dit</i>, la vision propose ce qu'un modèle <i>croit</i>
-     * voir ; le code-barres désigne un tirage précis.
+     * <p>Always {@link RecognitionConfidence#HIGH}, and it is the only source
+     * for which this is literally true: an EAN carries its check
+     * digit, it matches or it does not match. The text announces what
+     * the seller <i>says</i>, vision proposes what a model <i>thinks</i> it
+     * sees; the barcode designates a precise print run.
      *
-     * <p>{@code sourceImages} est conservé : l'écran doit pouvoir dire sur
-     * quelle photo le code a été trouvé, exactement comme pour la vision.
+     * <p>{@code sourceImages} is kept: the screen must be able to say on
+     * which photo the code was found, exactly as for vision.
      */
     public static RecognizedItem fromEan(String seriesTitle, Integer volumeNumber, String ean,
                                           String evidence, Set<Integer> sourceImages) {
@@ -152,33 +152,33 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
     }
 
     /**
-     * Vrai quand un identifiant exact a été lu. Une lecture d'EAN ne se
-     * « ressemble » pas : elle correspond ou non. C'est ce qui autorise le
-     * service à préférer le pipeline code-barres existant à une supposition
-     * visuelle - voir {@link ListingRecognitionService}.
+     * True when an exact identifier was read. An EAN reading does not
+     * "look like": it matches or not. This is what allows the
+     * service to prefer the existing barcode pipeline to a visual
+     * guess - see {@link ListingRecognitionService}.
      */
     public boolean hasExactIdentifier() {
         return ean != null;
     }
 
-    /** Vrai quand l'édition n'a pas été lue : l'écran doit demander, pas choisir. */
+    /** True when the edition was not read: the screen must ask, not choose. */
     public boolean editionIsUnknown() {
         return editionHint == null;
     }
 
-    /** La source la plus prioritaire de cet élément - voir {@link RecognitionSource#priority()}. */
+    /** The highest priority source of this item - see {@link RecognitionSource#priority()}. */
     public RecognitionSource strongestSource() {
         return sources.stream().max(java.util.Comparator.comparingInt(RecognitionSource::priority))
                 .orElse(RecognitionSource.VISION);
     }
 
-    /** La même chose sue par une autre source - voir {@link RecognitionConsolidator}. */
+    /** The same thing known from another source - see {@link RecognitionConsolidator}. */
     RecognizedItem mergedWith(RecognizedItem autre) {
         Set<Integer> images = new TreeSet<>(sourceImages);
         images.addAll(autre.sourceImages());
 
-        // Vu sur deux photos : deux cadres, un par photo. Le même cadre deux
-        // fois (la même lecture rendue deux fois) ne compte qu'une fois.
+        // Seen on two photos: two frames, one per photo. The same frame twice
+        // (the same reading returned twice) counts only once.
         List<RecognizedBox> boites = new ArrayList<>(boxes);
         autre.boxes().stream().filter(boite -> !boites.contains(boite)).forEach(boites::add);
 
@@ -191,11 +191,11 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
         return new RecognizedItem(
                 seriesTitleRaw,
                 volumeNumber != null ? volumeNumber : autre.volumeNumber(),
-                // Une édition non lue est une information manquante, pas une
-                // édition différente : celle qui a été lue la complète.
+                // A missing edition is missing information, not a different
+                // edition: the one that was read completes it.
                 editionHint != null ? editionHint : autre.editionHint(),
                 ean != null ? ean : autre.ean(),
-                // Deux sources qui disent la même chose se confortent.
+                // Two sources that say the same thing support each other.
                 confidence.higherOf(autre.confidence()),
                 provenances,
                 raisons,

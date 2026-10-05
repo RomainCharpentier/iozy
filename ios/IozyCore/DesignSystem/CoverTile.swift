@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// Tuile de "couverture" : jaquette réelle quand une source externe en a
-/// fourni une (Jikan / Google Books via scan ISBN / Open Library), avec le
-/// dégradé déterministe (calculé depuis le titre) comme repli - saisie
-/// libre, recherche sans résultat, ou simple échec de chargement de
-/// l'image. Miroir de CoverTile.tsx.
+/// "Cover" tile: real cover art when an external source provided one
+/// (Jikan / Google Books via ISBN scan / Open Library), with the
+/// deterministic gradient (computed from the title) as a fallback - free
+/// entry, search with no result, or a simple image loading failure.
+/// Mirror of CoverTile.tsx.
 struct CoverTile: View {
     let title: String
     var imageURL: URL? = nil

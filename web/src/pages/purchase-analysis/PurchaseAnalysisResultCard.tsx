@@ -16,11 +16,11 @@ const CONFIDENCE_LABELS = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Faible' } as
 const WARNING_ICONS: Record<WarningSeverity, typeof Info> = { INFO: Info, CAUTION: TriangleAlert, CRITICAL: CircleX }
 
 /**
- * Dit ce que vaut le montant de livraison, plutôt que d'afficher un nombre nu.
- * « 2,83 € » et « à partir de 2,83 € » ne racontent pas la même chose ; une
- * livraison illisible ne doit surtout pas ressembler à une livraison offerte ;
- * et un montant que l'utilisateur vient de saisir ne doit jamais s'afficher
- * « non communiquée » - il vient précisément d'être communiqué.
+ * Says what the shipping amount is worth, rather than displaying a bare number.
+ * "2,83 €" and "à partir de 2,83 €" do not tell the same story; an unreadable
+ * delivery must above all not look like free delivery;
+ * and an amount that the user has just entered must never be displayed
+ * "non communiquée" - it has precisely just been communicated.
  */
 function libelleLivraison(listing: PurchaseAnalysisDto['listing']): string {
   switch (listing.shippingKind) {
@@ -38,10 +38,10 @@ function libelleLivraison(listing: PurchaseAnalysisDto['listing']): string {
 }
 
 /**
- * Le nom du total, qui dit du même coup ce qui lui manque. Trois cas, trois
- * noms : complet, minimal (livraison « à partir de »), ou partiel (aucune
- * livraison connue). Appeler « coût d'acquisition » un total sans livraison
- * ferait croire à un achat moins cher qu'il ne sera.
+ * The name of the total, which says at the same time what it lacks. Three cases, three
+ * names: complete, minimal (delivery "à partir de"), or partial (no
+ * known delivery). Calling a total without delivery "coût d'acquisition"
+ * would suggest a purchase cheaper than it will be.
  */
 function libelleTotal(kind: PurchaseAnalysisDto['listing']['shippingKind']): string {
   if (kind === 'FROM') return 'Coût minimum estimé'
@@ -53,13 +53,13 @@ function euros(value: number | null): string {
   return value === null ? 'Non calculable' : `${formaterEuros(value)}`
 }
 
-/** Résultat complet d'une analyse ("ANALYSER LE LOT") - verdict, prix,
- * négociation à 3 prix, détail par série (obligatoire pour un lot
- * multi-séries), avertissements globaux et actions. Réutilisée telle
- * quelle par AnalysisHistoryDetailPage pour revoir une analyse passée -
- * resetLabel/resetIcon adaptent le libellé du dernier bouton selon le
- * contexte ("Nouvelle analyse" juste après avoir analysé, "Retour à
- * l'historique" en consultant une analyse déjà enregistrée). */
+/** Complete result of an analysis ("ANALYSER LE LOT") - verdict, price,
+ * 3-price negotiation, detail per series (required for a
+ * multi-series batch), global warnings and actions. Reused as
+ * is by AnalysisHistoryDetailPage to review a past analysis -
+ * resetLabel/resetIcon adapt the label of the last button depending on the
+ * context ("Nouvelle analyse" right after analysing, "Retour à
+ * l'historique" when viewing an already saved analysis). */
 export function PurchaseAnalysisResultCard({
   analysis,
   onReset,
@@ -76,12 +76,12 @@ export function PurchaseAnalysisResultCard({
   const { listing, negotiation } = analysis
 
   /**
-   * Les TOMES du lot déjà rattachables à une fiche - pas les séries.
+   * The VOLUMES of the batch that can already be attached to a detail page - not the series.
    *
-   * Une annonce propose des tomes précis, et c'est le tome qui se veut : la
-   * série n'est qu'un groupe (étude produit du 2026-08-27). Une série sans
-   * tome détaillé dans l'annonce ne donne donc rien ici, faute d'objet à
-   * désigner.
+   * A listing offers precise volumes, and it is the volume that one wants: the
+   * series is only a group (product study of 2026-08-27). A series with no
+   * detailed volume in the listing therefore gives nothing here, for lack of an object to
+   * designate.
    */
   const tomesDuLot: WishlistTarget[] = analysis.itemBreakdown.flatMap((entree) => {
     const entityId = entree.item.series.knownEntityId
@@ -93,13 +93,13 @@ export function PurchaseAnalysisResultCard({
     }))
   })
 
-  // "Analyse d'un lot" (brainstorm) - affiché seulement si au moins une série
-  // du lot a un doublon, sinon ça ferait doublon (sans jeu de mots) avec le
-  // "Prix maximum" déjà affiché dans le bloc négociation ci-dessus.
+  // "Batch analysis" (brainstorm) - displayed only if at least one series
+  // of the batch has a duplicate, otherwise it would duplicate (no pun intended) the
+  // "Prix maximum" already displayed in the negotiation block above.
   const hasAnyDuplicate = analysis.itemBreakdown.some((item) => item.duplicates.duplicateVolumeNumbers.length > 0)
 
-  // Même hook que la fiche, la recherche et le scan : un seul comportement
-  // d'ajout aux envies dans toute l'app, retour visuel et annulation compris.
+  // Same hook as the detail page, the search and the scan: a single
+  // add-to-wishlist behaviour in the whole app, visual feedback and undo included.
   const wishlist = useWishlist()
 
   const offerText =
@@ -113,17 +113,17 @@ export function PurchaseAnalysisResultCard({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Best-effort - certains navigateurs/contextes non sécurisés refusent
-      // l'accès au presse-papier, le texte reste sélectionnable manuellement.
+      // Best-effort - some browsers/insecure contexts refuse
+      // access to the clipboard, the text stays selectable manually.
     }
   }
 
   return (
     <div className={`flex flex-col gap-4 ${CLASSE_CARTE}`}>
-      {/* Le verdict personnalise d'abord : ce que le lot t'apporte, ou se situe
-          son prix, ce qu'il faut verifier. Le score global du moteur reste
-          en dessous - il juge l'affaire dans l'absolu, celui-ci la juge pour
-          toi, et les deux ne repondent pas a la meme question. */}
+      {/* The personalised verdict first: what the batch brings you, where its
+          price stands, what to check. The engine's global score stays
+          below - it judges the deal in absolute terms, this one judges it for
+          you, and the two do not answer the same question. */}
       {analysis.assessment && (
         <ListingAssessmentCard assessment={analysis.assessment} shippingKind={listing.shippingKind} />
       )}
@@ -136,10 +136,10 @@ export function PurchaseAnalysisResultCard({
         </p>
       </div>
 
-      {/* La source, et le lien pour rouvrir l'annonce. Une analyse est un état
-          figé : si le vendeur change son prix ou retire l'annonce, ce qui est
-          affiché ici ne bouge pas - le lien peut donc mener à une page
-          disparue, et c'est normal. */}
+      {/* The source, and the link to reopen the listing. An analysis is a frozen
+          state: if the seller changes their price or removes the listing, what is
+          displayed here does not move - the link may therefore lead to a page
+          that is gone, and that is normal. */}
       {listing.url && (
         <a
           href={listing.url}
@@ -153,11 +153,11 @@ export function PurchaseAnalysisResultCard({
       )}
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-surface2 p-3 text-sm">
-        {/* Trois notions distinctes, et l'écran doit les tenir séparées : le
-            prix de l'annonce (celui qui se compare au marché, hors frais), les
-            frais connus, et ce que l'achat coûtera. Quand la livraison n'est
-            qu'un « à partir de », ce dernier total est un MINIMUM - l'appeler
-            « coût réel » laisserait croire à un montant facturé. */}
+        {/* Three distinct notions, and the screen must keep them apart: the
+            price of the listing (the one compared to the market, excluding fees), the
+            known fees, and what the purchase will cost. When the delivery is only
+            a "à partir de", this last total is a MINIMUM - calling it
+            "coût réel" would suggest an amount that is billed. */}
         <span className="text-textDim">Prix de l'annonce</span>
         <span className="text-right text-textPrimary">{euros(listing.askingPrice)}</span>
         <span className="pl-3 text-xs text-textDim">Protection acheteur</span>
@@ -167,8 +167,8 @@ export function PurchaseAnalysisResultCard({
         <span className="font-medium text-textPrimary">{libelleTotal(listing.shippingKind)}</span>
         <span className="text-right font-medium text-textPrimary">{euros(analysis.totalRealCost)}</span>
         {listing.shippingKind === 'UNKNOWN' && (
-          /* Dire ce qui manque, à côté du chiffre : sinon 11,20 € se lit comme
-             le prix de l'achat alors qu'il faudra encore payer la livraison. */
+          /* Say what is missing, next to the figure: otherwise 11,20 € reads as
+             the price of the purchase when delivery still has to be paid. */
           <span className="col-span-2 text-xs text-warning">Livraison non incluse : ce total est incomplet.</span>
         )}
         <span className="text-textDim">Valeur neuve</span>
@@ -181,14 +181,14 @@ export function PurchaseAnalysisResultCard({
 
       <div className="rounded-xl bg-surface2 p-3">
         {negotiation.advice === 'SKIP_LISTING' ? (
-          /* SKIP_LISTING recouvre DEUX situations que le moteur sépare par
-             `priceDataAvailable`, et qui n'autorisent pas le même ton : le prix
-             dépasse très largement une valeur estimée CONNUE (un jugement), ou
-             aucune valeur n'a pu être estimée du tout (une absence). Les rendre
-             identiques faisait dire « Passer l'annonce » en rouge à propos d'une
-             annonce dont on ne savait rien - un conseil tiré d'un vide, juste en
-             dessous du bloc Prix qui venait d'annoncer « Référence
-             insuffisante ». */
+          /* SKIP_LISTING covers TWO situations that the engine separates by
+             `priceDataAvailable`, and that do not allow the same tone: the price
+             far exceeds a KNOWN estimated value (a judgement), or
+             no value could be estimated at all (an absence). Making them
+             identical made the screen say "Passer l'annonce" in red about a
+             listing of which nothing was known - advice drawn from a void, just below
+             the Prix block which had just announced "Référence
+             insuffisante". */
           negotiation.priceDataAvailable ? (
             <div className="flex items-start gap-2 text-sm text-danger">
               <TriangleAlert size={16} className="mt-0.5 shrink-0" />
@@ -249,8 +249,8 @@ export function PurchaseAnalysisResultCard({
             key={index}
             item={item}
             listing={analysis.listing}
-            // requestedAt est un instant ISO côté backend - la date suffit ici
-            // (MarketPriceObservation.observedAt est un LocalDate).
+            // requestedAt is an ISO instant on the backend - the date is enough here
+            // (MarketPriceObservation.observedAt is a LocalDate).
             observedAt={analysis.requestedAt.slice(0, 10)}
           />
         ))}

@@ -1,28 +1,28 @@
 import { useEffect, useState } from 'react'
 
-/** Terracotta de la marque : la teinte de repli quand la jaquette manque, ne
- *  charge pas, ou refuse d'être lue (voir plus bas). */
+/** Brand terracotta: the fallback tint when the cover is missing, does not
+ *  load, or refuses to be read (see below). */
 const REPLI: [number, number, number] = [188, 88, 59]
 
 /**
- * La couleur moyenne d'une jaquette, pour teinter le haut de sa fiche.
+ * The average color of a cover, to tint the top of its detail page.
  *
- * <h2>Pourquoi un échantillonnage et pas une couleur stockée</h2>
- * La maquette « Fiche série - multi-éditions » fait dériver toute la bande
- * haute de la jaquette : chaque série a son ambiance sans qu'on ait à saisir
- * quoi que ce soit. Stocker une couleur en base serait une donnée de plus à
- * tenir à jour à chaque changement de jaquette, pour une information qui se
- * recalcule en trois millisecondes.
+ * <h2>Why sampling and not a stored color</h2>
+ * The mockup "Fiche série - multi-éditions" derives the whole top band
+ * from the cover: each series has its own mood without anyone having to enter
+ * anything. Storing a color in the database would be one more piece of data to
+ * keep up to date at each cover change, for information that is
+ * recomputed in three milliseconds.
  *
- * <h2>Ce qui échoue, et pourquoi ce n'est pas grave</h2>
- * Les jaquettes viennent d'hôtes externes (MyAnimeList, Google Books, BGG).
- * Lire les pixels d'une image d'un autre domaine « salit » le canvas et fait
- * lever `getImageData` — sauf si l'hôte renvoie les en-têtes CORS, ce que
- * beaucoup ne font pas. On charge donc une image SÉPARÉE en
- * `crossOrigin = 'anonymous'` : si l'hôte coopère, on obtient la teinte ; s'il
- * refuse, cette image-là échoue silencieusement et on garde le terracotta de
- * la marque. Dans les deux cas la jaquette affichée à l'écran, elle, n'est
- * jamais touchée — c'est tout l'intérêt de ne pas réutiliser la même balise.
+ * <h2>What fails, and why it does not matter</h2>
+ * Covers come from external hosts (MyAnimeList, Google Books, BGG).
+ * Reading the pixels of an image from another domain "taints" the canvas and makes
+ * `getImageData` throw - unless the host returns the CORS headers, which
+ * many do not. So we load a SEPARATE image with
+ * `crossOrigin = 'anonymous'`: if the host cooperates, we get the tint; if it
+ * refuses, that image fails silently and we keep the brand terracotta.
+ * In both cases the cover displayed on screen is
+ * never touched - this is the whole point of not reusing the same tag.
  */
 export function useTeinteJaquette(url: string | null | undefined): [number, number, number] {
   const [teinte, setTeinte] = useState<[number, number, number]>(REPLI)
@@ -32,17 +32,17 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
       setTeinte(REPLI)
       return
     }
-    // `annule` plutôt qu'un AbortController : une Image ne s'annule pas, on se
-    // contente d'ignorer sa réponse si la fiche a changé entre-temps - sinon
-    // la teinte d'une série précédente écraserait celle de la nouvelle.
+    // `annule` rather than an AbortController: an Image cannot be cancelled, we
+    // just ignore its answer if the detail page changed in the meantime - otherwise
+    // the tint of a previous series would overwrite that of the new one.
     let annule = false
     const image = new Image()
     image.crossOrigin = 'anonymous'
     image.onload = () => {
       if (annule) return
       try {
-        // 24x24 suffit très largement pour une moyenne, et évite de décoder
-        // une jaquette pleine résolution juste pour en tirer trois nombres.
+        // 24x24 is more than enough for an average, and avoids decoding
+        // a full-resolution cover just to get three numbers out of it.
         const canvas = document.createElement('canvas')
         canvas.width = 24
         canvas.height = 24
@@ -55,8 +55,8 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
         let b = 0
         let n = 0
         for (let i = 0; i < pixels.length; i += 4) {
-          // Les pixels quasi transparents ne disent rien de la couleur de la
-          // jaquette et tireraient la moyenne vers le noir.
+          // Nearly transparent pixels say nothing about the color of the
+          // cover and would pull the average toward black.
           if (pixels[i + 3] < 32) continue
           r += pixels[i]
           v += pixels[i + 1]
@@ -66,7 +66,7 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
         if (n === 0) return
         setTeinte([Math.round(r / n), Math.round(v / n), Math.round(b / n)])
       } catch {
-        // Canvas sali par une image sans CORS : on garde le repli.
+        // Canvas tainted by an image without CORS: we keep the fallback.
       }
     }
     image.src = url
@@ -79,12 +79,12 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
 }
 
 /**
- * Une couleur CSS tirée de la teinte, ramenée vers son propre gris.
+ * A CSS color taken from the tint, brought toward its own gray.
  *
- * `melange` = 0 garde la couleur de la jaquette telle quelle, 1 la ramène
- * entièrement au neutre. Le défaut (0.55) est celui de la maquette : assez de
- * couleur pour reconnaître la série, assez de gris pour que la bande reste un
- * fond et ne devienne pas un aplat coloré derrière du texte.
+ * `melange` = 0 keeps the color of the cover as is, 1 brings it
+ * entirely to neutral. The default (0.55) is the one of the mockup: enough
+ * color to recognize the series, enough gray for the band to stay a
+ * background and not become a colored flat area behind text.
  */
 export function tonDe(teinte: [number, number, number], alphaPourcent: number, melange = 0.55): string {
   const moyenne = (teinte[0] + teinte[1] + teinte[2]) / 3

@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/entities")
-@Tag(name = "Entities", description = "Catalog - gestion des Entity (mangas, jeux vidéo, jeux de société)")
+@Tag(name = "Entities", description = "Catalog - management of Entities (mangas, video games, board games)")
 public class EntityController {
 
     private final EntityRepository entityRepository;
@@ -36,7 +36,7 @@ public class EntityController {
     private final EntityDeletionService entityDeletionService;
     private final VariantDeletionService variantDeletionService;
     private final CatalogSearchService catalogue;
-    /** Les univers qui savent dire si une jaquette est utilisable (Lot 133). */
+    /** The universes that can say whether a cover is usable (Batch 133). */
     private final List<CoverImageCheck> coverChecks;
 
     public EntityController(EntityRepository entityRepository,
@@ -55,13 +55,13 @@ public class EntityController {
         this.coverChecks = coverChecks;
     }
 
-    @Operation(summary = "Ajout rapide (parcours 1) : crée une Entity et son Ownership initiale, "
-            + "ou rattache une nouvelle Ownership à une Entity existante si le titre correspond déjà (déduplication)")
+    @Operation(summary = "Quick add (path 1): creates an Entity and its initial Ownership, "
+            + "or attaches a new Ownership to an existing Entity if the title already matches (deduplication)")
     @PostMapping("/quick-add")
     @ResponseStatus(HttpStatus.CREATED)
     public QuickAddResponse quickAdd(@RequestBody QuickAddRequest request) {
-        // Auparavant seule la contrainte FK Postgres protégeait ce chemin, ce
-        // qui remontait une exception SQL brute plutôt qu'un 400 propre.
+        // Previously only the Postgres FK constraint protected this path, which
+        // raised a raw SQL exception rather than a clean 400.
         entityTypeRepository.findById(request.entityTypeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "EntityType inconnu : " + request.entityTypeId()));
@@ -74,7 +74,7 @@ public class EntityController {
                 result.entityId(), result.matchedExistingEntity(), result.variantId(), result.matchedExistingVariant());
     }
 
-    @Operation(summary = "Consulter une Entity par son identifiant")
+    @Operation(summary = "Get an Entity by its id")
     @GetMapping("/{id}")
     public EntityResponse getById(@PathVariable UUID id) {
         return entityRepository.findById(id)
@@ -82,8 +82,8 @@ public class EntityController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + id));
     }
 
-    @Operation(summary = "Lister toutes les Entity d'un type - utilisé notamment pour rafraîchir un client "
-            + "après un import en masse (ex: collection BGG)")
+    @Operation(summary = "List all Entities of a type - used in particular to refresh a client "
+            + "after a bulk import (e.g. BGG collection)")
     @GetMapping
     public List<EntityResponse> listByType(@RequestParam UUID entityTypeId) {
         return entityRepository.findAllByType(entityTypeId).stream()
@@ -91,34 +91,34 @@ public class EntityController {
                 .collect(Collectors.toList());
     }
 
-    @Operation(summary = "Recherche transversale sur la collection (UC4) - par titre, "
-            + "filtrable par type et/ou par tag, tous deux optionnels")
+    @Operation(summary = "Cross-cutting search on the collection (UC4) - by title, "
+            + "can be filtered by type and/or by tag, both optional")
     @GetMapping("/search")
     public List<EntityResponse> search(@RequestParam(required = false) String q,
                                         @RequestParam(required = false) UUID entityTypeId,
                                         @RequestParam(required = false) UUID tagId) {
-        // La recuperation via la base iozycore a son module (Lot 132) : la
-        // meme recherche sert l'ecran Rechercher, a cote des fournisseurs.
+        // Retrieval through the iozycore database has its own module (Batch 132): the
+        // same search serves the Search screen, next to the providers.
         return catalogue.rechercher(q, entityTypeId, tagId).stream()
                 .map(EntityResponse::from)
                 .collect(Collectors.toList());
     }
 
-    @Operation(summary = "Supprimer une Entity (bloqué si des Ownership/Experience existent encore)")
-    @ApiResponse(responseCode = "204", description = "Série supprimée - aucun corps. Idempotent : "
-            + "un identifiant inconnu rend également 204.")
-    @ApiResponse(responseCode = "409", description = "Des Ownership/Experience/Éditions la référencent encore")
+    @Operation(summary = "Delete an Entity (blocked if Ownerships/Experiences still exist)")
+    @ApiResponse(responseCode = "204", description = "Series deleted - no body. Idempotent: "
+            + "an unknown id also returns 204.")
+    @ApiResponse(responseCode = "409", description = "Ownerships/Experiences/Editions still reference it")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         entityDeletionService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Compléter/corriger les attributs de la Série. origine=manuelle (défaut) : ce que "
-            + "l'utilisateur tape, chaque clé est marquée saisie à la main. origine=source : ce qu'un fournisseur "
-            + "rend (rechargement, rattrapage), n'écrit que les clés NON saisies à la main - règle utilisateur du "
-            + "2026-09-04 (Lot 130), tenue ici et pas à l'écran pour valoir depuis n'importe quel geste. La réponse "
-            + "porte champsSaisis ; les clés ignorées se lisent par différence.")
+    @Operation(summary = "Complete/fix the attributes of the Series. origin=manual (default): what "
+            + "the user types, each key is marked as typed by hand. origin=source: what a provider "
+            + "returns (reload, catch-up), only writes the keys NOT typed by hand - user rule of "
+            + "2026-09-04 (Batch 130), held here and not on the screen so that it holds from any action. The response "
+            + "carries champsSaisis; the ignored keys are read by difference.")
     @PatchMapping("/{entityId}")
     public EntityResponse mergeAttributes(@PathVariable UUID entityId, @RequestBody Map<String, Object> attributes,
                                           @RequestParam(required = false, defaultValue = "manuelle") String origine) {
@@ -134,9 +134,9 @@ public class EntityController {
         return EntityResponse.from(entityRepository.save(entity));
     }
 
-    @Operation(summary = "Retirer un attribut de la Série - complète PATCH /{entityId}, qui ne sait que "
-            + "compléter/corriger : une valeur vide y serait stockée telle quelle et ressemblerait ensuite à une "
-            + "donnée renseignée (voir Entity.mergeAttributes). 204 même si la clé n'existait pas.")
+    @Operation(summary = "Remove an attribute of the Series - completes PATCH /{entityId}, which can only "
+            + "complete/fix: an empty value would be stored there as is and would then look like "
+            + "filled-in data (see Entity.mergeAttributes). 204 even if the key did not exist.")
     @DeleteMapping("/{entityId}/attributes/{key}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeAttribute(@PathVariable UUID entityId, @PathVariable String key) {
@@ -149,10 +149,10 @@ public class EntityController {
     public record RenameEntityRequest(String title) {
     }
 
-    @Operation(summary = "Renommer la Série (correction manuelle, mode « Éditer » de la fiche Série) - "
-            + "ne touche jamais les MangaEdition/Variant déjà rattachés : leur lien avec cette Série passe par "
-            + "entityId (voir migration \"Série -> Édition par ID\"), jamais par une égalité de titre, donc "
-            + "immunisé contre ce renommage.")
+    @Operation(summary = "Rename the Series (manual fix, \"Edit\" mode of the Series detail page) - "
+            + "never touches the MangaEdition/Variant already attached: their link with this Series goes through "
+            + "entityId (see migration \"Series -> Edition by ID\"), never through a title equality, so "
+            + "immune to this renaming.")
     @PatchMapping("/{entityId}/rename")
     public EntityResponse rename(@PathVariable UUID entityId, @RequestBody RenameEntityRequest request) {
         Entity entity = entityRepository.findById(entityId)
@@ -165,17 +165,17 @@ public class EntityController {
         return EntityResponse.from(entityRepository.save(entity));
     }
 
-    @Operation(summary = "Compléter les attributs d'un Variant existant sans écraser ceux déjà renseignés "
-            + "(ex: jaquette du tome retrouvée après coup, voir \"Retrouver les jaquettes manquantes\" sur Ma collection)")
+    @Operation(summary = "Complete the attributes of an existing Variant without overwriting those already filled in "
+            + "(e.g. volume cover found afterwards, see \"Find missing covers\" on My collection)")
     @PatchMapping("/{entityId}/variants/{variantId}")
     public EntityResponse mergeVariantAttributes(@PathVariable UUID entityId, @PathVariable UUID variantId,
                                                   @RequestBody Map<String, Object> attributes) {
         Entity entity = entityRepository.findById(entityId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
-        // Une couverture est verifiee au moment de la garder (voir
-        // CoverImageCheck, tenu par les univers) : morte, elle est simplement
-        // omise - le tome garde ses autres attributs, et le rattrapage pourra
-        // retenter plus tard.
+        // A cover is checked when it is kept (see
+        // CoverImageCheck, held by the universes): dead, it is simply
+        // left out - the volume keeps its other attributes, and the catch-up can
+        // try again later.
         Object couverture = attributes.get("coverImageUrl");
         if (couverture instanceof String url && coverChecks.stream().anyMatch(c -> !c.estUtilisable(url))) {
             attributes = new java.util.HashMap<>(attributes);
@@ -189,11 +189,11 @@ public class EntityController {
         return EntityResponse.from(entityRepository.save(entity));
     }
 
-    @Operation(summary = "Supprimer un Tome (bloqué si des Ownership/Experience le référencent encore) - "
-            + "n'affecte jamais la Série ni les autres tomes (modèle Série -> Édition -> Tome)")
-    @ApiResponse(responseCode = "204", description = "Tome supprimé - aucun corps")
-    @ApiResponse(responseCode = "404", description = "Série ou tome introuvable")
-    @ApiResponse(responseCode = "409", description = "Des Ownership/Experience le référencent encore")
+    @Operation(summary = "Delete a Volume (blocked if Ownerships/Experiences still reference it) - "
+            + "never affects the Series nor the other volumes (Series -> Edition -> Volume model)")
+    @ApiResponse(responseCode = "204", description = "Volume deleted - no body")
+    @ApiResponse(responseCode = "404", description = "Series or volume not found")
+    @ApiResponse(responseCode = "409", description = "Ownerships/Experiences still reference it")
     @DeleteMapping("/{entityId}/variants/{variantId}")
     public ResponseEntity<Void> deleteVariant(@PathVariable UUID entityId, @PathVariable UUID variantId) {
         try {

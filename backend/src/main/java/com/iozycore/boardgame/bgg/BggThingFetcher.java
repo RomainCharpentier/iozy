@@ -18,11 +18,11 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Récupère les catégories et mécaniques d'un jeu BGG précis via l'endpoint
- * /thing (contrairement à /search et /collection, qui ne les fournissent
- * pas - voir la limite documentée dans BggMetadataProvider). Utilisé
- * uniquement par la découverte (DiscoveryService), pas systématiquement à
- * chaque recherche, pour ne pas multiplier les appels réseau.
+ * Fetches the categories and mechanics of a specific BGG game through the
+ * /thing endpoint (unlike /search and /collection, which do not provide them
+ * - see the limit documented in BggMetadataProvider). Used
+ * only by discovery (DiscoveryService), not systematically on
+ * every search, so as not to multiply network calls.
  */
 @Component
 public class BggThingFetcher {
@@ -37,7 +37,7 @@ public class BggThingFetcher {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-    /** Catégories + mécaniques combinées (la distinction n'a pas d'importance pour un calcul de similarité simple). */
+    /** Categories + mechanics combined (the distinction does not matter for a simple similarity computation). */
     public Set<String> fetchCategoriesAndMechanics(String bggId) {
         try {
             HttpRequest request = BggAuthorization.applyToken(HttpRequest.newBuilder()
@@ -48,13 +48,13 @@ public class BggThingFetcher {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("BGG a répondu {} pour /thing?id={}", response.statusCode(), bggId);
+                log.warn("BGG answered {} for /thing?id={}", response.statusCode(), bggId);
                 return Set.of();
             }
 
             return parse(response.body());
         } catch (Exception e) {
-            log.warn("Échec de l'appel BGG /thing pour l'id {} : {}", bggId, e.getMessage());
+            log.warn("BGG /thing call failed for id {}: {}", bggId, e.getMessage());
             return Set.of();
         }
     }
@@ -80,7 +80,7 @@ public class BggThingFetcher {
             }
             return result;
         } catch (Exception e) {
-            log.warn("Réponse BGG /thing illisible : {}", e.getMessage());
+            log.warn("Unreadable BGG /thing response: {}", e.getMessage());
             return Set.of();
         }
     }

@@ -1,16 +1,16 @@
 import type { BoxDto } from '@/common/types/listingRecognition'
 
 /**
- * Comment montrer un cadre en gros plan avec une simple image de fond.
+ * How to show a frame in close-up with a simple background image.
  *
- * La photo est agrandie pour que le cadre, plus une marge, remplisse le bloc,
- * puis décalée pour que ce cadre soit ce qu'on voit. Les pourcentages de
- * `background-position` se lisent « le point à X % de l'image se place à X %
- * du bloc » : pour amener le bord gauche du cadre (x0) au bord du bloc quand
- * l'image est agrandie à 1/largeur, il faut X = x0 / (1 - largeur).
+ * The photo is enlarged so that the frame, plus a margin, fills the block,
+ * then shifted so that this frame is what one sees. The percentages of
+ * `background-position` read "the point at X % of the image is placed at X %
+ * of the block": to bring the left edge of the frame (x0) to the edge of the block when
+ * the image is enlarged to 1/width, we need X = x0 / (1 - width).
  */
 export interface Recadrage {
-  /** Fractions de la photo réellement montrées - pour le rapport hauteur/largeur du bloc. */
+  /** Fractions of the photo really shown - for the height/width ratio of the block. */
   largeur: number
   hauteur: number
   backgroundSize: string
@@ -33,7 +33,7 @@ export function recadrer(box: BoxDto, marge = 0.06): Recadrage {
   }
 }
 
-/** Le rapport largeur/hauteur du bloc qui montre ce recadrage, connaissant celui de la photo. */
+/** The width/height ratio of the block that shows this crop, knowing the one of the photo. */
 export function rapportDuBloc(recadrage: Recadrage, photo: { w: number; h: number } | undefined): string {
   const w = photo?.w ?? 4
   const h = photo?.h ?? 3

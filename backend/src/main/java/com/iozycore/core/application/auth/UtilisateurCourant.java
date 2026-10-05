@@ -9,35 +9,35 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Qui écrit, en ce moment même.
+ * Who writes, right now.
  *
- * <h2>Le seul endroit qui interroge la session</h2>
- * Le reste de l'application demande simplement « à qui », sans savoir d'où la
- * réponse vient. Le jour où la session change de forme (jeton, en-tête,
- * autre), c'est ce fichier qui change, et lui seul.
+ * <h2>The only place that queries the session</h2>
+ * The rest of the application simply asks "whose", without knowing where the
+ * answer comes from. The day the session changes shape (token, header,
+ * other), this file changes, and only this one.
  *
- * <h2>Sans compte connu : personne, jamais « le premier »</h2>
- * {@link #proprietaire()} rend {@link DefaultOwner#PERSONNE} hors d'une
- * requête authentifiée. Aucune ligne ne lui appartient : un chemin qui
- * oublierait de dire au nom de qui il travaille ne voit <b>rien</b>. Un repli
- * sur {@link DefaultOwner#ID} - l'identifiant du premier compte, celui qui a
- * repris la collection d'origine - aurait fait exactement l'inverse, et sans
- * bruit.
+ * <h2>Without a known account: nobody, never "the first"</h2>
+ * {@link #proprietaire()} returns {@link DefaultOwner#PERSONNE} outside an
+ * authenticated request. No row belongs to it: a path that
+ * forgot to say on whose behalf it works sees <b>nothing</b>. A fallback
+ * on {@link DefaultOwner#ID} - the id of the first account, the one that
+ * took over the original collection - would have done exactly the opposite, and without
+ * noise.
  *
- * <h2>Un visiteur n'est personne, et c'est exactement ce qu'il faut</h2>
- * Une session de visite ne nomme aucun propriétaire (voir {@link Invite}) :
- * elle retombe donc sur {@link DefaultOwner#PERSONNE} par le chemin ordinaire,
- * sans le moindre cas particulier à écrire ici. Le résultat est celui qu'on
- * veut lui montrer - le <b>catalogue</b>, qui n'appartient à personne - et
- * rien des possessions, envies ou notes de qui que ce soit, toutes filtrées
- * par propriétaire.
+ * <h2>A visitor is nobody, and that is exactly what is needed</h2>
+ * A visit session names no owner (see {@link Invite}):
+ * it therefore falls back to {@link DefaultOwner#PERSONNE} by the ordinary path,
+ * without any special case to write here. The result is the one we
+ * want to show - the <b>catalog</b>, which belongs to nobody - and
+ * nothing of the ownerships, wishes or ratings of anyone, all filtered
+ * by owner.
  */
 @Component
 public class UtilisateurCourant {
 
     /**
-     * L'identifiant du COMPTE connecté, vide hors d'une requête authentifiée -
-     * et vide aussi pour un invité, qui n'en a pas.
+     * The id of the signed-in ACCOUNT, empty outside an authenticated request -
+     * and also empty for a guest, who has none.
      */
     public Optional<UUID> id() {
         return principal()
@@ -46,7 +46,7 @@ public class UtilisateurCourant {
                 .map(AppUserDetailsService.Principal::id);
     }
 
-    /** Le propriétaire auquel rattacher une écriture, ou dont lire les données. */
+    /** The owner to attach a write to, or whose data to read. */
     public UUID proprietaire() {
         return id().orElse(DefaultOwner.PERSONNE);
     }

@@ -2,22 +2,22 @@ import { Eye } from 'lucide-react'
 import { useAuth } from '@/common/hooks/useAuth'
 
 /**
- * Ce qu'un visiteur doit lire en permanence : <b>ce qu'il regarde</b>, et
- * <b>qu'il ne peut rien changer</b>.
+ * What a visitor must read permanently: <b>what they are looking at</b>, and
+ * <b>that they cannot change anything</b>.
  *
- * <h2>Permanent, et pas un message d'accueil</h2>
- * La tentation était d'annoncer la visite une fois, à l'entrée, puis de laisser
- * la place au contenu. Elle ne tient pas : ces écrans sont exactement ceux
- * d'une collection personnelle, et rien ne distingue à l'œil « le catalogue »
- * d'« une collection vide ». Quelqu'un qui arrive trois écrans plus loin, ou
- * qui revient sur un onglet laissé ouvert, n'aurait plus aucun moyen de savoir
- * ce qu'il regarde - ni pourquoi une fiche ne se modifie pas.
+ * <h2>Permanent, and not a welcome message</h2>
+ * The temptation was to announce the visit once, at the entrance, then to leave
+ * room for the content. It does not hold: these screens are exactly those
+ * of a personal collection, and nothing tells "the catalog" apart by eye
+ * from "an empty collection". Someone who arrives three screens later, or
+ * who comes back to a tab left open, would have no way of knowing
+ * what they are looking at - nor why a detail page cannot be edited.
  *
- * <h2>Il informe, il n'agit pas</h2>
- * La sortie a vécu ici, puis elle est remontée dans l'en-tête : il n'y a plus
- * qu'UN bouton pour sortir, au même endroit pour un compte et pour un
- * visiteur (voir {@code BoutonSortie}). Ce bandeau dit ce qu'on regarde ; le
- * geste est ailleurs, là où on le cherche.
+ * <h2>It informs, it does not act</h2>
+ * The exit lived here, then it moved up into the header: there is now
+ * only ONE button to leave, in the same place for an account and for a
+ * visitor (see {@code BoutonSortie}). This banner says what we are looking at; the
+ * action is elsewhere, where people look for it.
  */
 export function BandeauVisite() {
   const { estInvite } = useAuth()

@@ -6,11 +6,11 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * "Analyse d'un lot" - détecte les doublons entre les tomes d'un
- * {@link ListingItem} et ceux déjà possédés dans la collection (voir
- * {@link DuplicateAnalysis}). Pure, comme {@link CompletenessCalculator} -
- * ne lit jamais directement le catalogue, reçoit les tomes déjà possédés
- * déjà résolus par {@link PurchaseAnalysisService}.
+ * "Lot analysis" - detects the duplicates between the volumes of a
+ * {@link ListingItem} and those already owned in the collection (see
+ * {@link DuplicateAnalysis}). Pure, like {@link CompletenessCalculator} -
+ * never reads the catalogue directly, receives the owned volumes
+ * already resolved by {@link PurchaseAnalysisService}.
  */
 public class DuplicateDetector {
 

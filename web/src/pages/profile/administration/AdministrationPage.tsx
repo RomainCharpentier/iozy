@@ -11,35 +11,35 @@ interface AdminLink {
 }
 
 /**
- * Ce qui n'est ni un réglage de compte, ni un réglage d'appareil.
+ * What is neither an account setting, nor a device setting.
  *
- * <h2>Deux sections, deux échelles</h2>
- * <b>Ma collection</b> : ce qui la DÉCRIT - les catégories qu'elle accepte, les
- * éditions de référence qui rendent les « X/Y » possibles, et les tags posés
- * sur les œuvres. Ça se configure une fois puis s'oublie, contrairement au
- * thème ou à la langue des titres, qui restent dans Paramètres.
+ * <h2>Two sections, two scales</h2>
+ * <b>Ma collection</b>: what DESCRIBES it - the categories it accepts, the
+ * reference editions that make the "X/Y" possible, and the tags set
+ * on the works. It is configured once and then forgotten, unlike the
+ * theme or the language of the titles, which stay in Paramètres.
  * <p>
- * Les <b>tags</b> n'y sont que pour un administrateur, contrairement aux deux
- * autres : ils décrivent une œuvre du catalogue PARTAGÉ, et les poser engage
- * donc tous les comptes (voir TagController). Les lire, en revanche, est
- * ouvert - c'est ce qui rend le filtre de Ma collection utilisable.
+ * The <b>tags</b> are only there for an administrator, unlike the two
+ * others: they describe a work of the SHARED catalog, and setting them therefore
+ * commits all the accounts (see TagController). Reading them, on the other hand, is
+ * open - it is what makes the filter of Ma collection usable.
  *
- * <p><b>Cette instance</b> : la machine, pas les données. Une seule entrée -
- * les comptes - et elle n'apparaît que pour un administrateur.
+ * <p><b>Cette instance</b>: the machine, not the data. A single entry -
+ * the accounts - and it only appears for an administrator.
  *
- * <h2>Ce qui a quitté cet écran</h2>
- * L'<b>export</b> : il vivait ici, à côté des catégories de collection, comme
- * si télécharger sa collection était de la configuration technique. C'est le
- * contraire - c'est la garantie de pouvoir partir avec ses données, et ça
- * appartient au compte qui les possède, donc à <b>Paramètres ▸ Mon compte</b>.
+ * <h2>What left this screen</h2>
+ * The <b>export</b>: it lived here, next to the collection categories, as
+ * if downloading one's collection were technical configuration. It is the
+ * opposite - it is the guarantee of being able to leave with one's data, and it
+ * belongs to the account that owns it, therefore to <b>Paramètres ▸ Mon compte</b>.
  *
- * <p>L'<b>import BGG</b> : récupérer ses jeux depuis BoardGameGeek, c'est
- * AJOUTER à sa collection - la même intention que taper un titre ou scanner un
- * code-barres, avec une troisième source. Il a rejoint <b>Rechercher</b>, à
- * côté de Scanner. Rien d'administratif là-dedans.
+ * <p>The <b>BGG import</b>: getting one's games from BoardGameGeek is
+ * ADDING to one's collection - the same intention as typing a title or scanning a
+ * barcode, with a third source. It joined <b>Rechercher</b>, next
+ * to Scanner. Nothing administrative in it.
  *
- * <p>Ces deux départs disent la même chose : cet écran décrit ou configure, il
- * ne fait rien à la place de l'utilisateur.
+ * <p>These two departures say the same thing: this screen describes or configures, it
+ * does nothing in the place of the user.
  */
 const MA_COLLECTION: AdminLink[] = [
   {
@@ -57,14 +57,14 @@ const MA_COLLECTION: AdminLink[] = [
 ]
 
 /**
- * Réservé aux administrateurs, et absent pour les autres.
+ * Reserved for administrators, and absent for the others.
  * <p>
- * Le masquer n'est PAS ce qui protège : le serveur répond 403 sur
- * {@code /api/admin/**} quel que soit l'écran (voir SecurityConfig). Ce qui se
- * joue ici est autre chose - ne pas proposer une porte qui ne s'ouvrira pas.
+ * Hiding it is NOT what protects: the server answers 403 on
+ * {@code /api/admin/**} whatever the screen (see SecurityConfig). What is
+ * at stake here is something else - not offering a door that will not open.
  */
-/** Réservé aux administrateurs, comme les comptes - et pour la même raison :
- *  ce qu'on y fait engage les autres. */
+/** Reserved for administrators, like the accounts - and for the same reason:
+ *  what one does there commits the others. */
 const TAGS: AdminLink = {
   to: '/administration/tags',
   label: 'Tags',
@@ -99,10 +99,10 @@ export function AdministrationPage() {
 }
 
 function Groupe({ titre, liens }: { titre: string; liens: AdminLink[] }) {
-  // `aria-labelledby` et non un simple titre visuel : sans nom accessible, une
-  // <section> n'est pas un repère - un lecteur d'écran la traverse sans pouvoir
-  // sauter d'un groupe à l'autre, et les deux échelles redeviennent une seule
-  // liste plate, exactement ce qu'on vient de démêler.
+  // `aria-labelledby` and not a simple visual title: without an accessible name, a
+  // <section> is not a landmark - a screen reader goes through it without being able to
+  // jump from one group to another, and the two scales become a single flat
+  // list again, exactly what we have just untangled.
   const id = `groupe-${titre.replace(/\s+/g, '-').toLowerCase()}`
   return (
     <section aria-labelledby={id} className="flex flex-col gap-2">

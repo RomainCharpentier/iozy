@@ -31,30 +31,30 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * La nuit, le calendrier des sorties relit les séries de mangas EN COURS pour
- * que les tomes annoncés finissent par y être (lot 146).
+ * At night, the release calendar re-reads the series of ONGOING mangas so
+ * that announced volumes end up being there (batch 146).
  *
- * <h2>Pourquoi une relecture, et pourquoi la nuit</h2>
- * Le résultat d'une recherche de tomes est stocké une fois pour toutes
- * ({@code volume_search_cache}) : c'est ce qui rend la fiche instantanée et
- * ménage les quotas. Mais un tome annoncé après cette recherche n'y entrera
- * jamais seul, et un calendrier qui ne verrait que les tomes d'hier mentirait
- * par omission. D'où une relecture, bornée pour que le quota journalier de
- * Google Books reste à ceux qui l'utilisent le jour : quelques séries par
- * nuit ({@code series-per-run}), les plus anciennes d'abord, et seulement
- * celles qu'une base de mangas dit en cours - une série terminée n'annonce
- * plus rien.
+ * <h2>Why a re-read, and why at night</h2>
+ * The result of a volume search is stored once and for all
+ * ({@code volume_search_cache}): this is what makes the detail page instant and
+ * spares the quotas. But a volume announced after this search will never enter it
+ * on its own, and a calendar that only saw yesterday's volumes would lie
+ * by omission. Hence a re-read, limited so that the daily quota of
+ * Google Books stays for those who use it during the day: a few series per
+ * night ({@code series-per-run}), the oldest first, and only
+ * the ones a manga database says are ongoing - a finished series announces
+ * nothing anymore.
  *
- * <h2>Le catalogue, pas les collections</h2>
- * Les séries lues sont celles du catalogue de l'instance, commun à tous les
- * comptes : hors de toute session, les possessions ne se lisent pas (le
- * cloisonnement par propriétaire rend « personne »), et le catalogue est
- * précisément ce que tous ont ajouté. Une série que plus personne ne possède
- * peut être relue pour rien ; c'est le prix d'un travail de nuit qui ne
- * franchit aucune porte.
+ * <h2>The catalog, not the collections</h2>
+ * The series read are those of the catalog of the instance, common to all
+ * accounts: outside any session, ownerships cannot be read (the separation
+ * by owner returns "nobody"), and the catalog is
+ * precisely what everyone added. A series that nobody owns anymore
+ * may be re-read for nothing; this is the price of a night job that
+ * crosses no door.
  *
- * <h2>Une panne ne coûte rien</h2>
- * Un fournisseur muet arrête la nuit sans rien effacer : voir
+ * <h2>An outage costs nothing</h2>
+ * A silent provider stops the night without erasing anything: see
  * {@link TomeSearchService#refreshUnlessUnavailable}.
  */
 @Component
@@ -96,7 +96,7 @@ public class MangaReleaseRefresh {
         this.clock = clock;
     }
 
-    /** Ce qu'une nuit a fait : combien de séries étaient à relire, combien l'ont été, et si une source s'est tue. */
+    /** What a night did: how many series were to be re-read, how many were, and whether a source went silent. */
     public record Summary(int stale, int refreshed, boolean stoppedOnUnavailableProvider) {
     }
 
@@ -104,12 +104,12 @@ public class MangaReleaseRefresh {
     public void nightly() {
         try {
             Summary summary = refresh();
-            log.info("Calendrier des sorties : {} série(s) à relire, {} relue(s){}", summary.stale(), summary.refreshed(),
-                    summary.stoppedOnUnavailableProvider() ? ", arrêt sur un fournisseur muet" : "");
+            log.info("Release calendar: {} series to re-read, {} re-read{}", summary.stale(), summary.refreshed(),
+                    summary.stoppedOnUnavailableProvider() ? ", stopped on a silent provider" : "");
         } catch (RuntimeException e) {
-            // Un travail de nuit qui lève ferait taire le planificateur pour cette exécution seulement,
-            // mais sans une ligne pour le dire : la voici.
-            log.warn("Calendrier des sorties : la relecture nocturne a échoué : {}", e.getMessage());
+            // A night job that throws would silence the scheduler for this run only,
+            // but without a line to say it: here it is.
+            log.warn("Release calendar: the night re-read failed: {}", e.getMessage());
         }
     }
 
@@ -123,7 +123,7 @@ public class MangaReleaseRefresh {
                 .collect(Collectors.toMap(StoredVolumeSearchKey::key, StoredVolumeSearchKey::fetchedAt, (a, b) -> a));
         Instant threshold = clock.instant().minus(staleAfter);
 
-        // Une série par clé (titre, auteur) : deux fiches homonymes partagent le même résultat stocké.
+        // One series per key (title, author): two homonym pages share the same stored result.
         Map<String, Entity> ongoingByKey = new LinkedHashMap<>();
         for (Entity entity : entityRepository.findAllByType(type.id())) {
             String author = TexteRecherche.normaliser(authorOf(entity));
@@ -137,7 +137,7 @@ public class MangaReleaseRefresh {
                     Instant fetchedAt = fetchedAtByKey.get(entry.getKey());
                     return fetchedAt == null || fetchedAt.isBefore(threshold);
                 })
-                // Jamais relues d'abord, puis les plus anciennes.
+                // Never re-read first, then the oldest.
                 .sorted(Comparator.comparing((Map.Entry<String, Entity> entry) ->
                         Optional.ofNullable(fetchedAtByKey.get(entry.getKey())).orElse(Instant.MIN)))
                 .toList();

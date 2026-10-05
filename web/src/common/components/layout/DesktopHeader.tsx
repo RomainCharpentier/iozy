@@ -8,20 +8,20 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
   const { pathname } = useLocation()
   const active = activeWhen(pathname)
   return (
-  // `Link` et non `NavLink` : React Router recalcule lui-même `aria-current`
-  // à partir de SA correspondance de route (exacte pour `to="/"`) et écrase
-  // celui qu'on lui passe. Résultat mesuré : sur la fiche d'une œuvre, « Ma
-  // collection » était bien peinte en destination courante par `activeWhen`
-  // mais n'annonçait plus rien - la même incohérence sur `/scan` et
-  // `/purchase-analysis` sous « Rechercher ». On calcule déjà `active`
-  // nous-mêmes ; il ne reste qu'à ne pas laisser NavLink le contredire.
+  // `Link` and not `NavLink`: React Router recomputes `aria-current` itself
+  // from ITS route match (exact for `to="/"`) and overwrites
+  // the one we pass it. Measured result: on the detail page of a work, "Ma
+  // collection" was indeed painted as the current destination by `activeWhen`
+  // but announced nothing anymore - the same inconsistency on `/scan` and
+  // `/purchase-analysis` under "Rechercher". We already compute `active`
+  // ourselves; all that remains is not to let NavLink contradict it.
     <Link
       to={to}
       aria-current={active ? 'page' : undefined}
-      // La destination courante est une pastille SURLEVEE (surface + ombre),
-      // pas un aplat teinté doublé d'un trait (maquette v4) : deux signaux
-      // pour la même information, dont l'un - le trait accroché à -10px -
-      // débordait de l'en-tête.
+      // The current destination is a RAISED pill (surface + shadow),
+      // not a tinted flat color doubled with a line (mockup v4): two signals
+      // for the same information, one of which - the line hooked at -10px -
+      // overflowed the header.
       className={`flex h-[46px] shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-medium transition-colors ${
         active ? 'bg-surface2 font-semibold text-textPrimary shadow-token-sm ring-1 ring-line' : 'text-textDim hover:bg-rowHover'
       }`}
@@ -32,15 +32,15 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
   )
 }
 
-/** Navigation desktop (>= 768px, voir AppShell.NAV_BREAKPOINT) - les trois
- * destinations de NAV_ITEMS, la même liste que la barre du pouce. Envies
- * (cœur, avec badge) et Profil (avatar) restent des raccourcis séparés,
- * jamais des destinations pairs : les Envies sont une lecture de Ma
- * collection (étude produit du 2026-08-27, §16).
+/** Desktop navigation (>= 768px, see AppShell.NAV_BREAKPOINT) - the three
+ * destinations of NAV_ITEMS, the same list as the thumb bar. Wishes
+ * (heart, with badge) and Profile (avatar) stay separate shortcuts,
+ * never peer destinations: the Wishes are a reading of Ma
+ * collection (product study of 2026-08-27, §16).
  *
- * <p>Pendant une visite sans compte, seules restent les destinations qui
- * MONTRENT la collection : les autres sont des écrans d'écriture, et un onglet
- * qui rebondit à l'accueil n'informe personne (voir lib/accesInvite). */
+ * <p>During a visit without an account, only the destinations that
+ * SHOW the collection remain: the others are write screens, and a tab
+ * that bounces back to the home page informs nobody (see lib/accesInvite). */
 export function DesktopHeader() {
   const { estInvite } = useAuth()
   const destinations = estInvite ? NAV_ITEMS.filter((item) => !estReserveeAuxComptes(item.to)) : NAV_ITEMS
@@ -48,9 +48,9 @@ export function DesktopHeader() {
   return (
     <header className="barre-verre sticky top-0 z-10 hidden h-16 shrink-0 border-b border-line md:block">
       <div className="mx-auto flex h-full w-[min(100%-48px,1600px)] items-center gap-6">
-        {/* « Iozy » en encre, « core » en accent (maquette v4) : la marque
-            porte l'accent dans son propre nom, elle n'a pas besoin d'un bloc
-            coloré autour. */}
+        {/* "Iozy" in ink, "core" in accent (mockup v4): the brand
+            carries the accent in its own name, it does not need a colored
+            block around it. */}
         <Link to="/" className="flex h-full items-center font-display text-lg font-semibold tracking-[-0.02em] text-textPrimary">
           Iozy<span className="text-accent">core</span>
         </Link>

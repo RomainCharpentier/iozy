@@ -1,21 +1,21 @@
-### IozyCore - requêtes de test
-### Prérequis : `docker compose up --build` doit tourner (API sur localhost:8080)
-### Avec VS Code : installer l'extension "REST Client", puis cliquer sur "Send Request"
-### au-dessus de chaque bloc. Avec IntelliJ/DataGrip : ouvrir ce fichier tel quel.
+### IozyCore - test requests
+### Prerequisite: `docker compose up --build` must be running (API on localhost:8080)
+### With VS Code: install the "REST Client" extension, then click "Send Request"
+### above each block. With IntelliJ/DataGrip: open this file as it is.
 
 @baseUrl = http://localhost:8080/api
 
-### 0. À FAIRE EN PREMIER - l'API demande une session depuis le 2026-08-29.
-### Sans elle, toutes les requêtes ci-dessous répondent 401. Le client HTTP
-### garde ensuite le cookie de session et le renvoie tout seul.
+### 0. DO THIS FIRST - the API has required a session since 2026-08-29.
+### Without it, all the requests below answer 401. The HTTP client
+### then keeps the session cookie and sends it back by itself.
 ###
-### Sur une instance neuve (aucun compte), utiliser `register` : il crée le
-### compte, le connecte du même geste, et ce premier compte REPREND la
-### collection déjà en base. Sur une instance déjà en service, utiliser `login`.
-### Vérifier laquelle avec /auth/etat.
+### On a new instance (no account), use `register`: it creates the
+### account, logs it in at the same time, and this first account TAKES OVER the
+### collection already in the database. On an instance already in use, use `login`.
+### Check which one with /auth/etat.
 GET {{baseUrl}}/auth/etat
 
-### 0bis. Créer le premier compte (instance neuve uniquement)
+### 0bis. Create the first account (new instance only)
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
@@ -25,7 +25,7 @@ Content-Type: application/json
   "pseudo": "moi"
 }
 
-### 0ter. Se connecter (instance déjà en service)
+### 0ter. Log in (instance already in use)
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
@@ -34,9 +34,9 @@ Content-Type: application/json
   "motDePasse": "un-mot-de-passe"
 }
 
-### 1. Ajout rapide d'un manga (parcours 1) - UUID = EntityType.MANGA (voir EntityType.java)
-### Réponse : { "entityId": "...", "matchedExistingEntity": false } - remplacer
-### REMPLACER_PAR_UUID_RETOURNE ci-dessous par la valeur de entityId.
+### 1. Quick add of a manga (flow 1) - UUID = EntityType.MANGA (see EntityType.java)
+### Response: { "entityId": "...", "matchedExistingEntity": false } - replace
+### REMPLACER_PAR_UUID_RETOURNE below with the value of entityId.
 # @name quickAddManga
 POST {{baseUrl}}/entities/quick-add
 Content-Type: application/json
@@ -47,8 +47,8 @@ Content-Type: application/json
   "condition": "NEW"
 }
 
-### 1bis. Rejouer EXACTEMENT la même requête - doit renvoyer "matchedExistingEntity": true
-### avec le même entityId (déduplication UC1), et une 2e Ownership est créée pour ce même Entity.
+### 1bis. Replay EXACTLY the same request - must return "matchedExistingEntity": true
+### with the same entityId (UC1 deduplication), and a 2nd Ownership is created for this same Entity.
 POST {{baseUrl}}/entities/quick-add
 Content-Type: application/json
 
@@ -58,13 +58,13 @@ Content-Type: application/json
   "condition": "USED"
 }
 
-### 2. Consulter l'Entity créée (remplacer {{id}} par l'UUID renvoyé ci-dessus)
+### 2. Read the Entity that was created (replace {{id}} with the UUID returned above)
 GET {{baseUrl}}/entities/REMPLACER_PAR_UUID_RETOURNE
 
-### 3. Vérifier le statut avant achat (parcours 3) - doit renvoyer OWNED juste après l'étape 1
+### 3. Check the status before buying (flow 3) - must return OWNED right after step 1
 GET {{baseUrl}}/wishlist/lookup?entityId=REMPLACER_PAR_UUID_RETOURNE
 
-### 4. Enregistrer une Experience (UC3) - "READ" est autorisé pour le type MANGA
+### 4. Record an Experience (UC3) - "READ" is allowed for the MANGA type
 POST {{baseUrl}}/experiences
 Content-Type: application/json
 
@@ -76,7 +76,7 @@ Content-Type: application/json
   "comment": "Excellent premier tome"
 }
 
-### 5. Tenter un type d'Experience non autorisé (doit renvoyer 400)
+### 5. Try an Experience type that is not allowed (must return 400)
 POST {{baseUrl}}/experiences
 Content-Type: application/json
 
@@ -88,7 +88,7 @@ Content-Type: application/json
   "comment": "Ne devrait pas passer"
 }
 
-### 6. Créer un Tag et l'associer à l'Entity
+### 6. Create a Tag and link it to the Entity
 POST {{baseUrl}}/tags
 Content-Type: application/json
 
@@ -96,30 +96,30 @@ Content-Type: application/json
   "label": "seinen"
 }
 
-### 7. Note : quick-add crée toujours une Entity + son Ownership ensemble
-### (voir QuickAddService.java). Il n'existe pas encore d'endpoint pour
-### créer une Entity "nue" à ajouter directement en wishlist sans la
-### posséder - à ajouter si ce cas d'usage est prioritaire pour toi.
-### En attendant, /api/wishlist attend un entityId d'une Entity déjà
-### existante (récupérée via une recherche par exemple).
+### 7. Note: quick-add always creates an Entity + its Ownership together
+### (see QuickAddService.java). There is no endpoint yet to
+### create a "bare" Entity to add directly to the wishlist without
+### owning it - to add if this use case is a priority for you.
+### Meanwhile, /api/wishlist expects an entityId of an Entity that already
+### exists (found through a search, for example).
 
-### 8. Tenter de supprimer l'Entity du manga créée à l'étape 1 (doit renvoyer 409 Conflict,
-### car son Ownership existe toujours)
+### 8. Try to delete the manga Entity created at step 1 (must return 409 Conflict,
+### because its Ownership still exists)
 DELETE {{baseUrl}}/entities/REMPLACER_PAR_UUID_RETOURNE
 
-### 9. Consulter la documentation OpenAPI générée automatiquement
+### 9. Read the automatically generated OpenAPI documentation
 GET http://localhost:8080/v3/api-docs
 
-### 10. Rechercher des métadonnées manga via Jikan (Metadata Enrichment)
+### 10. Search manga metadata through Jikan (Metadata Enrichment)
 GET {{baseUrl}}/metadata/search?entityTypeId=00000000-0000-0000-0000-000000000001&query=Death Note
 
-### 11. Rechercher des métadonnées jeu de société via BGG (Metadata Enrichment)
+### 11. Search board game metadata through BGG (Metadata Enrichment)
 GET {{baseUrl}}/metadata/search?entityTypeId=00000000-0000-0000-0000-000000000003&query=Catan
 
-### 12. Retrouver un manga à partir d'un ISBN scanné (Open Library, aucune clé requise)
+### 12. Find a manga from a scanned ISBN (Open Library, no key required)
 GET {{baseUrl}}/metadata/lookup-barcode?entityTypeId=00000000-0000-0000-0000-000000000001&barcode=9782723492607
 
-### 13. Ajout rapide avec attributs pré-remplis (issus d'un candidat choisi à l'étape 10)
+### 13. Quick add with pre-filled attributes (from a candidate chosen at step 10)
 POST {{baseUrl}}/entities/quick-add
 Content-Type: application/json
 
@@ -133,45 +133,45 @@ Content-Type: application/json
   }
 }
 
-### 14. Importer en masse ta collection BGG (jeux marqués "possédés" uniquement)
-### Remplace "someuser" par un vrai pseudo BGG. Peut prendre quelques secondes
-### (BGG répond parfois 202 le temps de préparer l'export - géré automatiquement
-### avec retry côté backend). Réponse : { totalFound, created, matchedExisting, failed }
+### 14. Bulk import your BGG collection (games marked "owned" only)
+### Replace "someuser" with a real BGG username. It may take a few seconds
+### (BGG sometimes answers 202 while it prepares the export - handled automatically
+### with a retry on the backend side). Response: { totalFound, created, matchedExisting, failed }
 POST {{baseUrl}}/metadata/bgg/import?username=someuser
 
-### 15. Lister tous les jeux de société (utilisé par l'app iOS pour rafraîchir les Étagères après un import BGG)
+### 15. List all board games (used by the iOS app to refresh the Shelves after a BGG import)
 GET {{baseUrl}}/entities?entityTypeId=00000000-0000-0000-0000-000000000003
 
-### 16. Recherche transversale dans ta collection (UC4) - tous types confondus
+### 16. Cross-search in your collection (UC4) - all types together
 GET {{baseUrl}}/entities/search?q=death
 
-### 17. Recherche transversale filtrée par type (mangas uniquement)
+### 17. Cross-search filtered by type (mangas only)
 GET {{baseUrl}}/entities/search?entityTypeId=00000000-0000-0000-0000-000000000001
 
-### 18. Statistiques de la collection (UC6) - nombre d'entités/possessions par type,
-### note moyenne, expériences de l'année en cours, tags les plus utilisés
+### 18. Collection statistics (UC6) - number of entities/ownerships per type,
+### average rating, experiences of the current year, most used tags
 GET {{baseUrl}}/insights/stats
 
-### 19. Découverte manga - autres œuvres du même auteur que tes mangas les mieux notés
+### 19. Manga discovery - other works by the same author as your best rated mangas
 GET {{baseUrl}}/insights/discover?entityTypeCode=MANGA
 
-### 20. Découverte jeux de société - jeux tendance BGG partageant des catégories/mécaniques
-### avec les tiens (nécessite des jeux possédés avec un bggId capturé - via recherche
-### ou import de collection)
+### 20. Board game discovery - BGG trending games sharing categories/mechanics
+### with yours (needs owned games with a captured bggId - through search
+### or collection import)
 GET {{baseUrl}}/insights/discover?entityTypeCode=BOARD_GAME
 
-### 21. Rechercher des métadonnées jeu vidéo via IGDB (nécessite IGDB_CLIENT_ID/SECRET
-### configurés dans .env - sinon renvoie une liste vide, voir README)
+### 21. Search video game metadata through IGDB (needs IGDB_CLIENT_ID/SECRET
+### configured in .env - otherwise returns an empty list, see README)
 GET {{baseUrl}}/metadata/search?entityTypeId=00000000-0000-0000-0000-000000000002&query=zelda
 
-### 22. Découverte jeux vidéo - jeux similaires (IGDB similar_games) aux tiens
-### (nécessite des jeux possédés avec un igdbId capturé, et des identifiants IGDB configurés)
+### 22. Video game discovery - games similar (IGDB similar_games) to yours
+### (needs owned games with a captured igdbId, and configured IGDB credentials)
 GET {{baseUrl}}/insights/discover?entityTypeCode=VIDEO_GAME
 
-### 23. Éditeur de types dynamique - lister tous les types (les 3 historiques + tout type créé)
+### 23. Dynamic type editor - list all types (the 3 historical ones + any created type)
 GET {{baseUrl}}/entity-types
 
-### 24. Créer un type personnalisé (code normalisé en UPPER_SNAKE_CASE côté serveur)
+### 24. Create a custom type (code normalised to UPPER_SNAKE_CASE on the server)
 POST {{baseUrl}}/entity-types
 Content-Type: application/json
 
@@ -182,6 +182,6 @@ Content-Type: application/json
   "customFieldKeys": ["director"]
 }
 
-### 25. Tenter de supprimer un type encore utilisé par une Entity (doit renvoyer 409 Conflict)
-### Remplacer par l'id d'un type réellement référencé, ex: MANGA si l'étape 1 a été jouée.
+### 25. Try to delete a type still used by an Entity (must return 409 Conflict)
+### Replace with the id of a type that is really referenced, e.g. MANGA if step 1 was played.
 DELETE {{baseUrl}}/entity-types/00000000-0000-0000-0000-000000000001

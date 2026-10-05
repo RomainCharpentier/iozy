@@ -2,16 +2,16 @@ import { Check, Loader2 } from 'lucide-react'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 
 /**
- * Ajouter à sa collection une œuvre qui n'a PAS de tome - un jeu vidéo, un jeu
- * de société.
+ * Add to one's collection a work that has NO volume - a video game, a board
+ * game.
  *
- * <h2>Un clic, et rien d'autre</h2>
- * Ce bloc demandait l'état de l'exemplaire et son prix avant de laisser
- * ajouter. C'est deux questions de trop au moment où l'on veut simplement
- * dire « je l'ai » (décision utilisateur du 2026-08-27) : l'état est stocké à
- * `NEW`, comme c'était déjà la valeur par défaut, et les deux se corrigent
- * ensuite sur l'exemplaire lui-même (voir OwnershipDetails) - là où ils
- * décrivent quelque chose de réel plutôt qu'un formulaire à remplir d'avance.
+ * <h2>One click, and nothing else</h2>
+ * This block asked for the condition of the copy and its price before allowing
+ * the add. That is two questions too many when the user simply wants to
+ * say "I have it" (user decision of 2026-08-27): the condition is stored as
+ * `NEW`, as it already was the default value, and both are fixed
+ * later on the copy itself (see OwnershipDetails) - where they
+ * describe something real rather than a form to fill in advance.
  */
 export function AjoutDirect({
   onAjouter,
@@ -21,9 +21,9 @@ export function AjoutDirect({
 }: {
   onAjouter: () => void
   enCours: boolean
-  /** Les informations de l'œuvre ne sont pas encore connues - ajouter
-   *  maintenant créerait une fiche sans jaquette ni auteur (constaté en
-   *  direct sur un aperçu ouvert par URL). */
+  /** The information about the work is not known yet - adding
+   *  now would create a page without a cover or author (seen
+   *  live on a preview opened by URL). */
   attente: boolean
   erreur: string | null
 }) {

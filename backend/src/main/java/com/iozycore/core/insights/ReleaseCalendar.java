@@ -4,9 +4,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Les sorties d'une période, toutes catégories confondues, dans l'ordre du
- * calendrier. Voir {@link ReleaseCalendarService} pour les règles - ce record
- * ne fait que les transporter.
+ * The releases of a period, all categories mixed, in calendar
+ * order. See {@link ReleaseCalendarService} for the rules - this record
+ * only carries them.
  */
 public record ReleaseCalendar(LocalDate from, LocalDate to, List<ReleaseEntry> entries) {
 

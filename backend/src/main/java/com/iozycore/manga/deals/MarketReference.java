@@ -10,40 +10,40 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Le repère auquel se compare le <b>prix d'une annonce</b>, avec tout ce qu'il
- * faut pour en juger : combien de comparables, d'où ils viennent, à quelle
- * forme de lot ils correspondent, et à quel point ils s'accordent entre eux.
+ * The benchmark that the <b>price of a listing</b> is compared to, with everything
+ * needed to judge it: how many comparables, where they come from, which
+ * lot shape they match, and how much they agree with each other.
  *
- * <h2>Un chiffre ne suffit pas</h2>
- * « 70 € » ne se discute pas. « 70 €, à partir de 4 lots comparables de 10 à
- * 14 tomes, relevés dans les six derniers mois, resserrés à 12 % près » se
- * discute - et se corrige. C'est pour ça que l'échantillon, la source et la
- * dispersion voyagent avec le prix au lieu de rester dans le calcul.
+ * <h2>A number is not enough</h2>
+ * "70 EUR" cannot be discussed. "70 EUR, from 4 comparable lots of 10 to
+ * 14 volumes, observed in the last six months, tight within 12 %" can be
+ * discussed - and corrected. This is why the sample, the source and the
+ * spread travel with the price instead of staying in the calculation.
  *
- * <h2>Ce qu'elle refuse de faire</h2>
- * Se fabriquer à partir d'autre chose que de prix réellement relevés. Une
- * estimation IA et un prix neuf catalogue restent utiles ailleurs (coût pour
- * compléter, négociation, verdict), mais aucune des deux ne devient « le
- * marché » : voir {@link MarketReferenceSource}.
+ * <h2>What it refuses to do</h2>
+ * Build itself from anything other than prices that were really observed. An
+ * AI estimate and a catalogue new price stay useful elsewhere (cost to
+ * complete, negotiation, verdict), but neither becomes "the
+ * market": see {@link MarketReferenceSource}.
  *
- * @param price          référence pour le lot évalué entier, hors frais - {@code null} si indisponible
- * @param sampleSize     annonces comparables INDEPENDANTES ; pour un lot multi-séries, celui de la
- *                       série la moins documentée. Jamais un nombre de lignes en base : cinq relevés
- *                       d'une même offre suivie dans le temps font un comparable, pas cinq.
- * @param temporalCount  relevés comparables avant regroupement par annonce - l'écart avec
- *                       {@code sampleSize} dit combien d'offres ont été suivies plusieurs fois
- * @param examinedCount  relevés examinés avant filtrage - dire « 3 existent, 0 comparable » plutôt que « aucune donnée »
- * @param spreadPercent  écart haut/bas rapporté à la médiane, {@code null} sous deux comparables
+ * @param price          reference for the whole lot assessed, without fees - {@code null} if unavailable
+ * @param sampleSize     INDEPENDENT comparable listings; for a multi-series lot, that of the
+ *                       least documented series. Never a number of rows in the database: five observations
+ *                       of the same offer followed over time make one comparable, not five.
+ * @param temporalCount  comparable observations before grouping by listing - the gap with
+ *                       {@code sampleSize} says how many offers were followed several times
+ * @param examinedCount  observations examined before filtering - to say "3 exist, 0 comparable" rather than "no data"
+ * @param spreadPercent  high/low gap relative to the median, {@code null} under two comparables
  */
 public record MarketReference(BigDecimal price, MarketReferenceConfidence confidence, int sampleSize,
                                int temporalCount, int examinedCount, MarketReferenceSource source,
                                LotShape comparedShape, Integer spreadPercent, LocalDate mostRecentObservation,
                                ReferenceGap gap) {
 
-    /** Au-delà, les comparables racontent des choses trop différentes pour qu'on en tire une médiane sûre. */
+    /** Beyond this, the comparables tell things too different for a safe median to be drawn from them. */
     static final int DISPERSION_FORTE_PERCENT = 60;
 
-    /** À partir de ce nombre de comparables, l'échantillon cesse d'être anecdotique. */
+    /** From this number of comparables, the sample stops being anecdotal. */
     static final int ECHANTILLON_SOLIDE = 3;
 
     public MarketReference {
@@ -55,22 +55,22 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
         gap = gap == null ? ReferenceGap.NOT_RECORDED : gap;
     }
 
-    /** Aucune référence, et la raison exacte de son absence. */
+    /** No reference, and the exact reason for its absence. */
     public static MarketReference unavailable(ReferenceGap gap, int examinedCount) {
         return new MarketReference(null, MarketReferenceConfidence.UNAVAILABLE, 0, 0, examinedCount,
                 MarketReferenceSource.NONE, null, null, null, gap);
     }
 
     /**
-     * Construit la référence d'UNE série à partir de comparables déjà filtrés
-     * par {@link MarketComparableSelector}.
+     * Builds the reference of ONE series from comparables already filtered
+     * by {@link MarketComparableSelector}.
      * <p>
-     * La normalisation au tome subsiste, mais elle ne s'applique plus qu'entre
-     * produits de même forme et de taille voisine : y ramener un tome seul et
-     * une intégrale, c'était le défaut ; l'appliquer d'un lot de 10 à un lot de
-     * 14 reste une approximation raisonnable, et la confiance en tient compte.
+     * The per-volume normalisation remains, but it now applies only between
+     * products of the same shape and of a close size: reducing a single volume and
+     * a complete set to it was the flaw; applying it from a lot of 10 to a lot of
+     * 14 stays a reasonable approximation, and the confidence takes it into account.
      *
-     * @param targetVolumeCount tomes de l'annonce évaluée - la référence est rendue pour CE volume-là
+     * @param targetVolumeCount volumes of the listing assessed - the reference is returned for THIS volume
      */
     public static MarketReference fromComparables(MangaEdition edition, int targetVolumeCount,
                                                    MarketComparableSelector.Selection selection, LocalDate today) {
@@ -110,13 +110,13 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
     }
 
     /**
-     * La confiance, construite puis dégradée - jamais l'inverse.
+     * The confidence, built then degraded - never the other way round.
      * <p>
-     * Le point de départ est l'échantillon, parce que c'est ce qui fait qu'une
-     * médiane veut dire quelque chose. Chaque réserve ensuite fait descendre
-     * d'un cran : des comparables qui se contredisent, des comparables vieux
-     * d'un an, une édition dont on ignore le nombre de tomes - donc dont on ne
-     * peut pas affirmer qu'un lot n'est pas une intégrale.
+     * The starting point is the sample, because that is what makes a
+     * median mean something. Each reservation then lowers it by
+     * one level: comparables that contradict each other, comparables a year
+     * old, an edition whose number of volumes is unknown - so we cannot
+     * say that a lot is not a complete set.
      */
     private static MarketReferenceConfidence confiance(int taille, Integer dispersion, boolean toutAncien,
                                                         MangaEdition edition) {
@@ -137,23 +137,23 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
     }
 
     /**
-     * Somme les références des séries d'un lot.
+     * Adds up the references of the series of a lot.
      * <p>
-     * Rend indisponible dès qu'une seule série n'a pas la sienne : additionner
-     * ce qu'on connaît en ignorant le reste produirait une référence
-     * systématiquement trop basse, donc un lot systématiquement « trop cher ».
-     * Et le total ne dépasse jamais MEDIUM au-delà d'une série - juxtaposer des
-     * références unitaires pour juger un lot reste une approximation, même
-     * quand chaque terme est solide.
+     * Returns unavailable as soon as a single series does not have its own: adding up
+     * what we know while ignoring the rest would produce a reference
+     * that is always too low, so a lot that is always "too expensive".
+     * And the total never goes above MEDIUM beyond one series - putting unit
+     * references side by side to judge a lot stays an approximation, even
+     * when each term is solid.
      */
     public static MarketReference sum(List<MarketReference> parSerie) {
         if (parSerie == null || parSerie.isEmpty()) {
             return unavailable(ReferenceGap.NO_OBSERVATION, 0);
         }
-        // Une seule série : rien à sommer, et surtout rien à écraser. Une
-        // référence LOW - un comparable unique, des comparables dispersés -
-        // reste une information : elle ne positionne pas de prix, mais elle
-        // permet de dire « un seul comparable » plutôt que « aucune donnée ».
+        // A single series: nothing to add up, and above all nothing to overwrite. A
+        // LOW reference - a single comparable, scattered comparables -
+        // is still information: it does not place a price, but it
+        // allows us to say "a single comparable" rather than "no data".
         if (parSerie.size() == 1) {
             return parSerie.get(0);
         }
@@ -170,7 +170,7 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
             examines += reference.examinedCount();
             temporels += reference.temporalCount();
             if (reference.price() == null || !reference.confidence().allowsPositioning()) {
-                // Une série sans référence utilisable suffit à disqualifier le lot.
+                // A series without a usable reference is enough to disqualify the lot.
                 return new MarketReference(null, MarketReferenceConfidence.UNAVAILABLE, 0, 0, examines,
                         MarketReferenceSource.NONE, null, null, null, ReferenceGap.INCOMPLETE_LOT_COVERAGE);
             }
@@ -205,7 +205,7 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
                 .divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
     }
 
-    /** L'amplitude des comparables, rapportée à leur médiane. Sous deux valeurs, la notion n'existe pas. */
+    /** The amplitude of the comparables, relative to their median. Under two values, the notion does not exist. */
     private static Integer dispersionPercent(List<BigDecimal> triees, BigDecimal mediane) {
         if (triees.size() < 2 || mediane.signum() <= 0) {
             return null;
@@ -216,7 +216,7 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
                 .intValue();
     }
 
-    /** Vrai quand cette référence peut servir à situer un prix - le seul test à faire avant de comparer. */
+    /** True when this reference can be used to place a price - the only test to do before comparing. */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isUsable() {
         return price != null && confidence.allowsPositioning();

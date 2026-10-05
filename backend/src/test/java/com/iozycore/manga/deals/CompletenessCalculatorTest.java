@@ -62,7 +62,7 @@ class CompletenessCalculatorTest {
 
         CollectionStatus status = calculator.compute(Set.of(1, 2, 3, 4), edition, observed);
 
-        assertThat(status.missingCount()).isEqualTo(2); // tomes 5 et 6
+        assertThat(status.missingCount()).isEqualTo(2); // volumes 5 and 6
         assertThat(status.costToCompleteBasis()).isEqualTo(PriceBasis.OBSERVED_MARKET);
         assertThat(status.estimatedCostToComplete()).isEqualByComparingTo(new BigDecimal("24.00")); // 2 * 12.00
     }
@@ -93,8 +93,8 @@ class CompletenessCalculatorTest {
 
     @Test
     void the_three_argument_overload_never_reports_a_catalogued_vs_virtual_distinction() {
-        // Utilisé par PurchaseAnalysisEngine pour évaluer une annonce tierce - le catalogue
-        // de l'utilisateur n'a aucun sens dans ce contexte, voir javadoc de l'overload.
+        // Used by PurchaseAnalysisEngine to assess a third-party listing - the user's catalogue
+        // makes no sense in this context, see the javadoc of the overload.
         MangaEdition edition = MangaEdition.create("My Home Hero", "Standard", EditionTier.STANDARD, "Kodansha",
                 26, new BigDecimal("6.90"), false, false, null);
 
@@ -105,8 +105,8 @@ class CompletenessCalculatorTest {
 
     @Test
     void distinguishes_catalogued_but_unowned_missing_volumes_from_purely_virtual_ones() {
-        // Étape 6/8 (modèle Tome != Ownership) : 4 possédés (1-4), tome 5 catalogué mais
-        // pas possédé (ex: revendu), tomes 6 à 10 purement virtuels (jamais catalogués).
+        // Step 6/8 (Volume != Ownership model): 4 owned (1-4), volume 5 catalogued but
+        // not owned (e.g. sold again), volumes 6 to 10 purely virtual (never catalogued).
         MangaEdition edition = MangaEdition.create("Parasyte", "Standard", EditionTier.STANDARD, "Tonkam",
                 10, new BigDecimal("7.50"), false, false, null);
 

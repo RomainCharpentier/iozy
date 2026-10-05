@@ -9,10 +9,10 @@ import { LienRetour } from '@/common/components/LienRetour'
 import { formaterEuros } from '@/common/lib/formats'
 import { Squelette } from '@/common/components/Squelette'
 
-/** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
- * édition nommée est connue mais incomplète, les plus proches de la
- * complétion en premier (voir PurchaseAnalysisService.findNearCompleteSuggestions
- * côté backend, même moteur que la complétude affichée sur une fiche série). */
+/** "Suggestions d'achats" (Mon profil) - series already in the collection whose
+ * named edition is known but incomplete, the closest to
+ * completion first (see PurchaseAnalysisService.findNearCompleteSuggestions
+ * on the backend side, same engine as the completeness shown on a series detail page). */
 export function SuggestionsPage() {
   const navigate = useNavigate()
   const suggestionsQuery = useQuery({

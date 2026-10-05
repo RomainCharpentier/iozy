@@ -13,9 +13,9 @@ public class TierListItemJpaEntity {
     @Id
     private UUID id;
 
-    // Cloisonnement par propriétaire (V26) : Hibernate ajoute cette colonne
-    // à la clause WHERE de toute requête sur cette entité, et la remplit à
-    // l'insertion depuis ProprietaireCourant.
+    // Isolation by owner (V26): Hibernate adds this column
+    // to the WHERE clause of every query on this entity, and fills it on
+    // insert from ProprietaireCourant.
     @TenantId
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;

@@ -11,17 +11,17 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La porte des photos envoyées par l'utilisateur.
+ * The door for photos sent by the user.
  *
- * <p>Elle remplace une liste blanche d'hôtes par une seule question : <b>ces
- * octets sont-ils vraiment une image ?</b> Ces tests protègent cette question
- * et les bornes qui l'accompagnent.
+ * <p>It replaces a host whitelist with a single question: <b>are these
+ * bytes really an image?</b> These tests protect this question
+ * and the limits that come with it.
  */
 class UploadedImageReaderTest {
 
     private final UploadedImageReader reader = new UploadedImageReader();
 
-    // ============================================ Le type se constate
+    // ============================================ The type is established
 
     @Test
     void a_real_jpeg_is_accepted_and_its_type_is_observed() {
@@ -44,9 +44,9 @@ class UploadedImageReaderTest {
 
     @Test
     void a_file_that_merely_CLAIMS_to_be_an_image_is_refused() {
-        // Le fond du sujet. Content-Type est une chaîne écrite par le client :
-        // rien n'empêche d'annoncer image/jpeg sur n'importe quoi, et ces octets
-        // partiraient ensuite vers un moteur externe.
+        // The core of the matter. Content-Type is a string written by the client:
+        // nothing prevents announcing image/jpeg on anything, and these bytes
+        // would then go to an external engine.
         byte[] pasUneImage = "#!/bin/sh\nrm -rf /\n".getBytes(StandardCharsets.UTF_8);
 
         UploadedImageReader.Intake intake =
@@ -58,8 +58,8 @@ class UploadedImageReaderTest {
 
     @Test
     void a_real_image_declared_as_something_else_is_still_accepted() {
-        // Symétrique du test précédent : c'est bien le contenu qui décide, pas
-        // l'étiquette - dans un sens comme dans l'autre.
+        // Symmetric to the previous test: it is the content that decides, not
+        // the label - in one direction as in the other.
         UploadedImageReader.Intake intake =
                 reader.read(List.of(fichier("sans-extension", "application/octet-stream", png(1024))));
 
@@ -78,7 +78,7 @@ class UploadedImageReaderTest {
         assertThat(intake.rejectedCount()).isEqualTo(1);
     }
 
-    // ============================================ Les bornes
+    // ============================================ The limits
 
     @Test
     void at_most_eight_photos_are_read() {
@@ -98,16 +98,16 @@ class UploadedImageReaderTest {
 
         UploadedImageReader.Intake intake = reader.read(List.of(fichier("grosse.jpg", "image/jpeg", enorme)));
 
-        // Tronquée plutôt que rejetée : le reste du lot passe quand même, et un
-        // moteur qui ne saurait pas la lire le dira lui-même.
+        // Truncated rather than rejected: the rest of the batch still goes through, and an
+        // engine that could not read it will say so itself.
         assertThat(intake.images()).hasSize(1);
         assertThat(intake.images().get(0).bytes()).hasSize(RecognitionImageLimits.MAX_BYTES_PER_IMAGE);
     }
 
     @Test
     void the_cumulative_cap_stops_the_reading() {
-        // Cinq photos de 3 Mo dépassent les 12 Mo cumulés : les dernières ne
-        // sont pas chargées en mémoire.
+        // Five 3 MB photos exceed the cumulative 12 MB: the last ones are
+        // not loaded into memory.
         List<MultipartFile> lourdes = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             lourdes.add(fichier("p" + i + ".jpg", "image/jpeg", jpeg(RecognitionImageLimits.MAX_BYTES_PER_IMAGE)));
@@ -120,7 +120,7 @@ class UploadedImageReaderTest {
         assertThat(intake.images()).hasSizeLessThan(5);
     }
 
-    // ============================================ Robustesse
+    // ============================================ Robustness
 
     @Test
     void nothing_sent_is_not_an_error() {
@@ -139,8 +139,8 @@ class UploadedImageReaderTest {
 
     @Test
     void an_uploaded_photo_carries_no_source_url() {
-        // Elle ne vient d'aucune adresse. Lui en inventer une laisserait croire
-        // qu'on pourrait y retourner - et donc qu'il y a quelque chose à joindre.
+        // It comes from no address. Inventing one for it would suggest
+        // that we could go back to it - and so that there is something to reach.
         UploadedImageReader.Intake intake = reader.read(List.of(fichier("p.jpg", "image/jpeg", jpeg(512))));
 
         assertThat(intake.images().get(0).sourceUrl()).isNull();
@@ -158,21 +158,21 @@ class UploadedImageReaderTest {
 
     @Test
     void the_bytes_never_appear_in_toString() {
-        // Une image en base64 dans une trace d'exception, c'est le contenu d'une
-        // photo personnelle recopié dans un fichier que personne ne surveille.
+        // A base64 image in an exception trace is the content of a
+        // personal photo copied into a file that nobody monitors.
         RecognitionImage image = reader.read(List.of(fichier("p.jpg", "image/jpeg", jpeg(512))))
                 .images().get(0);
 
         assertThat(image.toString()).contains("image/jpeg").doesNotContain("bytes=[");
     }
 
-    // ============================================ Fabriques
+    // ============================================ Factories
 
     private static MultipartFile fichier(String nom, String typeDeclare, byte[] contenu) {
         return new MockMultipartFile("photos", nom, typeDeclare, contenu);
     }
 
-    /** En-tête JPEG réel, puis du remplissage - il ne s'agit pas de décoder. */
+    /** Real JPEG header, then padding - the point is not to decode. */
     private static byte[] jpeg(int taille) {
         return avecEntete(new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0}, taille);
     }

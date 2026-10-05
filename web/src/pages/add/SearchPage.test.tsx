@@ -1,16 +1,16 @@
 /**
- * <b>Les trois façons d'ajouter, et le réglage qui décide des titres.</b>
+ * <b>The three ways to add, and the setting that decides the titles.</b>
  *
- * <p>Cet écran est le seul point d'entrée pour ajouter à sa collection. Deux
- * choses s'y perdent en silence :
+ * <p>This screen is the only entry point to add to one's collection. Two
+ * things get lost in it silently:
  * <ul>
- *   <li>les <b>entrées d'ajout</b> — taper un titre, scanner, importer depuis
- *       BGG. L'import a vécu sous Administration jusqu'au 2026-08-29, où
- *       personne n'allait le chercher ;</li>
- *   <li>l'<b>ordre des langues de titre</b>, qui décide de ce que cette liste
- *       affiche et de ce qui sera enregistré. Il vivait dans Paramètres sans
- *       aucun lien depuis ici : on voyait un titre en romaji sans savoir que
- *       c'était un choix, encore moins où le changer.</li>
+ *   <li>the <b>add entries</b> — typing a title, scanning, importing from
+ *       BGG. The import lived under Administration until 2026-08-29, where
+ *       nobody went to look for it;</li>
+ *   <li>the <b>order of the title languages</b>, which decides what this list
+ *       shows and what will be saved. It lived in Settings with
+ *       no link from here: we saw a title in romaji without knowing that
+ *       it was a choice, still less where to change it.</li>
  * </ul>
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -70,36 +70,36 @@ beforeEach(() => {
       imageUrl: null,
       mediaType: 'Manga',
       startYear: 1989,
-      // `attributes` porte les titres par langue : c'est LUI que le réglage
-      // gouverne, et l'omettre faisait planter le rendu (constaté en écrivant
-      // ce test - le candidat mocké n'était pas un candidat).
+      // `attributes` carries the titles per language: it is THIS that the setting
+      // governs, and omitting it made the rendering crash (found while writing
+      // this test - the mocked candidate was not a candidate).
       attributes: { titleRomaji: 'Berserk', titleEnglish: 'Berserk' },
     },
   ])
   render(<SearchPage />, { wrapper: enrobage })
 })
 
-describe('les façons d’ajouter', () => {
-  it('réunit la recherche, le scan et l’import', async () => {
+describe('the ways to add', () => {
+  it('brings together search, scan and import', async () => {
     await waitFor(() => expect(api.listEntityTypes).toHaveBeenCalled())
 
     expect(screen.getByRole('link', { name: 'Scanner' })).toHaveAttribute('href', '/scan')
-    // Sous Administration jusqu'au 2026-08-29 : récupérer ses jeux depuis
-    // BoardGameGeek, c'est ajouter à sa collection, pas administrer.
+    // Under Administration until 2026-08-29: getting one's games from
+    // BoardGameGeek is adding to one's collection, not administering.
     expect(screen.getByRole('link', { name: 'Importer depuis BGG' })).toHaveAttribute('href', '/import-bgg')
-    // La quatrième façon d'ajouter (lot 147) : lire une photo de l'étagère.
+    // The fourth way to add (batch 147): reading a photo of the shelf.
     expect(screen.getByRole('link', { name: 'Importer depuis une photo' })).toHaveAttribute('href', '/import-photo')
   })
 })
 
-describe('l’arrivée', () => {
-  it('ouvre sur « Tout », et cherche alors chez toutes les sources', async () => {
-    // Le premier type de l'instance était présélectionné pour un compte : le
-    // Catalogue ne montrait alors qu'un univers pris pour les autres
-    // (lot 139). Et sous « Tout », la recherche externe était coupée :
-    // « Injustice » ne répondait qu'après avoir choisi « Jeu vidéo »
-    // (lot 145). Taper un titre interroge désormais chaque catégorie qui a
-    // une source, sans en choisir une d'avance.
+describe('the arrival', () => {
+  it('opens on "Tout", and then searches all the sources', async () => {
+    // The first type of the instance was preselected for an account: the
+    // Catalogue then only showed one universe taken for the others
+    // (batch 139). And under "Tout", the external search was cut off:
+    // "Injustice" only answered after choosing "Jeu vidéo"
+    // (batch 145). Typing a title now queries every category that has
+    // a source, without choosing one in advance.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Manga' })).toBeInTheDocument())
     await userEvent.type(screen.getByRole('textbox'), 'berserk')
 
@@ -109,18 +109,18 @@ describe('l’arrivée', () => {
     expect(screen.queryByText(/Seul le catalogue est parcouru/)).not.toBeInTheDocument()
   })
 
-  it('présente les résultats par catégorie quand plusieurs sont cherchées', async () => {
+  it('presents the results by category when several are searched', async () => {
     const jeuVideo = { ...typeDeCollection('VIDEO_GAME', 'Jeu vidéo'), hasMetadataProvider: true }
     api.listEntityTypes.mockResolvedValue([MANGA, jeuVideo])
     render(<SearchPage />, { wrapper: enrobage })
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Jeu vidéo' })).not.toHaveLength(0))
 
-    // Le dernier champ : celui de CE rendu, pas de celui posé par beforeEach.
+    // The last field: the one of THIS render, not the one set by beforeEach.
     const champs = screen.getAllByRole('textbox')
     await userEvent.type(champs[champs.length - 1], 'berserk')
 
-    // Une requête par catégorie, et un groupe nommé pour chacune : le
-    // résultat dit d'où il vient, parce que l'écran ne l'a pas demandé.
+    // One query per category, and a named group for each: the
+    // result says where it comes from, because the screen did not ask for it.
     await waitFor(() => expect(metadata.searchMetadata).toHaveBeenCalledWith(jeuVideo.id, 'berserk', expect.anything()), {
       timeout: 3000,
     })
@@ -129,18 +129,18 @@ describe('l’arrivée', () => {
   })
 })
 
-describe('les tags', () => {
-  it('ne propose aucune rangée de tags quand il n’en existe pas', async () => {
-    // Le filtre qui ne filtre jamais rien - déjà refusé sur Ma collection.
+describe('the tags', () => {
+  it('offers no row of tags when none exist', async () => {
+    // The filter that never filters anything - already refused on My collection.
     await waitFor(() => expect(api.listEntityTypes).toHaveBeenCalled())
 
     expect(screen.queryByRole('group', { name: 'Filtrer par tag' })).not.toBeInTheDocument()
   })
 
-  it('filtre le catalogue par un tag, et le second clic le retire', async () => {
-    // Un tag décrit une œuvre et vit dans le catalogue : c'est ici qu'il
-    // filtre le plus naturellement (lot 143). Un seul à la fois, comme le
-    // paramètre du serveur.
+  it('filters the catalogue by a tag, and the second click removes it', async () => {
+    // A tag describes a work and lives in the catalogue: it is here that it
+    // filters most naturally (batch 143). Only one at a time, like the
+    // server parameter.
     tags.listTags.mockResolvedValue([{ id: 't-seinen', label: 'seinen' }])
     render(<SearchPage />, { wrapper: enrobage })
     const seinen = await screen.findByRole('button', { name: 'seinen' })
@@ -153,8 +153,8 @@ describe('les tags', () => {
   })
 })
 
-describe('la langue des titres', () => {
-  /** Cherche jusqu'à obtenir des suggestions - c'est là que le réglage agit. */
+describe('the title language', () => {
+  /** Searches until suggestions are obtained - that is where the setting acts. */
   async function chercher() {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Manga' })).toBeInTheDocument())
     await userEvent.click(screen.getByRole('button', { name: 'Manga' }))
@@ -162,17 +162,17 @@ describe('la langue des titres', () => {
     await waitFor(() => expect(screen.getByText('Suggestions')).toBeInTheDocument(), { timeout: 3000 })
   }
 
-  it('se règle depuis la liste qu’elle gouverne', async () => {
+  it('is set from the list it governs', async () => {
     await chercher()
 
     const lien = screen.getByRole('link', { name: /Langue des titres/ })
-    // Le réglage vit dans « Cet appareil », sur Profil (lot 140).
+    // The setting lives in "Cet appareil", on Profil (batch 140).
     expect(lien).toHaveAttribute('href', '/profile')
   })
 
-  it('n’apparaît pas avant qu’il y ait des titres à gouverner', async () => {
-    // Un réglage proposé devant une liste vide serait du bruit permanent sur
-    // le seul écran d'ajout.
+  it('does not appear before there are titles to govern', async () => {
+    // A setting offered in front of an empty list would be permanent noise on
+    // the only add screen.
     await waitFor(() => expect(api.listEntityTypes).toHaveBeenCalled())
 
     expect(screen.queryByRole('link', { name: /Langue des titres/ })).not.toBeInTheDocument()

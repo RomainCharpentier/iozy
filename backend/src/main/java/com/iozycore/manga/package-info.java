@@ -1,12 +1,12 @@
 /**
- * Tout ce qui n'existe que pour un manga : tomes et éditions françaises,
- * éditions suivies, progression et liste de lecture, sources (AniList, Jikan,
- * MyAnimeList, Google Books, BnF, Open Library), analyse d'achat d'un lot,
- * reconnaissance des piles par ISBN. Les classes de la racine sont ses
- * façades vers le cœur : les implémentations des points d'extension.
+ * Everything that exists only for a manga: French volumes and editions,
+ * followed editions, progress and reading list, sources (AniList, Jikan,
+ * MyAnimeList, Google Books, BnF, Open Library), purchase analysis of a batch,
+ * recognition of stacks by ISBN. The classes at the root are its
+ * facades to the core: the implementations of the extension points.
  *
- * <p>Un univers dépend du cœur, jamais l'inverse, jamais d'un autre univers
- * (Lot 133) - vérifié par le test des modules.
+ * <p>A universe depends on the core, never the other way round, never on another universe
+ * (Batch 133) - checked by the modules test.
  */
 @org.springframework.modulith.ApplicationModule(displayName = "Mangas")
 package com.iozycore.manga;

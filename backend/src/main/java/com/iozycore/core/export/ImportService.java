@@ -44,36 +44,36 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Le retour de l'export : le meme document, dans l'autre sens.
+ * The return trip of the export: the same document, the other way round.
  *
- * <h2>Pourquoi maintenant, et pourquoi ce format-la</h2>
- * §19 de docs/CONCEPTION.md decrit le flux cible d'un import (source ->
- * analyse -> rapprochement -> cas ambigus -> validation) et demande de ne
- * pas le construire avant qu'une source concrete le justifie. L'export de
- * l'application est cette source : sans lui, "Emporter ma collection" etait un
- * aller simple, et ni changer de NAS ni repartir d'une sauvegarde n'etait
- * possible autrement qu'en restaurant PostgreSQL entier.
+ * <h2>Why now, and why this format</h2>
+ * §19 of docs/CONCEPTION.md describes the target flow of an import (source ->
+ * analysis -> matching -> ambiguous cases -> validation) and asks not to
+ * build it before a concrete source justifies it. The export of the
+ * application is this source: without it, "Take my collection" was a
+ * one-way trip, and neither changing NAS nor starting again from a backup was
+ * possible other than by restoring the whole PostgreSQL.
  *
- * <h2>Deux passes, un seul code</h2>
- * {@link #analyser} et {@link #appliquer} parcourent le document de la meme
- * facon ; seule la premiere s'abstient d'ecrire. Le rapport de l'analyse est
- * donc exactement ce que l'application fera - c'est l'ecran de validation de
- * §19, sans que deux implementations puissent diverger.
+ * <h2>Two passes, one single code</h2>
+ * {@link #analyser} and {@link #appliquer} go through the document in the same
+ * way; only the first one abstains from writing. The report of the analysis is
+ * therefore exactly what the application will do - it is the validation screen of
+ * §19, without two implementations being able to diverge.
  *
- * <h2>Les regles de rapprochement</h2>
- * Le catalogue (types, tags, oeuvres, tomes, editions, relations) est
- * PARTAGE entre les comptes : on s'y rattache par sa cle naturelle - code de
- * type, libelle de tag, (type, titre) d'oeuvre, libelle de tome, (serie,
- * edition) - exactement comme l'ajout rapide et l'import BGG le font deja.
- * Ce qui est PRIVE (possessions, experiences, envies, classements, editions
- * suivies, prix releves, preferences) est recree pour le compte qui importe,
- * en sautant ce qui existe deja a l'identique. Rien d'existant n'est jamais
- * modifie ni supprime : un import ajoute, ou s'abstient et le dit.
+ * <h2>The matching rules</h2>
+ * The catalog (types, tags, works, volumes, editions, relationships) is
+ * SHARED between accounts: we attach to it by its natural key - type
+ * code, tag label, work (type, title), volume label, (series,
+ * edition) - exactly as quick add and the BGG import already do.
+ * What is PRIVATE (ownerships, experiences, wishes, rankings, followed editions,
+ * recorded prices, preferences) is recreated for the account that imports,
+ * skipping what already exists identically. Nothing existing is ever
+ * changed or deleted: an import adds, or abstains and says so.
  *
- * <p>Les identifiants du fichier ne sont jamais reutilises : une meme
- * sauvegarde peut donc etre importee sur l'instance qui l'a produite sans
- * collision, et le rapprochement par cle naturelle fait qu'elle n'y cree
- * alors rien.
+ * <p>The ids of the file are never reused: the same
+ * backup can therefore be imported on the instance that produced it without
+ * collision, and the matching by natural key means it creates
+ * nothing there.
  */
 @Service
 public class ImportService {
@@ -89,7 +89,7 @@ public class ImportService {
     private final EntityRankRepository entityRankRepository;
     private final TierListRepository tierListRepository;
     private final TierListItemRepository tierListItemRepository;
-    /** Ce que chaque univers importe en plus - le manga, ses éditions et ses prix (Lot 133). */
+    /** What each universe imports in addition - manga, its editions and its prices (Batch 133). */
     private final List<TransferModule> modules;
 
     public ImportService(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
@@ -114,22 +114,22 @@ public class ImportService {
         this.modules = modules;
     }
 
-    /** Dit ce que l'import ferait, sans rien ecrire. */
+    /** Tells what the import would do, without writing anything. */
     @Transactional(readOnly = true)
     public ImportReport analyser(ExportDocument document, boolean peutCreerDesTags) {
         return new Passe(document, false, peutCreerDesTags).executer();
     }
 
     /**
-     * Ecrit, en une seule transaction : un fichier qui echoue a mi-chemin ne
-     * laisse pas une demi-collection derriere lui.
+     * Writes, in one single transaction: a file that fails halfway does not
+     * leave half a collection behind it.
      */
     @Transactional
     public ImportReport appliquer(ExportDocument document, boolean peutCreerDesTags) {
         return new Passe(document, true, peutCreerDesTags).executer();
     }
 
-    /** Une passe sur le document, avec les tables de correspondance ancien id -> nouvel objet. */
+    /** One pass over the document, with the correspondence tables old id -> new object. */
     private final class Passe {
         private final ExportDocument doc;
         private final boolean ecrire;
@@ -139,7 +139,7 @@ public class ImportService {
         private final Map<String, UUID> typeParCode = new HashMap<>();
         private final Map<String, UUID> typeParLibelle = new HashMap<>();
         private final Map<String, UUID> tagParLibelle = new HashMap<>();
-        /** Ancien id d'oeuvre -> l'oeuvre (existante ou creee), pour relier ses tomes aux editions apres coup. */
+        /** Old work id -> the work (existing or created), to link its volumes to the editions afterwards. */
         private final Map<UUID, Entity> oeuvres = new LinkedHashMap<>();
         private final Map<UUID, UUID> tomes = new HashMap<>();
         private final Map<UUID, UUID> editions = new HashMap<>();
@@ -172,7 +172,7 @@ public class ImportService {
             return cumul.rapport(ecrire);
         }
 
-        // ----- catalogue partage ---------------------------------------------------------
+        // ----- shared catalog ---------------------------------------------------------
 
         private void types() {
             cumul.section("entityTypes", "Categories de collection");
@@ -205,8 +205,8 @@ public class ImportService {
             for (Tag existant : tagRepository.findAll()) {
                 tagParLibelle.put(existant.label(), existant.id());
             }
-            // Les libelles portes par les oeuvres comptent aussi : un export
-            // ancien n'avait pas de liste `tags` separee.
+            // The labels carried by the works count too: an old export
+            // did not have a separate `tags` list.
             Set<String> libelles = new HashSet<>();
             for (ExportDocument.TagExport t : liste(doc.tags())) {
                 libelles.add(t.label());
@@ -223,8 +223,8 @@ public class ImportService {
                     continue;
                 }
                 if (!peutCreerDesTags) {
-                    // Meme regle que l'API : seul un administrateur pose un tag
-                    // dans le catalogue partage (voir SecurityConfig).
+                    // Same rule as the API: only an administrator puts a tag
+                    // in the shared catalog (see SecurityConfig).
                     cumul.ignore("tags", libelle, "seul un administrateur peut creer un tag - les oeuvres seront importees sans");
                     continue;
                 }
@@ -307,9 +307,9 @@ public class ImportService {
         }
 
         /**
-         * Le lien tome -> edition ne peut se poser qu'une fois les deux crees :
-         * troisieme passe sur les oeuvres, qui ne touche que les tomes encore
-         * sans edition.
+         * The volume -> edition link can only be set once both are created:
+         * third pass over the works, which only touches volumes still
+         * without an edition.
          */
         private void liensTomesEditions() {
             for (ExportDocument.EntityExport e : liste(doc.entities())) {
@@ -386,7 +386,7 @@ public class ImportService {
             }
         }
 
-        // ----- collection privee --------------------------------------------------------
+        // ----- private collection --------------------------------------------------------
 
         private void possessions() {
             cumul.section("ownerships", "Possessions");
@@ -584,9 +584,9 @@ public class ImportService {
             }
         }
 
-        // ----- outils --------------------------------------------------------------------
+        // ----- tools --------------------------------------------------------------------
 
-        /** Ce que les univers voient de cet import (voir TransferModule). */
+        /** What the universes see of this import (see TransferModule). */
         private ImportContexte contexte() {
             return new ImportContexte(doc, ecrire, cumul, oeuvres, tomes, editions, oeuvresACreer);
         }

@@ -5,26 +5,26 @@ import com.iozycore.core.domain.catalog.EntityType;
 import java.util.Optional;
 
 /**
- * Complète MetadataProvider pour le cas "je viens de scanner un
- * code-barres" (parcours 1) : contrairement à search(query), on part
- * d'un identifiant exact (ISBN/EAN) et on attend au plus un résultat.
- * Un MetadataProvider peut implémenter les deux interfaces si sa source
- * le permet (ce n'est pas le cas de Jikan/BGG, qui n'indexent pas par
- * code-barres).
+ * Completes MetadataProvider for the case "I have just scanned a
+ * barcode" (flow 1): unlike search(query), we start
+ * from an exact identifier (ISBN/EAN) and expect at most one result.
+ * A MetadataProvider can implement both interfaces if its source
+ * allows it (this is not the case of Jikan/BGG, which do not index by
+ * barcode).
  */
 public interface BarcodeMetadataProvider {
 
     boolean supports(EntityType entityType);
 
-    /** Ne doit jamais lever d'exception pour une panne réseau, voir implémentations. */
+    /** Must never throw an exception for a network outage, see implementations. */
     Optional<MetadataCandidate> lookup(String barcode);
 
     /**
-     * La même recherche, en disant <b>pourquoi</b> elle n'a rien rendu.
+     * The same search, saying <b>why</b> it returned nothing.
      *
-     * <p>Un provider qui ne sait pas faire la différence garde ce défaut : il
-     * ne conclut jamais rien d'un vide, et rien ne sera mémorisé. C'est le
-     * comportement prudent, et celui d'avant.
+     * <p>A provider that cannot tell the difference keeps this default: it
+     * never concludes anything from an empty result, and nothing will be remembered. This is the
+     * cautious behavior, and the one from before.
      *
      * @see BarcodeLookup
      */

@@ -24,25 +24,25 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Interroge l'API officielle MyAnimeList v2 (authentifiée par un simple
- * Client ID applicatif, sans flux OAuth complet - voir README.md, section
- * "Obtenir et configurer un Client ID MyAnimeList") en complément de Jikan
- * pour le type MANGA.
+ * Queries the official MyAnimeList v2 API (authenticated by a simple
+ * application Client ID, without a full OAuth flow - see README.md, section
+ * "Obtenir et configurer un Client ID MyAnimeList") in addition to Jikan
+ * for the MANGA type.
  * <p>
- * Contrairement à Jikan (wrapper tiers qui doit lui-même se connecter à
- * MyAnimeList à chaque requête, et que MyAnimeList bloque/throttle par
- * intermittence - pannes 504 "failed to connect to MyAnimeList" fréquentes),
- * cette API est servie directement par MyAnimeList : elle reste disponible
- * indépendamment de l'état de Jikan. Les deux fournisseurs sont agrégés par
- * MetadataSearchService (jamais l'un à la place de l'autre) - si Jikan est
- * down, ses résultats sont simplement absents et ceux-ci prennent le relais.
+ * Unlike Jikan (third-party wrapper that must itself connect to
+ * MyAnimeList at each request, and that MyAnimeList blocks/throttles from time to time -
+ * frequent 504 outages "failed to connect to MyAnimeList"),
+ * this API is served directly by MyAnimeList: it stays available
+ * independently of the state of Jikan. The two providers are aggregated by
+ * MetadataSearchService (never one instead of the other) - if Jikan is
+ * down, its results are simply absent and these take over.
  * <p>
- * Pas de mode dégradé sans Client ID configuré (comme IGDB) : supports()
- * renvoie false tant que {@code mal.client-id} est vide, ce qui revient à
- * l'absence de ce fournisseur (Jikan reste seul, comportement inchangé).
+ * No degraded mode without a configured Client ID (like IGDB): supports()
+ * returns false as long as {@code mal.client-id} is empty, which amounts to
+ * the absence of this provider (Jikan stays alone, behavior unchanged).
  * <p>
- * @Order(3) : derrière AniList et Jikan (Lot 119), avant GoogleBooksTitleSearchProvider dans
- * MetadataSearchService.search - même raison que sur JikanMetadataProvider.
+ * @Order(3): behind AniList and Jikan (Batch 119), before GoogleBooksTitleSearchProvider in
+ * MetadataSearchService.search - same reason as on JikanMetadataProvider.
  */
 @Component
 @Order(3)
@@ -79,15 +79,15 @@ public class MyAnimeListMetadataProvider implements MetadataProvider {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("MyAnimeList a répondu {} pour la requête '{}'", response.statusCode(), query);
+                log.warn("MyAnimeList answered {} for the query '{}'", response.statusCode(), query);
                 return List.of();
             }
 
             return parse(response.body());
         } catch (Exception e) {
-            // Une panne de l'API tierce ne doit jamais faire échouer l'ajout rapide :
-            // Jikan (s'il est up) ou la saisie manuelle prennent le relais.
-            log.warn("Échec de l'appel à MyAnimeList pour '{}' : {}", query, e.getMessage());
+            // An outage of the third-party API must never make the quick add fail:
+            // Jikan (if it is up) or the manual entry take over.
+            log.warn("MyAnimeList call failed for '{}': {}", query, e.getMessage());
             return List.of();
         }
     }
@@ -124,48 +124,48 @@ public class MyAnimeListMetadataProvider implements MetadataProvider {
                 attributes.put("publisher", serialization.get(0).path("node").path("name").asText(null));
             }
             attributes.put("seriesStatus", node.path("status").asText(null));
-            // 0 chez MAL v2 signifie "pas encore déterminé" (série en cours ou
-            // décompte final inconnu) - jamais stocké dans ce cas (voir Ma
-            // collection côté web : "total inconnu" plutôt qu'un faux 0).
+            // 0 at MAL v2 means "not yet determined" (ongoing series or
+            // final count unknown) - never stored in this case (see Ma
+            // collection on the web side: "total inconnu" rather than a false 0).
             int numVolumes = node.path("num_volumes").asInt(0);
             if (numVolumes > 0) {
                 attributes.put("totalVolumes", numVolumes);
             }
-            // Un même titre peut désigner plusieurs œuvres distinctes chez MAL
-            // (ex: le manga "Naruto" et un one-shot pilote également titré
-            // "Naruto") - type + année de première publication permettent à
-            // l'utilisateur de les distinguer dans la liste de suggestions
-            // (voir QuickAddPage/QuickAddView).
+            // The same title can designate several distinct works at MAL
+            // (e.g. the manga "Naruto" and a pilot one-shot also titled
+            // "Naruto") - type + year of first publication allow
+            // the user to tell them apart in the list of suggestions
+            // (see QuickAddPage/QuickAddView).
             attributes.put("mediaType", node.path("media_type").asText(null));
             attributes.put("startYear", extractYear(node.path("start_date").asText(null)));
-            // Le "titre" MAL (defaultTitle) est souvent le romaji/japonais (ex:
-            // "Shingeki no Kyojin"), pas très lisible pour reconnaître l'œuvre.
-            // Aucune de nos sources ne connaît de vrai titre français (ex:
-            // "L'Attaque des Titans") - à défaut, le titre anglais (quand
-            // fourni et différent) est utilisé comme titre affiché/retenu, les
-            // éditeurs français le reprenant parfois tel quel. Le romaji
-            // d'origine est conservé en attribut ("originalTitle") pour ne pas
-            // perdre l'info, sans polluer l'affichage principal.
+            // The MAL "title" (defaultTitle) is often the romaji/Japanese (e.g.
+            // "Shingeki no Kyojin"), not very readable to recognize the work.
+            // None of our sources knows a real French title (e.g.
+            // "L'Attaque des Titans") - failing that, the English title (when
+            // provided and different) is used as the displayed/kept title, the
+            // French publishers sometimes taking it as is. The original
+            // romaji is kept as an attribute ("originalTitle") so as not to
+            // lose the info, without polluting the main display.
             String titleEnglish = node.path("alternative_titles").path("en").asText(null);
             String title = defaultTitle;
             if (titleEnglish != null && !titleEnglish.isBlank() && !titleEnglish.equalsIgnoreCase(defaultTitle)) {
                 title = titleEnglish;
                 attributes.put("originalTitle", defaultTitle);
             }
-            // "titleRomaji"/"titleEnglish" (inconditionnels, contrairement à
-            // "originalTitle" ci-dessus qui ne sert que le repli anglais) -
-            // permettent au client de composer librement l'affichage du titre
-            // entre français (best-effort, voir /metadata/french-title),
-            // anglais et romaji selon la préférence utilisateur (voir Réglages
-            // > Titre des mangas), sans dépendre du choix déjà fait ci-dessus.
+            // "titleRomaji"/"titleEnglish" (unconditional, unlike
+            // "originalTitle" above which only serves the English fallback) -
+            // allow the client to freely compose the display of the title
+            // between French (best-effort, see /metadata/french-title),
+            // English and romaji according to the user preference (see Réglages
+            // > Titre des mangas), without depending on the choice already made above.
             attributes.put("titleRomaji", defaultTitle);
             if (titleEnglish != null && !titleEnglish.isBlank()) {
                 attributes.put("titleEnglish", titleEnglish);
             }
-            // Titre japonais natif (ex: "進撃の巨人") - déjà présent dans
-            // alternative_titles (demandé pour "en" ci-dessus), aucun appel
-            // supplémentaire. Toujours utile en repère visuel à côté du titre
-            // retenu (voir candidateDisplayTitle côté web/iOS).
+            // Native Japanese title (e.g. "進撃の巨人") - already present in
+            // alternative_titles (requested for "en" above), no additional
+            // call. Always useful as a visual landmark next to the kept
+            // title (see candidateDisplayTitle on the web/iOS side).
             String titleJapanese = node.path("alternative_titles").path("ja").asText(null);
             if (titleJapanese != null && !titleJapanese.isBlank()) {
                 attributes.put("titleJapanese", titleJapanese);
@@ -176,7 +176,7 @@ public class MyAnimeListMetadataProvider implements MetadataProvider {
         return candidates;
     }
 
-    /** Extrait "1999" de "1999-09-21" (format start_date de MyAnimeList, parfois juste "1999"). */
+    /** Extracts "1999" from "1999-09-21" (the start_date format of MyAnimeList, sometimes just "1999"). */
     private static String extractYear(String isoDate) {
         return isoDate != null && isoDate.length() >= 4 ? isoDate.substring(0, 4) : null;
     }

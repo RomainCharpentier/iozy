@@ -5,26 +5,26 @@ import { useCollecteParTome } from '@/common/lib/typeDeCollection'
 import type { WishlistTarget } from '@/common/api/wishlist'
 
 /**
- * Le seul bouton « Envies » de l'application - même état, même libellé et même
- * retour visuel partout (résultat de recherche local ou externe, menu du
- * scan). Toute la logique vit dans useWishlist.
+ * The only "Envies" button of the application - same state, same label and same
+ * visual feedback everywhere (local or external search result, scan
+ * menu). All the logic lives in useWishlist.
  *
- * <h2>Il porte sur l'ŒUVRE, donc il ne s'affiche pas partout</h2>
- * Ce bouton ne vaut que pour un type qui se possède d'une seule pièce (jeu
- * vidéo, jeu de société). Pour un manga, l'objet voulu est le TOME, et le
- * seul endroit où on peut le désigner est la grille de la fiche - le bouton
- * s'efface alors de lui-même (voir lib/typeDeCollection).
+ * <h2>It applies to the WORK, so it is not displayed everywhere</h2>
+ * This button only makes sense for a type that is owned as a single piece (video
+ * game, board game). For a manga, the wanted object is the VOLUME, and the
+ * only place where it can be designated is the grid of the detail page - the button
+ * then disappears by itself (see lib/typeDeCollection).
  *
- * Le bouton accepte les deux natures d'œuvre :
- * - `entityId` : l'œuvre a déjà une fiche IozyCore ;
- * - `external` : elle vient d'une source externe et n'en a pas encore. Le
- *   backend résout ou crée sa fiche à l'ajout et renvoie son identité interne,
- *   qu'on retient ici pour pouvoir ensuite afficher l'état réel et proposer le
- *   retrait. Aucune possession n'est créée : vouloir n'est pas posséder.
+ * The button accepts both natures of work:
+ * - `entityId`: the work already has an IozyCore detail page;
+ * - `external`: it comes from an external source and does not have one yet. The
+ *   backend resolves or creates its detail page on add and returns its internal identity,
+ *   which we keep here so we can then display the real state and offer
+ *   removal. No ownership is created: wanting is not owning.
  *
- * Deux tailles : `inline` pour une ligne de liste, où le bouton ne doit pas
- * peser plus que le titre à côté duquel il vit ; `default` pour une fiche, où
- * c'est une action à part entière.
+ * Two sizes: `inline` for a list row, where the button must not
+ * weigh more than the title next to which it lives; `default` for a detail page, where
+ * it is a full action.
  */
 export function WishlistToggle({
   entityId,
@@ -33,26 +33,26 @@ export function WishlistToggle({
   variant = 'default',
 }: {
   entityId?: string
-  /** Le type de l'œuvre. Requis : c'est lui qui dit si l'œuvre est un objet
-   *  ou un groupe, et donc si ce bouton a lieu d'exister. */
+  /** The type of the work. Required: it is what says whether the work is an object
+   *  or a group, and therefore whether this button should exist. */
   entityTypeId: string
   external?: { entityTypeId: string; title: string; attributes?: Record<string, unknown> }
   variant?: 'default' | 'inline'
 }) {
   const parTome = useCollecteParTome(entityTypeId)
   const wishlist = useWishlist()
-  // Identité interne apprise en ajoutant une œuvre externe. Tant qu'elle est
-  // inconnue, le bouton ne peut pas savoir si l'œuvre est en envies - ce qui
-  // est exact : une œuvre sans fiche ne peut pas y être.
+  // Internal identity learned by adding an external work. As long as it is
+  // unknown, the button cannot know whether the work is in the wishes - which
+  // is accurate: a work without a detail page cannot be there.
   const [resoluEntityId, setResoluEntityId] = useState<string | undefined>()
   const idConnu = entityId ?? resoluEntityId
   const entry = idConnu ? wishlist.entryFor(idConnu) : undefined
   const dedans = !!entry
 
-  // Rien du tout sur une œuvre qui se collectionne par tome : la série y est
-  // un GROUPE, et vouloir un groupe ne veut rien dire - c'est le tome 47 qu'on
-  // veut, depuis la grille de la fiche. La règle tient ici plutôt qu'à chaque
-  // appel : trois surfaces posaient ce cœur, une quatrième l'aurait reposé.
+  // Nothing at all on a work that is collected by volume: the series there
+  // is a GROUP, and wanting a group means nothing - it is volume 47 that one
+  // wants, from the grid of the detail page. The rule lives here rather than at each
+  // call: three surfaces placed this heart, a fourth would have placed it again.
   if (parTome) return null
 
   const base = 'flex items-center gap-1.5 font-semibold transition-colors disabled:opacity-50'
@@ -60,9 +60,9 @@ export function WishlistToggle({
     variant === 'inline'
       ? 'min-h-11 rounded-lg px-2 text-xs'
       : 'min-h-12 rounded-[14px] px-4 text-sm'
-  // Hors d'une ligne de liste, c'est une VRAIE action secondaire, avec sa
-  // propre surface (maquette v4) : posé nu à côté d'un bouton plein, il ne se
-  // lisait plus comme un bouton du tout - juste comme du texte gris.
+  // Outside a list row, this is a REAL secondary action, with its
+  // own surface (mockup v4): placed bare next to a filled button, it no longer
+  // read as a button at all - just as gray text.
   const couleur = dedans
     ? 'bg-accentTint text-accentText hover:bg-accent/25'
     : variant === 'inline'
@@ -89,20 +89,20 @@ export function WishlistToggle({
       type="button"
       disabled={wishlist.isPending || (!entityId && !external && !resoluEntityId)}
       onClick={(e) => {
-        // Ces boutons vivent souvent DANS une ligne cliquable (résultat de
-        // recherche, menu du scan) : sans ça, le clic ouvrirait aussi la fiche.
+        // These buttons often live INSIDE a clickable row (search
+        // result, scan menu): without this, the click would also open the detail page.
         e.stopPropagation()
         void basculer()
       }}
-      // Le libellé visible dit l'ÉTAT ; le nom accessible dit l'ACTION, sans
-      // quoi un lecteur d'écran annonce « Dans vos envies » sur un bouton qui,
-      // lui, retire.
+      // The visible label says the STATE; the accessible name says the ACTION, without
+      // which a screen reader announces "Dans vos envies" on a button that,
+      // in fact, removes.
       aria-label={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
       className={`${base} ${taille} ${couleur}`}
     >
       {dedans ? <HeartOff size={variant === 'inline' ? 13 : 16} /> : <Heart size={variant === 'inline' ? 13 : 16} />}
-      {/* En ligne sur téléphone, le cœur suffit : le texte prenait la place du
-          titre à côté duquel il vit. Le nom accessible dit toujours l'action. */}
+      {/* Inline on a phone, the heart is enough: the text took the place of the
+          title next to which it lives. The accessible name always says the action. */}
       <span className={variant === 'inline' ? 'hidden sm:inline' : undefined}>
         {dedans ? 'Dans vos envies' : 'Ajouter aux envies'}
       </span>

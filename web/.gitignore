@@ -23,9 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# --- Tests de bout en bout (Playwright) ---
-# La session ouverte par compte.setup.ts : un cookie de la pile jetable, sans
-# valeur ailleurs, mais qui n'a rien à faire dans l'historique.
+# --- End-to-end tests (Playwright) ---
+# The session opened by compte.setup.ts: a cookie of the throwaway stack, with
+# no value elsewhere, but it does not belong in the history.
 e2e/.auth/
 playwright-report/
 test-results/

@@ -31,16 +31,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>La même question ne repart pas deux fois chez le fournisseur d'IA.</b>
+ * <b>The same question is not sent twice to the AI provider.</b>
  *
- * <p>L'avis n'est demandé que lorsqu'aucun relevé réel n'existe pour l'édition
- * - donc sur les éditions qu'on analyse en boucle. Sans mémoire, chaque analyse
- * reposait la même question et consommait le quota du palier gratuit.
+ * <p>The advice is only requested when no real observation exists for the edition
+ * - so for the editions that are analysed again and again. Without a memory, each analysis
+ * asked the same question again and used the quota of the free tier.
  *
- * <p>Le faux conseiller compte ses appels : c'est le seul moyen de dire « une
- * fois, pas deux ». Il suit le patron déjà en place pour les fournisseurs de
- * métadonnées ({@code FakeMetadataProviders}) - une classe de vingt lignes
- * plutôt qu'une bibliothèque de doublures.
+ * <p>The fake advisor counts its calls: this is the only way to say "once,
+ * not twice". It follows the pattern already used for the metadata providers
+ * ({@code FakeMetadataProviders}) - a class of twenty lines
+ * instead of a library of test doubles.
  */
 @Import(AiPriceEstimateCacheIntegrationTest.ConseillerQuiCompte.class)
 class AiPriceEstimateCacheIntegrationTest extends PostgresIntegrationTest {
@@ -58,7 +58,7 @@ class AiPriceEstimateCacheIntegrationTest extends PostgresIntegrationTest {
                 APPELS.incrementAndGet();
                 if (REPONSES_SANS_PRIX.get() > 0) {
                     REPONSES_SANS_PRIX.decrementAndGet();
-                    // « Je ne sais pas » : une réponse, pas un échec.
+                    // "I do not know": an answer, not a failure.
                     return Optional.of(new AiPriceEstimate(null, ConfidenceLevel.LOW, "aucune idée"));
                 }
                 return Optional.of(new AiPriceEstimate(new BigDecimal("7.50"), ConfidenceLevel.MEDIUM, "au pif éclairé"));
@@ -98,7 +98,7 @@ class AiPriceEstimateCacheIntegrationTest extends PostgresIntegrationTest {
         PurchaseAnalysis seconde = analyser(edition);
 
         assertThat(ConseillerQuiCompte.APPELS.get() - avant).isEqualTo(1);
-        // Et la seconde analyse rend exactement la même estimation que la première.
+        // And the second analysis returns exactly the same estimate as the first one.
         assertThat(premiere.itemBreakdown().get(0).marketPrice().basis()).isEqualTo(PriceBasis.AI_ESTIMATED);
         assertThat(seconde.itemBreakdown().get(0).marketPrice().aiEstimatedPrice())
                 .isEqualByComparingTo(premiere.itemBreakdown().get(0).marketPrice().aiEstimatedPrice());
@@ -113,9 +113,9 @@ class AiPriceEstimateCacheIntegrationTest extends PostgresIntegrationTest {
         PurchaseAnalysis premiere = analyser(edition);
         analyser(edition);
 
-        // C'est LA réponse la plus stable : la reposer serait la dépenser pour rien.
+        // This is THE most stable answer: asking it again would be spending it for nothing.
         assertThat(ConseillerQuiCompte.APPELS.get() - avant).isEqualTo(1);
-        // Un avis sans chiffre ne fonde pas une base AI_ESTIMATED - on retombe sur le théorique.
+        // An advice without a number does not create an AI_ESTIMATED base - we fall back to the theoretical one.
         assertThat(premiere.itemBreakdown().get(0).marketPrice().basis()).isEqualTo(PriceBasis.THEORETICAL_ONLY);
         assertThat(cacheRepository.find(normalise(edition.seriesTitle()), "standard", Condition.VERY_GOOD))
                 .hasValueSatisfying(memorise -> assertThat(memorise.pricePerVolume()).isNull());

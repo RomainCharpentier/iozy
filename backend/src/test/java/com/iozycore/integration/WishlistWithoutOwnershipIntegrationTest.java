@@ -23,19 +23,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Le point métier de ce module : <b>vouloir une œuvre n'est pas la posséder.</b>
+ * The business point of this module: <b>wanting a work is not owning it.</b>
  * <p>
- * Une œuvre trouvée par une recherche externe ou un scan n'avait aucun moyen
- * d'entrer dans les envies : l'unique chemin qui faisait exister une fiche
- * (QuickAddService) créait toujours une Ownership dans la foulée. Ces tests
- * vérifient donc les deux moitiés de la règle, ensemble : la fiche catalogue
- * existe bien, et <b>aucune possession n'apparaît</b> - ce dernier point est
- * l'assertion qui compte, un test qui l'oublierait passerait aussi avec une
- * possession fictive.
+ * A work found by an external search or a scan had no way
+ * to enter the wishes: the only path that made a detail page exist
+ * (QuickAddService) always created an Ownership right after. These tests
+ * therefore check both halves of the rule, together: the catalogue page
+ * does exist, and <b>no ownership appears</b> - this last point is
+ * the assertion that matters, a test that forgot it would also pass with a
+ * fake ownership.
  * <p>
- * Ils vérifient aussi que ce second chemin ne fabrique pas un catalogue
- * parallèle : la même œuvre, quelle que soit la porte d'entrée, retombe sur la
- * même Entity.
+ * They also check that this second path does not build a parallel
+ * catalogue: the same work, whatever the entry door, falls back on the
+ * same Entity.
  */
 class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
 
@@ -56,12 +56,12 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
 
     private static final UUID MANGA = EntityTypeFixtures.MANGA.id();
 
-    /** Titre unique par exécution : la déduplication porte justement sur (type, titre). */
+    /** Unique title per run: the deduplication is precisely on (type, title). */
     private String unTitre() {
         return "Vinland Saga " + UUID.randomUUID();
     }
 
-    /** Toutes les fiches de ce type portant exactement ce titre - un doublon se verrait ici. */
+    /** All the detail pages of this type with exactly this title - a duplicate would be seen here. */
     private java.util.List<Entity> fichesIntitulees(String titre) {
         return entityRepository.findAllByType(MANGA).stream().filter(e -> e.title().equals(titre)).toList();
     }
@@ -91,11 +91,11 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
 
         Entity fiche = entityRepository.findById(creee.entityId()).orElseThrow();
         assertThat(fiche.title()).isEqualTo(titre);
-        // Les attributs de la source externe sont conservés : sans eux, l'œuvre
-        // apparaîtrait sans jaquette dans les envies et la liste partagée.
+        // The attributes of the external source are kept: without them, the work
+        // would appear without cover in the wishes and the shared list.
         assertThat(fiche.attributes()).containsEntry("coverImageUrl", "https://exemple/jaquette.jpg");
         assertThat(wishlistEntryRepository.findByEntityId(creee.entityId())).isPresent();
-        // L'assertion centrale du module.
+        // The central assertion of the module.
         assertThat(possessionsDe(creee.entityId())).isZero();
     }
 
@@ -104,8 +104,8 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         String titre = unTitre();
 
         WishlistEntryResponse premiere = wishlistController.add(new AddToWishlistRequest(null, null, null, null, MANGA, titre, null));
-        // Deuxième passage avec des espaces autour : c'est le même titre, la
-        // normalisation est celle du reste de l'app.
+        // Second pass with spaces around: it is the same title, the
+        // normalisation is the one of the rest of the app.
         WishlistEntryResponse seconde = wishlistController.add(
                 new AddToWishlistRequest(null, null, null, null, MANGA, "  " + titre + "  ", null));
 
@@ -119,17 +119,17 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         String titre = unTitre();
         WishlistEntryResponse envie = wishlistController.add(new AddToWishlistRequest(null, null, null, null, MANGA, titre, null));
 
-        // Le parcours normal d'ajout à la collection, plus tard, sur la même œuvre.
+        // The normal path to add to the collection, later, on the same work.
         var resultat = quickAddService.addNewEntityWithOwnership(MANGA, titre, OwnershipCondition.NEW);
 
         assertThat(resultat.entityId()).isEqualTo(envie.entityId());
         assertThat(fichesIntitulees(titre)).hasSize(1);
         assertThat(possessionsDe(envie.entityId())).isEqualTo(1);
-        // L'envie se referme à l'acquisition (décision utilisateur du
-        // 2026-08-26, après un audit où « Death Note » et « Naruto »
-        // s'affichaient à la fois « Possédé » et « Dans vos envies »). Ce test
-        // consignait auparavant le comportement inverse - il constatait l'état
-        // des lieux, il ne protégeait pas une règle.
+        // The wish closes at acquisition (user decision of
+        // 2026-08-26, after an audit where "Death Note" and "Naruto"
+        // were shown at the same time as "Possédé" and "Dans vos envies"). This test
+        // used to record the opposite behaviour - it noted the state
+        // of things, it did not protect a rule.
         assertThat(wishlistEntryRepository.findByEntityId(envie.entityId())).isEmpty();
     }
 
@@ -141,8 +141,8 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
 
         wishlistController.remove(creee.id());
         assertThat(wishlistEntryRepository.findByEntityId(entityId)).isEmpty();
-        // Retirer une envie ne supprime pas la fiche : c'est ce qui permet à
-        // l'action « Annuler » de réajouter par identité interne.
+        // Removing a wish does not delete the detail page: this is what lets
+        // the "Annuler" action add it again by internal identity.
         assertThat(entityRepository.findById(entityId)).isPresent();
 
         WishlistEntryResponse reajoutee = wishlistController.add(new AddToWishlistRequest(entityId, null, null, null, null, null, null));
@@ -159,8 +159,8 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
                 .isInstanceOf(ResponseStatusException.class);
         assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null, MANGA, "   ", null)))
                 .isInstanceOf(ResponseStatusException.class);
-        // Un type de collection inexistant est refusé en 400, pas en 500 par la
-        // contrainte de clé étrangère (même règle qu'un entityId inconnu).
+        // A non-existent collection type is refused with 400, not with 500 by the
+        // foreign key constraint (same rule as an unknown entityId).
         assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null, UUID.randomUUID(), "Berserk", null)))
                 .isInstanceOf(ResponseStatusException.class);
 
@@ -172,15 +172,15 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         String titre = unTitre();
         UUID entityId = entityRepository.save(Entity.create(MANGA, titre)).id();
 
-        // Le cas NORMAL depuis une fiche : le tome 7 n'est catalogué nulle part,
-        // il n'est que déduit du total de l'édition (voir TomeResolver).
+        // The NORMAL case from a detail page: volume 7 is catalogued nowhere,
+        // it is only deduced from the total of the edition (see TomeResolver).
         WishlistEntryResponse envie = wishlistController.add(
                 new AddToWishlistRequest(entityId, null, 7, "Perfect Edition", null, null, null));
 
         assertThat(envie.variantId()).isNotNull();
         Entity oeuvre = entityRepository.findById(entityId).orElseThrow();
         assertThat(oeuvre.variants()).extracting(Variant::label).containsExactly("Tome 7 — Perfect Edition");
-        // La moitié qui compte : le catalogue a grossi, la collection non.
+        // The half that matters: the catalogue grew, the collection did not.
         assertThat(possessionsDe(entityId)).isZero();
     }
 
@@ -210,8 +210,8 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(tome7.id()).isNotEqualTo(tome3.id());
         assertThat(wishlistEntryRepository.findAllByEntityId(entityId)).hasSize(2);
-        // L'ŒUVRE elle-même n'est pas voulue : ce sont deux tomes qui le sont.
-        // Confondre les deux ferait dire « déjà voulue » à toute la série.
+        // The WORK itself is not wanted: it is two volumes that are.
+        // Mixing the two would make the whole series say "already wanted".
         assertThat(wishlistEntryRepository.findByEntityId(entityId)).isEmpty();
     }
 
@@ -227,9 +227,9 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         quickAddService.addNewEntityWithOwnership(
                 MANGA, titre, OwnershipCondition.NEW, Map.of(), 3, "Perfect Edition");
 
-        // Le tome acheté retombe sur le MÊME Variant que celui créé par l'envie
-        // (même libellé, même résolveur) - sans quoi l'envie ne se refermerait
-        // jamais et la série resterait à la fois voulue et possédée.
+        // The bought volume falls back on the SAME Variant as the one created by the wish
+        // (same label, same resolver) - otherwise the wish would never close
+        // and the series would stay both wanted and owned.
         assertThat(entityRepository.findById(entityId).orElseThrow().variants()).hasSize(2);
         assertThat(wishlistEntryRepository.findAllByEntityId(entityId))
                 .extracting(WishlistEntry::id)
@@ -243,8 +243,8 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         var achat = quickAddService.addNewEntityWithOwnership(
                 MANGA, titre, OwnershipCondition.NEW, Map.of(), 1, "Perfect Edition");
 
-        // « Je le veux » et « je l'ai » sont deux états du même objet, jamais deux
-        // états superposés : la règle tient côté serveur, pas seulement dans l'UI.
+        // "I want it" and "I have it" are two states of the same object, never two
+        // overlapping states: the rule holds on the server side, not only in the UI.
         assertThatThrownBy(() -> wishlistController.add(
                 new AddToWishlistRequest(achat.entityId(), achat.variantId(), null, null, null, null, null)))
                 .isInstanceOf(ResponseStatusException.class);

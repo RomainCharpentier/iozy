@@ -14,21 +14,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP de {@code /api/insights/progress/{entityId}} - la
- * progression d'UNE œuvre.
+ * The HTTP contract of {@code /api/insights/progress/{entityId}} - the
+ * progress of ONE work.
  *
- * <h2>Pourquoi cette route existe</h2>
- * « X tomes possédés sur Y » se calculait à trois endroits. Ma collection a
- * cessé de le refaire au Lot 51, la fiche au Lot 60 - mais la fiche n'a besoin
- * que d'une œuvre, et {@code /insights/progress} les rend toutes. C'est le seul
- * ajout du lot : la règle, elle, ne bouge pas d'un pouce (voir
- * {@code CollectionProgressServiceTest}, qui la couvre).
+ * <h2>Why this route exists</h2>
+ * "X volumes owned out of Y" used to be computed in three places. My collection
+ * stopped redoing it in Batch 51, the detail page in Batch 60 - but the detail page only needs
+ * one work, and {@code /insights/progress} returns them all. This is the only
+ * addition of the batch: the rule itself does not move by an inch (see
+ * {@code CollectionProgressServiceTest}, which covers it).
  *
- * <h2>Ce que ces tests figent</h2>
- * La forme rendue - le client s'en sert pour construire sa grille sans rien
- * re-dériver - et le 404 sur une œuvre inconnue, qui ne doit jamais devenir une
- * progression vide : « aucun tome » et « aucune œuvre » n'appellent pas le même
- * écran.
+ * <h2>What these tests freeze</h2>
+ * The returned shape - the client uses it to build its grid without
+ * re-deriving anything - and the 404 on an unknown work, which must never become an
+ * empty progress: "no volume" and "no work" do not call for the same
+ * screen.
  */
 class InsightsHttpContractTest extends HttpContractTestBase {
 
@@ -46,8 +46,8 @@ class InsightsHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.entityId").value(resultat.entityId().toString()))
                 .andExpect(jsonPath("$.ownedVolumeCount").value(1))
                 .andExpect(jsonPath("$.editions[0].editionName").value("Kana"))
-                // Les trois listes que la grille lit : possédés, catalogués, et
-                // les éditions brutes couvertes par le groupe affiché.
+                // The three lists that the grid reads: owned, catalogued, and
+                // the raw editions covered by the displayed group.
                 .andExpect(jsonPath("$.editions[0].ownedVolumeNumbers[0]").value(3))
                 .andExpect(jsonPath("$.editions[0].cataloguedVolumeNumbers[0]").value(3))
                 .andExpect(jsonPath("$.editions[0].sourceEditions[0]").value("Kana"));

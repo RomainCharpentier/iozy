@@ -61,15 +61,15 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
         </button>
       </div>
 
-      {/* Dire de quoi il s'agit plutôt que de laisser un blanc : « relation »
-          ne se devine pas, les exemples si. */}
+      {/* Say what it is about rather than leaving a blank: "relationship"
+          cannot be guessed, examples can. */}
       {relationshipsFrom.length === 0 && relationshipsTo.length === 0 && !formOpen && (
         <p className="text-[13.5px] text-faint">Aucune relation enregistrée — adaptation, suite, spin-off…</p>
       )}
 
-      {/* Les deux sens dans une seule liste, chacun explicitement étiqueté :
-          une rangée de jaquettes les fondait ensemble et taisait le type,
-          rendant une relation erronée à la fois invisible et incorrigible. */}
+      {/* Both directions in a single list, each explicitly labeled:
+          a row of covers merged them and hid the type,
+          making an erroneous relationship both invisible and impossible to fix. */}
       {(relationshipsFrom.length > 0 || relationshipsTo.length > 0) && (
         <ul className="flex flex-col gap-2">
           {relationshipsFrom.map((relationship) => (

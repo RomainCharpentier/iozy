@@ -29,9 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Ce que l'import d'étagère ajoute à la lecture des photos : « déjà possédé »
- * et « fiche proposée » à l'analyse, la déduplication à l'écriture. La lecture
- * elle-même est celle de ListingRecognitionService, testée chez lui.
+ * What the shelf import adds to the reading of photos: "already owned"
+ * and "proposed work page" at analysis, deduplication at write time. The reading
+ * itself is that of ListingRecognitionService, tested in its own test.
  */
 class ShelfImportServiceTest {
 
@@ -57,7 +57,7 @@ class ShelfImportServiceTest {
                 List.of(), Set.of(0)), CatalogStatus.NOT_IN_CATALOG, null, titre, List.of(), true);
     }
 
-    // ================================================================ Déjà possédé
+    // ================================================================ Already owned
 
     @Test
     void a_volume_still_owned_is_flagged_whatever_its_edition() {
@@ -94,7 +94,7 @@ class ShelfImportServiceTest {
         assertThat(analyse.items().get(0).alreadyOwned()).isFalse();
     }
 
-    // ================================================================ Fiche proposée
+    // ================================================================ Proposed work page
 
     @Test
     void an_unknown_series_gets_the_exactly_titled_sheet_even_if_listed_second() {
@@ -127,8 +127,8 @@ class ShelfImportServiceTest {
 
     @Test
     void a_french_title_of_several_words_gets_the_first_search_result_as_a_lead_not_as_a_match() {
-        // Ce que la recherche retrouve par ses synonymes, sans qu'aucun titre
-        // rendu ne ressemble à ce qui a été lu sur la tranche.
+        // What the search finds through its synonyms, without any returned title
+        // looking like what was read on the spine.
         catalogue.source("L'Attaque des Titans", fiche("Shingeki no Kyojin"), fiche("Attack on Titan: Junior High"));
 
         ShelfAnalysis analyse = service(inconnu("L'Attaque des Titans", 3)).analyze(List.of(), 1);
@@ -171,7 +171,7 @@ class ShelfImportServiceTest {
         assertThat(analyse.items().get(0).proposal()).isNull();
     }
 
-    // ================================================================ Écriture
+    // ================================================================ Write
 
     @Test
     void apply_adds_each_confirmed_volume_through_quick_add_and_reports_created_series() {

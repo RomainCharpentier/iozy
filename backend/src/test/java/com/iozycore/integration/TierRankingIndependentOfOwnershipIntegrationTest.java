@@ -20,24 +20,24 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>Classer une œuvre n'est pas la posséder.</b>
+ * <b>Ranking a work is not owning it.</b>
  * <p>
- * Un classement dit ce que l'utilisateur pense d'une œuvre. Le vendre, le
- * perdre, ou ne l'avoir jamais acheté ne change pas cet avis - rien de tout
- * cela ne doit donc effacer ni masquer son rang.
+ * A ranking says what the user thinks of a work. Selling it,
+ * losing it, or never having bought it does not change this opinion - none of this
+ * must therefore erase or hide its rank.
  * <p>
- * Le modèle le permettait déjà : {@code EntityRank} ne référence qu'une Entity,
- * jamais une Ownership, aucune suppression de possession ne le met en cascade,
- * et l'API de classement n'exige que l'existence de l'œuvre. C'était la
- * LECTURE du board qui rompait la règle : il ne partait que des œuvres
- * possédées, si bien que vendre un manga classé S le faisait disparaître de la
- * ligne S alors que son rang existait toujours en base.
+ * The model already allowed it: {@code EntityRank} only references an Entity,
+ * never an Ownership, no deletion of an ownership cascades to it,
+ * and the ranking API only requires the work to exist. It was the
+ * READ of the board that broke the rule: it only started from the owned
+ * works, so that selling a manga ranked S made it disappear from the
+ * S row while its rank still existed in the database.
  * <p>
- * L'autre moitié de la règle est vérifiée ici aussi : la file « à classer »
- * reste, elle, volontairement adossée à la possession. <b>Pouvoir être
- * classée</b> et <b>devoir apparaître dans « à classer »</b> sont deux
- * questions distinctes - sinon cette file serait noyée sous les œuvres
- * seulement mises en envies.
+ * The other half of the rule is checked here too: the "to rank" queue
+ * stays, on purpose, tied to ownership. <b>Being able to be
+ * ranked</b> and <b>having to appear in "to rank"</b> are two distinct
+ * questions - otherwise this queue would be drowned under the works
+ * only added to the wishes.
  */
 class TierRankingIndependentOfOwnershipIntegrationTest extends PostgresIntegrationTest {
 
@@ -76,7 +76,7 @@ class TierRankingIndependentOfOwnershipIntegrationTest extends PostgresIntegrati
                 .anyMatch(e -> e.id().equals(entityId));
     }
 
-    /** Cas B du cahier des charges : une œuvre du catalogue, jamais possédée, doit pouvoir être classée. */
+    /** Case B of the specification: a catalogue work, never owned, must be able to be ranked. */
     @Test
     void une_oeuvre_cataloguee_sans_possession_peut_etre_classee_sans_qu_aucune_possession_ne_soit_creee() {
         UUID entityId = uneOeuvreCataloguee("Monster");
@@ -86,40 +86,40 @@ class TierRankingIndependentOfOwnershipIntegrationTest extends PostgresIntegrati
 
         assertThat(entityRankRepository.findByEntityId(entityId)).isPresent();
         assertThat(entityRankRepository.findByEntityId(entityId).get().rank()).isEqualTo(Rank.A);
-        // L'assertion qui compte : classer n'acquiert rien.
+        // The assertion that matters: ranking acquires nothing.
         assertThat(possessionsDe(entityId)).isZero();
         assertThat(apparaitClassee(entityId, Rank.A)).isTrue();
     }
 
-    /** Cas A : acquérir puis revendre une œuvre classée ne change pas son rang. */
+    /** Case A: acquiring then selling a ranked work does not change its rank. */
     @Test
     void le_rang_survit_a_l_acquisition_puis_a_la_revente() {
         UUID entityId = uneOeuvreCataloguee("Vinland Saga");
         tierListController.setGeneralRank(entityId, new SetRankRequest(Rank.A));
 
-        // 1. On l'achète : le rang ne bouge pas.
+        // 1. We buy it: the rank does not move.
         Ownership ownership = ownershipRepository.save(
                 Ownership.acquire(entityId, null, OwnershipCondition.NEW, LocalDate.now(), null));
         assertThat(entityRankRepository.findByEntityId(entityId).orElseThrow().rank()).isEqualTo(Rank.A);
         assertThat(apparaitClassee(entityId, Rank.A)).isTrue();
 
-        // 2. On la revend : le rang ne bouge pas davantage. Avant ce module, le
-        //    board ne partait que des œuvres possédées - l'œuvre disparaissait
-        //    ici de la ligne A alors que son EntityRank était toujours là.
+        // 2. We sell it again: the rank does not move either. Before this module, the
+        //    board only started from the owned works - the work disappeared
+        //    here from the A row while its EntityRank was still there.
         ownership.markSold();
         ownershipRepository.save(ownership);
         assertThat(entityRankRepository.findByEntityId(entityId).orElseThrow().rank()).isEqualTo(Rank.A);
         assertThat(apparaitClassee(entityId, Rank.A)).isTrue();
 
-        // 3. On supprime la possession pour de bon : idem.
+        // 3. We delete the ownership for good: same.
         ownershipRepository.deleteById(ownership.id());
         assertThat(entityRankRepository.findByEntityId(entityId).orElseThrow().rank()).isEqualTo(Rank.A);
         assertThat(apparaitClassee(entityId, Rank.A)).isTrue();
     }
 
     /**
-     * Cas C : la file « à classer » ne se remplit pas de tout le catalogue.
-     * Pouvoir être classée n'est pas devoir apparaître automatiquement.
+     * Case C: the "to rank" queue is not filled with the whole catalogue.
+     * Being able to be ranked does not mean having to appear automatically.
      */
     @Test
     void la_file_a_classer_ne_propose_que_des_oeuvres_possedees() {
@@ -128,8 +128,8 @@ class TierRankingIndependentOfOwnershipIntegrationTest extends PostgresIntegrati
         ownershipRepository.save(Ownership.acquire(possedee, null, OwnershipCondition.NEW, LocalDate.now(), null));
 
         assertThat(apparaitAClasser(possedee)).isTrue();
-        // Une œuvre seulement cataloguée (mise en envies, croisée en recherche)
-        // reste classable à la demande, mais ne vient pas encombrer la file.
+        // A work that is only catalogued (added to the wishes, met in a search)
+        // can still be ranked on demand, but does not clutter the queue.
         assertThat(apparaitAClasser(cataloguee)).isFalse();
     }
 
@@ -144,7 +144,7 @@ class TierRankingIndependentOfOwnershipIntegrationTest extends PostgresIntegrati
 
         assertThat(entityRankRepository.findByEntityId(entityId)).isEmpty();
         assertThat(apparaitClassee(entityId, Rank.S)).isFalse();
-        // Déclassée, elle redevient une œuvre possédée à classer.
+        // Demoted, it becomes again an owned work to rank.
         assertThat(apparaitAClasser(entityId)).isTrue();
         assertThat(ownershipRepository.findById(ownership.id())).isPresent();
     }

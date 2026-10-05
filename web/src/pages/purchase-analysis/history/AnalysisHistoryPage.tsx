@@ -12,20 +12,20 @@ import { formaterEuros } from '@/common/lib/formats'
 import { Squelette } from '@/common/components/Squelette'
 import { EtatVide } from '@/common/components/EtatVide'
 
-/** "Comparer les annonces" (prévu dès le plan initial de l'Analyse d'achat,
- * jamais construit jusqu'ici) - liste toutes les analyses passées (les plus
- * récentes d'abord) pour juger une nouvelle annonce à l'aune des
- * précédentes, plutôt que de se fier uniquement au verdict isolé du moment. */
+/** "Compare listings" (planned from the initial plan of the Purchase analysis,
+ * never built until now) - lists all past analyses (most
+ * recent first) to judge a new listing against the
+ * previous ones, rather than relying only on the isolated verdict of the moment. */
 export function AnalysisHistoryPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const historyQuery = useQuery({ queryKey: queryKeys.purchaseAnalysis.history, queryFn: listAnalysisHistory })
 
-  // Une analyse est le résultat figé d'un calcul : la relancer donnerait un
-  // autre résultat (prix relevés et éditions ont pu changer entre-temps), donc
-  // la suppression est réellement irréversible - d'où une confirmation légère
-  // plutôt qu'un « Annuler » qui ne restaurerait rien.
+  // An analysis is the frozen result of a calculation: running it again would give a
+  // different result (recorded prices and editions may have changed in the meantime), so
+  // the deletion is really irreversible - hence a light confirmation
+  // rather than a "Annuler" that would restore nothing.
   const deleteMutation = useMutation({
     mutationFn: deleteAnalysis,
     onSuccess: () => {

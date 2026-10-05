@@ -11,22 +11,22 @@ import { libelleExperienceType } from '@/common/lib/experiences'
 import { formaterDateCourte } from '@/common/lib/formats'
 
 /**
- * Une expérience enregistrée, avec de quoi la corriger ou la retirer.
+ * A recorded experience, with what is needed to fix it or remove it.
  *
- * Une expérience était jusqu'ici une donnée à sens unique : enregistrée, elle
- * ne pouvait plus être ni modifiée ni supprimée (docs/USER_JOURNEYS.md, §14).
- * Une note posée à 7 par réflexe ou un commentaire écrit trop vite y restaient
- * définitivement, alors qu'ils alimentent la note moyenne, les statistiques et
- * le bilan annuel.
+ * An experience used to be one-way data: once recorded, it
+ * could be neither edited nor deleted (docs/USER_JOURNEYS.md, section 14).
+ * A rating set to 7 by reflex or a comment written too fast stayed there
+ * for good, even though they feed the average rating, the statistics and
+ * the yearly review.
  *
- * **Ce qui est modifiable** : la note et le commentaire, rien d'autre. Le type
- * d'expérience, la date et le tome concerné sont immuables côté domaine — se
- * tromper de tome, c'est avoir enregistré une AUTRE expérience, qu'on
- * supprime. Proposer de les « modifier » laisserait croire à une correction
- * là où il faudrait recommencer.
+ * **What can be edited**: the rating and the comment, nothing else. The type
+ * of experience, the date and the volume concerned are immutable on the domain side -
+ * picking the wrong volume means having recorded ANOTHER experience, which one
+ * deletes. Offering to "edit" them would suggest a correction
+ * where one would need to start again.
  *
- * Même patron de menu qu'OwnershipDetails : expansion inline plutôt qu'un
- * popover flottant, correct même dans un panneau scrollable.
+ * Same menu pattern as OwnershipDetails: inline expansion rather than a floating
+ * popover, correct even in a scrollable panel.
  */
 export function ExperienceRow({
   experience,
@@ -37,8 +37,8 @@ export function ExperienceRow({
   experience: ExperienceResponse
   entityId: string
   variant?: VariantDto
-  /** Faux pour une œuvre qui se possède d'une pièce (jeu vidéo, jeu de
-   *  société) : « Toute la série » n'y veut rien dire, la date suffit. */
+  /** False for a work that is owned as a single piece (video game, board
+   *  game): "Toute la série" means nothing there, the date is enough. */
   parTome?: boolean
 }) {
   const queryClient = useQueryClient()
@@ -51,9 +51,9 @@ export function ExperienceRow({
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.experiences(entityId) })
-    // La note moyenne, les statistiques et le bilan annuel se calculent sur
-    // les expériences : les laisser en cache afficherait une moyenne qui ne
-    // correspond plus à ce que la fiche montre.
+    // The average rating, the statistics and the yearly review are computed on
+    // the experiences: leaving them in cache would show an average that no
+    // longer matches what the detail page shows.
     queryClient.invalidateQueries({ queryKey: ['insights'] })
   }
 
@@ -77,9 +77,9 @@ export function ExperienceRow({
       setMenuOpen(false)
       toast('Expérience supprimée', {
         label: 'Annuler',
-        // Restauration réelle : tout ce qui définit une expérience est
-        // réenregistré à l'identique (type, date, tome, note, commentaire).
-        // Seul son identifiant technique change, et rien ne le référence.
+        // Real restore: everything that defines an experience is
+        // saved again identically (type, date, volume, rating, comment).
+        // Only its technical id changes, and nothing references it.
         onAction: async () => {
           await recordExperience({
             entityId: experience.entityId,
@@ -98,10 +98,10 @@ export function ExperienceRow({
   const variantSuffix = variant ? ` · ${variantLabel(variant)}` : ''
 
   return (
-    // Une rangée, pas un pavé : le TYPE en pastille à gauche, ce que
-    // l'expérience concerne au milieu, la note à droite (maquette v4). Le
-    // commentaire passe sous cette ligne - il est facultatif et souvent long,
-    // il ne doit pas déformer la rangée quand il existe.
+    // A row, not a block: the TYPE as a pill on the left, what the
+    // experience is about in the middle, the rating on the right (mockup v4). The
+    // comment goes under this line - it is optional and often long,
+    // it must not distort the row when it exists.
     <li className="rounded-[15px] bg-background px-4 py-3 text-sm">
       <div className="flex items-center gap-3.5">
         <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-[11.5px] font-medium text-accentText">
@@ -169,8 +169,8 @@ export function ExperienceRow({
               onChange={(e) => setNoteEnabled(e.target.checked)}
               className="accent-accent"
             />
-            {/* Sans cette case, une expérience notée ne pouvait plus redevenir
-                non notée : le curseur n'a pas de position « aucune note ». */}
+            {/* Without this checkbox, a rated experience could not become
+                unrated again: the slider has no "no rating" position. */}
             Donner une note
           </label>
           {noteEnabled && (

@@ -1,13 +1,13 @@
 import type { RecognitionStatus, RecognizedItemDto } from './listingRecognition'
 
 /**
- * Import de la bibliothèque depuis des photos de l'étagère - le contrat de
- * `/api/shelf-import`. La lecture d'un tome est CELLE de l'analyse d'annonce
- * (`RecognizedItemDto`) : le même moteur, la même forme ; ce fichier ne
- * décrit que ce que l'étagère ajoute.
+ * Import of the library from photos of the shelf - the contract of
+ * `/api/shelf-import`. The reading of a volume is THE ONE of the listing
+ * analysis (`RecognizedItemDto`): the same engine, the same shape; this file
+ * only describes what the shelf adds.
  */
 
-/** La fiche que les sources proposent pour une série absente du catalogue. */
+/** The detail page that the sources propose for a series that is absent from the catalog. */
 export interface FicheProposeeDto {
   source: string
   externalId: string
@@ -17,37 +17,37 @@ export interface FicheProposeeDto {
 }
 
 export interface ShelfItemDto {
-  /** La lecture, telle que l'analyse d'annonce la rend. */
+  /** The reading, as the listing analysis returns it. */
   item: RecognizedItemDto
   /**
-   * Un exemplaire de ce numéro est encore possédé, quelle que soit l'édition :
-   * l'écran le montre coché et inerte, l'import ne le réécrit jamais.
+   * A copy of this number is still owned, whatever the edition: the screen
+   * shows it checked and inert, the import never rewrites it.
    */
   alreadyOwned: boolean
-  /** `null` si la série est connue, si rien ne correspond, ou si la recherche n'a pas été faite. */
+  /** `null` if the series is known, if nothing matches, or if the search was not done. */
   proposal: FicheProposeeDto | null
   /**
-   * Vrai quand le titre de la fiche correspond à ce qui a été lu : gardée
-   * d'office. Faux quand elle n'est que le premier résultat de la recherche
-   * (titre français lu, fiche en romaji) : montrée comme une piste, gardée
-   * seulement si l'utilisateur le dit.
+   * True when the title of the detail page matches what was read: kept by
+   * default. False when it is only the first result of the search (French
+   * title read, romaji detail page): shown as a lead, kept only if the user
+   * says so.
    */
   proposalByTitle: boolean
 }
 
 export interface ShelfAnalysisDto {
-  /** Jamais null ici : des photos ont toujours été envoyées. */
+  /** Never null here: photos were always sent. */
   visionStatus: RecognitionStatus
   items: ShelfItemDto[]
   unidentifiedCount: number
   notInCatalogCount: number
   analyzedImageCount: number
   requestedImageCount: number
-  /** Séries inconnues pour lesquelles aucune fiche n'a été cherchée, faute de budget. */
+  /** Unknown series for which no detail page was searched, for lack of budget. */
   lookupsSkipped: number
 }
 
-/** Un tome confirmé par l'utilisateur - même contrat que l'ajout rapide. */
+/** A volume confirmed by the user - same contract as the quick add. */
 export interface TomeAImporter {
   seriesTitle: string
   volumeNumber: number

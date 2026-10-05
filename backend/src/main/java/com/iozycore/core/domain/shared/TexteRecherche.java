@@ -4,20 +4,20 @@ import java.text.Normalizer;
 import java.util.Locale;
 
 /**
- * Ce que deux textes doivent avoir en commun pour designer la meme oeuvre.
+ * What two texts must have in common to designate the same work.
  *
- * <p>Quatre endroits comparaient des titres, chacun a sa facon : la recherche
- * locale en SQL (casse seule), l'exclusion des titres possedes dans la
- * recherche externe (casse et espaces), et les trois suggestions de
- * Decouvrir (casse seule). Aucun ne pliait les accents ni la ponctuation :
- * « pokemon » ne trouvait pas « Pokémon », « l attaque » ne trouvait pas
- * « L'Attaque des Titans », et un fournisseur qui rend « Pokemon » pour une
- * oeuvre cataloguee « Pokémon » la proposait comme nouvelle.
+ * <p>Four places compared titles, each in its own way: the local search
+ * in SQL (case only), the exclusion of owned titles in the
+ * external search (case and spaces), and the three suggestions of
+ * Discover (case only). None folded accents or punctuation:
+ * "pokemon" did not find "Pokémon", "l attaque" did not find
+ * "L'Attaque des Titans", and a provider that returns "Pokemon" for a
+ * work cataloged as "Pokémon" offered it as new.
  *
- * <p>Une seule regle, ici : minuscules, accents retires, tout ce qui n'est ni
- * lettre ni chiffre devient une espace, espaces repliees. Assez large pour
- * qu'une frappe approximative retrouve son oeuvre, assez etroite pour ne pas
- * confondre deux titres distincts.
+ * <p>One single rule, here: lowercase, accents removed, everything that is neither
+ * a letter nor a digit becomes a space, spaces collapsed. Wide enough so
+ * that a rough typing finds its work, narrow enough not to
+ * mix up two different titles.
  */
 public final class TexteRecherche {
 
@@ -34,16 +34,16 @@ public final class TexteRecherche {
                 .trim();
     }
 
-    /** Vrai si {@code requete} (deja normalisee ou non) apparait dans {@code texte}. */
+    /** True if {@code requete} (already normalized or not) appears in {@code texte}. */
     public static boolean contient(String texte, String requete) {
         String r = normaliser(requete);
         return r.isEmpty() || normaliser(texte).contains(r);
     }
 
     /**
-     * Vrai si chaque mot de {@code requete} apparait dans {@code texte}, dans
-     * n'importe quel ordre - les deux DEJA normalises. « attaque titans »
-     * retrouve ainsi « l attaque des titans ».
+     * True if every word of {@code requete} appears in {@code texte}, in
+     * any order - both ALREADY normalized. "attaque titans"
+     * thus finds "l attaque des titans".
      */
     public static boolean contientChaqueMot(String texteNormalise, String requeteNormalisee) {
         if (requeteNormalisee.isEmpty()) {

@@ -1,20 +1,20 @@
 /**
- * <b>La porte, vue par quelqu'un qui n'est pas encore entré.</b>
+ * <b>The gate, seen by someone who has not entered yet.</b>
  *
- * C'est le seul écran que voit un inconnu, et il doit se lire sans notice.
- * Trois règles s'y cassent en silence - l'écran s'affiche, il propose
- * simplement la mauvaise chose :
+ * It is the only screen an unknown visitor sees, and it must read without a manual.
+ * Three rules break silently here - the screen is shown, it just
+ * offers the wrong thing:
  * <ul>
- *   <li>une instance <b>neuve</b> propose de créer le premier compte, et dit
- *       qu'il reprendra la collection déjà enregistrée ; une instance en
- *       service propose de <b>se connecter</b> ;</li>
- *   <li>le <b>code d'invitation</b> n'apparaît que là où il est exigé - le
- *       premier compte n'en a pas besoin, et le demander laisserait croire
- *       qu'il en faut un ;</li>
- *   <li>une instance <b>fermée</b> aux nouveaux comptes ne propose pas d'en
- *       créer : le lien n'ouvrirait qu'un refus ;</li>
- *   <li>« <b>visiter sans compte</b> » est toujours proposé - il n'y a rien à
- *       autoriser, et le catalogue n'appartient à personne.</li>
+ *   <li>a <b>new</b> instance offers to create the first account, and says
+ *       that it will take over the collection already saved; an instance in
+ *       service offers to <b>sign in</b>;</li>
+ *   <li>the <b>invitation code</b> only appears where it is required - the
+ *       first account does not need one, and asking for it would suggest
+ *       that one is needed;</li>
+ *   <li>an instance <b>closed</b> to new accounts does not offer to
+ *       create one: the link would only open a refusal;</li>
+ *   <li>"<b>visiter sans compte</b>" is always offered - there is nothing to
+ *       authorize, and the catalog belongs to nobody.</li>
  * </ul>
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -43,10 +43,10 @@ function enrobage({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
 
-/** Rend l'écran pour une instance donnée, une fois son état connu. */
+/** Renders the screen for a given instance, once its state is known. */
 async function ecran(etat: { aucunCompte: boolean; creationOuverte: boolean }) {
   api.lireEtatAuth.mockResolvedValue(etat)
-  // Personne n'est connecté : c'est la situation NORMALE devant cette porte.
+  // Nobody is signed in: this is the NORMAL situation in front of this gate.
   api.lireCompte.mockRejectedValue(new ApiError(401, 'Non connecté'))
   render(<AuthPage />, { wrapper: enrobage })
   await waitFor(() => expect(api.lireEtatAuth).toHaveBeenCalled())
@@ -54,52 +54,52 @@ async function ecran(etat: { aucunCompte: boolean; creationOuverte: boolean }) {
 
 beforeEach(() => vi.clearAllMocks())
 
-describe('quelle livraison tourne', () => {
-  it('se lit sur la porte, sans avoir à entrer', async () => {
-    // La porte remplace tout le shell, pied de page compris : sans cette
-    // ligne, le seul écran qu'on voit quand ON N'ENTRE PAS est aussi le seul
-    // qui ne dit pas ce qui tourne.
+describe('which delivery is running', () => {
+  it('can be read on the gate, without having to enter', async () => {
+    // The gate replaces the whole shell, footer included: without this
+    // line, the only screen seen when the user does NOT enter is also the only one
+    // that does not say what is running.
     await ecran({ aucunCompte: false, creationOuverte: false })
 
     expect(await screen.findByText(/^Version /)).toBeInTheDocument()
   })
 })
 
-describe('une instance neuve', () => {
-  it('propose de créer le premier compte, et dit ce qu’il reprend', async () => {
+describe('a new instance', () => {
+  it('offers to create the first account, and says what it takes over', async () => {
     await ecran({ aucunCompte: true, creationOuverte: true })
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Créer un compte' })).toBeInTheDocument())
     expect(screen.getByText(/reprend la collection déjà enregistrée/)).toBeInTheDocument()
   })
 
-  it('ne demande pas de code d’invitation pour le premier compte', async () => {
+  it('does not ask for an invitation code for the first account', async () => {
     await ecran({ aucunCompte: true, creationOuverte: true })
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Créer un compte' })).toBeInTheDocument())
     expect(screen.queryByLabelText(/invitation/i)).not.toBeInTheDocument()
   })
 
-  it('annonce la longueur minimale plutôt que de la faire découvrir par un refus', async () => {
+  it('announces the minimum length rather than letting a refusal reveal it', async () => {
     await ecran({ aucunCompte: true, creationOuverte: true })
 
     await waitFor(() => expect(screen.getByText('Au moins 10 caractères.')).toBeInTheDocument())
   })
 
-  it('exige un pseudo, et dit à quoi il sert avant qu’on le tape', async () => {
+  it('requires a username, and says what it is for before it is typed', async () => {
     await ecran({ aucunCompte: true, creationOuverte: true })
 
-    // Facultatif jusqu'au 2026-08-29 : laissé vide, il retombait sur l'adresse
-    // e-mail, qui s'affichait ensuite sur l'avatar du menu.
+    // Optional until 2026-08-29: left empty, it fell back to the e-mail
+    // address, which was then shown on the menu avatar.
     await waitFor(() => expect(screen.getByLabelText('Pseudo')).toBeRequired())
-    // La règle est RATTACHÉE au champ (aria-describedby), pas seulement posée
-    // à côté : sans ce lien, elle n'existe que pour qui voit l'écran.
+    // The rule is ATTACHED to the field (aria-describedby), not only placed
+    // next to it: without this link, it exists only for who sees the screen.
     expect(screen.getByLabelText('Pseudo')).toHaveAccessibleDescription(
       /3 à 24 caractères, sans espace.*nom sous lequel tu apparais/,
     )
   })
 
-  it('transmet le pseudo saisi, débarrassé de ses espaces de bord', async () => {
+  it('sends the typed username, without its edge spaces', async () => {
     await ecran({ aucunCompte: true, creationOuverte: true })
     await waitFor(() => expect(screen.getByLabelText('Pseudo')).toBeInTheDocument())
     api.creerCompte.mockResolvedValue({ id: 'u1', email: 'romain@example.com', pseudo: 'romain', admin: true })
@@ -109,8 +109,8 @@ describe('une instance neuve', () => {
     await userEvent.type(screen.getByLabelText('Pseudo'), '  romain  ')
     await userEvent.click(screen.getByRole('button', { name: 'Créer mon compte' }))
 
-    // Le premier argument seulement : TanStack Query en ajoute un second
-    // (son contexte de mutation), qui ne dit rien de ce qui a été saisi.
+    // Only the first argument: TanStack Query adds a second one
+    // (its mutation context), which says nothing about what was typed.
     await waitFor(() => expect(api.creerCompte).toHaveBeenCalled())
     expect(api.creerCompte.mock.calls[0][0]).toEqual({
       email: 'romain@example.com',
@@ -120,10 +120,10 @@ describe('une instance neuve', () => {
     })
   })
 
-  it('affiche le refus du serveur quand le pseudo est déjà pris', async () => {
-    // Contrairement à un échec de connexion, ce refus est EXPLICITE : un
-    // pseudo est public par destination, le taire empêcherait seulement la
-    // personne concernée d'en choisir un autre.
+  it('shows the server refusal when the username is already taken', async () => {
+    // Unlike a sign-in failure, this refusal is EXPLICIT: a
+    // username is public by design, hiding it would only stop the
+    // person from choosing another one.
     await ecran({ aucunCompte: true, creationOuverte: true })
     await waitFor(() => expect(screen.getByLabelText('Pseudo')).toBeInTheDocument())
     api.creerCompte.mockRejectedValue(new Error('Ce pseudo est déjà pris.'))
@@ -137,21 +137,21 @@ describe('une instance neuve', () => {
   })
 })
 
-describe('une instance en service', () => {
-  it('propose de se connecter', async () => {
+describe('an instance in service', () => {
+  it('offers to sign in', async () => {
     await ecran({ aucunCompte: false, creationOuverte: false })
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
   })
 
-  it('ne propose pas de créer un compte quand la création est fermée', async () => {
+  it('does not offer to create an account when creation is closed', async () => {
     await ecran({ aucunCompte: false, creationOuverte: false })
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
     expect(screen.queryByRole('button', { name: /Créer un compte/ })).not.toBeInTheDocument()
   })
 
-  it('demande le code d’invitation dès qu’on bascule vers la création', async () => {
+  it('asks for the invitation code as soon as the user switches to creation', async () => {
     await ecran({ aucunCompte: false, creationOuverte: true })
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
 
@@ -161,8 +161,8 @@ describe('une instance en service', () => {
   })
 })
 
-describe('la connexion', () => {
-  it('transmet ce qui a été saisi, et rien d’autre', async () => {
+describe('the sign-in', () => {
+  it('sends what was typed, and nothing else', async () => {
     await ecran({ aucunCompte: false, creationOuverte: false })
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
     api.seConnecter.mockResolvedValue({ id: 'u1', email: 'romain@example.com', pseudo: 'romain', admin: true })
@@ -172,15 +172,15 @@ describe('la connexion', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }))
 
     await waitFor(() =>
-      // L'adresse est débarrassée de ses espaces de bord ; le mot de passe,
-      // lui, part tel quel - un espace y est un caractère comme un autre.
+      // The address has its edge spaces removed; the password
+      // is sent as it is - a space is a character like any other there.
       expect(api.seConnecter).toHaveBeenCalledWith('romain@example.com', 'un-mot-de-passe'),
     )
   })
 
-  it('affiche le refus du serveur tel quel, sans le reformuler', async () => {
-    // C'est le serveur qui décide de ce qui se dit : il rend volontairement le
-    // même message pour une adresse inconnue et un mot de passe faux.
+  it('shows the server refusal as it is, without rewording it', async () => {
+    // The server decides what is said: it deliberately returns the
+    // same message for an unknown address and a wrong password.
     await ecran({ aucunCompte: false, creationOuverte: false })
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
     api.seConnecter.mockRejectedValue(new Error('Adresse ou mot de passe incorrect.'))
@@ -194,24 +194,24 @@ describe('la connexion', () => {
 })
 
 /**
- * <b>La quatrième issue : entrer sans compte.</b>
+ * <b>The fourth way out: entering without an account.</b>
  *
- * Elle mène au CATALOGUE - les œuvres que l'instance connaît - et non à la
- * collection de quelqu'un. Aucun réglage ne la conditionne : il n'y a rien à
- * autoriser, et rien de personnel n'en sort.
+ * It leads to the CATALOG - the works the instance knows - and not to the
+ * collection of someone. No setting conditions it: there is nothing to
+ * authorize, and nothing personal comes out of it.
  */
-describe('la visite sans compte', () => {
-  it('est proposée sans condition, et dit qu’elle est en lecture seule', async () => {
+describe('the visit without an account', () => {
+  it('is offered without condition, and says that it is read-only', async () => {
     await ecran({ aucunCompte: false, creationOuverte: false })
 
     expect(await screen.findByRole('button', { name: 'Visiter sans compte' })).toBeInTheDocument()
-    // La contrainte est écrite AVANT d'entrer : quelqu'un qui découvre
-    // l'application doit savoir ce qu'il pourra y faire, pas le déduire d'un
-    // bouton qui refuse.
+    // The constraint is written BEFORE entering: someone who discovers
+    // the application must know what they will be able to do, not guess it from a
+    // button that refuses.
     expect(screen.getByText(/lecture seule/)).toBeInTheDocument()
   })
 
-  it('ouvre la session de visite sans rien demander à saisir', async () => {
+  it('opens the visit session without asking to type anything', async () => {
     await ecran({ aucunCompte: false, creationOuverte: false })
     api.entrerEnVisite.mockResolvedValue({
       id: null,

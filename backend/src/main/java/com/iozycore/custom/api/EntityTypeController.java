@@ -23,8 +23,8 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/entity-types")
-@Tag(name = "EntityTypes", description = "Éditeur de types dynamique - créer/lister/modifier/supprimer "
-        + "les catégories de la collection (MANGA/VIDEO_GAME/BOARD_GAME au départ, extensible)")
+@Tag(name = "EntityTypes", description = "Dynamic type editor - create/list/update/delete "
+        + "the collection categories (MANGA/VIDEO_GAME/BOARD_GAME at the start, extensible)")
 public class EntityTypeController {
 
     private final EntityTypeRepository entityTypeRepository;
@@ -43,18 +43,18 @@ public class EntityTypeController {
         this.releaseSources = releaseSources;
     }
 
-    /** Un type personnalisé (créé via cet éditeur) n'a par construction aucun fournisseur -
-     * seuls MANGA/VIDEO_GAME/BOARD_GAME en ont un aujourd'hui (Jikan/BGG/IGDB). */
+    /** A custom type (created through this editor) has by construction no provider -
+     * only MANGA/VIDEO_GAME/BOARD_GAME have one today (Jikan/BGG/IGDB). */
     private boolean hasMetadataProvider(EntityType type) {
         return metadataProviders.stream().anyMatch(provider -> provider.supports(type));
     }
 
-    /** Un univers qui sait proposer des decouvertes (voir DiscoverySource) - aucun type personnalise n'en a. */
+    /** A universe that can suggest discoveries (see DiscoverySource) - no custom type has one. */
     private boolean hasDiscoverySource(EntityType type) {
         return discoverySources.stream().anyMatch(source -> source.supports(type));
     }
 
-    /** Un univers qui sait dater les sorties de ce type (voir ReleaseSource, lot 146) - aucun type personnalise n'en a. */
+    /** A universe that can date the releases of this type (see ReleaseSource, batch 146) - no custom type has one. */
     private boolean hasReleaseSource(EntityType type) {
         return releaseSources.stream().anyMatch(source -> source.supports(type));
     }
@@ -63,7 +63,7 @@ public class EntityTypeController {
         return EntityTypeResponse.from(type, hasMetadataProvider(type), hasDiscoverySource(type), hasReleaseSource(type));
     }
 
-    @Operation(summary = "Créer un nouveau type (code normalisé en UPPER_SNAKE_CASE, doit être unique)")
+    @Operation(summary = "Create a new type (code normalised to UPPER_SNAKE_CASE, must be unique)")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EntityTypeResponse create(@RequestBody CreateEntityTypeRequest request) {
@@ -73,8 +73,8 @@ public class EntityTypeController {
         return reponse(created);
     }
 
-    @Operation(summary = "Lister tous les types existants - utilisé par les clients iOS/Web à la place "
-            + "d'une liste codée en dur")
+    @Operation(summary = "List all existing types - used by the iOS/Web clients instead of "
+            + "a hard-coded list")
     @GetMapping
     public List<EntityTypeResponse> listAll() {
         return entityTypeRepository.findAll().stream()
@@ -82,7 +82,7 @@ public class EntityTypeController {
                 .collect(Collectors.toList());
     }
 
-    @Operation(summary = "Consulter un type par son identifiant")
+    @Operation(summary = "Get a type by its identifier")
     @GetMapping("/{id}")
     public EntityTypeResponse getById(@PathVariable UUID id) {
         return entityTypeRepository.findById(id)
@@ -90,9 +90,9 @@ public class EntityTypeController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "EntityType introuvable : " + id));
     }
 
-    @Operation(summary = "Modifier le label/schema/identité visuelle d'un type existant (le code ne change jamais "
-            + "après création). colorKey/iconKey absents = retour au visuel par défaut, l'appelant envoyant l'état "
-            + "voulu en entier.")
+    @Operation(summary = "Update the label/schema/visual identity of an existing type (the code never changes "
+            + "after creation). Missing colorKey/iconKey = back to the default visual, the caller sending the wanted "
+            + "state in full.")
     @PatchMapping("/{id}")
     public EntityTypeResponse update(@PathVariable UUID id, @RequestBody UpdateEntityTypeRequest request) {
         EntityType updated = entityTypeService.update(id, request.label(), request.allowedExperienceTypes(),
@@ -100,10 +100,10 @@ public class EntityTypeController {
         return reponse(updated);
     }
 
-    @Operation(summary = "Supprimer un type (bloqué si des Entity de ce type existent encore)")
-    @ApiResponse(responseCode = "204", description = "Type supprimé - aucun corps. Idempotent : un "
-            + "identifiant inconnu rend également 204.")
-    @ApiResponse(responseCode = "409", description = "Des Entity de ce type existent encore - rien n'est modifié")
+    @Operation(summary = "Delete a type (blocked if Entity objects of this type still exist)")
+    @ApiResponse(responseCode = "204", description = "Type deleted - no body. Idempotent: an "
+            + "unknown identifier also returns 204.")
+    @ApiResponse(responseCode = "409", description = "Entity objects of this type still exist - nothing is changed")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         entityTypeService.delete(id);

@@ -16,7 +16,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* L'alias @/ pointe sur src : un import dit d'où vient une chose, jamais combien de dossiers la séparent (Lot 134) */
+    /* The @/ alias points to src: an import says where a thing comes from, never how many folders separate it (Batch 134) */
     "paths": { "@/*": ["./src/*"] },
 
     /* Linting */

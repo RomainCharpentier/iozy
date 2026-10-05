@@ -1,18 +1,18 @@
 import Foundation
 
-/// Client HTTP minimal vers l'API backend (voir EntityController,
-/// OwnershipController, ExperienceController, WishlistController côté
-/// Spring Boot). Pas de dépendance tierce : URLSession suffit à ce stade.
+/// Minimal HTTP client to the backend API (see EntityController,
+/// OwnershipController, ExperienceController, WishlistController on the
+/// Spring Boot side). No third-party dependency: URLSession is enough at this stage.
 final class APIClient {
 
     static let shared = APIClient()
 
-    /// En local (simulateur), pointe vers l'API lancée via `docker compose up`
-    /// (voir README du backend). À remplacer par l'URL de production
-    /// (reverse proxy HTTPS, docker-compose.synology.yml) avant un vrai déploiement.
-    /// Note ATS : les adresses "localhost"/loopback sont exemptées d'App
-    /// Transport Security par iOS, donc le HTTP simple fonctionne ici sans
-    /// configuration Info.plist supplémentaire.
+    /// Locally (simulator), points to the API started with `docker compose up`
+    /// (see the backend README). To be replaced by the production URL
+    /// (HTTPS reverse proxy, docker-compose.synology.yml) before a real deployment.
+    /// ATS note: "localhost"/loopback addresses are exempt from App
+    /// Transport Security on iOS, so plain HTTP works here without any
+    /// extra Info.plist configuration.
     private let baseURL = URL(string: "http://localhost:8080/api")!
 
     private let session: URLSession
@@ -32,7 +32,7 @@ final class APIClient {
         case serverError(statusCode: Int, message: String?)
     }
 
-    // MARK: - Ajout rapide (parcours 1)
+    // MARK: - Quick add (journey 1)
 
     struct QuickAddRequest: Encodable {
         let entityTypeId: UUID
@@ -40,12 +40,12 @@ final class APIClient {
         let condition: String
     }
 
-    /// Miroir de EntityDtos.QuickAddResponse côté backend. matchedExistingEntity
-    /// indique que l'ajout a été dédupliqué (UC1, étape 6) : aucune nouvelle
-    /// fiche créée, juste une Ownership de plus sur une Entity déjà existante.
-    /// variantId/matchedExistingVariant concernent le tome précis d'une série
-    /// (Manga) - voir QuickAddService côté backend pour la distinction
-    /// série (Entity) / tome d'une édition (Variant).
+    /// Mirror of EntityDtos.QuickAddResponse on the backend side. matchedExistingEntity
+    /// means the add was deduplicated (UC1, step 6): no new
+    /// detail page created, just one more Ownership on an Entity that already exists.
+    /// variantId/matchedExistingVariant concern the exact volume of a series
+    /// (Manga) - see QuickAddService on the backend side for the distinction
+    /// series (Entity) / volume of an edition (Variant).
     struct QuickAddResponse: Decodable {
         let entityId: UUID
         let matchedExistingEntity: Bool
@@ -58,7 +58,7 @@ final class APIClient {
         return try await post("/entities/quick-add", body: body)
     }
 
-    // MARK: - Vérification avant achat (parcours 3)
+    // MARK: - Check before buying (journey 3)
 
     enum LookupStatus: String, Decodable {
         case owned = "OWNED"
@@ -75,16 +75,16 @@ final class APIClient {
         return response.status
     }
 
-    // MARK: - Helpers HTTP génériques (internal : utilisés aussi par
-    // APIClient+Collections.swift, dans le même module)
+    // MARK: - Generic HTTP helpers (internal: also used by
+    // APIClient+Collections.swift, in the same module)
 
     func get<T: Decodable>(_ path: String) async throws -> T {
-        // ATTENTION : ne pas utiliser appendingPathComponent(path) ici - cette
-        // méthode encode le '?' comme un caractère de chemin littéral au lieu
-        // de le traiter comme séparateur de query string, ce qui casserait
-        // silencieusement tous les appels avec paramètres (lookup, search...).
-        // Construire l'URL à partir de la chaîne complète laisse
-        // URL(string:) parser correctement le "?" et le "&".
+        // WARNING: do not use appendingPathComponent(path) here - this
+        // method encodes the '?' as a literal path character instead of
+        // treating it as the query string separator, which would silently
+        // break all calls with parameters (lookup, search...).
+        // Building the URL from the full string lets
+        // URL(string:) parse the "?" and the "&" correctly.
         guard let url = URL(string: baseURL.absoluteString + path) else {
             throw APIError.invalidResponse
         }
@@ -121,8 +121,8 @@ final class APIClient {
         return try decoder.decode(T.self, from: data)
     }
 
-    /// POST sans corps de requête ni réponse à décoder (ex: attacher un tag
-    /// existant à une Entity - l'action seule compte, rien à lire en retour).
+    /// POST with no request body and no response to decode (e.g. attach an existing tag
+    /// to an Entity - only the action matters, nothing to read back).
     func postEmpty(_ path: String) async throws {
         guard let url = URL(string: baseURL.absoluteString + path) else {
             throw APIError.invalidResponse
@@ -133,7 +133,7 @@ final class APIClient {
         try validate(response)
     }
 
-    /// DELETE sans corps de réponse à décoder.
+    /// DELETE with no response body to decode.
     func delete(_ path: String) async throws {
         guard let url = URL(string: baseURL.absoluteString + path) else {
             throw APIError.invalidResponse

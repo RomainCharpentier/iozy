@@ -1,31 +1,31 @@
 package com.iozycore.manga.deals;
 
 /**
- * D'où vient un prix relevé : d'une saisie délibérée, ou d'une annonce que
- * l'utilisateur a réellement analysée.
+ * Where an observed price comes from: a deliberate entry, or a listing that
+ * the user really analysed.
  *
- * <h2>Pourquoi le distinguer</h2>
- * Les deux sont des faits constatés et valent autant l'un que l'autre comme
- * comparables. Mais ils ne se relisent pas pareil : un relevé manuel est une
- * intention (« j'ai vu ce prix, je le note »), un relevé issu d'analyse est un
- * sous-produit d'un autre geste. Quand un chiffre surprend, savoir lequel des
- * deux on regarde est la première question qu'on se pose - et sans ce champ,
- * elle n'a pas de réponse.
+ * <h2>Why tell them apart</h2>
+ * Both are confirmed facts and are worth the same as
+ * comparables. But they are not read the same way: a manual observation is an
+ * intention ("I saw this price, I note it"), an observation coming from an analysis is a
+ * by-product of another action. When a number is surprising, knowing which of the
+ * two we are looking at is the first question we ask - and without this field,
+ * it has no answer.
  *
- * <h2>Ce que ce n'est pas</h2>
- * Ni une hiérarchie de fiabilité, ni un niveau de confiance : la confiance se
- * calcule sur l'échantillon ({@link MarketReferenceConfidence}), pas sur la
- * façon dont la ligne est arrivée en base.
+ * <h2>What it is not</h2>
+ * Neither a hierarchy of reliability, nor a confidence level: confidence is
+ * computed on the sample ({@link MarketReferenceConfidence}), not on the
+ * way the row arrived in the database.
  */
 public enum MarketObservationOrigin {
 
-    /** Saisi par l'utilisateur depuis la fiche d'une édition. */
+    /** Entered by the user from the page of an edition. */
     MANUAL_ENTRY,
 
     /**
-     * Retenu d'une annonce analysée puis enregistrée. Le prix est celui de
-     * l'annonce, <b>hors frais</b> - la protection et la livraison relèvent du
-     * coût d'acquisition de l'acheteur, pas de ce que vaut le produit.
+     * Kept from an analysed then saved listing. The price is that of the
+     * listing, <b>without fees</b> - protection and shipping belong to the
+     * buyer's acquisition cost, not to what the product is worth.
      */
     LISTING_ANALYSIS
 }

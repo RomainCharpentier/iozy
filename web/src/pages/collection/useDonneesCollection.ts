@@ -16,30 +16,30 @@ import type {
   OwnershipResponse,
 } from '@/common/types/api'
 
-// Références stables : `?? []` fabriquerait un tableau neuf à chaque rendu, et
-// tous les useMemo qui en dépendent se recalculeraient pour rien.
+// Stable references: `?? []` would build a new array at each render, and
+// all the useMemo that depend on it would be recomputed for nothing.
 const AUCUNE_OEUVRE: EntityResponse[] = []
 const AUCUN_TYPE: EntityTypeDto[] = []
 const AUCUNE_POSSESSION: OwnershipResponse[] = []
 const AUCUNE_PROGRESSION: CollectionProgressDto[] = []
 
 /**
- * Tout ce qu'un écran de collection a besoin de savoir - et rien qu'il ait à
- * recharger lui-même.
+ * Everything a collection screen needs to know - and nothing that it has to
+ * reload itself.
  *
- * <h2>Deux écrans, une seule collection</h2>
- * Ma collection et la vue d'une catégorie posaient les mêmes quatre requêtes,
- * déclaraient les mêmes quatre constantes de repli, dérivaient les mêmes
- * possessions et les mêmes envies, et composaient le même « tout est arrivé ? »
- * - une trentaine de lignes identiques, recopiées. Deux copies d'une règle
- * finissent toujours par diverger : au Lot 41, un outil de Ma collection s'est
- * mis à dépendre du filtre d'affichage sans que la vue d'une catégorie le
- * sache.
+ * <h2>Two screens, one single collection</h2>
+ * My collection and the category view made the same four queries,
+ * declared the same four fallback constants, derived the same
+ * ownerships and the same wishes, and composed the same "has everything arrived?"
+ * - about thirty identical lines, copied. Two copies of a rule
+ * always end up diverging: in batch 41, a tool of My collection started
+ * to depend on the display filter without the category view
+ * knowing it.
  *
- * <h2>Ce qui reste PROPRE à chaque écran</h2>
- * Le filtrage, le tri, les compteurs et la mise en page : c'est là qu'ils
- * diffèrent vraiment. Ce hook ne rend que les données et leur état de
- * chargement.
+ * <h2>What stays SPECIFIC to each screen</h2>
+ * The filtering, the sort, the counters and the layout: this is where they
+ * really differ. This hook only returns the data and their loading
+ * state.
  */
 export function useDonneesCollection() {
   const wishlist = useWishlist()
@@ -51,10 +51,10 @@ export function useDonneesCollection() {
   })
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const ownershipsQuery = useQuery({ queryKey: queryKeys.allOwnerships, queryFn: listAllOwnerships })
-  // La progression « X sur Y » vient du SERVEUR, en un appel pour toute la
-  // collection - même source que la fiche, l'analyse d'achat et les
-  // suggestions (voir Lots 51 et 60). Les deux écrans partagent la requête en
-  // cache : l'ouvrir depuis l'autre ne la relance pas.
+  // The "X out of Y" progress comes from the SERVER, in one call for the whole
+  // collection - same source as the detail page, the purchase analysis and the
+  // suggestions (see batches 51 and 60). Both screens share the query in
+  // cache: opening it from the other one does not run it again.
   const progressQuery = useQuery({ queryKey: queryKeys.insights.progress, queryFn: getCollectionProgress })
 
   const entities = entitiesQuery.data ?? AUCUNE_OEUVRE
@@ -83,15 +83,15 @@ export function useDonneesCollection() {
     tomesVoulus: wishlist.variantsVoulus,
     wishlist,
     /**
-     * Aucun chiffre tant que TOUT n'est pas arrivé. Sans cette garde, l'écran
-     * annonce une collection vide à quelqu'un qui en a une - constaté en gelant
-     * l'API : « 0 possédé ou voulu », filtres à 0/0/0, pendant que
-     * « Chargement... » s'affichait juste en dessous (Lot 47).
+     * No number until EVERYTHING has arrived. Without this guard, the screen
+     * announces an empty collection to someone who has one - observed by freezing
+     * the API: "0 possédé ou voulu", filters at 0/0/0, while
+     * "Chargement..." was displayed just below (batch 47).
      */
     chargement:
       entitiesQuery.isPending || ownershipsQuery.isPending || wishlist.isLoading || progressQuery.isPending,
-    /** La liste a vraiment répondu - « aucune œuvre » n'est alors pas un aveu
-     *  d'ignorance, et le message de vide peut s'afficher. */
+    /** The list has really answered - "no work" is then not an admission
+     *  of ignorance, and the empty message can be shown. */
     listeChargee: entitiesQuery.isSuccess,
     erreurs: [entitiesQuery, ownershipsQuery]
       .filter((q) => q.isError)

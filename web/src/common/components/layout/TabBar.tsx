@@ -5,25 +5,25 @@ import { estReserveeAuxComptes } from '@/common/lib/accesInvite'
 import { useAuth } from '@/common/hooks/useAuth'
 
 /**
- * Barre du pouce (< 768px, voir AppShell.NAV_BREAKPOINT) - remplacée par
- * DesktopHeader au-delà. Les mêmes destinations que lui, lues dans la même
- * liste (voir navItems) : deux copies « gardées manuellement synchronisées »
- * étaient deux copies vouées à diverger.
+ * Thumb bar (< 768px, see AppShell.NAV_BREAKPOINT) - replaced by
+ * DesktopHeader above that. The same destinations as it, read from the same
+ * list (see navItems): two copies "kept manually in sync"
+ * were two copies bound to diverge.
  *
- * <p>Plus le raccourci Scan, qui n'est PAS une destination de plus (pas
- * d'aria-current, séparé par une bordure) - juste un accès une-main vers un
- * point d'entrée déjà couvert par Rechercher.
+ * <p>Plus the Scan shortcut, which is NOT one more destination (no
+ * aria-current, separated by a border) - just a one-hand access to an
+ * entry point already covered by Rechercher.
  *
- * <p>Chaque onglet affiche son libellé COURT (voir NavItem.labelCourt) :
- * « Ma collection » y devient « Collection », et le libellé complet reste sur
- * la barre desktop. Ils ont été quatre du 2026-08-27 au lot 137 ; trois
- * tiennent d'autant mieux sur 375 px.
+ * <p>Each tab shows its SHORT label (see NavItem.labelCourt):
+ * "Ma collection" becomes "Collection" there, and the full label stays on
+ * the desktop bar. There were four from 2026-08-27 to batch 137; three
+ * fit all the better on 375 px.
  *
- * <p>Deux pendant une visite sans compte, et le raccourci Scan disparaît avec
- * eux : ce sont des destinations d'ÉCRITURE (voir lib/accesInvite), et un
- * onglet qui renverrait aussitôt à l'accueil se lit comme une panne. La même
- * liste sert de juge ici et au routage, pour qu'aucun des deux ne dise
- * l'inverse de l'autre.
+ * <p>Two during a visit without an account, and the Scan shortcut disappears with
+ * them: these are WRITE destinations (see lib/accesInvite), and a
+ * tab that would immediately send back to the home page reads as a failure. The same
+ * list serves as judge here and in routing, so that neither says
+ * the opposite of the other.
  */
 export function TabBar() {
   const { pathname } = useLocation()
@@ -36,9 +36,9 @@ export function TabBar() {
       {destinations.map(({ to, labelCourt, icon: Icon, activeWhen }) => {
         const active = activeWhen(pathname)
         return (
-          // `Link` et non `NavLink` : voir DesktopHeader - NavLink écrase
-          // l'`aria-current` qu'on lui passe par celui de SA correspondance
-          // de route, qui ignore `activeWhen`.
+          // `Link` and not `NavLink`: see DesktopHeader - NavLink overwrites
+          // the `aria-current` we pass it with the one from ITS route
+          // match, which ignores `activeWhen`.
           <Link
             key={to}
             to={to}

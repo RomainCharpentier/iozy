@@ -28,29 +28,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP de la <b>configuration du catalogue</b> : les types d'œuvres
- * ({@code /api/entity-types}) et les tags ({@code /api/tags}).
+ * The HTTP contract of the <b>catalogue configuration</b>: the types of works
+ * ({@code /api/entity-types}) and the tags ({@code /api/tags}).
  *
- * <p><b>Les écritures partent au nom d'un administrateur depuis le
- * 2026-08-30</b> : les tags décrivent une œuvre du catalogue PARTAGÉ, et les
- * poser engage tous les comptes. Le refus opposé aux autres est vérifié
- * ailleurs, par {@code TagsAdministresHttpContractTest} - ici on décrit ce que
- * fait la route, pas qui a le droit de l'appeler.
+ * <p><b>The writes are made in the name of an administrator since
+ * 2026-08-30</b>: the tags describe a work of the SHARED catalogue, and
+ * setting them commits all the accounts. The refusal given to the others is checked
+ * elsewhere, by {@code TagsAdministresHttpContractTest} - here we describe what
+ * the route does, not who is allowed to call it.
  *
- * <h2>Ce que ces deux surfaces ont en commun</h2>
- * Elles écrivent des données <b>structurantes ou personnelles</b> sans passer
- * par aucune intégration externe, et chacune référence quelque chose d'autre -
- * un type référencé par des œuvres, un tag accroché à une œuvre. C'est
- * précisément là que les références invalides
- * remontaient historiquement en 500 ou en 409 trompeur : la clé étrangère de
- * Postgres tranchait à la place du code.
+ * <h2>What these two surfaces have in common</h2>
+ * They write <b>structuring or personal</b> data without going through
+ * any external integration, and each one references something else -
+ * a type referenced by works, a tag attached to a work. This is
+ * precisely where invalid references
+ * historically came out as a 500 or a misleading 409: the foreign key of
+ * Postgres decided instead of the code.
  *
- * <h2>Le cas le plus lourd de conséquences</h2>
- * Un {@code EntityType} est une racine : Manga, Jeu vidéo, Jeu de société,
- * Livre. Le supprimer alors que des œuvres en dépendent effacerait une branche
- * entière du catalogue. Le refus est testé <b>avec vérification de l'état
- * après réponse</b> - un 409 qui laisserait la base à moitié modifiée serait
- * pire qu'un 500 franc.
+ * <h2>The case with the heaviest consequences</h2>
+ * An {@code EntityType} is a root: Manga, Video game, Board game,
+ * Book. Deleting it while works depend on it would erase a whole branch
+ * of the catalogue. The refusal is tested <b>with a check of the state
+ * after the response</b> - a 409 that leaves the database half modified would be
+ * worse than a plain 500.
  */
 class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
 
@@ -82,7 +82,7 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
                 titre + " " + UUID.randomUUID(), Map.of()).entity();
     }
 
-    /** Un code de type unique par test - le code est la clé d'unicité. */
+    /** A unique type code per test - the code is the uniqueness key. */
     private String unCode() {
         return "ZZTEST_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
@@ -101,12 +101,12 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.code").value(code))
                 .andExpect(jsonPath("$.label").value("Vinyles"))
                 .andExpect(jsonPath("$.allowedExperienceTypes[0]").value("LISTENED"))
-                // Les clients iOS/Web lisent cette liste au lieu d'une liste
-                // codée en dur : le champ doit être présent, même à false.
+                // The iOS/Web clients read this list instead of a hard-coded
+                // list: the field must be present, even when false.
                 .andExpect(jsonPath("$.hasMetadataProvider").exists())
-                // Meme regle pour les decouvertes (lot 142) : c'est le type qui
-                // dit s'il en a une source, jamais une liste de codes a l'ecran.
-                // Un type cree ici n'en a aucune.
+                // Same rule for the discoveries (batch 142): it is the type that
+                // says whether it has a source, never a list of codes on the screen.
+                // A type created here has none.
                 .andExpect(jsonPath("$.hasDiscoverySource").value(false))
                 .andReturn().getResponse().getContentAsString();
 
@@ -128,8 +128,8 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").isNotEmpty());
 
-        // Le refus ne doit rien avoir écrit, et surtout pas avoir renommé
-        // le type existant au passage.
+        // The refusal must have written nothing, and above all must not have renamed
+        // the existing type on the way.
         assertThat(entityTypeRepository.findAll()).hasSize((int) avant);
         assertThat(entityTypeRepository.findById(UUID.fromString(MANGA)).orElseThrow().label())
                 .isEqualTo(EntityTypeFixtures.MANGA.label());
@@ -154,17 +154,17 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
                         .content("{\"label\":\"Après\",\"allowedExperienceTypes\":[\"READ\"]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.label").value("Après"))
-                // Le code ne change jamais après création : c'est la clé sur
-                // laquelle les clients s'appuient.
+                // The code never changes after creation: it is the key on
+                // which the clients rely.
                 .andExpect(jsonPath("$.code").value(code));
     }
 
     @Test
     void returns_a_deterministic_error_when_updating_or_reading_a_type_that_does_not_exist() throws Exception {
         mockMvc.perform(get("/api/entity-types/{id}", ABSENT)).andExpect(status().isNotFound());
-        // Le PATCH passe par le service, dont l'IllegalArgumentException devient
-        // 400 - convention existante, différente du 404 du GET. Figée telle
-        // quelle plutôt qu'uniformisée au passage.
+        // The PATCH goes through the service, whose IllegalArgumentException becomes
+        // 400 - existing convention, different from the 404 of the GET. Frozen as
+        // it is rather than made uniform on the way.
         mockMvc.perform(patch("/api/entity-types/{id}", ABSENT).contentType("application/json")
                         .content("{\"label\":\"x\"}"))
                 .andExpect(status().isBadRequest());
@@ -175,11 +175,11 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
 
     @Test
     void refuses_to_delete_a_type_still_used_by_works_and_changes_nothing() throws Exception {
-        // LE cas prioritaire : supprimer « Manga » effacerait une branche
-        // entière du catalogue. La base de test étant vierge, on crée d'abord
-        // l'œuvre qui rend le type utilisé - sans elle le test passerait pour
-        // une raison qui n'a rien à voir : il n'y aurait simplement rien à
-        // protéger.
+        // THE priority case: deleting "Manga" would erase a whole
+        // branch of the catalogue. As the test database is empty, we first create
+        // the work that makes the type used - without it the test would pass for
+        // a reason that has nothing to do with it: there would simply be nothing to
+        // protect.
         uneOeuvre("Une série qui rend le type utilisé");
         long typesAvant = entityTypeRepository.findAll().size();
         long oeuvresAvant = entityRepository.findAllByType(UUID.fromString(MANGA)).size();
@@ -189,8 +189,8 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").isNotEmpty());
 
-        // Un 409 qui laisserait la base à moitié modifiée serait pire qu'un 500
-        // franc : le type ET ses œuvres doivent être intacts.
+        // A 409 that leaves the database half modified would be worse than a plain
+        // 500: the type AND its works must be intact.
         assertThat(entityTypeRepository.findById(UUID.fromString(MANGA))).isPresent();
         assertThat(entityTypeRepository.findAll()).hasSize((int) typesAvant);
         assertThat(entityRepository.findAllByType(UUID.fromString(MANGA))).hasSize((int) oeuvresAvant);
@@ -219,8 +219,8 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.label").value(label))
                 .andReturn().getResponse().getContentAsString();
 
-        // Contrat existant : un label déjà pris rend le tag existant plutôt
-        // qu'un 409. Un tag est un mot, pas une ressource qu'on se dispute.
+        // Existing contract: a label already taken returns the existing tag rather
+        // than a 409. A tag is a word, not a resource that people fight over.
         String second = mockMvc.perform(post("/api/tags").with(user(IDENTITE_ADMIN)).contentType("application/json")
                         .content(json(Map.of("label", label))))
                 .andExpect(status().isCreated())
@@ -233,9 +233,9 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
     void lists_tags_so_the_picker_can_offer_them_for_reuse() throws Exception {
         Tag tag = tagRepository.save(new Tag(UUID.randomUUID(), "à racheter " + UUID.randomUUID()));
 
-        // Un Tag est fait pour être réutilisé sur plusieurs œuvres : cette
-        // liste est ce que le sélecteur propose. En son absence, l'utilisateur
-        // recréerait le même mot à chaque fois.
+        // A Tag is made to be reused on several works: this
+        // list is what the selector offers. Without it, the user
+        // would recreate the same word every time.
         mockMvc.perform(get("/api/tags"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='" + tag.id() + "')].label").value(tag.label()));
@@ -262,8 +262,8 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(delete("/api/tags/entities/{e}/{t}", oeuvre.id(), tag.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isOk());
 
-        // Un tag personnel ne touche jamais l'œuvre catalogue elle-même : après
-        // détachement, l'œuvre et le tag existent toujours.
+        // A personal tag never touches the catalogue work itself: after
+        // detaching, the work and the tag still exist.
         Entity relue = entityRepository.findById(oeuvre.id()).orElseThrow();
         assertThat(relue.tagIds()).doesNotContain(tag.id());
         assertThat(relue.title()).isEqualTo(oeuvre.title());
@@ -274,14 +274,14 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
     void returns_404_when_attaching_a_tag_that_does_not_exist_rather_than_a_confusing_conflict() throws Exception {
         Entity oeuvre = uneOeuvre("Vagabond");
 
-        // Découvert par cette passe : seule la clé étrangère protégeait la
-        // table, et le client recevait « Cette donnée entre en conflit avec une
-        // donnée existante » - alors que le tag est ABSENT. La ligne au-dessus
-        // rendait déjà, pour l'entité, le 404 que ce cas mérite tout autant.
+        // Found by this pass: only the foreign key protected the
+        // table, and the client received "Cette donnée entre en conflit avec une
+        // donnée existante" - while the tag is ABSENT. The line above
+        // already returned, for the entity, the 404 that this case deserves just as much.
         mockMvc.perform(post("/api/tags/entities/{e}/{t}", oeuvre.id(), ABSENT).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isNotFound());
 
-        // Et rien n'a été écrit au passage.
+        // And nothing was written on the way.
         assertThat(entityRepository.findById(oeuvre.id()).orElseThrow().tagIds()).isEmpty();
     }
 
@@ -297,8 +297,8 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
         Entity oeuvre = uneOeuvre("Pluto");
         Tag jamaisAttache = tagRepository.save(new Tag(UUID.randomUUID(), "inutilisé " + UUID.randomUUID()));
 
-        // Idempotent : rejouer un détachement hors ligne ne doit pas devenir
-        // une erreur.
+        // Idempotent: replaying a detach done offline must not become
+        // an error.
         mockMvc.perform(delete("/api/tags/entities/{e}/{t}", oeuvre.id(), jamaisAttache.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isOk());
         assertThat(entityRepository.findById(oeuvre.id())).isPresent();

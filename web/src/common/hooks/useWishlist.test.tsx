@@ -1,22 +1,22 @@
 /**
- * <b>La source unique des « Envies », et ce qu'elle promet à chaque bouton.</b>
+ * <b>The single source of the "Envies", and what it promises to each button.</b>
  *
- * Six surfaces passent par ce hook. Trois promesses y tiennent l'usage entier,
- * et chacune a déjà été cassée une fois :
+ * Six surfaces go through this hook. Three promises hold its whole use
+ * together, and each one has already been broken once:
  * <ul>
- *   <li><b>Deux index, jamais confondus</b> : une série n'est pas « voulue »
- *       parce qu'un de ses tomes l'est - elle n'est qu'un groupe ;</li>
- *   <li><b>« Annuler » est réel</b> : annuler un retrait remet EXACTEMENT le
- *       même objet, le tome et pas sa série ;</li>
- *   <li><b>un refus n'interrompt pas un ajout groupé</b> : un tome déjà possédé
- *       est refusé en 409, et c'est un cas normal dans une annonce qui recoupe
- *       la collection - s'arrêter là abandonnerait tous les suivants en
- *       silence.</li>
+ *   <li><b>Two indexes, never confused</b>: a series is not "wanted"
+ *       because one of its volumes is - it is only a group;</li>
+ *   <li><b>"Annuler" is real</b>: canceling a removal puts back EXACTLY the
+ *       same object, the volume and not its series;</li>
+ *   <li><b>a refusal does not interrupt a grouped add</b>: a volume that is
+ *       already owned is refused with a 409, and it is a normal case in a
+ *       listing that overlaps with the collection - stopping there would
+ *       abandon all the following ones silently.</li>
  * </ul>
  *
- * <p>Le réseau est simulé, le reste ne l'est pas : vrai `QueryClient`, vrai
- * contexte de messages. Ce qui est vérifié, ce sont les appels réellement
- * partis et le message réellement affiché.
+ * <p>The network is simulated, the rest is not: real `QueryClient`, real
+ * message context. What is checked are the calls that really went out and the
+ * message that was really displayed.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
@@ -39,7 +39,7 @@ function entree(id: string, entityId: string, variantId: string | null = null): 
   return { id, entityId, variantId, addedAt: '2026-08-01' }
 }
 
-/** Les messages affichés, avec leur action « Annuler » quand elle existe. */
+/** The displayed messages, with their "Annuler" action when it exists. */
 const messages: { texte: string; action?: ToastAction }[] = []
 
 function enrobage({ children }: { children: ReactNode }) {
@@ -55,7 +55,7 @@ function enrobage({ children }: { children: ReactNode }) {
   )
 }
 
-/** Le hook, une fois sa liste d'envies chargée. */
+/** The hook, once its wish list is loaded. */
 async function envies(existantes: WishlistEntryResponse[] = []) {
   api.listWishlist.mockResolvedValue(existantes)
   const rendu = renderHook(() => useWishlist(), { wrapper: enrobage })
@@ -69,8 +69,8 @@ beforeEach(() => {
   api.removeFromWishlist.mockResolvedValue(undefined)
 })
 
-describe('les deux index', () => {
-  it('ne dit pas une série voulue parce qu’un de ses tomes l’est', async () => {
+describe('the two indexes', () => {
+  it('does not call a series wanted because one of its volumes is', async () => {
     const hook = await envies([entree('e1', 'berserk', 'tome-7')])
 
     expect(hook.current.isInWishlist('berserk')).toBe(false)
@@ -78,7 +78,7 @@ describe('les deux index', () => {
     expect([...hook.current.variantsVoulus]).toEqual(['tome-7'])
   })
 
-  it('reconnaît l’envie portée sur l’œuvre entière, pour un type sans tome', async () => {
+  it('recognizes the wish applied to the whole work, for a type without volumes', async () => {
     const hook = await envies([entree('e2', 'hades')])
 
     expect(hook.current.isInWishlist('hades')).toBe(true)
@@ -86,15 +86,15 @@ describe('les deux index', () => {
     expect(hook.current.variantsVoulus.size).toBe(0)
   })
 
-  it('compte toutes les envies pour le badge, quelle que soit leur nature', async () => {
+  it('counts all the wishes for the badge, whatever their kind', async () => {
     const hook = await envies([entree('e1', 'berserk', 'tome-7'), entree('e2', 'hades')])
 
     expect(hook.current.count).toBe(2)
   })
 })
 
-describe('ajouter', () => {
-  it('propose une annulation qui supprime vraiment l’entrée créée', async () => {
+describe('adding', () => {
+  it('offers a cancel that really deletes the created entry', async () => {
     const hook = await envies()
     api.addToWishlist.mockResolvedValue(entree('nouvelle', 'berserk', 'tome-7'))
 
@@ -107,8 +107,8 @@ describe('ajouter', () => {
     await waitFor(() => expect(api.removeFromWishlist).toHaveBeenCalledWith('nouvelle'))
   })
 
-  it('n’enchaîne pas un second message sur l’annulation d’un ajout', async () => {
-    // Reproposer « Annuler » ferait boucler l'utilisateur entre deux messages.
+  it('does not chain a second message on the cancel of an add', async () => {
+    // Offering "Annuler" again would make the user loop between two messages.
     const hook = await envies()
     api.addToWishlist.mockResolvedValue(entree('nouvelle', 'berserk', 'tome-7'))
 
@@ -121,10 +121,10 @@ describe('ajouter', () => {
   })
 })
 
-describe('retirer', () => {
-  it('remet exactement le même objet - le tome, pas sa série', async () => {
-    // Réajouter par `entityId` seul remettait en envies la série entière :
-    // annuler le retrait du tome 7 en voulait soudain soixante-douze.
+describe('removing', () => {
+  it('puts back exactly the same object - the volume, not its series', async () => {
+    // Adding back by `entityId` alone put the entire series back in the
+    // wishes: canceling the removal of volume 7 suddenly wanted seventy-two.
     const hook = await envies([entree('e1', 'berserk', 'tome-7')])
     const cible = { entityId: 'berserk', variantId: 'tome-7' }
 
@@ -139,14 +139,14 @@ describe('retirer', () => {
   })
 })
 
-describe('ajouter tout un lot', () => {
+describe('adding a whole batch', () => {
   const lot = [
     { entityId: 'berserk', volumeNumber: 1 },
     { entityId: 'berserk', volumeNumber: 2 },
     { entityId: 'berserk', volumeNumber: 3 },
   ]
 
-  it('poursuit après un refus, et ne compte que ce qui a été ajouté', async () => {
+  it('continues after a refusal, and only counts what was added', async () => {
     const hook = await envies()
     api.addToWishlist
       .mockResolvedValueOnce(entree('n1', 'berserk', 'tome-1'))
@@ -160,7 +160,7 @@ describe('ajouter tout un lot', () => {
     expect(messages[0].texte).toBe('2 tomes ajoutés aux envies')
   })
 
-  it('le dit franchement quand il n’y avait rien à ajouter', async () => {
+  it('says so frankly when there was nothing to add', async () => {
     const hook = await envies()
     api.addToWishlist.mockRejectedValue(new Error('409'))
 
@@ -171,7 +171,7 @@ describe('ajouter tout un lot', () => {
     expect(messages[0].action).toBeUndefined()
   })
 
-  it('annule le lot entier, entrée par entrée', async () => {
+  it('cancels the whole batch, entry by entry', async () => {
     const hook = await envies()
     api.addToWishlist
       .mockResolvedValueOnce(entree('n1', 'berserk', 'tome-1'))
@@ -185,7 +185,7 @@ describe('ajouter tout un lot', () => {
     expect(api.removeFromWishlist.mock.calls.map(([id]) => id)).toEqual(['n1', 'n2', 'n3'])
   })
 
-  it('ne parle pas au pluriel pour un seul tome', async () => {
+  it('does not use the plural for a single volume', async () => {
     const hook = await envies()
     api.addToWishlist.mockResolvedValue(entree('n1', 'berserk', 'tome-1'))
 

@@ -2,24 +2,24 @@ import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/common/lib/theme'
 
 /**
- * Clair ou sombre, d'un clic, depuis l'en-tête.
+ * Light or dark, in one click, from the header.
  *
- * <h2>Pourquoi ici, et plus dans les Paramètres</h2>
- * L'interrupteur vivait sous Paramètres ▸ « Cet appareil », à trois clics de
- * n'importe quel écran (avatar, Profil, Paramètres) - pour un geste qu'on fait
- * selon la lumière de la pièce, pas un réglage qu'on pose une fois. Demandé
- * par l'utilisateur (lot 138) : « juste une icône qui change selon le mode ».
+ * <h2>Why here, and no longer in the Settings</h2>
+ * The switch lived under Settings ▸ "Cet appareil", three clicks away from
+ * any screen (avatar, Profile, Settings) - for an action you do
+ * depending on the light in the room, not a setting you set once. Requested
+ * by the user (batch 138): "just an icon that changes with the mode".
  *
- * <h2>Une icône, comme ses voisines</h2>
- * Elle montre le mode COURANT - la lune quand il fait sombre, le soleil quand
- * il fait clair - ce que l'interrupteur des Paramètres montrait déjà, et ce
- * que « change selon le mode » veut dire. Le nom accessible, lui, nomme
- * l'ACTION (« Passer en thème clair ») : un bouton dit ce qu'il fait, et un
- * lecteur d'écran n'a pas l'icône pour deviner le reste. Porté par
- * `aria-label` ET `title`, comme Administration et la sortie.
+ * <h2>An icon, like its neighbors</h2>
+ * It shows the CURRENT mode - the moon when it is dark, the sun when
+ * it is light - which is what the switch in the Settings already showed, and what
+ * "changes with the mode" means. The accessible name, for its part, names
+ * the ACTION ("Passer en thème clair"): a button says what it does, and a
+ * screen reader does not have the icon to guess the rest. Carried by
+ * `aria-label` AND `title`, like Administration and the exit.
  *
- * <p>Pour tout le monde, visiteur compris : le thème est un réglage de
- * l'appareil, pas du compte (voir lib/theme, localStorage).
+ * <p>For everyone, visitors included: the theme is a setting of the
+ * device, not of the account (see lib/theme, localStorage).
  */
 export function BoutonTheme({ compact = false }: { compact?: boolean }) {
   const { theme, toggleTheme } = useTheme()

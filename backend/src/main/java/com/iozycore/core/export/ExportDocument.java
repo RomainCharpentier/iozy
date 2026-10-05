@@ -7,14 +7,14 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * "Export complet des données (JSON/CSV)" (§19, docs/CONCEPTION.md) -
- * garantit l'absence d'enfermement même auto-hébergé : toute la collection
- * en une seule structure auto-suffisante, lisible sans avoir besoin de
- * requêter la base pour recroiser les identifiants. Les titres/labels sont
- * délibérément dénormalisés à côté des IDs (ex: entityTitle sur une
- * OwnershipExport) - un peu redondant, mais un export "anti-enfermement"
- * doit rester lisible et exploitable seul, y compris ouvert dans un tableur
- * ou par quelqu'un d'autre que l'auteur du schéma.
+ * "Full data export (JSON/CSV)" (§19, docs/CONCEPTION.md) -
+ * guarantees no lock-in even when self-hosted: the whole collection
+ * in a single self-sufficient structure, readable without having to
+ * query the database to cross-check ids. Titles/labels are
+ * deliberately denormalized next to the IDs (e.g. entityTitle on an
+ * OwnershipExport) - a bit redundant, but an "anti lock-in" export
+ * must stay readable and usable alone, including when opened in a spreadsheet
+ * or by someone other than the author of the schema.
  */
 public record ExportDocument(
         String generatedAt,
@@ -24,33 +24,33 @@ public record ExportDocument(
         List<WishlistEntryExport> wishlist,
         List<RelationshipExport> relationships,
         List<TagExport> tags,
-        // Ajoutées au Lot 33 : saisies à la main, irrécupérables, et pourtant
-        // absentes d'un export qui promet "l'absence d'enfermement" - sans les
-        // éditions de référence, plus aucun "X sur Y" ne peut être reconstruit.
+        // Added in Batch 33: typed by hand, unrecoverable, and yet
+        // missing from an export that promises "no lock-in" - without the
+        // reference editions, no "X of Y" can be rebuilt anymore.
         List<MangaEditionExport> editions,
         List<GeneralRankExport> generalRankings,
         List<TierListExport> tierLists,
-        // Ajoutees au Lot 79, meme critere qu'au Lot 33 : saisi a la main,
-        // irrecuperable ailleurs, et pourtant absent d'un export qui promet
-        // l'absence d'enfermement.
+        // Added in Batch 79, same criterion as in Batch 33: typed by hand,
+        // unrecoverable elsewhere, and yet missing from an export that promises
+        // no lock-in.
         List<MarketObservationExport> marketObservations,
         List<FollowedEditionExport> followedEditions,
-        // Ajoutées le 2026-09-11 avec l'état Suivi : saisi à la main, comme une envie.
+        // Added on 2026-09-11 with the Followed state: typed by hand, like a wish.
         List<FollowedWorkExport> followedWorks,
         List<EntityTypeExport> entityTypes,
         CollectorPreferencesExport collectorPreferences
 ) {
     /**
-     * {@code mangaEditionId} est le lien tome -> edition de reference. Ajoute
-     * au Lot 115 : sans lui, un export reimporte perdait ce rattachement, et
-     * chaque "X sur Y" repartait de zero.
+     * {@code mangaEditionId} is the volume -> reference edition link. Added
+     * in Batch 115: without it, a re-imported export lost this link, and
+     * each "X of Y" started again from zero.
      */
     public record VariantExport(UUID id, String label, Map<String, Object> attributes, UUID mangaEditionId) {
     }
 
-    /** champsSaisis : les cles d'attributes saisies a la main (Lot 130) - un import les reprend,
-     *  pour qu'un rechargement depuis la source ne les ecrase pas non plus sur l'autre instance.
-     *  Absent d'un export anterieur : lu comme vide. */
+    /** champsSaisis: the attribute keys typed by hand (Batch 130) - an import takes them back,
+     *  so that a reload from the source does not overwrite them either on the other instance.
+     *  Missing from an older export: read as empty. */
     public record EntityExport(UUID id, String entityTypeCode, String entityTypeLabel, String title,
                                 Map<String, Object> attributes, List<String> tagLabels,
                                 List<VariantExport> variants, List<String> champsSaisis) {
@@ -65,7 +65,7 @@ public record ExportDocument(
                                     String experienceType, LocalDate occurredAt, Integer rating, String comment) {
     }
 
-    /** {@code variantId} : une envie porte sur un TOME pour un manga (voir WishlistEntry.addVariant) - Lot 115. */
+    /** {@code variantId}: a wish is about a VOLUME for a manga (see WishlistEntry.addVariant) - Batch 115. */
     public record WishlistEntryExport(UUID id, UUID entityId, String entityTitle, UUID variantId, String variantLabel,
                                        LocalDate addedAt) {
     }
@@ -80,7 +80,7 @@ public record ExportDocument(
                                       String languageCode) {
     }
 
-    /** Classement général d'une œuvre (échelle S-F), hors Tier List nommée. */
+    /** General ranking of a work (S-F scale), outside a named Tier List. */
     public record FollowedWorkExport(UUID entityId, String entityTitle, LocalDate followedAt) {
     }
 
@@ -98,10 +98,10 @@ public record ExportDocument(
     }
 
     /**
-     * Un prix releve. {@code origin} distingue ce que l'utilisateur a saisi
-     * lui-meme (MANUAL_ENTRY) de ce que l'analyse d'une annonce a retenu
-     * (LISTING_ANALYSIS) - les deux comptent comme donnees de marche, et le
-     * premier n'existe nulle part ailleurs.
+     * A recorded price. {@code origin} tells apart what the user typed
+     * themselves (MANUAL_ENTRY) from what the analysis of a listing kept
+     * (LISTING_ANALYSIS) - both count as market data, and the
+     * first exists nowhere else.
      */
     public record MarketObservationExport(UUID id, UUID mangaEditionId, String seriesTitle, String editionName,
                                            Integer volumeRangeStart, Integer volumeRangeEnd, Integer volumeCount,
@@ -109,21 +109,21 @@ public record ExportDocument(
                                            LocalDate observedAt, String origin, String sourceUrl, String note) {
     }
 
-    /** L'edition qu'on collectionne reellement, par serie - un choix, pas une fiche. */
+    /** The edition that is really collected, per series - a choice, not a page. */
     public record FollowedEditionExport(UUID id, UUID entityId, String entityTitle, String editionName,
                                          LocalDate followedAt) {
     }
 
     /**
-     * Les types de collection, couleur/icone/format compris : un type
-     * personnalise cree depuis Administration ne se reconstruit pas a partir
-     * du code et du libelle portes par les oeuvres.
+     * The collection types, color/icon/format included: a custom
+     * type created from Administration cannot be rebuilt from
+     * the code and label carried by the works.
      */
     public record EntityTypeExport(UUID id, String code, String label, List<String> allowedExperienceTypes,
                                     List<String> customFieldKeys, String colorKey, String iconKey, String aspectKey) {
     }
 
-    /** Le profil qui pondere le verdict d'une analyse d'achat. */
+    /** The profile that weights the verdict of a purchase analysis. */
     public record CollectorPreferencesExport(List<String> editionTierRanking,
                                               boolean avoidOutdatedEditionWhenBetterExistsOrAnnounced,
                                               String conditionImportance, int minimumDiscountVsRetailPercent,
@@ -131,9 +131,9 @@ public record ExportDocument(
     }
 
     /**
-     * Ce qu'un univers ajoute au document (Lot 133) : le cœur ne lit ni
-     * n'écrit ces sections, il les assemble. Le format, lui, reste ici -
-     * c'est un contrat partagé, pas une dépendance de code.
+     * What a universe adds to the document (Batch 133): the core neither reads
+     * nor writes these sections, it assembles them. The format, though, stays here -
+     * it is a shared contract, not a code dependency.
      */
     public record SectionsUnivers(List<MangaEditionExport> editions,
                                   List<MarketObservationExport> marketObservations,
@@ -144,7 +144,7 @@ public record ExportDocument(
             return new SectionsUnivers(List.of(), List.of(), List.of(), null);
         }
 
-        /** Les sections des deux, bout à bout ; les préférences de l'autre si elle en a. */
+        /** The sections of both, end to end; the preferences of the other if it has some. */
         public SectionsUnivers avec(SectionsUnivers autre) {
             if (autre == null) {
                 return this;

@@ -32,8 +32,8 @@ import com.iozycore.manga.MangaEditionDeletionGuard;
 import com.iozycore.manga.MangaOrphanEditionCleanup;
 
 /**
- * Vérifie la garde de suppression d'un Tome (étape 4, modèle Série -> Édition -> Tome)
- * avec de faux repositories en mémoire - même patron que OwnershipDeletionServiceTest.
+ * Checks the delete guard of a Volume (step 4, Series -> Edition -> Volume model)
+ * with fake in-memory repositories - same pattern as OwnershipDeletionServiceTest.
  */
 class VariantDeletionServiceTest {
 
@@ -49,8 +49,8 @@ class VariantDeletionServiceTest {
 
     @Test
     void a_variant_with_no_ownership_and_no_experience_is_deleted() {
-        // Un second tome garde la Série non-vide, pour isoler ce test de la cascade
-        // "0 tome -> suppression de la Série" (voir les tests dédiés plus bas).
+        // A second volume keeps the Series non-empty, to isolate this test from the cascade
+        // "0 volumes -> delete the Series" (see the dedicated tests further down).
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
         entity.addVariant("Tome 2", Map.of("volumeNumber", 2));
@@ -73,15 +73,15 @@ class VariantDeletionServiceTest {
                 .isInstanceOf(VariantDeletionNotAllowedException.class)
                 .hasMessageContaining("1 ownership");
 
-        // Jamais de suppression partielle : la garde bloque AVANT tout appel à entity.removeVariant.
+        // Never a partial deletion: the guard blocks BEFORE any call to entity.removeVariant.
         assertThat(entityRepository.findById(entity.id()).orElseThrow().variants()).hasSize(1);
     }
 
     @Test
     void a_variant_referenced_by_a_sold_ownership_is_still_never_deleted() {
-        // Contrairement à EntityDeletionService (qui bloque déjà sur n'importe quelle
-        // Ownership), cette garde ne distingue pas non plus active/vendue - l'historique
-        // de possession de CE tome précis ne doit jamais se retrouver à pointer dans le vide.
+        // Unlike EntityDeletionService (which already blocks on any
+        // Ownership), this guard does not tell active from sold either - the ownership history
+        // of THIS exact volume must never end up pointing at nothing.
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
         entityRepository.save(entity);
@@ -113,7 +113,7 @@ class VariantDeletionServiceTest {
         entityRepository.save(entity);
         ownershipRepository.save(Ownership.acquire(entity.id(), tome2.id(), OwnershipCondition.NEW, LocalDate.now(), null));
 
-        service.delete(entity.id(), tome1.id()); // tome1 n'a aucune référence ; tome2 en a, mais n'est pas concerné ici
+        service.delete(entity.id(), tome1.id()); // tome1 has no reference; tome2 has some, but is not concerned here
 
         assertThat(entityRepository.findById(entity.id()).orElseThrow().variants())
                 .extracting(Variant::id).containsExactly(tome2.id());
@@ -136,9 +136,9 @@ class VariantDeletionServiceTest {
         marketPriceObservationRepository.save(MarketPriceObservation.record_(
                 edition.id(), null, new BigDecimal("150"), null, null, LocalDate.now(), null));
 
-        service.delete(entity.id(), variant.id()); // ne lève rien, le cascade s'arrête juste là
+        service.delete(entity.id(), variant.id()); // does not throw, the cascade just stops here
 
-        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // conservée
+        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // kept
     }
 
     @Test
@@ -168,7 +168,7 @@ class VariantDeletionServiceTest {
 
         service.delete(entity.id(), tome1.id());
 
-        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // tome2 l'utilise encore
+        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // tome2 still uses it
     }
 
     @Test
@@ -179,16 +179,16 @@ class VariantDeletionServiceTest {
 
         service.delete(entity.id(), variant.id());
 
-        assertThat(entityRepository.findById(entity.id())).isEmpty(); // plus aucun tome -> plus de série
+        assertThat(entityRepository.findById(entity.id())).isEmpty(); // no more volumes -> no more series
     }
 
     @Test
     void deleting_the_last_tome_without_any_edition_still_cascades_the_series() {
-        // La règle est bien "0 tome" et non "0 édition" - un Tome sans édition renseignée
-        // (voir QuickAddService, edition optionnel) compte tout autant comme un vrai Tome
-        // catalogué tant qu'il existe encore.
+        // The rule is "0 volumes" and not "0 editions" - a Volume without a filled-in edition
+        // (see QuickAddService, optional edition) counts just as much as a real
+        // cataloged Volume as long as it still exists.
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
-        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1)); // pas d'édition
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1)); // no edition
         entityRepository.save(entity);
 
         service.delete(entity.id(), variant.id());
@@ -198,9 +198,9 @@ class VariantDeletionServiceTest {
 
     @Test
     void a_series_kept_alive_by_a_generic_ownership_survives_losing_its_last_tome() {
-        // Ownership sans Variant précis (ex: "One Piece" ajouté sans choisir de tome) -
-        // le cascade "0 tome -> suppression de la Série" ne doit jamais l'ignorer
-        // silencieusement : EntityDeletionService bloque, la Série survit.
+        // Ownership without a specific Variant (e.g. "One Piece" added without choosing a volume) -
+        // the cascade "0 volumes -> delete the Series" must never ignore it
+        // silently: EntityDeletionService blocks, the Series survives.
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "One Piece");
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
         entityRepository.save(entity);
@@ -208,8 +208,8 @@ class VariantDeletionServiceTest {
 
         service.delete(entity.id(), variant.id());
 
-        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow(); // toujours là
-        assertThat(reloaded.variants()).isEmpty(); // le tome, lui, a bien disparu
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow(); // still there
+        assertThat(reloaded.variants()).isEmpty(); // the volume, itself, is gone
     }
 
     private static class InMemoryEntityRepository implements EntityRepository {
@@ -324,7 +324,7 @@ class VariantDeletionServiceTest {
         }
     }
 
-    /** Faux repository en mémoire pour MangaEdition, même patron que les autres ci-dessus. */
+    /** Fake in-memory repository for MangaEdition, same pattern as the others above. */
     private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
         private final Map<UUID, MangaEdition> store = new HashMap<>();
 
@@ -374,8 +374,8 @@ class VariantDeletionServiceTest {
         }
     }
 
-    /** Faux repository en mémoire pour MarketPriceObservation - juste assez pour vérifier
-     * que le cascade Édition (étape 5) épargne une Édition qui porte des données réelles. */
+    /** Fake in-memory repository for MarketPriceObservation - just enough to check
+     * that the Edition cascade (step 5) spares an Edition that carries real data. */
     private static class InMemoryMarketPriceObservationRepository implements MarketPriceObservationRepository {
         private final List<MarketPriceObservation> store = new ArrayList<>();
 
@@ -402,8 +402,8 @@ class VariantDeletionServiceTest {
 
         @Override
         public int countByEditionIdAllOwners(UUID mangaEditionId) {
-            // En mémoire, il n'y a qu'un seul propriétaire : les deux
-            // questions se confondent.
+            // In memory, there is only one owner: both
+            // questions are the same.
             return findByEditionId(mangaEditionId).size();
         }
     }

@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Ce que l'utilisateur a choisi de voir dans Ma collection, retenu d'une
- * visite à l'autre.
+ * What the user chose to see in Ma collection, remembered from one visit to
+ * the next.
  *
- * <h2>Trois filtres, deux vues, deux tris - et une seule page</h2>
- * L'étude produit du 2026-08-27 supprime la séparation « Collection » /
- * « Envies » : ce sont deux lectures du même endroit, et chacune raisonne sur
- * les tomes qu'un groupe contient. Le filtre, le mode de vue et le tri sont
- * mémorisés parce qu'ils décrivent une HABITUDE - quelqu'un qui range par
- * date de venue ne veut pas le redemander à chaque ouverture.
+ * <h2>Three filters, two views, two sorts - and one single page</h2>
+ * The product study of 2026-08-27 removes the "Collection" / "Envies"
+ * separation: they are two readings of the same place, and each one reasons
+ * on the volumes that a group contains. The filter, the view mode and the
+ * sort are remembered because they describe a HABIT - someone who sorts by
+ * date of arrival does not want to ask for it again at each opening.
  *
- * <p>En local et non côté serveur : c'est un réglage d'affichage propre à cet
- * appareil, comme le thème et la composition des titres (voir lib/theme et
- * lib/titleLanguage, dont ce module reprend le patron).
+ * <p>Local and not on the server side: it is a display setting specific to
+ * this device, like the theme and the composition of titles (see lib/theme and
+ * lib/titleLanguage, whose pattern this module follows).
  */
 export type FiltreCollection = 'tout' | 'possedes' | 'suivies' | 'envies'
 export type VueCollection = 'groupee' | 'plate'
@@ -27,16 +27,16 @@ interface PreferencesCollection {
 
 const CLE = 'iozycore.preferencesCollection'
 
-/** « Groupée » par défaut : une carte par série est la lecture qui tient sur
- *  un écran, et celle que la page a toujours eue. */
+/** "Grouped" by default: one card per series is the reading that fits on a
+ *  screen, and the one the page has always had. */
 const DEFAUT: PreferencesCollection = { filtre: 'tout', vue: 'groupee', tri: 'recent' }
 
 const FILTRES: FiltreCollection[] = ['tout', 'possedes', 'suivies', 'envies']
 const VUES: VueCollection[] = ['groupee', 'plate']
 const TRIS: TriCollection[] = ['recent', 'titre']
 
-/** Valide champ par champ plutôt qu'en bloc : un réglage ajouté plus tard ne
- *  doit pas faire retomber les autres sur leur défaut. */
+/** Validates field by field rather than as a block: a setting added later
+ *  must not make the others fall back to their default. */
 function lire(): PreferencesCollection {
   try {
     const brut = JSON.parse(localStorage.getItem(CLE) ?? 'null') as Partial<PreferencesCollection> | null
@@ -55,16 +55,16 @@ function ecrire(preferences: PreferencesCollection): void {
   try {
     localStorage.setItem(CLE, JSON.stringify(preferences))
   } catch {
-    // Navigation privée, stockage refusé : la page reste utilisable, elle
-    // oublie simplement le choix à la prochaine ouverture.
+    // Private browsing, storage refused: the page stays usable, it simply
+    // forgets the choice at the next opening.
   }
   window.dispatchEvent(new CustomEvent(CLE))
 }
 
 /**
- * Les préférences, et de quoi les modifier. Deux écrans les partagent (Ma
- * collection et la vue d'une catégorie) : ils lisent le même réglage et se
- * suivent, au lieu de repartir chacun de son propre défaut.
+ * The preferences, and the means to change them. Two screens share them (Ma
+ * collection and the view of a category): they read the same setting and
+ * follow each other, instead of each starting from its own default.
  */
 export function usePreferencesCollection(): PreferencesCollection & {
   definir: (partielles: Partial<PreferencesCollection>) => void
@@ -87,8 +87,8 @@ export function usePreferencesCollection(): PreferencesCollection & {
   }
 }
 
-/** Modifie les préférences hors composant (le cœur des en-têtes, qui emmène
- *  sur Ma collection filtrée par Envies). */
+/** Changes the preferences outside a component (the heart of the headers, which
+ *  leads to Ma collection filtered by Envies). */
 export function definirPreferencesCollection(partielles: Partial<PreferencesCollection>): void {
   ecrire({ ...lire(), ...partielles })
 }

@@ -29,21 +29,21 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
- * Interroge l'API XML publique de BoardGameGeek. Couvre le type BOARD_GAME
- * uniquement.
+ * Queries the BoardGameGeek public XML API. Covers the BOARD_GAME type
+ * only.
  * <p>
- * BGG exige depuis juillet 2025 un enregistrement d'application et un token
- * Bearer pour la quasi-totalité de son API (voir BggAuthorization) - le
- * token est configurable via bgg.application-token (BGG_APPLICATION_TOKEN),
- * optionnel pour ne pas bloquer le développement local, mais son absence
- * est loggée en avertissement.
+ * Since July 2025, BGG requires an application registration and a token
+ * Bearer for almost all of its API (see BggAuthorization) - the
+ * token is configurable with bgg.application-token (BGG_APPLICATION_TOKEN),
+ * optional so as not to block local development, but its absence
+ * is logged as a warning.
  * <p>
- * Limite assumée : l'endpoint de recherche ne renvoie pas d'image ni de
- * nombre de joueurs/durée - seuls id/titre/année sont disponibles à ce
- * stade. Récupérer le reste nécessiterait un second appel par résultat
- * vers /xmlapi2/thing?id=... (voir BggThingFetcher, utilisé par la
- * découverte plutôt que systématiquement ici pour ne pas multiplier les
- * appels réseau sur une simple recherche).
+ * Accepted limit: the search endpoint returns no image and no
+ * number of players/duration - only id/title/year are available at this
+ * stage. Getting the rest would need a second call per result
+ * to /xmlapi2/thing?id=... (see BggThingFetcher, used by
+ * discovery rather than systematically here so as not to multiply
+ * network calls on a simple search).
  */
 @Component
 public class BggMetadataProvider implements MetadataProvider {
@@ -67,8 +67,8 @@ public class BggMetadataProvider implements MetadataProvider {
     public List<MetadataCandidate> search(String query) {
         try {
             if (applicationToken == null || applicationToken.isBlank()) {
-                log.warn("Aucun bgg.application-token configuré - appel BGG non authentifié, "
-                        + "non conforme aux conditions actuelles de BGG (voir boardgamegeek.com/using_the_xml_api)");
+                log.warn("No bgg.application-token configured - unauthenticated BGG call, "
+                        + "not compliant with BGG's current terms (see boardgamegeek.com/using_the_xml_api)");
             }
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
             HttpRequest request = BggAuthorization.applyToken(HttpRequest.newBuilder()
@@ -79,39 +79,39 @@ public class BggMetadataProvider implements MetadataProvider {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("BGG a répondu {} pour la requête '{}'", response.statusCode(), query);
+                log.warn("BGG answered {} for the query '{}'", response.statusCode(), query);
                 return List.of();
             }
 
             return classerParPertinence(parse(response.body()), query);
         } catch (Exception e) {
-            log.warn("Échec de l'appel à BGG pour '{}' : {}", query, e.getMessage());
+            log.warn("Call to BGG failed for '{}': {}", query, e.getMessage());
             return List.of();
         }
     }
 
     /**
-     * Nombre de résultats rendus à l'écran de recherche - même plafond que le
-     * fournisseur manga, qui le demande directement à Jikan ({@code limit=10}).
-     * BGG, lui, rend TOUT : « Carcassonne » ramène 144 lignes.
+     * Number of results shown on the search screen - same cap as the
+     * manga provider, which asks Jikan for it directly ({@code limit=10}).
+     * BGG, on the other hand, returns EVERYTHING: "Carcassonne" brings back 144 rows.
      */
     private static final int MAX_RESULTATS = 10;
 
     /**
-     * Classe les résultats de BGG par pertinence, et n'en garde que les
-     * premiers.
+     * Ranks the BGG results by relevance, and keeps only the
+     * first ones.
      *
-     * <h2>Pourquoi c'est nécessaire</h2>
-     * L'API de BGG rend ses correspondances dans SON ordre - alphabétique - et
-     * sans limite. Chercher « Carcassonne » donnait 144 lignes ouvertes par
-     * treize extensions amateurs (« Am Pranger », « Angler & Fischfarm »…), le
-     * jeu lui-même arrivant en quatorzième position. Le titre exact que l'on
-     * vient de taper doit être le premier résultat.
+     * <h2>Why this is needed</h2>
+     * The BGG API returns its matches in ITS order - alphabetical - and
+     * without limit. Searching "Carcassonne" gave 144 rows opened by
+     * thirteen amateur expansions ("Am Pranger", "Angler & Fischfarm"...), the
+     * game itself coming in fourteenth position. The exact title that was
+     * just typed must be the first result.
      *
-     * <p>Quatre rangs seulement, et l'ordre de BGG conservé à l'intérieur de
-     * chacun : titre exact, puis titre qui COMMENCE par la recherche, puis
-     * titre qui la contient, puis le reste. Pas de score continu - il serait
-     * plus difficile à expliquer qu'à calculer, et rien ici ne le demande.
+     * <p>Only four ranks, and the BGG order kept inside
+     * each one: exact title, then title that STARTS with the search, then
+     * title that contains it, then the rest. No continuous score - it would be
+     * harder to explain than to compute, and nothing here asks for it.
      */
     static List<MetadataCandidate> classerParPertinence(List<MetadataCandidate> candidats, String query) {
         String recherche = normaliser(query);
@@ -131,8 +131,8 @@ public class BggMetadataProvider implements MetadataProvider {
         return titre.contains(recherche) ? 2 : 3;
     }
 
-    /** Minuscules sans accent : « Baum fällt » et « baum fallt » désignent le
-     *  même jeu, et l'utilisateur tape rarement les diacritiques. */
+    /** Lowercase without accents: "Baum fällt" and "baum fallt" mean the
+     *  same game, and the user rarely types the diacritics. */
     private static String normaliser(String valeur) {
         return Normalizer.normalize(valeur == null ? "" : valeur, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
@@ -142,7 +142,7 @@ public class BggMetadataProvider implements MetadataProvider {
 
     List<MetadataCandidate> parse(String xmlBody) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); // prévention XXE
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); // XXE prevention
         Document document = factory.newDocumentBuilder()
                 .parse(new org.xml.sax.InputSource(new java.io.StringReader(xmlBody)));
 

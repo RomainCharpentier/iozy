@@ -2,44 +2,44 @@ import { Compass, Library, Search } from 'lucide-react'
 
 export interface NavItem {
   to: string
-  /** Le libellé complet, celui de la barre desktop. */
+  /** The full label, the one of the desktop bar. */
   label: string
-  /** Ce que la barre du pouce affiche - le même mot quand il tient, un mot
-   *  plus court sinon. Quatre onglets sur 375 px ne laissent pas la place
-   *  d'écrire « Analyser une annonce ». */
+  /** What the thumb bar displays - the same word when it fits, a shorter
+   *  word otherwise. Four tabs on 375 px leave no room
+   *  to write "Analyser une annonce". */
   labelCourt: string
 
   icon: typeof Library
-  /** Routes additionnelles qui doivent aussi allumer cette entrée - ex: la
-   *  fiche d'une série reste sous « Ma collection », l'historique d'analyses
-   *  sous « Analyser une annonce ». `NavLink` seul ne sait comparer qu'un
-   *  préfixe de route. */
+  /** Additional routes that must also light up this entry - e.g. the detail
+   *  page of a series stays under "Ma collection", the analysis history
+   *  under "Analyser une annonce". `NavLink` alone can only compare a
+   *  route prefix. */
   activeWhen: (pathname: string) => boolean
 }
 
 /**
- * Les destinations globales de l'application - **une seule liste**, lue par la
- * barre desktop et par la barre du pouce.
+ * The global destinations of the application - **a single list**, read by the
+ * desktop bar and by the thumb bar.
  *
- * <h2>Pourquoi elle vit ici et plus dans chaque barre</h2>
- * Les deux barres portaient chacune sa copie, « gardée manuellement
- * synchronisée » : c'est-à-dire garantie de diverger. Ajouter une quatrième
- * entrée à l'une et pas à l'autre aurait rendu un parcours entier
- * inatteignable au pouce - exactement ce qui était déjà arrivé aux Envies et
- * au Profil (voir GlobalShortcuts).
+ * <h2>Why it lives here and no longer in each bar</h2>
+ * The two bars each carried their copy, "manually kept
+ * in sync": which is a guarantee to diverge. Adding a fourth
+ * entry to one and not to the other would have made a whole flow
+ * unreachable with a thumb - exactly what had already happened to the Wishes and
+ * the Profile (see GlobalShortcuts).
  *
- * <h2>Trois entrées, et aucune ne nomme un univers (lot 137)</h2>
- * « Analyser une annonce » a été la quatrième, du 2026-08-27 au 2026-09-05 :
- * un parcours indépendant, qui commence par une URL d'annonce et ne crée ni
- * possession ni envie. Mais c'est un parcours MANGA - un lot de tomes
- * d'occasion confronté à la collection - et la barre de navigation vaut pour
- * n'importe quelle collection, comme Ma collection depuis le lot 136. Il se
- * rejoint désormais depuis Découvrir (carte-lien en tête) et depuis la fiche
- * d'une série (« Évaluer une annonce »), et c'est Découvrir qui s'allume
- * quand on y est.
+ * <h2>Three entries, and none names a universe (batch 137)</h2>
+ * "Analyser une annonce" was the fourth, from 2026-08-27 to 2026-09-05:
+ * an independent flow, which starts with a listing URL and creates neither
+ * ownership nor wish. But it is a MANGA flow - a lot of used
+ * volumes compared to the collection - and the navigation bar applies to
+ * any collection, like Ma collection since batch 136. It is now
+ * reached from Discover (link card at the top) and from the detail page
+ * of a series ("Évaluer une annonce"), and it is Discover that lights up
+ * when you are there.
  *
- * <p>Les Envies n'y sont pas : ce sont une lecture de Ma collection, pas une
- * destination (§16, décision close).
+ * <p>The Wishes are not there: they are a reading of Ma collection, not a
+ * destination (§16, closed decision).
  */
 export const NAV_ITEMS: NavItem[] = [
   {
@@ -51,16 +51,16 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/add',
-    // « Catalogue » et non « Rechercher » : l'onglet ne mène plus à une page
-    // vide qu'une saisie remplit, il montre les œuvres que l'instance connaît.
-    // Chercher chez un fournisseur y reste possible - c'est devenu la seconde
-    // moitié de l'écran, pas sa raison d'être. C'est aussi la seule
-    // destination d'un visiteur, à qui « Rechercher » n'aurait rien promis.
+    // "Catalogue" and not "Rechercher": the tab no longer leads to an empty
+    // page that an input fills, it shows the works that the instance knows.
+    // Searching at a provider is still possible there - it became the second
+    // half of the screen, not its reason for being. It is also the only
+    // destination of a visitor, to whom "Rechercher" would have promised nothing.
     label: 'Catalogue',
     labelCourt: 'Catalogue',
     icon: Search,
-    // `/scan` reste sous Rechercher : scanner, c'est identifier une œuvre -
-    // le même pipeline, une autre saisie.
+    // `/scan` stays under Rechercher: scanning is identifying a work -
+    // the same pipeline, another input.
     activeWhen: (p) => p === '/add' || p === '/scan' || p === '/apercu',
   },
   {
@@ -68,9 +68,9 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Découvrir',
     labelCourt: 'Découvrir',
     icon: Compass,
-    // Les Tier Lists, les suggestions d'achat, le calendrier des sorties et
-    // l'analyse d'une annonce s'ouvrent depuis Découvrir et de nulle part
-    // ailleurs dans la navigation : c'est lui qui reste allumé quand on y est.
+    // The Tier Lists, the purchase suggestions, the release calendar and
+    // the analysis of a listing open from Discover and from nowhere
+    // else in the navigation: it is the one that stays lit when you are there.
     activeWhen: (p) =>
       p.startsWith('/discover') ||
       p.startsWith('/tier-lists') ||

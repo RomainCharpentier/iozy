@@ -6,10 +6,11 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    /* Comme l'application, et non comme les fichiers de configuration Node :
-       Playwright transpile ces fichiers lui-même et accepte les imports sans
-       extension. `nodenext` (celui de tsconfig.node.json) les refuserait, et
-       écrire `./compte.js` pour désigner `compte.ts` mentirait au lecteur. */
+    /* Like the application, and not like the Node config files:
+       Playwright transpiles these files itself and accepts imports without
+       an extension. `nodenext` (the one in tsconfig.node.json) would refuse
+       them, and writing `./compte.js` to mean `compte.ts` would lie to the
+       reader. */
     "module": "esnext",
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,

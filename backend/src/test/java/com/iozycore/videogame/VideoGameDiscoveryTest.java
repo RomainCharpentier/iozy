@@ -16,7 +16,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** La découverte des jeux vidéo - test extrait de DiscoveryServiceTest au Lot 133. */
+/** Video game discovery - test extracted from DiscoveryServiceTest in Batch 133. */
 class VideoGameDiscoveryTest {
 
     @Test
@@ -28,8 +28,8 @@ class VideoGameDiscoveryTest {
         entityRepository.save(hollowKnight);
 
         StubIgdbSimilarGamesFetcher igdb = new StubIgdbSimilarGamesFetcher(List.of(
-                new MetadataCandidate("IGDB", "8123", "Hollow Knight", null, Map.of()), // déjà possédé - doit être exclu
-                new MetadataCandidate("IGDB", "9001", "Tunic", null, Map.of())          // nouveau - doit apparaître
+                new MetadataCandidate("IGDB", "8123", "Hollow Knight", null, Map.of()), // already owned - must be excluded
+                new MetadataCandidate("IGDB", "9001", "Tunic", null, Map.of())          // new - must appear
         ));
 
         VideoGameDiscovery discovery = new VideoGameDiscovery(entityRepository, igdb);

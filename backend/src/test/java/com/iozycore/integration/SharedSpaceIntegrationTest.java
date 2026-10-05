@@ -26,18 +26,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Le partage d'espace de bout en bout : <b>un lien, des sections au choix</b>.
+ * Space sharing end to end: <b>one link, sections of your choice</b>.
  * <p>
- * Il y avait deux systèmes parallèles, chacun avec son jeton, son contrôleur
- * public et sa page - deux URL pour regarder le même espace personnel. Ces
- * tests décrivent le système unifié, et surtout ses refus : ce qu'un porteur
- * de lien ne doit PAS recevoir.
+ * There were two parallel systems, each with its token, its public controller
+ * and its page - two URLs to look at the same personal space. These
+ * tests describe the unified system, and above all its refusals: what a link
+ * holder must NOT receive.
  * <p>
- * Le test le plus important est {@link #aucune_donnee_privee_ne_sort_jamais()} :
- * il sérialise la réponse publique et cherche les données privées dedans, plutôt
- * que de se contenter de vérifier les champs visibles. Un client qui masquerait
- * à l'affichage ne serait pas une barrière de confidentialité - le backend en
- * est une.
+ * The most important test is {@link #aucune_donnee_privee_ne_sort_jamais()}:
+ * it serialises the public response and looks for the private data inside, rather
+ * than just checking the visible fields. A client that hides things
+ * on display would not be a confidentiality barrier - the backend
+ * is one.
  */
 class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
 
@@ -56,8 +56,8 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private WishlistEntryRepository wishlistEntryRepository;
 
-    /** Celui de l'application, pas un mapper nu : on veut voir EXACTEMENT ce
-     * que le réseau transporte. */
+    /** The one of the application, not a bare mapper: we want to see EXACTLY what
+     * the network carries. */
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -67,14 +67,14 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         return entityRepository.save(Entity.create(MANGA, prefixe + " " + UUID.randomUUID())).id();
     }
 
-    /** Une œuvre possédée : elle appartient à la collection. */
+    /** An owned work: it belongs to the collection. */
     private UUID unePossession(String prefixe) {
         UUID entityId = uneOeuvre(prefixe);
         ownershipRepository.save(Ownership.acquire(entityId, null, OwnershipCondition.NEW, LocalDate.now(), null));
         return entityId;
     }
 
-    /** Une envie SANS possession : le cas normal d'une œuvre qu'on souhaite. */
+    /** A wish WITHOUT ownership: the normal case of a work that one wants. */
     private UUID uneEnvie(String prefixe) {
         UUID entityId = uneOeuvre(prefixe);
         wishlistEntryRepository.save(WishlistEntry.add(entityId, LocalDate.now()));
@@ -85,7 +85,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         return shareController.generate().token();
     }
 
-    // ------------------------------------------------------- Sections au choix
+    // ------------------------------------------------------- Chosen sections
 
     @Test
     void un_lien_neuf_expose_les_deux_sections() {
@@ -96,7 +96,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(partage.collection()).isNotNull();
         assertThat(partage.wishlist()).isNotNull();
-        // Les classements restent exclus tant qu'ils n'ont pas été demandés.
+        // The rankings stay excluded as long as they have not been requested.
         assertThat(partage.tierLists()).isNull();
     }
 
@@ -110,8 +110,8 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         SharedSpaceResponse partage = publicShareController.shared(token);
 
         assertThat(partage.collection()).isNotEmpty();
-        // null, pas une liste vide : la section n'est pas calculée, elle
-        // n'existe pas dans la réponse. Rien à masquer côté client.
+        // null, not an empty list: the section is not computed, it
+        // does not exist in the response. Nothing to hide on the client side.
         assertThat(partage.wishlist()).isNull();
     }
 
@@ -126,7 +126,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(partage.wishlist()).isNotEmpty();
         assertThat(partage.collection()).isNull();
-        // Les classements suivent la collection : sans elle, ils ne sortent pas.
+        // The rankings follow the collection: without it, they do not come out.
         assertThat(partage.tierLists()).isNull();
     }
 
@@ -150,14 +150,14 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
                 .isInstanceOf(ResponseStatusException.class);
     }
 
-    // ------------------------------------------------- Un seul espace partagé
+    // ------------------------------------------------- One single shared space
 
     @Test
     void entrer_par_la_collection_ou_par_les_envies_donne_le_meme_lien() {
         String depuisUnEcran = unLien();
 
-        // Le raccourci de l'autre écran lit le MÊME partage : c'est tout
-        // l'objet de l'unification, deux entrées ne créent pas deux jetons.
+        // The shortcut of the other screen reads the SAME share: this is the whole
+        // point of the unification, two entries do not create two tokens.
         assertThat(shareController.current().token()).isEqualTo(depuisUnEcran);
     }
 
@@ -169,8 +169,8 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
 
         SharedSpaceResponse partage = publicShareController.shared(unLien());
 
-        // Posséder un tome et vouloir la suite sont deux intentions
-        // différentes : on ne déduplique pas entre les sections.
+        // Owning a volume and wanting the next one are two different
+        // intentions: we do not deduplicate between the sections.
         assertThat(partage.collection()).anySatisfy(universe ->
                 assertThat(universe.items()).anySatisfy(item -> assertThat(item.title()).isEqualTo(titre)));
         assertThat(partage.wishlist()).anySatisfy(item -> assertThat(item.title()).isEqualTo(titre));
@@ -184,8 +184,8 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
 
         SharedSpaceResponse partage = publicShareController.shared(unLien());
 
-        // Vouloir n'est pas posséder : supposer qu'une envie a un exemplaire
-        // ferait disparaître le cas le plus courant.
+        // Wanting is not owning: assuming that a wish has a copy
+        // would make the most common case disappear.
         assertThat(partage.wishlist()).anySatisfy(item -> assertThat(item.title()).isEqualTo(titre));
     }
 
@@ -196,7 +196,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
 
         SharedSpaceResponse partage = publicShareController.shared(unLien());
 
-        // La collection montre ce qu'on POSSÈDE, jamais le simple catalogue.
+        // The collection shows what one OWNS, never the simple catalogue.
         assertThat(partage.collection()).allSatisfy(universe ->
                 assertThat(universe.items()).noneSatisfy(item -> assertThat(item.title()).isEqualTo(titre)));
     }
@@ -209,13 +209,13 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         UUID entityId = uneEnvie("Pluto");
         String titre = entityRepository.findById(entityId).orElseThrow().title();
 
-        // Vue vivante, pas photographie : le lien déjà distribué montre la
-        // suite sans qu'il y ait quoi que ce soit à refaire.
+        // Live view, not a photograph: the link already given shows the
+        // next volumes without anything to redo.
         assertThat(publicShareController.shared(token).wishlist())
                 .anySatisfy(item -> assertThat(item.title()).isEqualTo(titre));
     }
 
-    // --------------------------------------------------- Révocation et jetons
+    // --------------------------------------------------- Revocation and tokens
 
     @Test
     void desactiver_le_partage_rend_l_ancien_lien_inutilisable() {
@@ -260,18 +260,18 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         unePossession("Naruto");
         shareController.remove();
 
-        // La colonne token vaut null après révocation : sans garde, un appel
-        // sans jeton « matcherait » cette ligne et rouvrirait le partage.
+        // The token column is null after revocation: without a guard, a call
+        // without a token would "match" this row and reopen the sharing.
         assertThatThrownBy(() -> publicShareController.shared(""))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
-    // -------------------------------------------------------- Confidentialité
+    // -------------------------------------------------------- Confidentiality
 
     @Test
     void aucune_donnee_privee_ne_sort_jamais() throws Exception {
         UUID entityId = uneOeuvre("Death Note");
-        // Des données franchement privées, attachées à cette possession.
+        // Clearly private data, attached to this ownership.
         Ownership possession = Ownership.acquire(entityId, null, OwnershipCondition.NEW,
                 LocalDate.of(2024, 3, 14), null);
         possession.updateNote("Cadeau de ma soeur, ne jamais revendre");
@@ -281,19 +281,19 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
 
         String json = objectMapper.writeValueAsString(publicShareController.shared(unLien()));
 
-        // On cherche les données privées DANS LA RÉPONSE SÉRIALISÉE, pas dans
-        // les champs qu'on a pensé à regarder : c'est ce que verrait quelqu'un
-        // qui inspecte le réseau.
+        // We look for the private data IN THE SERIALISED RESPONSE, not in
+        // the fields we thought of checking: this is what someone who
+        // inspects the network would see.
         assertThat(json)
-                .doesNotContain("249.99")                              // prix payé
-                .doesNotContain("Cadeau de ma soeur")                  // note personnelle
-                .doesNotContain("2024-03-14")                          // date d'acquisition
-                .doesNotContain(entityId.toString())                   // identifiant interne
+                .doesNotContain("249.99")                              // paid price
+                .doesNotContain("Cadeau de ma soeur")                  // personal note
+                .doesNotContain("2024-03-14")                          // acquisition date
+                .doesNotContain(entityId.toString())                   // internal identifier
                 .doesNotContain("purchasePrice")
                 .doesNotContain("acquiredAt")
                 .doesNotContain("entityId")
                 .doesNotContain("ownership");
-        // Et pourtant l'œuvre est bien là, sous son titre.
+        // And yet the work is there, under its title.
         assertThat(json).contains(entityRepository.findById(entityId).orElseThrow().title());
     }
 }

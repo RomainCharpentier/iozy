@@ -1,50 +1,50 @@
 /**
- * <b>Le garde-fou de la fonctionnalité IA, réduit à deux fonctions.</b>
+ * <b>The guardrail of the AI feature, reduced to two functions.</b>
  *
- * Une donnée produite par un modèle de langage ne doit JAMAIS être présentée
- * comme une donnée réelle. Quatre écrans traduisaient cet enum chacun dans son
- * coin, et l'un d'eux - écrit avant que l'IA existe - posait « (marché) » sur
- * tout ce qui n'était pas théorique, donc sur une estimation IA.
+ * Data produced by a language model must NEVER be presented as real data.
+ * Four screens translated this enum each in their own corner, and one of
+ * them - written before the AI existed - put "(marché)" on everything that
+ * was not theoretical, so on an AI estimate.
  *
- * <p>Le cas `null` compte autant que les trois autres : ne rien écrire vaut
- * mieux qu'affirmer une origine qu'on ne connaît pas. Un repli sur
- * « théorique » serait une invention.
+ * <p>The `null` case matters as much as the other three: writing nothing is
+ * better than claiming an origin that we do not know. A fallback on
+ * "théorique" would be an invention.
  */
 import { describe, expect, it } from 'vitest'
 import { libelleBaseCourt, libelleBaseLong } from './basePrix'
 
 describe('libelleBaseCourt', () => {
-  it('nomme les trois origines distinctement', () => {
+  it('names the three origins distinctly', () => {
     expect(libelleBaseCourt('OBSERVED_MARKET')).toBe('marché')
     expect(libelleBaseCourt('AI_ESTIMATED')).toBe('estimation IA')
     expect(libelleBaseCourt('THEORETICAL_ONLY')).toBe('théorique')
   })
 
-  it('n’écrit rien quand l’origine est inconnue', () => {
+  it('writes nothing when the origin is unknown', () => {
     expect(libelleBaseCourt(null)).toBeNull()
   })
 })
 
 describe('libelleBaseLong', () => {
-  it('dit d’une estimation IA qu’elle n’est pas vérifiée', () => {
+  it('says of an AI estimate that it is not verified', () => {
     expect(libelleBaseLong('AI_ESTIMATED')).toBe('estimation IA, non vérifiée')
   })
 
-  it('réserve le mot « observés » aux vrais relevés', () => {
+  it('reserves the word "observés" for real observations', () => {
     expect(libelleBaseLong('OBSERVED_MARKET')).toBe('prix de marché observés')
     expect(libelleBaseLong('THEORETICAL_ONLY')).not.toContain('observ')
     expect(libelleBaseLong('AI_ESTIMATED')).not.toContain('observ')
   })
 
-  it('n’écrit rien quand l’origine est inconnue', () => {
+  it('writes nothing when the origin is unknown', () => {
     expect(libelleBaseLong(null)).toBeNull()
   })
 })
 
-describe('les deux registres', () => {
-  it('disent le même sens, jamais deux origines différentes', () => {
-    // Le court est une incise derrière un montant, le long une phrase de
-    // l'assistant : deux places, un seul sens écrit une fois.
+describe('the two registers', () => {
+  it('say the same meaning, never two different origins', () => {
+    // The short one is an aside after an amount, the long one a sentence of
+    // the assistant: two places, one single meaning written once.
     expect(libelleBaseLong('AI_ESTIMATED')).toContain(libelleBaseCourt('AI_ESTIMATED') as string)
     expect(libelleBaseLong('THEORETICAL_ONLY')).toContain('théorique')
   })

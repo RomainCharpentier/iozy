@@ -5,17 +5,17 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Rang GÉNÉRAL d'une œuvre (voir la maquette V1.2, §45 - "Tier générale...
- * Mangas / Jeux vidéo / Jeux de société / Livres", toujours sur l'échelle
- * complète S-F). Une ligne = une Entity classée ; "non classé" = absence de
- * ligne, jamais un rang null stocké (voir TierListRepository côté
- * application pour le calcul de la file d'attente "à classer" - toute
- * Entity possédée sans EntityRank associée).
+ * GENERAL rank of a work (see mockup V1.2, §45 - "General tier...
+ * Mangas / Video games / Board games / Books", always on the
+ * full S-F scale). One row = one ranked Entity; "unranked" = no
+ * row, never a stored null rank (see TierListRepository on the
+ * application side for the computation of the "to rank" queue - every
+ * owned Entity without an associated EntityRank).
  * <p>
- * Contrairement à TierListItem, aucune notion d'appartenance explicite :
- * toute œuvre possédée est un candidat implicite au classement général
- * (voir la maquette - "Classer rapidement" parcourt directement les
- * œuvres possédées non classées, pas une liste à constituer d'abord).
+ * Unlike TierListItem, no notion of explicit membership:
+ * every owned work is an implicit candidate for the general ranking
+ * (see the mockup - "Rank quickly" goes straight through the
+ * owned unranked works, not a list to build first).
  */
 public class EntityRank {
 

@@ -1,28 +1,28 @@
 /**
- * Vérifie que chaque couleur de texte du thème tient le seuil AA (4.5:1) sur
- * chacun des fonds où elle peut atterrir, dans les DEUX thèmes.
+ * Checks that every text color of the theme meets the AA threshold (4.5:1) on
+ * each of the backgrounds where it can land, in BOTH themes.
  *
- * ## Pourquoi un script et pas un test
- * Le dépôt web n'a pas de lanceur de tests. En introduire un pour cette seule
- * vérification serait disproportionné ; Node lit un fichier et calcule un
- * rapport de luminance sans aucune dépendance.
+ * ## Why a script and not a test
+ * The web repository has no test runner. Introducing one for this single
+ * check would be disproportionate; Node reads a file and computes a
+ * luminance ratio without any dependency.
  *
- * ## Pourquoi cette vérification existe
- * `index.css` porte une dizaine de commentaires expliquant des teintes
- * assombries d'un cheveu pour passer AA - « 4.40 → 4.57 », « il manquait un
- * QUATRIÈME fond ». Ce travail est réel et invisible : rien n'empêchait un
- * token ajouté demain de le défaire en silence. C'est déjà arrivé dans l'autre
- * sens - `text-warningText` a été écrit pendant des mois sans que le token
- * existe, et quatre avertissements s'affichaient en couleur ordinaire.
+ * ## Why this check exists
+ * `index.css` carries about ten comments explaining hues darkened by a hair
+ * to pass AA - "4.40 → 4.57", "a FOURTH background was missing". This work is
+ * real and invisible: nothing prevented a token added tomorrow from silently
+ * undoing it. It already happened the other way around - `text-warningText`
+ * was written for months without the token existing, and four warnings were
+ * shown in an ordinary color.
  *
- * ## Ce que le script sait, et que le CSS ne dit pas
- * Une couleur est un TEXTE ou un FOND, et le seuil ne se calcule pas pareil.
- * Les `--color-rank-*` en sont l'exemple : ce sont des pastilles de couleur
- * sur lesquelles on écrit une lettre. Les tester comme du texte sur le fond de
- * la page donne un faux positif - c'est l'erreur commise en écrivant ce
- * script, corrigée en lisant TierBadge.tsx.
+ * ## What the script knows, and the CSS does not say
+ * A color is a TEXT or a BACKGROUND, and the threshold is not computed the
+ * same way. The `--color-rank-*` are an example: they are color badges on
+ * which a letter is written. Testing them as text on the page background
+ * gives a false positive - this is the mistake made while writing this
+ * script, fixed by reading TierBadge.tsx.
  *
- * Usage : `npm run check:contrast`
+ * Usage: `npm run check:contrast`
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -31,12 +31,12 @@ import { dirname, join } from 'node:path'
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CSS = readFileSync(join(RACINE, 'src/index.css'), 'utf8')
 
-/** Seuil AA pour du texte de taille normale. */
+/** AA threshold for normal-size text. */
 const SEUIL = 4.5
 
 /**
- * Couleurs employées comme TEXTE, sur les fonds de page.
- * Voir les composants : `text-textDim`, `text-accentText`, `text-warning`…
+ * Colors used as TEXT, on the page backgrounds.
+ * See the components: `text-textDim`, `text-accentText`, `text-warning`…
  */
 const TEXTES = [
   'textPrimary', 'textDim', 'muted', 'faint',
@@ -45,12 +45,12 @@ const TEXTES = [
   'universeViolet', 'universeRose', 'universeCyan', 'universeArdoise',
 ]
 
-/** Les trois fonds qu'un texte peut rencontrer. */
+/** The three backgrounds a text can meet. */
 const FONDS = ['background', 'surface', 'surface2']
 
 /**
- * Encres posées SUR un remplissage, avec la liste des fonds qu'elles couvrent.
- * `null` signifie « la valeur est en dur dans le TS », voir le commentaire.
+ * Inks placed ON a fill, with the list of backgrounds they cover.
+ * `null` means "the value is hard-coded in the TS", see the comment.
  */
 const ENCRES = [
   { encre: 'accentInk', fonds: ['accent'] },
@@ -59,15 +59,15 @@ const ENCRES = [
 ]
 
 /**
- * Les pastilles de rang : une lettre écrite sur une couleur de remplissage.
- * L'encre vit dans `lib/tierListVisuals.ts` (RANK_INK_LIGHT/DARK) et non dans
- * le CSS - elle est donc reprise ici, et le script échoue si elle y change
- * sans que cette liste suive.
+ * The rank badges: a letter written on a fill color.
+ * The ink lives in `lib/tierListVisuals.ts` (RANK_INK_LIGHT/DARK) and not in
+ * the CSS - so it is repeated here, and the script fails if it changes there
+ * without this list following.
  */
 const RANGS = ['rank-s', 'rank-a', 'rank-b', 'rank-c', 'rank-d', 'rank-e', 'rank-f']
 const ENCRE_RANG = { clair: '#ffffff', sombre: '#231e19' }
 
-// ─────────────────────────────────────────────────────── Lecture des tokens
+// ─────────────────────────────────────────────────────── Reading the tokens
 
 function tokensDe(texte) {
   const trouves = {}
@@ -77,12 +77,12 @@ function tokensDe(texte) {
   return trouves
 }
 
-// La PREMIÈRE RÈGLE sombre, jamais une mention en commentaire : `index.css`
-// cite `[data-theme="dark"]` dans son en-tête, et couper là ne rendait aucun
-// token - le script annonçait alors « 0 problème » sur un ensemble vide.
+// The FIRST dark RULE, never a mention in a comment: `index.css` quotes
+// `[data-theme="dark"]` in its header, and cutting there returned no token -
+// the script then announced "0 problems" on an empty set.
 const debutSombre = CSS.search(/^\[data-theme="dark"\]\s*\{/m)
 if (debutSombre < 0) {
-  console.error('Aucune règle [data-theme="dark"] trouvée - index.css a-t-il changé de forme ?')
+  console.error('No [data-theme="dark"] rule found - did index.css change shape?')
   process.exit(2)
 }
 
@@ -92,7 +92,7 @@ for (const m of CSS.matchAll(/^\[data-theme="dark"\]\s*\{([\s\S]*?)^\}/gm)) {
   Object.assign(sombre, tokensDe(m[1]))
 }
 
-// ─────────────────────────────────────────────────────── Contraste
+// ─────────────────────────────────────────────────────── Contrast
 
 function canalLineaire(v) {
   const c = v / 255
@@ -110,7 +110,7 @@ function rapport(a, b) {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)
 }
 
-// ─────────────────────────────────────────────────────── Vérification
+// ─────────────────────────────────────────────────────── Verification
 
 const echecs = []
 const absents = []
@@ -127,61 +127,61 @@ function verifier(theme, palette, encre, fond, quoi) {
 
 for (const [theme, palette] of [['clair', clair], ['sombre', sombre]]) {
   for (const t of TEXTES) {
-    for (const f of FONDS) verifier(theme, palette, t, f, `${t} sur ${f}`)
+    for (const f of FONDS) verifier(theme, palette, t, f, `${t} on ${f}`)
   }
   for (const { encre, fonds } of ENCRES) {
-    for (const f of fonds) verifier(theme, palette, encre, f, `${encre} sur ${f}`)
+    for (const f of fonds) verifier(theme, palette, encre, f, `${encre} on ${f}`)
   }
   const encreRang = theme === 'clair' ? ENCRE_RANG.clair : ENCRE_RANG.sombre
-  for (const r of RANGS) verifier(theme, palette, encreRang, r, `lettre de rang sur ${r}`)
+  for (const r of RANGS) verifier(theme, palette, encreRang, r, `rank letter on ${r}`)
 }
 
-// ──────────────────────────────────────── Les pastilles d'avatar
+// ──────────────────────────────────────── The avatar badges
 //
-// Elles ne viennent d'AUCUN token : leur teinte est déduite du pseudo, la même
-// dans les deux thèmes (voir src/common/theme/avatar.ts) - une couleur d'identité ne
-// change pas avec l'apparence. Ce qui compte est donc le contraste INTERNE de
-// la pastille, entre son fond et ses deux lettres.
+// They come from NO token: their hue is derived from the username, the same
+// in both themes (see src/common/theme/avatar.ts) - an identity color does not
+// change with the appearance. What matters is therefore the INTERNAL contrast
+// of the badge, between its background and its two letters.
 //
-// L'encre est choisie par le code, pas fixée : sur la teinte verte, le blanc
-// tombe à 4,46 - juste sous le seuil. Ce contrôle vérifie que ce choix tient
-// pour les six teintes, quel que soit le pseudo qui y mène.
-// Relue depuis sa source : une septième teinte ajoutée à `gradientPalettes`
-// serait vérifiée sans que personne y pense, et une teinte modifiée ferait
-// tomber ce contrôle plutôt que de passer inaperçue.
+// The ink is chosen by the code, not fixed: on the green hue, white falls to
+// 4.46 - just under the threshold. This check verifies that this choice holds
+// for the six hues, whatever the username that leads to it.
+// Re-read from its source: a seventh hue added to `gradientPalettes` would be
+// checked without anyone thinking about it, and a modified hue would make
+// this check fail instead of going unnoticed.
 const AVATARS = [...readFileSync(join(RACINE, 'src/common/theme/tokens.ts'), 'utf8')
   .slice(readFileSync(join(RACINE, 'src/common/theme/tokens.ts'), 'utf8').indexOf('gradientPalettes'))
   .matchAll(/\['([0-9A-Fa-f]{6})',/g)].map((m) => `#${m[1]}`)
 if (AVATARS.length === 0) {
-  console.error("Palette d'avatars introuvable dans src/common/theme/tokens.ts")
+  console.error('Avatar palette not found in src/common/theme/tokens.ts')
   process.exit(2)
 }
 for (const fond of AVATARS) {
   const encre = rapport(fond, '#ffffff') >= rapport(fond, '#000000') ? '#ffffff' : '#000000'
   const ratio = rapport(fond, encre)
   if (ratio < SEUIL) {
-    echecs.push(`  avatar ${fond} sur ${encre} : ${ratio.toFixed(2)}:1`)
+    echecs.push(`  avatar ${fond} on ${encre} : ${ratio.toFixed(2)}:1`)
   }
 }
 
-// ─────────────────────────────────────────────────────── Rapport
+// ─────────────────────────────────────────────────────── Report
 
 const compte = TEXTES.length * FONDS.length + ENCRES.length + RANGS.length
 if (absents.length > 0) {
-  console.error(`Tokens introuvables (${absents.length}) :`)
+  console.error(`Tokens not found (${absents.length}):`)
   for (const a of [...new Set(absents)]) console.error(`  ${a}`)
   process.exit(2)
 }
 
 if (echecs.length > 0) {
-  console.error(`Contraste AA : ${echecs.length} combinaison(s) sous ${SEUIL}:1\n`)
+  console.error(`AA contrast: ${echecs.length} combination(s) under ${SEUIL}:1\n`)
   for (const e of echecs) console.error(e)
-  console.error('\nAssombrir (thème clair) ou éclaircir (thème sombre) la teinte fautive')
-  console.error('dans web/src/index.css, en gardant la teinte et en ne bougeant que la luminosité.')
+  console.error('\nDarken (light theme) or lighten (dark theme) the faulty hue')
+  console.error('in web/src/index.css, keeping the hue and changing only the lightness.')
   process.exit(1)
 }
 
 console.log(
-  `Contraste AA : ${compte * 2} combinaisons vérifiées sur les deux thèmes plus ${AVATARS.length} pastilles ` +
-    `d'avatar, aucune sous ${SEUIL}:1.`,
+  `AA contrast: ${compte * 2} combinations checked on both themes plus ${AVATARS.length} avatar ` +
+    `badges, none under ${SEUIL}:1.`,
 )

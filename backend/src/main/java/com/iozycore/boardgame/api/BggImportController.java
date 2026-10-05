@@ -9,12 +9,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Les jeux de société : l'import d'une collection BoardGameGeek. Même route
- * qu'avant le Lot 132 (/api/metadata/bgg/import), dans son propre paquet.
+ * Board games: the import of a BoardGameGeek collection. Same route
+ * as before Batch 132 (/api/metadata/bgg/import), in its own package.
  */
 @RestController
 @RequestMapping("/api/metadata")
-@Tag(name = "Metadata - jeux de société", description = "Import d'une collection BoardGameGeek")
+@Tag(name = "Metadata - board games", description = "Import of a BoardGameGeek collection")
 public class BggImportController {
 
     private final BggCollectionImportService bggCollectionImportService;
@@ -23,8 +23,8 @@ public class BggImportController {
         this.bggCollectionImportService = bggCollectionImportService;
     }
 
-    @Operation(summary = "Importer en masse les jeux marqués \"possédés\" de la collection BGG d'un utilisateur "
-            + "(déduplication automatique via le même mécanisme que l'ajout rapide)")
+    @Operation(summary = "Bulk import the games marked \"owned\" in a user's BGG collection "
+            + "(automatic deduplication through the same mechanism as quick add)")
     @PostMapping("/bgg/import")
     public BggCollectionImportService.ImportResult importBggCollection(@RequestParam String username) {
         if (username == null || username.isBlank()) {

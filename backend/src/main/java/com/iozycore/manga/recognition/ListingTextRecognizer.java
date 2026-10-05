@@ -6,41 +6,41 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Traduit ce que le <b>texte</b> d'une annonce annonce déjà en propositions,
- * dans la même forme que celles venues des photos.
+ * Turns what the <b>text</b> of a listing already announces into proposals,
+ * in the same form as the ones coming from the photos.
  *
- * <h2>Pourquoi le texte d'abord</h2>
- * « Platinum End intégrale tomes 1 à 14 » dit tout. Le comprendre ne demande
- * ni appel réseau, ni modèle, ni euro, ni seconde d'attente : des règles
- * écrites suffisent. Solliciter un moteur de vision pour retrouver ce que le
- * vendeur a écrit noir sur blanc serait payer pour deviner une information
- * donnée.
+ * <h2>Why the text first</h2>
+ * "Platinum End intégrale tomes 1 à 14" says everything. Understanding it needs
+ * no network call, no model, no euro, no second of waiting: written rules
+ * are enough. Asking a vision engine to find again what the
+ * seller wrote in black and white would be paying to guess information
+ * that is already given.
  *
- * <h2>Le partage avec {@link ListingTextParser}</h2>
- * Cette classe fut d'abord un simple adaptateur : le parser lisait, elle
- * convertissait sa {@code Detection} en {@link RecognizedItem}, rien de plus.
- * Elle a depuis pris une responsabilité, et une seule — <b>découper un titre
- * qui énumère plusieurs œuvres</b> ({@code plusieursSeries}).
+ * <h2>The sharing with {@link ListingTextParser}</h2>
+ * This class was first a simple adapter: the parser read, it
+ * converted its {@code Detection} into {@link RecognizedItem}, nothing more.
+ * Since then it has taken on one responsibility, and only one - <b>splitting a title
+ * that lists several works</b> ({@code plusieursSeries}).
  *
- * <p>Ce découpage vit ici et non dans le parser parce qu'il ne lit rien : il
- * <i>relit</i> chaque segment avec les règles du parser, inchangées. La
- * frontière tient donc toujours, mais elle n'est plus « aucune logique ici » :
- * elle est <b>« toute lecture d'un texte se fait dans le parser »</b>. Les
- * numéros, les tomes, le titre probable et l'édition en viennent tous.
+ * <p>This splitting lives here and not in the parser because it reads nothing: it
+ * <i>re-reads</i> each segment with the rules of the parser, unchanged. The
+ * border therefore still holds, but it is no longer "no logic here":
+ * it is <b>"every reading of a text is done in the parser"</b>. The
+ * numbers, the volumes, the probable title and the edition all come from it.
  *
- * <h2>Extraction n'est pas vérité</h2>
- * Les propositions rendues ici portent {@link RecognitionConfidence#HIGH}
- * parce que la <b>lecture</b> est certaine : la phrase dit « 1 à 14 ». Cela ne
- * signifie pas que le vendeur a ces quatorze tomes en main. C'est
- * {@link RecognitionSource#TEXT} qui porte cette nuance, et l'écran qui la
- * montre - jamais un score qui mélangerait les deux.
+ * <h2>Extraction is not truth</h2>
+ * The proposals returned here carry {@link RecognitionConfidence#HIGH}
+ * because the <b>reading</b> is certain: the sentence says "1 to 14". This does not
+ * mean the seller has these fourteen volumes in hand. It is
+ * {@link RecognitionSource#TEXT} that carries this nuance, and the screen that
+ * shows it - never a score that would mix the two.
  */
 public final class ListingTextRecognizer {
 
     /**
-     * Au-delà, on ne déroule pas : « tomes 1 à 300 » est déjà borné par le
-     * parser, mais produire trois cents lignes à cocher serait inutilisable.
-     * Un lot de cette taille se saisit autrement.
+     * Beyond that, we do not unroll: "volumes 1 to 300" is already bounded by the
+     * parser, but producing three hundred lines to tick would be unusable.
+     * A batch of this size is entered another way.
      */
     static final int MAX_ELEMENTS = 60;
 
@@ -48,38 +48,38 @@ public final class ListingTextRecognizer {
     }
 
     /**
-     * Ce que le titre et la description permettent de proposer - vide si le
-     * texte ne dit rien de précis.
+     * What the title and the description allow us to propose - empty if the
+     * text says nothing precise.
      *
-     * <p>Rendre une liste vide est un résultat parfaitement normal : « beau lot
-     * de mangas » ne décrit aucun tome, et inventer une intégrale à partir de
-     * trois mots fabriquerait un verdict d'achat calculé sur des tomes qui
-     * n'existent pas.
+     * <p>Returning an empty list is a perfectly normal result: "nice batch
+     * of mangas" describes no volume, and inventing a complete set from
+     * three words would produce a purchase verdict computed on volumes that
+     * do not exist.
      */
     public static List<RecognizedItem> recognize(String title, String description) {
         return read(title, description).items();
     }
 
     /**
-     * Ce que le texte a livré : les propositions, <b>et</b> ce qu'il dit du lot
-     * sans permettre d'en proposer quoi que ce soit.
+     * What the text delivered: the proposals, <b>and</b> what it says about the batch
+     * without allowing us to propose anything from it.
      *
-     * <h2>« 9 tomes de Naruto »</h2>
-     * Cette annonce dit deux choses vraies - une série, et une taille - et une
-     * chose qu'elle ne dit pas : <b>lesquels</b>. Jusqu'ici tout était perdu :
-     * aucun numéro lisible, donc liste vide, donc écran muet.
+     * <h2>"9 tomes de Naruto"</h2>
+     * This listing says two true things - a series, and a size - and one
+     * thing it does not say: <b>which ones</b>. Until now everything was lost:
+     * no readable number, so empty list, so silent screen.
      *
-     * <p>Dérouler 1 à 9 aurait été le geste facile et le mauvais : le vendeur
-     * peut avoir les tomes 14 à 22, et un verdict d'achat calculé sur des tomes
-     * inventés serait faux avec l'aplomb d'un calcul. Ces deux faits sont donc
-     * rapportés <b>à côté</b> des propositions, jamais dedans - à l'écran de
-     * poser la seule question qui reste ouverte.
+     * <p>Unrolling 1 to 9 would have been the easy gesture and the wrong one: the seller
+     * may have volumes 14 to 22, and a purchase verdict computed on invented
+     * volumes would be wrong with the confidence of a calculation. These two facts are therefore
+     * reported <b>next to</b> the proposals, never inside them - it is up to the screen to
+     * ask the only question that remains open.
      *
-     * @param items les propositions confirmables - vides quand rien n'est identifiable
-     * @param announcedVolumeCount combien de tomes l'annonce dit contenir sans dire lesquels,
-     *                             {@code null} sinon. Jamais renseigné en même temps que des {@code items}
-     * @param announcedSeriesTitle la série nommée par le titre quand seul le nombre manquait,
-     *                             {@code null} si le titre ne désigne aucune œuvre plausible
+     * @param items the confirmable proposals - empty when nothing is identifiable
+     * @param announcedVolumeCount how many volumes the listing says it contains without saying which ones,
+     *                             {@code null} otherwise. Never set at the same time as {@code items}
+     * @param announcedSeriesTitle the series named by the title when only the number was missing,
+     *                             {@code null} if the title names no plausible work
      */
     public record TextReading(List<RecognizedItem> items, Integer announcedVolumeCount,
                               String announcedSeriesTitle) {
@@ -94,8 +94,8 @@ public final class ListingTextRecognizer {
     }
 
     public static TextReading read(String title, String description) {
-        // Un titre qui énumère PLUSIEURS séries se lit segment par segment.
-        // Tenté d'abord, et abandonné sans bruit s'il ne tient pas : voir
+        // A title that lists SEVERAL series is read segment by segment.
+        // Tried first, and dropped silently if it does not hold: see
         // plusieursSeries.
         List<RecognizedItem> multi = plusieursSeries(title);
         if (!multi.isEmpty()) {
@@ -104,8 +104,8 @@ public final class ListingTextRecognizer {
 
         ListingTextParser.Detection detection = ListingTextParser.parse(title, description);
 
-        // Ni numéros lisibles, ni formulation exploitable : on se tait, et les
-        // photos ou la saisie manuelle prennent le relais.
+        // Neither readable numbers nor a usable wording: we stay silent, and the
+        // photos or manual entry take over.
         if (!detection.hasVolumes()) {
             return detection.hasAnnouncedCountOnly()
                     ? nombreSeul(title, detection.announcedVolumeCount())
@@ -114,10 +114,10 @@ public final class ListingTextRecognizer {
 
         String serie = ListingTextParser.probableSeriesTitle(title);
         if (!estUnTitreDeSerie(serie)) {
-            // Des numéros sans œuvre identifiable ne font pas des propositions :
-            // « lot mangas 1 à 10 » ne dit pas DE QUOI il s'agit, et dix lignes
-            // « mangas · tome N » n'aideraient personne - elles nuiraient même,
-            // en fabriquant une série qui n'existe pas.
+            // Numbers without an identifiable work do not make proposals:
+            // "lot mangas 1 à 10" does not say WHAT it is about, and ten lines
+            // "mangas · tome N" would help nobody - they would even harm,
+            // by making up a series that does not exist.
             return TextReading.rien();
         }
 
@@ -127,9 +127,9 @@ public final class ListingTextRecognizer {
         }
 
         String raison = evidence(numeros);
-        // L'édition que le titre nomme, s'il en nomme une. Toujours un simple
-        // indice : le catalogue dira s'il connaît cette édition pour cette
-        // série, et rien n'est supposé quand le titre se tait.
+        // The edition that the title names, if it names one. Always a simple
+        // hint: the catalog will say whether it knows this edition for this
+        // series, and nothing is assumed when the title is silent.
         String edition = ListingTextParser.probableEdition(title);
         List<RecognizedItem> propositions = new ArrayList<>(numeros.size());
         for (Integer numero : numeros) {
@@ -139,43 +139,43 @@ public final class ListingTextRecognizer {
     }
 
     /**
-     * Les séparateurs qu'une annonce pose <b>entre deux œuvres</b>.
+     * The separators that a listing puts <b>between two works</b>.
      *
-     * <p>Le tiret en est délibérément absent : il sépare des tomes bien plus
-     * souvent que des séries (« 1-3 »), et il appartient à des titres entiers
-     * (« Kaguya-sama »). Découper dessus casserait plus qu'il ne réparerait.
+     * <p>The dash is deliberately absent: it separates volumes much more
+     * often than series ("1-3"), and it belongs to whole titles
+     * ("Kaguya-sama"). Splitting on it would break more than it would fix.
      */
     private static final java.util.regex.Pattern SEPARATEURS_DE_SERIES =
             java.util.regex.Pattern.compile("(?i)\\s*(?:\\+|,|;|/|&|\\bet\\b)\\s*");
 
-    /** Au-delà, ce n'est plus une énumération d'œuvres mais une liste de courses. */
+    /** Beyond that, it is no longer an enumeration of works but a shopping list. */
     private static final int MAX_SERIES = 8;
 
     /**
-     * Les propositions d'un titre qui énumère <b>plusieurs</b> séries.
+     * The proposals of a title that lists <b>several</b> series.
      *
-     * <h2>Ce qui se passait avant</h2>
-     * « Death Note 1-3 + Bakuman 1-2 » ne rendait pas « une série sur deux » :
-     * il rendait <b>trois tomes attribués à une série nommée « Death Note +
-     * Bakuman »</b>. Deux dégâts d'un coup - un titre qui ne correspondra
-     * jamais au catalogue, et surtout <b>deux livres disparus</b> du décompte,
-     * les tomes 1-2 de Bakuman ayant été fondus dans la plage 1-3. Un lot de
-     * cinq livres compté cinq fois moins cher au tome donne un prix par tome
-     * flatteur, donc un verdict d'achat trop favorable.
+     * <h2>What happened before</h2>
+     * "Death Note 1-3 + Bakuman 1-2" did not return "one series out of two":
+     * it returned <b>three volumes attributed to a series named "Death Note +
+     * Bakuman"</b>. Two damages at once - a title that will never match
+     * the catalog, and above all <b>two books gone</b> from the count,
+     * volumes 1-2 of Bakuman having been merged into the range 1-3. A batch of
+     * five books counted five times cheaper per volume gives a flattering
+     * price per volume, hence a purchase verdict that is too favourable.
      *
-     * <h2>La règle, volontairement timide</h2>
-     * Le titre est découpé, chaque segment relu par les règles <b>déjà
-     * écrites</b>, et la lecture multi-séries n'est retenue que si <b>au moins
-     * deux</b> segments livrent chacun une série plausible <i>et</i> ses
-     * propres tomes. Sinon on rend une liste vide et l'appelant reprend le
-     * chemin d'avant, à l'identique.
+     * <h2>The rule, deliberately timid</h2>
+     * The title is split, each segment re-read by the rules <b>already
+     * written</b>, and the multi-series reading is kept only if <b>at least
+     * two</b> segments each deliver a plausible series <i>and</i> its
+     * own volumes. Otherwise we return an empty list and the caller takes the
+     * previous path, identically.
      *
-     * <p>Cette exigence de deux segments valides est ce qui rend le découpage
-     * sans danger. Les séparateurs servent aussi <b>à l'intérieur</b> d'une
-     * lecture normale - « tomes 1, 2, 4 » est une liste, « 1/5 » une plage,
-     * « Jojo's Bizarre Adventure, Part 4 » un titre - mais aucun de ces cas ne
-     * produit deux segments portant chacun une œuvre et des tomes. Ils
-     * retombent donc tous sur le comportement existant.
+     * <p>This requirement of two valid segments is what makes the splitting
+     * safe. The separators are also used <b>inside</b> a
+     * normal reading - "volumes 1, 2, 4" is a list, "1/5" a range,
+     * "Jojo's Bizarre Adventure, Part 4" a title - but none of these cases
+     * produces two segments that each carry a work and volumes. They
+     * therefore all fall back on the existing behaviour.
      */
     private static List<RecognizedItem> plusieursSeries(String title) {
         if (title == null || title.isBlank()) {
@@ -186,8 +186,8 @@ public final class ListingTextRecognizer {
             return List.of();
         }
 
-        // Chaque segment est relu SEUL : ses tomes n'appartiennent qu'à lui,
-        // ce qui est exactement ce que la lecture globale ne savait pas faire.
+        // Each segment is re-read ALONE: its volumes belong only to it,
+        // which is exactly what the global reading could not do.
         List<RecognizedItem> propositions = new ArrayList<>();
         int seriesValides = 0;
         for (String segment : segments) {
@@ -202,8 +202,8 @@ public final class ListingTextRecognizer {
 
             List<Integer> numeros = ListingTextParser.sorted(lu.volumeNumbers());
             String raison = evidence(numeros);
-            // Par segment : dans « Naruto Perfect Edition 1-3 + Bleach 1-2 »,
-            // l'édition n'appartient qu'à la première série.
+            // Per segment: in "Naruto Perfect Edition 1-3 + Bleach 1-2",
+            // the edition belongs only to the first series.
             String edition = ListingTextParser.probableEdition(segment);
             for (Integer numero : numeros) {
                 propositions.add(RecognizedItem.fromText(serie, numero, edition, raison));
@@ -211,8 +211,8 @@ public final class ListingTextRecognizer {
             seriesValides++;
         }
 
-        // Une seule série reconnue ne prouve pas qu'il y en avait plusieurs :
-        // le séparateur jouait alors un autre rôle. On ne touche à rien.
+        // A single recognised series does not prove there were several:
+        // the separator was then playing another role. We touch nothing.
         if (seriesValides < 2 || propositions.size() > MAX_ELEMENTS) {
             return List.of();
         }
@@ -220,13 +220,13 @@ public final class ListingTextRecognizer {
     }
 
     /**
-     * Le cas « l'annonce dit combien, pas lesquels ».
+     * The case "the listing says how many, not which ones".
      *
-     * <p>Aucune proposition n'est produite - il n'y a rien à cocher. Ce qui est
-     * rapporté est ce que l'annonce affirme réellement : une taille, et une
-     * série si le titre en nomme une. Si le titre ne désigne aucune œuvre
-     * plausible (« lot de 9 mangas »), le nombre est conservé seul : il reste
-     * vrai, et il servira à vérifier ce que l'utilisateur saisira.
+     * <p>No proposal is produced - there is nothing to tick. What is
+     * reported is what the listing really claims: a size, and a
+     * series if the title names one. If the title names no plausible
+     * work ("lot de 9 mangas"), the number is kept alone: it stays
+     * true, and it will be used to check what the user enters.
      */
     private static TextReading nombreSeul(String title, Integer nombre) {
         String serie = ListingTextParser.probableSeriesTitle(title);
@@ -234,11 +234,11 @@ public final class ListingTextRecognizer {
     }
 
     /**
-     * Les mots qui restent souvent après nettoyage sans désigner d'œuvre.
-     * {@code ListingTextParser.probableSeriesTitle} retire déjà « lot »,
-     * « intégrale », les numéros et la ponctuation, mais pas le nom du support
-     * ni les connecteurs isolés : « Lot mangas 1 à 10 » lui laisse
-     * « mangas à ». Ce n'est pas un titre de série.
+     * The words that often remain after cleaning without naming a work.
+     * {@code ListingTextParser.probableSeriesTitle} already removes "lot",
+     * "intégrale", the numbers and the punctuation, but not the name of the medium
+     * nor the isolated connectors: "Lot mangas 1 à 10" leaves it
+     * "mangas à". This is not a series title.
      */
     private static final java.util.Set<String> MOTS_SANS_OEUVRE = java.util.Set.of(
             "manga", "mangas", "livre", "livres", "bd", "bds", "tome", "tomes", "volume", "volumes",
@@ -246,10 +246,10 @@ public final class ListingTextRecognizer {
             "a", "à", "au", "aux", "de", "des", "du", "et", "en", "le", "la", "les", "un", "une");
 
     /**
-     * Vrai si ce qui reste après nettoyage peut raisonnablement désigner une
-     * œuvre. On exige au moins un mot qui ne soit ni un nom de support, ni un
-     * connecteur, ni une abréviation d'état - sinon on préfère se taire et
-     * laisser les photos ou la saisie manuelle répondre.
+     * True if what remains after cleaning can reasonably name a
+     * work. We require at least one word that is neither a medium name, nor a
+     * connector, nor a condition abbreviation - otherwise we prefer to stay silent and
+     * let the photos or manual entry answer.
      */
     private static boolean estUnTitreDeSerie(String candidat) {
         if (candidat == null || candidat.isBlank()) {
@@ -265,8 +265,8 @@ public final class ListingTextRecognizer {
     }
 
     /**
-     * Une raison courte et lisible, sans recopier le texte de l'annonce : on
-     * dit ce qui a été compris, pas ce qui a été lu mot pour mot.
+     * A short and readable reason, without copying the text of the listing: we
+     * say what was understood, not what was read word for word.
      */
     private static String evidence(List<Integer> numeros) {
         if (numeros.size() == 1) {

@@ -4,10 +4,10 @@ import { Link2, Loader2, CheckCircle2, Info, X } from 'lucide-react'
 import { resolveListing } from '@/common/api/purchaseAnalysis'
 import { LISTING_PLATFORM_LABELS, type ListingPreviewDto } from '@/common/types/purchaseAnalysis'
 
-/** Reconnaît une plateforme à son HÔTE, jamais au fait que l'URL contienne son
- * nom - `https://phishing.example/vinted.fr` n'est pas une annonce Vinted.
- * Sert uniquement à annoncer la détection avant l'appel ; c'est le backend qui
- * décide vraiment (liste blanche stricte, voir ListingUrlGuard). */
+/** Recognises a platform by its HOST, never by the URL containing its
+ * name - `https://phishing.example/vinted.fr` is not a Vinted listing.
+ * Only serves to announce the detection before the call; it is the backend that
+ * really decides (strict whitelist, see ListingUrlGuard). */
 function detecterSource(url: string): 'VINTED' | null {
   try {
     const hote = new URL(url).hostname.toLowerCase()
@@ -31,9 +31,9 @@ function estUneUrlPlausible(valeur: string): boolean {
 const MESSAGES_ECHEC: Record<string, string> = {
   UNSUPPORTED_SOURCE:
     "Cette plateforme n'est pas encore récupérée automatiquement. Tu peux analyser l'annonce en complétant les champs à la main — le lien est conservé.",
-  // Dire « pas encore » ici ferait attendre une fonctionnalité qui ne viendra
-  // pas ainsi : la plateforme se protège contre les robots, et la contourner
-  // n'est pas une option. Autant l'annoncer franchement.
+  // Saying "not yet" here would make people wait for a feature that will not come
+  // that way: the platform protects itself against robots, and getting around it
+  // is not an option. Better to announce it frankly.
   SOURCE_BLOCKS_AUTOMATION:
     "Cette plateforme bloque la lecture automatique de ses annonces — le lien est conservé. Deux façons d'avancer vite : colle le titre de l'annonce dans « Titre de l'annonce », les tomes y sont souvent détectés tout seuls ; et enregistre ses photos pour les envoyer via « Envoyer mes photos », plus bas.",
   LISTING_NOT_FOUND:
@@ -44,20 +44,20 @@ const MESSAGES_ECHEC: Record<string, string> = {
 }
 
 /**
- * Le lien de l'annonce, et ce qu'IozyCore arrive à en lire.
+ * The link of the listing, and what IozyCore manages to read from it.
  *
- * Coller un lien ne remplissait jusqu'ici qu'un champ texte rangé derrière
- * « Détails de l'annonce » : il servait à retrouver l'annonce plus tard, rien
- * de plus. Il devient ici une **source d'information** — titre, prix,
- * description et photos sont lus puis proposés au brouillon.
+ * Pasting a link used to only fill a text field tucked behind
+ * "Détails de l'annonce": it served to find the listing again later, nothing
+ * more. It becomes here an **information source** — title, price,
+ * description and photos are read then offered to the draft.
  *
- * Trois règles tiennent tout le comportement :
- * - **rien n'est inventé** : seuls les champs réellement lus (`retrievedFields`)
- *   sont pré-remplis, un prix absent reste vide plutôt que supposé ;
- * - **rien n'est écrasé** : une valeur déjà saisie est conservée, et le fait
- *   qu'elle diffère de celle de l'annonce est dit à l'écran, jamais silencieux ;
- * - **rien ne bloque** : échec total, partiel ou plateforme inconnue, le
- *   formulaire manuel reste utilisable et le lien reste conservé.
+ * Three rules hold all the behaviour:
+ * - **nothing is invented**: only the fields actually read (`retrievedFields`)
+ *   are pre-filled, a missing price stays empty rather than assumed;
+ * - **nothing is overwritten**: a value already entered is kept, and the fact
+ *   that it differs from the listing's is said on screen, never silent;
+ * - **nothing blocks**: total or partial failure or unknown platform, the
+ *   manual form stays usable and the link stays kept.
  */
 export function ListingUrlField({
   url,
@@ -66,13 +66,13 @@ export function ListingUrlField({
 }: {
   url: string
   onUrlChange: (url: string) => void
-  /** Reçoit ce qui a été lu ; c'est l'appelant qui décide quoi en faire, champ par champ. */
+  /** Receives what was read; the caller decides what to do with it, field by field. */
   onResolved: (preview: ListingPreviewDto) => { conserves: string[] }
 }) {
   const [preview, setPreview] = useState<ListingPreviewDto | null>(null)
   const [conserves, setConserves] = useState<string[]>([])
-  // Un même lien peut être « collé » plusieurs fois (frappe, re-render, retour
-  // sur le champ) : on ne relit une annonce qu'une fois par URL.
+  // The same link can be "pasted" several times (typing, re-render, return
+  // to the field): we only read a listing once per URL.
   const dejaResolues = useRef(new Map<string, ListingPreviewDto>())
 
   const source = detecterSource(url)
@@ -84,12 +84,12 @@ export function ListingUrlField({
     onSuccess: (resultat, aResoudre) => {
       dejaResolues.current.set(aResoudre, resultat)
       setPreview(resultat)
-      // Appliqué même quand RIEN n'a été lu : la plateforme reconnue est un
-      // fait constaté, pas une donnée extraite. Sans cela, un lien Leboncoin
-      // laissait « Vinted » sélectionné, et l'analyse s'enregistrait sous la
-      // mauvaise plateforme - laquelle alimente ensuite les prix relevés.
-      // appliquerPreview garde déjà chaque champ un par un : lui passer une
-      // lecture vide ne remplit rien d'autre.
+      // Applied even when NOTHING was read: the recognised platform is a
+      // observed fact, not extracted data. Without it, a Leboncoin link
+      // left "Vinted" selected, and the analysis was saved under the
+      // wrong platform - which then feeds the recorded prices.
+      // appliquerPreview already guards each field one by one: passing it an empty
+      // read fills nothing else.
       setConserves(onResolved(resultat).conserves)
     },
   })
@@ -107,8 +107,8 @@ export function ListingUrlField({
       setPreview(enCache)
       return
     }
-    // Laisse le temps de finir de coller/taper avant d'appeler - le champ reste
-    // utilisable pendant ce temps, rien n'est bloqué.
+    // Leaves time to finish pasting/typing before calling - the field stays
+    // usable during that time, nothing is blocked.
     const minuteur = setTimeout(() => declencher(aResoudre), 600)
     return () => clearTimeout(minuteur)
   }, [url, declencher])
@@ -132,7 +132,7 @@ export function ListingUrlField({
         />
       </label>
 
-      {/* Lien manifestement invalide : dit en local, sans appeler le serveur. */}
+      {/* Clearly invalid link: said locally, without calling the server. */}
       {lienInvalide && <p className="text-xs text-dangerText">Lien invalide.</p>}
 
       {source && !enCours && !preview && (
@@ -156,16 +156,16 @@ export function ListingUrlField({
             Annonce {LISTING_PLATFORM_LABELS[preview.source]} récupérée
           </p>
           <p className="text-xs text-textDim">
-            {/* Ce qui a été lu, et donc ce qu'il reste à saisir - dire seulement
-                « récupérée » laisserait deviner ce qui manque. */}
+            {/* What was read, and so what is left to enter - saying only
+                "récupérée" would leave one guessing what is missing. */}
             Complété : {libellesChamps(preview).join(' · ')}
             {preview.status === 'PARTIAL' && ` — le reste est à compléter à la main.`}
           </p>
           {conserves.length > 0 && (
             <p className="flex items-start gap-1.5 rounded-lg bg-surface2 px-2.5 py-2 text-xs text-textDim">
               <Info size={12} className="mt-0.5 shrink-0" />
-              {/* Pas de conflit invisible : ce que l'annonce disait autrement est
-                  annoncé, et c'est la saisie de l'utilisateur qui est gardée. */}
+              {/* No invisible conflict: what the listing said differently is
+                  announced, and it is the user's input that is kept. */}
               <span>
                 Tes saisies ont été conservées pour : {conserves.join(', ')}. L'annonce indiquait autre chose.
               </span>
@@ -195,7 +195,7 @@ function libellesChamps(preview: ListingPreviewDto): string[] {
   return preview.retrievedFields.map((champ) => libelles[champ] ?? champ)
 }
 
-/** Les photos récupérées, retirables une à une avant l'analyse. */
+/** The retrieved photos, removable one by one before the analysis. */
 export function ListingPhotos({
   imageUrls,
   onRemove,

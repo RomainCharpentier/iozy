@@ -5,34 +5,34 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { invaliderApresEnvie } from '@/common/lib/invalidations'
 
 /**
- * SOURCE UNIQUE du comportement « Envies ».
+ * SINGLE SOURCE of the "Envies" behavior.
  *
- * Toutes les surfaces qui affichent ou modifient les envies passent par ici :
- * la grille de tomes d'une fiche, Ma collection filtrée par Envies, les
- * résultats de recherche, le menu du scan, l'analyse d'achat et le badge des
- * en-têtes. Elles partagent donc le même état, la même invalidation de cache
- * et le même retour visuel - impossible de dériver.
+ * All the surfaces that display or change the wishes go through here:
+ * the volume grid of a detail page, Ma collection filtered by Envies, the
+ * search results, the scan menu, the purchase analysis and the badge of the
+ * headers. They therefore share the same state, the same cache invalidation
+ * and the same visual feedback - impossible to drift apart.
  *
- * L'ajout n'avait qu'UN seul appelant dans toute l'application (le résultat
- * d'une analyse d'achat), alors que l'écran Envies, son badge et son lien de
- * partage existaient tous : voir docs/USER_JOURNEYS.md, UX-2.
+ * Adding had only ONE caller in the whole application (the result of a
+ * purchase analysis), while the Envies screen, its badge and its share link
+ * all existed: see docs/USER_JOURNEYS.md, UX-2.
  *
- * **Annulation réelle, jamais décorative** : annuler un ajout supprime l'entrée
- * qui vient d'être créée (son id vient de la réponse du POST) ; annuler un
- * retrait recrée l'entrée pour la même œuvre. Les deux restaurent vraiment
- * l'état précédent, c'est pourquoi « Annuler » est proposé dans les deux sens.
+ * **Real cancel, never decorative**: canceling an add deletes the entry that
+ * was just created (its id comes from the POST response); canceling a
+ * removal recreates the entry for the same work. Both really restore the
+ * previous state, which is why "Annuler" is offered in both directions.
  *
- * **L'envie porte sur l'objet réellement collectionnable** : le TOME pour un
- * manga, l'ŒUVRE pour un type qui se possède d'une seule pièce (voir
- * lib/typeDeCollection). D'où les deux index ci-dessous, qu'il ne faut surtout
- * pas confondre - une série n'est pas « voulue » parce qu'un de ses tomes
- * l'est, elle n'est qu'un groupe.
+ * **The wish applies to the really collectible object**: the VOLUME for a
+ * manga, the WORK for a type that is owned as a single piece (see
+ * lib/typeDeCollection). Hence the two indexes below, which must never be
+ * confused - a series is not "wanted" because one of its volumes is, it is
+ * only a group.
  *
- * **Une œuvre non possédée peut être mise en envies** : c'est même le cas
- * normal. `add` accepte aussi bien une œuvre déjà fichée qu'une œuvre venue
- * d'une recherche externe ou d'un scan (voir WishlistTarget) ; le backend
- * résout ou crée la fiche catalogue correspondante, sans jamais créer de
- * possession. Vouloir quelque chose n'est pas le posséder.
+ * **A work that is not owned can be put in the wishes**: it is even the
+ * normal case. `add` accepts a work that already has a detail page as well as
+ * a work coming from an external search or from a scan (see WishlistTarget);
+ * the backend resolves or creates the matching catalog page, without ever
+ * creating an ownership. Wanting something is not owning it.
  */
 export function useWishlist() {
   const queryClient = useQueryClient()
@@ -45,13 +45,13 @@ export function useWishlist() {
   }
 
   /**
-   * Ajouter une œuvre EXTERNE lui crée une fiche catalogue : deux caches
-   * deviennent alors faux et doivent repartir de zéro.
-   * - la recherche locale, qui ne connaissait pas encore cette fiche et
-   *   n'affichait donc pas l'œuvre dans « Déjà dans IozyCore » ;
-   * - la recherche de métadonnées, qui écarte les titres déjà catalogués
-   *   (voir MetadataSearchService) et doit donc cesser de la proposer.
-   * Sans ça, l'écran continue d'afficher l'état d'avant l'ajout.
+   * Adding an EXTERNAL work creates a catalog page for it: two caches
+   * then become wrong and must start again from zero.
+   * - the local search, which did not know this page yet and therefore did
+   *   not display the work in "Déjà dans IozyCore";
+   * - the metadata search, which discards titles that are already cataloged
+   *   (see MetadataSearchService) and must therefore stop offering it.
+   * Without this, the screen keeps displaying the state from before the add.
    */
   function invalidateApresCreationDeFiche() {
     queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
@@ -75,31 +75,32 @@ export function useWishlist() {
       removeFromWishlist(entryId),
     onSuccess: (_result, variables) => {
       invalidate()
-      // `silencieux` = ce retrait EST l'annulation d'un ajout : reproposer
-      // « Annuler » ferait boucler l'utilisateur entre deux messages.
+      // `silencieux` = this removal IS the cancellation of an add: offering
+      // "Annuler" again would make the user loop between two messages.
       if (variables.silencieux) return
       toast('Retiré des envies', {
         label: 'Annuler',
-        // Réajoute EXACTEMENT le même objet - le tome, pas la série. Avant, on
-        // réajoutait par `entityId` seul : annuler le retrait du tome 7
-        // remettait en envies la série entière, ce qui n'est plus la même
-        // chose depuis que l'envie porte sur l'objet collectionnable.
+        // Adds back EXACTLY the same object - the volume, not the series.
+        // Before, we added back by `entityId` alone: canceling the removal of
+        // volume 7 put the entire series back in the wishes, which is no
+        // longer the same thing since the wish applies to the collectible
+        // object.
         onAction: () => addMutation.mutate(variables.cible),
       })
     },
   })
 
   /**
-   * Ajout groupé (résultat d'une analyse d'achat : tous les tomes connus du
-   * lot). Un seul message pour l'ensemble, et une annulation qui retire
-   * exactement les entrées créées - avant, ce bouton ajoutait en masse « sans
-   * confirmation, sans message de retour et sans indiquer combien ont été
-   * ajoutées » (docs/USER_JOURNEYS.md, UX-4).
+   * Grouped add (result of a purchase analysis: all the known volumes of the
+   * batch). One single message for the whole, and a cancel that removes
+   * exactly the entries created - before, this button added in bulk "without
+   * confirmation, without a feedback message and without saying how many
+   * were added" (docs/USER_JOURNEYS.md, UX-4).
    *
-   * **Un refus n'interrompt pas le lot** : un tome déjà possédé est refusé en
-   * 409 (vouloir et avoir ne se superposent pas), et c'est un cas normal dans
-   * une annonce qui recoupe la collection. Interrompre là abandonnerait tous
-   * les tomes suivants, sans rien dire.
+   * **A refusal does not interrupt the batch**: a volume that is already owned
+   * is refused with a 409 (wanting and owning do not overlap), and it is a
+   * normal case in a listing that overlaps with the collection. Interrupting
+   * there would abandon all the following volumes, without saying anything.
    */
   const addManyMutation = useMutation({
     mutationFn: async (cibles: WishlistTarget[]) => {
@@ -108,7 +109,7 @@ export function useWishlist() {
         try {
           nouveaux.push(await addToWishlist(cible))
         } catch {
-          // Déjà possédé, ou déjà voulu : rien à ajouter, rien à signaler.
+          // Already owned, or already wanted: nothing to add, nothing to report.
         }
       }
       return nouveaux
@@ -131,42 +132,42 @@ export function useWishlist() {
     },
   })
 
-  // Deux index, parce qu'il y a deux natures d'envie : celle d'un TOME (le cas
-  // normal pour un manga) et celle d'une ŒUVRE entière (types sans tome).
-  // Les confondre ferait dire « déjà voulu » à toute une série dès qu'un seul
-  // de ses tomes l'est.
+  // Two indexes, because there are two kinds of wish: the one of a VOLUME (the
+  // normal case for a manga) and the one of a whole WORK (types without volumes).
+  // Confusing them would make a whole series say "already wanted" as soon as
+  // only one of its volumes is.
   const parTome = new Map(
     entries.filter((entry) => entry.variantId).map((entry) => [entry.variantId as string, entry]),
   )
   const parOeuvre = new Map(entries.filter((entry) => !entry.variantId).map((entry) => [entry.entityId, entry]))
 
   return {
-    /** Nombre d'envies - alimente le badge des en-têtes. */
+    /** Number of wishes - feeds the badge of the headers. */
     count: entries.length,
     entries,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
-    /** L'entrée portant sur l'ŒUVRE entière, ou undefined. */
+    /** The entry that applies to the WHOLE work, or undefined. */
     entryFor: (entityId: string) => parOeuvre.get(entityId),
     isInWishlist: (entityId: string) => parOeuvre.has(entityId),
-    /** L'entrée portant sur CE tome, ou undefined. */
+    /** The entry that applies to THIS volume, or undefined. */
     entryForVariant: (variantId: string) => parTome.get(variantId),
-    /** Les tomes voulus d'une œuvre - ce que la grille de la fiche colorie. */
+    /** The wanted volumes of a work - what the grid of the detail page colors. */
     variantsVoulus: new Set(parTome.keys()),
     add: (target: WishlistTarget) => addMutation.mutate(target),
     /**
-     * Comme `add`, mais rend l'entrée créée : la seule façon, pour une œuvre
-     * externe qui n'avait pas encore de fiche, de connaître son identité
-     * interne - et donc de pouvoir ensuite l'afficher comme « dans vos
-     * envies » ou la retirer.
+     * Like `add`, but returns the created entry: the only way, for an
+     * external work that did not have a detail page yet, to know its internal
+     * identity - and therefore to be able to then display it as "in your
+     * wishes" or remove it.
      */
     addAsync: (target: WishlistTarget) => addMutation.mutateAsync(target),
-    /** Rejouer le bouton ne crée pas de doublon : le backend est idempotent sur
-     *  l'objet voulu, et ce qui est déjà possédé est simplement ignoré. */
+    /** Replaying the button does not create a duplicate: the backend is idempotent on
+     *  the wanted object, and what is already owned is simply ignored. */
     addMany: (cibles: WishlistTarget[]) => addManyMutation.mutate(cibles),
-    /** `cible` décrit ce qui vient d'être retiré, pour qu'« Annuler » remette
-     *  le même objet et pas son groupe. */
+    /** `cible` describes what was just removed, so that "Annuler" puts back
+     *  the same object and not its group. */
     remove: (entryId: string, cible: WishlistTarget) => removeMutation.mutate({ entryId, cible }),
     isPending: addMutation.isPending || removeMutation.isPending || addManyMutation.isPending,
   }

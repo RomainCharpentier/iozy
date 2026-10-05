@@ -7,22 +7,22 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Petit cache mémoire à expiration, mono-processus (cohérent avec la
- * conception mono-utilisateur strict d'IozyCore - pas besoin de Redis ou
- * d'un cache distribué pour un usage personnel auto-hébergé). Réduit les
- * appels aux API externes (Jikan/MyAnimeList/BGG/IGDB/Google Books/Open
- * Library) pour une même recherche ou un même code-barres répété en peu de
- * temps (retype, va-et-vient sur l'écran d'ajout, débounce qui laisse quand
- * même passer plusieurs requêtes, plusieurs clients iOS/Web) - protège en
- * particulier les quotas serrés comme celui de Google Books (voir README,
- * "quota anonyme épuisé").
+ * Small in-memory cache with expiration, single-process (consistent with the
+ * strict single-user design of IozyCore - no need for Redis or
+ * a distributed cache for a personal self-hosted use). Reduces the
+ * calls to the external APIs (Jikan/MyAnimeList/BGG/IGDB/Google Books/Open
+ * Library) for the same search or the same barcode repeated within a short
+ * time (retype, back and forth on the add screen, debounce that still
+ * lets several requests through, several iOS/Web clients) - protects in
+ * particular tight quotas like the one of Google Books (see README,
+ * "anonymous quota used up").
  * <p>
- * Volontairement simple : pas de vraie éviction LRU, une purge complète du
- * cache en cas de débordement de {@code maxEntries} suffit largement à
- * l'échelle d'une collection personnelle (le coût est juste quelques appels
- * API en plus, jamais une incohérence).
+ * Deliberately simple: no real LRU eviction, a full purge of the
+ * cache on overflow of {@code maxEntries} is largely enough at
+ * the scale of a personal collection (the cost is just a few more API
+ * calls, never an inconsistency).
  */
-// Public depuis le Lot 132 : les services des univers (metadata.manga...) s'en servent.
+// Public since Batch 132: the services of the universes (metadata.manga...) use it.
 public class TtlCache<K, V> {
 
     private record Entry<V>(V value, Instant expiresAt) {
@@ -59,7 +59,7 @@ public class TtlCache<K, V> {
         entries.put(key, new Entry<>(value, Instant.now().plus(timeToLive)));
     }
 
-    /** Oublie une cle, si elle est la. */
+    /** Forgets a key, if it is there. */
     public void invalidate(K key) {
         entries.remove(key);
     }

@@ -1,17 +1,17 @@
 import { MAX_OCTETS_PAR_PHOTO, MAX_PHOTOS_ENVOYEES } from '@/common/api/listingRecognition'
 
 /**
- * Les photos qu'on envoie à la lecture (annonce ou étagère) : ce qui part, et
- * ce qu'on dit de ce qui ne part pas.
+ * The photos we send to the reading (listing or shelf): what goes out, and
+ * what we say about what does not go out.
  *
- * Filtré ICI plutôt que de laisser le serveur refuser : dire « cette photo
- * fait 8 Mo » au moment du choix évite un aller-retour et une erreur qui ne
- * nommerait pas le fichier fautif. Partagé entre l'analyse d'annonce et
- * l'import d'étagère pour que les deux écrans tiennent la même règle.
+ * Filtered HERE rather than letting the server refuse: saying "this photo is
+ * 8 MB" at the moment of the choice avoids a round trip and an error that
+ * would not name the faulty file. Shared between the listing analysis and
+ * the shelf import so that both screens hold the same rule.
  */
 export interface SelectionDePhotos {
   retenues: File[]
-  /** Ce qui a été écarté ou tronqué, en une phrase - `null` quand tout part. */
+  /** What was discarded or cut, in one sentence - `null` when everything goes out. */
   message: string | null
 }
 
@@ -34,7 +34,7 @@ export function retenirLesPhotos(fichiers: File[]): SelectionDePhotos {
   return { retenues, message: raisons.length > 0 ? `${raisons.join(', ')}.` : null }
 }
 
-/** Les paliers essayés pour faire passer une photo sous la limite : côté max, qualité JPEG. */
+/** The steps tried to bring a photo under the limit: max side, JPEG quality. */
 const PALIERS: ReadonlyArray<readonly [number, number]> = [
   [2400, 0.85],
   [1800, 0.8],
@@ -42,14 +42,13 @@ const PALIERS: ReadonlyArray<readonly [number, number]> = [
 ]
 
 /**
- * Réduit une photo trop lourde pour passer sous la limite du serveur.
+ * Shrinks a photo that is too heavy to go under the server limit.
  *
- * Les téléphones produisent 4 à 8 Mo par cliché, et une rangée de tranches
- * reste lisible à 2400 px de large : refuser ces photos aurait fermé l'import
- * à l'usage le plus courant, l'étagère prise au téléphone. Rend le fichier
- * d'origine si le navigateur ne sait pas dessiner (jsdom, très vieux
- * navigateurs) ou si aucune réduction ne suffit - le serveur dira alors
- * « trop lourde » lui-même.
+ * Phones produce 4 to 8 MB per shot, and a row of spines stays readable at
+ * 2400 px wide: refusing these photos would have closed the import to the
+ * most common use, the shelf taken with a phone. Returns the original file
+ * if the browser cannot draw (jsdom, very old browsers) or if no reduction
+ * is enough - the server will then say "too heavy" itself.
  */
 export async function reduireSiTropLourde(fichier: File): Promise<File> {
   if (fichier.size <= MAX_OCTETS_PAR_PHOTO) return fichier
@@ -81,7 +80,7 @@ async function redessiner(fichier: File, coteMax: number, qualite: number): Prom
   }
 }
 
-/** Réduit ce qui est trop lourd, puis retient : ce que les écrans appellent. */
+/** Shrinks what is too heavy, then keeps: what the screens call. */
 export async function preparerLesPhotos(liste: FileList | File[] | null): Promise<SelectionDePhotos> {
   if (!liste || liste.length === 0) return { retenues: [], message: null }
   const reduites = await Promise.all(Array.from(liste).map(reduireSiTropLourde))

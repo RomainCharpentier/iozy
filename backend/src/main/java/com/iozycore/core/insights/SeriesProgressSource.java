@@ -5,10 +5,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Point d'extension du cœur : la progression « X tomes possédés sur Y » d'une
- * œuvre, telle qu'un univers sait la calculer - pour un manga, à partir de
- * ses éditions de référence (Lot 133). Le cœur l'affiche (fiche, partage,
- * statistiques, question IA) sans savoir d'où viennent les totaux.
+ * Extension point of the core: the progress "X volumes owned out of Y" of a
+ * work, as a universe can compute it - for a manga, from
+ * its reference editions (Batch 133). The core displays it (detail page, sharing,
+ * statistics, AI question) without knowing where the totals come from.
  */
 public interface SeriesProgressSource {
 

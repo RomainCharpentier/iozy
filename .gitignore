@@ -13,9 +13,9 @@ ios/.build/
 ios/xcuserdata/
 ios/*.xcuserstate
 
-# --- Notes personnelles (adresses, identifiants, réglages d'une
-#     installation précise). Le dépôt est PUBLIC : ces fichiers restent
-#     sur la machine, et la documentation en est écrite sans eux. ---
+# --- Personal notes (addresses, logins, settings of one specific
+#     installation). The repository is PUBLIC: these files stay
+#     on the machine, and the documentation is written without them. ---
 *.local.md
 
 # --- Secrets ---
@@ -23,14 +23,14 @@ ios/*.xcuserstate
 *.env
 !.env.example
 
-# --- Système ---
+# --- System ---
 .DS_Store
 *.swp
 
-# --- Claude Code (config locale) ---
+# --- Claude Code (local config) ---
 .claude/settings.local.json
 
-# --- Fichiers de passage (scans, extractions, essais). Le dépôt est
-#     PUBLIC, et ce dossier a contenu des pages de facture : il reste
-#     sur la machine. ---
+# --- Transit files (scans, extractions, trials). The repository is
+#     PUBLIC, and this folder once held invoice pages: it stays
+#     on the machine. ---
 tmp/

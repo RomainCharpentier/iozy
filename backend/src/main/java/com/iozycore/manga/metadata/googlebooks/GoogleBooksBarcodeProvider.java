@@ -18,26 +18,26 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Interroge l'API publique Google Books pour retrouver un livre/manga à
- * partir de son ISBN. Un ISBN scanné identifie une édition précise :
- * contrairement à une recherche par titre (Jikan), Google Books indexe
- * souvent l'édition française exacte de ce code-barres (éditeur VF,
- * jaquette VF), là où Open Library retombe plus souvent sur une édition
- * anglophone générique.
+ * Queries the public Google Books API to find a book/manga from
+ * its ISBN. A scanned ISBN identifies a precise edition:
+ * unlike a search by title (Jikan), Google Books often indexes
+ * the exact French edition of this barcode (French publisher,
+ * French cover), where Open Library more often falls back on a generic
+ * English edition.
  * <p>
- * Clé API optionnelle, avec clé(s) de secours possibles (voir README.md,
- * section "Obtenir une clé API Google Books", et {@link GoogleBooksHttpClient}
- * qui centralise la rotation) : sans clé du tout, les appels restent
- * fonctionnels mais partagent le quota anonyme mondial de Google Books,
- * fréquemment épuisé en pratique (429 "Quota exceeded").
+ * Optional API key, with possible backup key(s) (see README.md,
+ * section "Obtenir une clé API Google Books", and {@link GoogleBooksHttpClient}
+ * which centralizes the rotation): without any key, the calls stay
+ * functional but share the worldwide anonymous quota of Google Books,
+ * often exhausted in practice (429 "Quota exceeded").
  * <p>
- * Priorité plus haute (@Order) que {@link com.iozycore.manga.metadata.openlibrary.OpenLibraryBarcodeProvider}
- * dans {@code MetadataSearchService.lookupByBarcode} - Open Library reste
- * en repli si Google Books n'a rien indexé sous cet ISBN (ou si le quota est
- * dépassé sur toutes les clés, voir capture de {@link QuotaExceededException}
- * ci-dessous - pas la peine d'en informer l'utilisateur ici, Open Library
- * prend le relais silencieusement). Couvre le type MANGA uniquement, comme
- * les autres fournisseurs par code-barres.
+ * Higher priority (@Order) than {@link com.iozycore.manga.metadata.openlibrary.OpenLibraryBarcodeProvider}
+ * in {@code MetadataSearchService.lookupByBarcode} - Open Library stays
+ * as a fallback if Google Books indexed nothing under this ISBN (or if the quota is
+ * exceeded on all keys, see the catch of {@link QuotaExceededException}
+ * below - no need to inform the user here, Open Library
+ * takes over silently). Covers the MANGA type only, like
+ * the other barcode providers.
  */
 @Component
 @Order(1)
@@ -54,8 +54,8 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
         this.httpClient = httpClient;
     }
 
-    /** Constructeur utilisé par les tests unitaires : parse()/lookup() sur un
-     * corps déjà en mémoire n'ont jamais besoin d'un vrai appel réseau. */
+    /** Constructor used by the unit tests: parse()/lookup() on a
+     * body already in memory never need a real network call. */
     GoogleBooksBarcodeProvider() {
         this(new GoogleBooksHttpClient("", ""));
     }
@@ -71,35 +71,35 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
     }
 
     /**
-     * La même recherche, en distinguant « Google Books ne connaît pas cet
-     * ISBN » de « Google Books n'a pas répondu ».
+     * The same search, telling apart "Google Books does not know this
+     * ISBN" from "Google Books did not answer".
      *
-     * <p>La différence n'était pas dite, alors qu'elle était connue ici : les
-     * deux cas rendaient {@code Optional.empty()}. Le service peut désormais
-     * mémoriser une absence <b>constatée</b> sans jamais mémoriser une panne.
+     * <p>The difference was not said, although it was known here: both
+     * cases returned {@code Optional.empty()}. The service can now
+     * remember a <b>confirmed</b> absence without ever remembering an outage.
      */
     @Override
     public BarcodeLookup lookupDetailed(String barcode) {
         String isbn = normalize(barcode);
         if (isbn.isEmpty()) {
-            // Rien à chercher : ce n'est ni une absence constatée ni une panne.
+            // Nothing to search: it is neither a confirmed absence nor an outage.
             return BarcodeLookup.unavailable();
         }
 
         try {
-            // Jamais null : un appel qui n'aboutit pas lève, et le
-            // catch(Exception) ci-dessous rend BarcodeLookup.unavailable().
+            // Never null: a call that does not succeed throws, and the
+            // catch(Exception) below returns BarcodeLookup.unavailable().
             String body = httpClient.get(LOOKUP_URL.formatted(isbn));
             Optional<MetadataCandidate> trouve = parse(body, isbn);
-            // Le corps a été lu jusqu'au bout : que Google connaisse ou non cet
-            // ISBN, il a bel et bien répondu.
+            // The body was read to the end: whether Google knows this
+            // ISBN or not, it did answer.
             return trouve.map(BarcodeLookup::found)
                     .orElseGet(BarcodeLookup::absent);
         } catch (QuotaExceededException e) {
-            log.warn("Quota Google Books dépassé pour l'ISBN '{}' - Open Library prend le relais", isbn);
+            log.warn("Google Books quota exceeded for ISBN '{}' - Open Library takes over", isbn);
             return BarcodeLookup.unavailable();
         } catch (Exception e) {
-            log.warn("Échec du lookup Google Books pour '{}' : {}", isbn, e.getMessage());
+            log.warn("Google Books lookup failed for '{}': {}", isbn, e.getMessage());
             return BarcodeLookup.unavailable();
         }
     }
@@ -107,7 +107,7 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
     Optional<MetadataCandidate> parse(String body, String isbn) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         if (root.path("totalItems").asInt(0) == 0) {
-            return Optional.empty(); // ISBN inconnu de Google Books
+            return Optional.empty(); // ISBN unknown to Google Books
         }
 
         JsonNode volumeInfo = root.path("items").path(0).path("volumeInfo");
@@ -116,8 +116,8 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
             return Optional.empty();
         }
 
-        // Les URLs de jaquette Google Books sont renvoyées en http:// - on
-        // force https pour éviter tout souci de contenu mixte côté web.
+        // Google Books cover URLs are returned as http:// - we
+        // force https to avoid any mixed content problem on the web side.
         String imageUrl = volumeInfo.path("imageLinks").path("thumbnail").asText(null);
         if (imageUrl != null) {
             imageUrl = imageUrl.replaceFirst("^http://", "https://");
@@ -136,7 +136,7 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
         return Optional.of(new MetadataCandidate("GOOGLE_BOOKS", isbn, title, imageUrl, attributes));
     }
 
-    /** Retire les espaces/tirets qu'un scan peut parfois inclure. */
+    /** Removes the spaces/hyphens that a scan can sometimes include. */
     private String normalize(String rawBarcode) {
         return rawBarcode == null ? "" : rawBarcode.replaceAll("[^0-9Xx]", "");
     }

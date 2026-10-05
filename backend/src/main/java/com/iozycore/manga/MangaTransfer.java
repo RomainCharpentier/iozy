@@ -31,11 +31,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Ce que le manga exporte et importe en plus du catalogue : ses éditions de
- * référence, ses prix relevés, ses éditions suivies et ses préférences
- * d'analyse d'achat - code extrait d'ExportService et d'ImportService au
- * Lot 133, règle par règle (une édition déjà déclarée est rattachée, un
- * relevé identique est ignoré, les préférences du fichier remplacent).
+ * What manga exports and imports in addition to the catalog: its reference
+ * editions, its recorded prices, its followed editions and its purchase
+ * analysis preferences - code extracted from ExportService and ImportService in
+ * Batch 133, rule by rule (an already declared edition is attached, an identical
+ * record is ignored, the preferences of the file replace).
  */
 @Component
 public class MangaTransfer implements TransferModule {
@@ -240,9 +240,9 @@ public class MangaTransfer implements TransferModule {
             if (ctx.ecrire) {
                 collectorPreferencesRepository.save(nouvelles);
             }
-            // Le seul endroit ou l'import REMPLACE : une preference n'a pas
-            // de doublon possible, et celle du fichier est celle qu'on
-            // restaure. Dit tel quel dans le rapport.
+            // The only place where the import REPLACES: a preference has
+            // no possible duplicate, and the one in the file is the one
+            // to restore. Said as is in the report.
             ctx.cumul.remplace("collectorPreferences", "Profil de collectionneur",
                     "les preferences actuelles seront remplacees par celles du fichier");
         } catch (IllegalArgumentException ex) {

@@ -14,18 +14,18 @@ import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { Jaquette } from '@/common/components/Jaquette'
 
 /**
- * Une relation, telle qu'elle existe vraiment : une œuvre liée, un TYPE, et un
- * sens de lecture.
+ * A relationship, as it really exists: a linked work, a TYPE, and a
+ * reading direction.
  *
- * La fiche n'affichait jusqu'ici qu'une rangée de jaquettes des œuvres liées -
- * le type choisi à la création (« Adapté en », « Fait partie de la série », ou
- * un texte libre) n'était jamais réaffiché, et les deux sens étaient fondus
- * dans la même rangée. Une relation créée avec le mauvais type restait donc à
- * la fois invisible et incorrigible (docs/USER_JOURNEYS.md, §14).
+ * The detail page used to only show a row of covers of the linked works -
+ * the type chosen at creation ("Adapté en", "Fait partie de la série", or
+ * free text) was never shown again, and the two directions were merged
+ * in the same row. A relationship created with the wrong type thus stayed
+ * both invisible and impossible to fix (docs/USER_JOURNEYS.md, section 14).
  *
- * **Ce qui est modifiable** : le type, rien d'autre. Changer une extrémité ne
- * corrige pas une relation, c'est en décrire une autre - on supprime alors
- * celle-ci et on en crée une bonne.
+ * **What can be edited**: the type, nothing else. Changing an end does not
+ * fix a relationship, it describes another one - so one deletes
+ * this one and creates a correct one.
  */
 export function RelationshipRow({
   relationship,
@@ -33,7 +33,7 @@ export function RelationshipRow({
   entityId,
 }: {
   relationship: RelationshipDto
-  /** `outgoing` : cette œuvre est la source. `incoming` : elle est la cible. */
+  /** `outgoing`: this work is the source. `incoming`: it is the target. */
   direction: 'outgoing' | 'incoming'
   entityId: string
 }) {
@@ -48,8 +48,8 @@ export function RelationshipRow({
   const otherQuery = useQuery({ queryKey: queryKeys.entities.detail(otherId), queryFn: () => getEntity(otherId) })
 
   function invalidate() {
-    // Les deux sens : une relation retirée d'ici disparaît aussi de la fiche
-    // d'en face, qui la voit dans l'autre sens.
+    // Both directions: a relationship removed from here also disappears from the
+    // detail page on the other side, which sees it in the other direction.
     queryClient.invalidateQueries({ queryKey: queryKeys.relationships.from(entityId) })
     queryClient.invalidateQueries({ queryKey: queryKeys.relationships.to(entityId) })
   }
@@ -68,10 +68,10 @@ export function RelationshipRow({
     onSuccess: () => {
       invalidate()
       setMenuOpen(false)
-      // Même convention que les envies, les prix relevés et les expériences :
-      // un geste destructeur dit ce qu'il a fait et propose de revenir en
-      // arrière. Restauration réelle - source, cible et type sont tout ce qui
-      // définit une relation, et seul son identifiant technique change.
+      // Same convention as wishes, recorded prices and experiences:
+      // a destructive gesture says what it did and offers to go back.
+      // Real restore - source, target and type are all that
+      // defines a relationship, and only its technical id changes.
       toast('Relation supprimée', {
         label: 'Annuler',
         onAction: async () => {
@@ -106,8 +106,8 @@ export function RelationshipRow({
           <span className="flex min-w-0 flex-col gap-0.5">
             <TexteCoupe texte={otherTitle} className="truncate font-medium text-textPrimary" />
             <span className="flex items-center gap-1 text-xs text-textDim">
-              {/* Le sens est porté par la flèche ET par les mots : une flèche
-                  seule laisse deviner qui adapte qui. */}
+              {/* The direction is carried by the arrow AND by the words: an arrow
+                  alone leaves people guessing who adapts whom. */}
               <Fleche size={12} className="shrink-0" />
               {direction === 'outgoing'
                 ? `${relationshipTypeLabel(relationship.relationshipType)} — depuis cette œuvre`

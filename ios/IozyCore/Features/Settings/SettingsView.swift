@@ -1,21 +1,21 @@
 import SwiftUI
 
-/// Réglage propre à cet appareil (UserDefaults, pas de compte/backend - voir
-/// TitleLanguagePreference.swift) : seule la recherche/ajout de manga
-/// (Jikan/MyAnimeList) est concernée, ni Jikan ni MAL ne renvoyant de titre
-/// français nativement. Miroir de SettingsPage côté web (QuickAddPage.tsx).
+/// Setting specific to this device (UserDefaults, no account/backend - see
+/// TitleLanguagePreference.swift): only the manga search/add
+/// (Jikan/MyAnimeList) is concerned, since neither Jikan nor MAL returns a
+/// French title natively. Mirror of SettingsPage on the web side (QuickAddPage.tsx).
 ///
-/// Glisser-déposer natif (List + .onMove, mode édition forcé en permanence -
-/// pas de bouton "Modifier" séparé, cohérent avec le glisser-déposer
-/// toujours actif côté web) : la première langue active devient le titre
-/// sauvegardé, les suivantes actives suivent entre parenthèses dans l'ordre
-/// choisi ici.
+/// Native drag and drop (List + .onMove, edit mode forced permanently -
+/// no separate "Modifier" button, consistent with the drag and drop
+/// always active on the web side): the first active language becomes the
+/// saved title, the following active ones come between parentheses in the order
+/// chosen here.
 struct SettingsView: View {
     @State private var composition: TitleComposition = TitleCompositionStore.load()
 
-    /// Premier item ACTIF (pas forcément le premier de la liste, si
-    /// l'utilisateur a désactivé celui du dessus) - c'est lui qui devient le
-    /// titre sauvegardé. Sert juste au badge "principal" ci-dessous.
+    /// First ACTIVE item (not always the first of the list, if
+    /// the user disabled the one above) - it becomes the
+    /// saved title. Only used for the "principal" badge below.
     private var primaryIndex: Int? {
         composition.firstIndex { $0.enabled }
     }
@@ -71,11 +71,11 @@ struct SettingsView: View {
         }
     }
 
-    /// Au moins une langue doit rester active - sinon plus aucun titre ne
-    /// serait résolvable pour l'ajout rapide (voir garde-fou similaire dans
-    /// resolvePrimaryTitle côté QuickAddView, qui retombe sur candidate.title
-    /// en dernier recours, mais autant l'empêcher ici plutôt que de compter
-    /// dessus).
+    /// At least one language must stay active - otherwise no title would
+    /// be resolvable for quick add (see a similar safeguard in
+    /// resolvePrimaryTitle on the QuickAddView side, which falls back to candidate.title
+    /// as a last resort, but better to prevent it here than to count
+    /// on it).
     private func toggle(at index: Int) {
         var next = composition
         next[index].enabled.toggle()

@@ -13,12 +13,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Racine d'agrégat représentant une œuvre/chose unique, indépendante de
- * sa possession, de ses expériences et de ses médias.
+ * Aggregate root for one unique work or thing, independent of
+ * its ownership, its experiences and its media.
  * <p>
- * Invariant : le {@code entityTypeId} est fixé à la création et ne
- * change jamais — changer de type ferait perdre le sens des attributs
- * personnalisés (voir modèle de domaine, étape 7).
+ * Invariant: {@code entityTypeId} is set at creation and never
+ * changes. Changing the type would lose the meaning of the custom
+ * attributes (see domain model, step 7).
  */
 public class Entity {
 
@@ -28,7 +28,7 @@ public class Entity {
     private final Map<String, Object> attributes = new HashMap<>();
     private final List<Variant> variants = new ArrayList<>();
     private final Set<UUID> tagIds = new HashSet<>();
-    /** Les cles de {@link #attributes} saisies a la main (Lot 130) - voir {@link #saisirAttributs}. */
+    /** The keys of {@link #attributes} typed by hand (Batch 130) - see {@link #saisirAttributs}. */
     private final Set<String> champsSaisis = new HashSet<>();
     private final List<DomainEvent> pendingEvents = new ArrayList<>();
 
@@ -41,20 +41,20 @@ public class Entity {
         this.title = title;
     }
 
-    /** Crée une nouvelle Entity et enregistre l'événement {@link EntityCreated}. */
+    /** Creates a new Entity and records the {@link EntityCreated} event. */
     public static Entity create(UUID entityTypeId, String title) {
         Entity entity = new Entity(UUID.randomUUID(), entityTypeId, title);
         entity.pendingEvents.add(new EntityCreated(entity.id, entityTypeId, title, Instant.now()));
         return entity;
     }
 
-    /** Reconstruit une Entity depuis la persistance (aucun événement émis). */
+    /** Rebuilds an Entity from persistence (no event is emitted). */
     public static Entity reconstitute(UUID id, UUID entityTypeId, String title,
                                        Map<String, Object> attributes, List<Variant> variants, Set<UUID> tagIds) {
         return reconstitute(id, entityTypeId, title, attributes, variants, tagIds, Set.of());
     }
 
-    /** Idem, avec les champs saisis a la main (Lot 130). */
+    /** Same, with the fields typed by hand (Batch 130). */
     public static Entity reconstitute(UUID id, UUID entityTypeId, String title,
                                        Map<String, Object> attributes, List<Variant> variants, Set<UUID> tagIds,
                                        Set<String> champsSaisis) {
@@ -78,26 +78,26 @@ public class Entity {
     }
 
     /**
-     * Complète/corrige les attributs de la Série elle-même sans écraser ceux
-     * non concernés - même sémantique que {@link #mergeVariantAttributes} au
-     * niveau Tome (audit UX "correction manuelle" : jusqu'ici, seul le Tome
-     * avait une jaquette rattrapable après coup, jamais la Série). {@code
-     * additionalAttributes} gagne sur les clés déjà présentes - utilisé
-     * volontairement pour remplacer une jaquette absente/fausse par la bonne,
-     * jamais l'inverse (un appelant ne doit fournir que des données fraîches
-     * qu'il veut voir persistées, jamais une valeur vide pour "effacer" un
-     * attribut existant).
+     * Completes/corrects the attributes of the Series itself without overwriting those
+     * not concerned - same semantics as {@link #mergeVariantAttributes} at the
+     * Volume level (UX audit "manual correction": until now, only the Volume
+     * could get a cover fixed afterwards, never the Series). {@code
+     * additionalAttributes} wins over keys already present - used
+     * on purpose to replace a missing/wrong cover with the right one,
+     * never the reverse (a caller must only give fresh data
+     * that it wants to be saved, never an empty value to "erase" an
+     * existing attribute).
      */
     public void mergeAttributes(Map<String, Object> additionalAttributes) {
         attributes.putAll(additionalAttributes);
     }
 
     /**
-     * Ce que l'utilisateur TAPE (Lot 130) : ecrit comme {@link #mergeAttributes},
-     * et marque chaque cle comme saisie a la main. Une source ne reviendra
-     * plus dessus (voir {@link #recopierDepuisLaSource}). Une valeur saisie
-     * identique a celle de la source est marquee quand meme : l'utilisateur a
-     * tranche, ce n'est pas a la source de le contredire plus tard.
+     * What the user TYPES (Batch 130): written like {@link #mergeAttributes},
+     * and marks each key as typed by hand. A source will no longer
+     * come back to it (see {@link #recopierDepuisLaSource}). A typed value
+     * equal to the one from the source is marked anyway: the user
+     * has decided, and the source must not contradict it later.
      */
     public void saisirAttributs(Map<String, Object> attributsSaisis) {
         attributes.putAll(attributsSaisis);
@@ -105,10 +105,10 @@ public class Entity {
     }
 
     /**
-     * Ce qu'une SOURCE rend (rechargement, rattrapage) : n'ecrit que les cles
-     * qui n'ont pas ete saisies a la main, et dit lesquelles. Regle de
-     * l'utilisateur (2026-09-04) : « si on recharge depuis l'api alors on
-     * ecrase les infos non deja editees ».
+     * What a SOURCE returns (reload, catch-up): writes only the keys
+     * that were not typed by hand, and says which ones. User rule
+     * (2026-09-04): "if we reload from the api then we
+     * overwrite the info that was not already edited".
      */
     public Set<String> recopierDepuisLaSource(Map<String, Object> attributsDeLaSource) {
         Set<String> ecrites = new HashSet<>();
@@ -122,23 +122,23 @@ public class Entity {
         return ecrites;
     }
 
-    /** Reprend des marques telles quelles - l'import d'un export (Lot 130). */
+    /** Takes marks as they are - the import of an export (Batch 130). */
     public void marquerSaisis(java.util.Collection<String> cles) {
         champsSaisis.addAll(cles);
     }
 
     /**
-     * Retire un attribut - opération À PART de {@link #mergeAttributes}, dont
-     * la javadoc interdit justement la valeur vide comme moyen d'effacer.
-     * Vider un champ dans un formulaire d'édition doit vraiment le faire
-     * disparaître, pas laisser une chaîne vide qui ressemblerait ensuite à
-     * une donnée renseignée. Sans effet si la clé n'existe pas : effacer ce
-     * qui n'est pas là n'est pas une erreur.
+     * Removes an attribute - a SEPARATE operation from {@link #mergeAttributes}, whose
+     * javadoc forbids an empty value as a way to erase.
+     * Clearing a field in an edit form must really make it
+     * disappear, not leave an empty string that would then look like
+     * filled-in data. No effect if the key does not exist: erasing what
+     * is not there is not an error.
      */
     public void removeAttribute(String key) {
         attributes.remove(key);
-        // Vider un champ a la main, c'est aussi rendre la place a la source :
-        // elle pourra le remplir au prochain rechargement (Lot 130).
+        // Clearing a field by hand also gives the place back to the source:
+        // it can fill it at the next reload (Batch 130).
         champsSaisis.remove(key);
     }
 
@@ -148,23 +148,23 @@ public class Entity {
         return variant;
     }
 
-    /** Retrouve un Variant existant par son label (insensible à la casse) - utilisé
-     * par QuickAddService pour éviter de recréer "Tome 3" en double si l'utilisateur
-     * ajoute un deuxième exemplaire du même tome. */
+    /** Finds an existing Variant by its label (case insensitive) - used
+     * by QuickAddService to avoid creating "Tome 3" twice if the user
+     * adds a second copy of the same volume. */
     public Optional<Variant> findVariantByLabel(String label) {
         return variants.stream().filter(v -> v.label().equalsIgnoreCase(label)).findFirst();
     }
 
     /**
-     * Complète les attributs d'un Variant déjà existant SANS écraser ceux déjà
-     * renseignés (même logique de fusion que QuickAddService pour l'Entity) -
-     * typiquement pour retrouver après coup la jaquette propre à un tome ajouté
-     * en saisie manuelle (voir "Retrouver les jaquettes manquantes", Ma
-     * collection) sans avoir à recréer le Variant. {@code additionalAttributes}
-     * gagne sur les clés déjà présentes - utilisé volontairement pour remplacer
-     * une jaquette introuvable (null) par une jaquette retrouvée, jamais l'inverse
-     * (un appelant ne doit fournir que des données fraîches qu'il veut voir
-     * persistées, jamais une valeur vide pour "effacer" un attribut existant).
+     * Completes the attributes of an existing Variant WITHOUT overwriting those already
+     * filled in (same merge logic as QuickAddService for the Entity) -
+     * typically to find afterwards the own cover of a volume added
+     * by manual entry (see "Find missing covers", My
+     * collection) without having to recreate the Variant. {@code additionalAttributes}
+     * wins over keys already present - used on purpose to replace
+     * a cover that was not found (null) with a cover that was found, never the reverse
+     * (a caller must only give fresh data that it wants to be
+     * saved, never an empty value to "erase" an existing attribute).
      */
     public void mergeVariantAttributes(UUID variantId, Map<String, Object> additionalAttributes) {
         int index = -1;
@@ -184,11 +184,11 @@ public class Entity {
     }
 
     /**
-     * Relie un Tome déjà existant à son Édition catalogue ({@link MangaEdition}) - modèle
-     * cible Série -> Édition -> Tome. Même patron de recherche que
-     * {@link #mergeVariantAttributes(UUID, Map)}. Ne retire jamais un lien existant (pas de
-     * besoin identifié pour l'instant) - un appelant qui résout un lien plus précis peut
-     * simplement rappeler cette méthode avec le nouvel id.
+     * Links an existing Volume to its catalog Edition ({@link MangaEdition}) - target
+     * model Series -> Edition -> Volume. Same search pattern as
+     * {@link #mergeVariantAttributes(UUID, Map)}. Never removes an existing link (no
+     * need found for now) - a caller that resolves a more precise link can
+     * simply call this method again with the new id.
      */
     public void linkVariantToEdition(UUID variantId, UUID mangaEditionId) {
         int index = -1;
@@ -206,13 +206,13 @@ public class Entity {
     }
 
     /**
-     * Retire un Tome du catalogue - action utilisateur explicite (voir "Supprimer ce
-     * tome"), jamais automatique sur passage à zéro Ownership (modèle cible Série ->
-     * Édition -> Tome : un Tome catalogué existe indépendamment de sa possession, voir
-     * Variant). La garde contre les Ownership/Experience qui le référencent encore vit
-     * en couche application (VariantDeletionService), pas ici - même raison que pour
-     * {@link #mergeVariantAttributes} : Entity ne connaît pas les repositories des
-     * autres agrégats.
+     * Removes a Volume from the catalog - explicit user action (see "Delete this
+     * volume"), never automatic when Ownership drops to zero (target model Series ->
+     * Edition -> Volume: a cataloged Volume exists independently of its ownership, see
+     * Variant). The guard against Ownership/Experience that still reference it lives
+     * in the application layer (VariantDeletionService), not here - same reason as for
+     * {@link #mergeVariantAttributes}: Entity does not know the repositories of the
+     * other aggregates.
      */
     public void removeVariant(UUID variantId) {
         boolean removed = variants.removeIf(v -> v.id().equals(variantId));
@@ -259,7 +259,7 @@ public class Entity {
         return Set.copyOf(tagIds);
     }
 
-    /** Les cles saisies a la main, qu'un rechargement depuis la source ne touche pas (Lot 130). */
+    /** The keys typed by hand, which a reload from the source does not touch (Batch 130). */
     public Set<String> champsSaisis() {
         return Set.copyOf(champsSaisis);
     }

@@ -8,29 +8,29 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Racine d'agrégat représentant un classement personnalisé (voir la
- * maquette V1.2, "Nouvelle Tier List" - nom, univers/type, rangs actifs,
- * description optionnelle). Rattachée à UN SEUL EntityType (univers) dans
- * le cas courant - le classement GÉNÉRAL applique d'ailleurs toujours cette
- * règle (voir EntityRank : "Mangas" et "Jeux vidéo" ont chacun leur
- * échelle).
+ * Aggregate root for a custom ranking (see the
+ * mockup V1.2, "New Tier List" - name, universe/type, active ranks,
+ * optional description). Attached to ONE SINGLE EntityType (universe) in
+ * the usual case - the GENERAL ranking always applies this
+ * rule too (see EntityRank: "Mangas" and "Video games" each have their
+ * own scale).
  * <p>
- * {@code entityTypeId} null = Tier List TRANSVERSE, "toutes catégories"
- * (scope 'all' de la maquette) : elle accepte des œuvres de n'importe quel
- * univers. C'est le seul cas où mélanger est voulu, et il est toujours
- * explicite - jamais le défaut d'une liste dont on aurait oublié l'univers
- * (voir le champ dédié de CreateTierListModal côté web).
+ * {@code entityTypeId} null = CROSS-CUTTING Tier List, "all categories"
+ * (scope 'all' of the mockup): it accepts works from any
+ * universe. This is the only case where mixing is wanted, and it is always
+ * explicit - never the default of a list whose universe was forgotten
+ * (see the dedicated field of CreateTierListModal on the web side).
  * <p>
- * Le classement GÉNÉRAL (un rang par œuvre, toujours sur l'échelle
- * complète S-F) n'est PAS une TierList : voir EntityRank, plus simple
- * (chaque entité possédée est un candidat implicite, pas besoin d'un ajout
- * explicite comme ici). Cette classe ne couvre que les Tier Lists
- * personnalisées, dont l'appartenance est toujours volontaire (voir
+ * The GENERAL ranking (one rank per work, always on the full
+ * S-F scale) is NOT a TierList: see EntityRank, which is simpler
+ * (each owned entity is an implicit candidate, no need for an explicit
+ * addition as here). This class only covers custom Tier Lists,
+ * whose membership is always voluntary (see
  * TierListItem).
  * <p>
- * Porte un ownerId, mais ne le CHOISIT pas : null à la création, la session
- * tranche à l'écriture via la colonne marquée @TenantId (voir
- * ProprietaireCourant). Même règle que Ownership.
+ * Carries an ownerId, but does not CHOOSE it: null at creation, the session
+ * decides at write time through the column marked @TenantId (see
+ * ProprietaireCourant). Same rule as Ownership.
  */
 public class TierList {
 
@@ -59,12 +59,12 @@ public class TierList {
         this.createdAt = createdAt;
     }
 
-    /** Rangs actifs par défaut = l'échelle complète (voir la maquette - une
-     * Tier List personnalisée peut ensuite en désactiver certains, jamais
-     * l'inverse d'un défaut vide).
+    /** Default active ranks = the full scale (see the mockup - a
+     * custom Tier List can then turn some off, never
+     * the opposite of an empty default).
      *
-     * @param entityTypeId univers de la liste, {@code null} pour une liste
-     *                     transverse "toutes catégories" (voir javadoc de classe). */
+     * @param entityTypeId universe of the list, {@code null} for a
+     *                     cross-cutting "all categories" list (see class javadoc). */
     public static TierList create(String name, UUID entityTypeId, Set<Rank> activeRanks, String description) {
         Set<Rank> ranks = (activeRanks == null || activeRanks.isEmpty()) ? EnumSet.allOf(Rank.class) : activeRanks;
         return new TierList(UUID.randomUUID(), null, name.trim(), entityTypeId, ranks,
@@ -110,12 +110,12 @@ public class TierList {
         return name;
     }
 
-    /** Vide = Tier List transverse "toutes catégories" (voir javadoc de classe). */
+    /** Empty = cross-cutting "all categories" Tier List (see class javadoc). */
     public Optional<UUID> entityTypeId() {
         return Optional.ofNullable(entityTypeId);
     }
 
-    /** Toutes catégories confondues - une œuvre de n'importe quel univers peut y entrer. */
+    /** All categories together - a work of any universe can enter it. */
     public boolean isAllUniverses() {
         return entityTypeId == null;
     }

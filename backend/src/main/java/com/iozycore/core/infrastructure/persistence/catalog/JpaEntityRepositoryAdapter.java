@@ -38,17 +38,17 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
 
         EntityJpaEntity saved = entityJpaRepository.save(EntityMapper.toJpa(entity, createdAt));
 
-        // Les variants sont internes à l'Entity, mais peuvent être référencés
-        // par une Ownership (FK ownership.variant_id) - on ne peut donc pas les
-        // supprimer intégralement puis les recréer à l'identique comme avant :
-        // supprimer un Variant encore référencé lève une violation de contrainte,
-        // même s'il est réinséré avec le même id juste après (constaté : ajouter
-        // un 2e tome à une série qui possède déjà une Ownership sur son 1er tome
-        // levait une DataIntegrityViolationException). On ne supprime donc que
-        // les variants qui ont réellement disparu de l'Entity, et on upsert
-        // (save) le reste - un id déjà connu de Postgres devient une mise à
-        // jour, un id inconnu une insertion (même mécanisme que EntityJpaEntity
-        // ci-dessus).
+        // The variants are internal to the Entity, but can be referenced
+        // by an Ownership (FK ownership.variant_id) - so we cannot
+        // delete them all and then recreate them identically as before:
+        // deleting a Variant that is still referenced raises a constraint violation,
+        // even if it is reinserted with the same id right after (observed: adding
+        // a 2nd volume to a series that already has an Ownership on its 1st volume
+        // raised a DataIntegrityViolationException). So we only delete
+        // the variants that really disappeared from the Entity, and we upsert
+        // (save) the rest - an id already known to Postgres becomes an
+        // update, an unknown id an insert (same mechanism as EntityJpaEntity
+        // above).
         List<VariantJpaEntity> existingVariants = variantJpaRepository.findByEntityId(entity.id());
         Set<UUID> currentVariantIds = entity.variants().stream().map(Variant::id).collect(Collectors.toSet());
         List<VariantJpaEntity> removedVariants = existingVariants.stream()
@@ -84,24 +84,24 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
     }
 
     /**
-     * Les attributs ou l'on cherche AUSSI, apres le titre : le champ de
-     * recherche promet « un titre, un auteur… », et ne tenait que la
-     * premiere moitie.
+     * The attributes where we ALSO search, after the title: the search
+     * field promises "a title, an author...", and only kept the
+     * first half.
      */
     private static final List<String> ATTRIBUTS_CHERCHES = List.of("mangaka", "author", "studio", "designer",
             "developer", "publisher");
 
     /**
-     * Type et tag se filtrent en base ; le titre en memoire, pour plier
-     * accents et ponctuation (voir {@link TexteRecherche}). Le cout est
-     * celui du listing complet d'un type, que Ma collection et le Catalogue
-     * paient deja a chaque visite - et la requete est temporisee cote client.
+     * Type and tag are filtered in the database; the title in memory, to fold
+     * accents and punctuation (see {@link TexteRecherche}). The cost is
+     * that of listing a whole type, which My collection and the Catalog
+     * already pay at each visit - and the request is debounced on the client side.
      *
-     * <p>L'ordre dit la pertinence : les titres qui COMMENCENT par la
-     * recherche, puis ceux qui la contiennent, puis les oeuvres retrouvees
-     * par un auteur. Alphabetique a l'interieur de chaque groupe - c'est
-     * l'ordre de la base, que le tri stable conserve. Avant, « one » rendait
-     * « Bone » avant « One Piece ».
+     * <p>The order tells the relevance: the titles that START with the
+     * search, then those that contain it, then the works found
+     * by an author. Alphabetical inside each group - this is
+     * the order of the database, which the stable sort keeps. Before, "one" returned
+     * "Bone" before "One Piece".
      */
     @Override
     public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
@@ -135,8 +135,8 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
         if (titre.contains(requete)) {
             return 1;
         }
-        // « attaque titans » doit trouver « L'Attaque des Titans » : chaque
-        // mot tape est dans le titre, pas forcement a la suite.
+        // "attaque titans" must find "L'Attaque des Titans": each
+        // typed word is in the title, not necessarily in a row.
         if (TexteRecherche.contientChaqueMot(titre, requete)) {
             return 2;
         }
@@ -150,15 +150,15 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
     }
 
     /**
-     * Rattache leurs tomes à plusieurs œuvres en UNE requête, au lieu d'une par
-     * œuvre.
+     * Attaches their volumes to several works in ONE query, instead of one per
+     * work.
      * <p>
-     * Ces deux listings sont le chemin le plus fréquenté de l'app - Ma
-     * collection, un rayon, l'export, la progression, les suggestions et la page
-     * publique en dépendent tous - et chacun coûtait 1 + N requêtes. Mesuré au
-     * moment du correctif : 6 œuvres, donc 6 requêtes de tomes évitées ; à 500
-     * séries, 500. Le regroupement se fait en mémoire, la liste des œuvres étant
-     * de toute façon déjà chargée.
+     * These two listings are the busiest path of the app - My
+     * collection, a shelf, the export, the progress, the suggestions and the public
+     * page all depend on them - and each cost 1 + N queries. Measured at the
+     * time of the fix: 6 works, so 6 volume queries avoided; at 500
+     * series, 500. The grouping is done in memory, the list of works being
+     * already loaded anyway.
      */
     private List<Entity> withVariants(List<EntityJpaEntity> jpaEntities) {
         if (jpaEntities.isEmpty()) {

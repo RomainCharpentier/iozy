@@ -1,10 +1,10 @@
 /**
- * <b>Un rail est un aperçu, pas la liste entière.</b>
+ * <b>A rail is a preview, not the whole list.</b>
  *
- * Mesuré sur 300 séries (lot 141) : le rail rendait toutes ses tuiles dans un
- * défilement horizontal que personne ne parcourt, et dégroupé ses 3 000 tomes.
- * Il en montre un nombre borné ; le compte, lui, dit toujours le total, et
- * « Tout voir » mène au rayon complet.
+ * Measured on 300 series (batch 141): the rail rendered all its tiles in a
+ * horizontal scroll that nobody goes through, and ungrouped its 3,000 volumes.
+ * It shows a limited number; the count, for its part, always says the total, and
+ * "Tout voir" leads to the full shelf.
  */
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -23,8 +23,8 @@ function tuiles(n: number): ShelfTile[] {
   }))
 }
 
-describe('le rail', () => {
-  it('borne les tuiles rendues, et compte quand même tout', () => {
+describe('the rail', () => {
+  it('limits the rendered tiles, and still counts everything', () => {
     render(
       <MemoryRouter>
         <CategorySection entityType={typeDeCollection('MANGA', 'Manga')} tiles={tuiles(300)} />
@@ -32,11 +32,11 @@ describe('le rail', () => {
     )
 
     expect(screen.getAllByRole('button', { name: /^Série \d{3}/ })).toHaveLength(TUILES_PAR_RAIL)
-    // L'en-tête du rail : le libellé, le TOTAL, et la porte vers le rayon.
+    // The rail header: the label, the TOTAL, and the door to the shelf.
     expect(screen.getByRole('button', { name: /Manga.*300.*Tout voir/ })).toBeInTheDocument()
   })
 
-  it('montre tout quand il y a moins que la borne', () => {
+  it('shows everything when there are fewer than the limit', () => {
     render(
       <MemoryRouter>
         <CategorySection entityType={typeDeCollection('MANGA', 'Manga')} tiles={tuiles(5)} />

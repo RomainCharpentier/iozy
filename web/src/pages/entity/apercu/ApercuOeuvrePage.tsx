@@ -21,28 +21,28 @@ import { useCollecteParTome } from '@/common/lib/typeDeCollection'
 import { usePropositionTomes } from '@/pages/entity/usePropositionTomes'
 
 /**
- * L'aperçu d'une œuvre qu'on ne possède pas : la même page que sa fiche, mais
- * lue chez le fournisseur de métadonnées, sans rien écrire en base.
+ * The preview of a work one does not own: the same page as its detail page, but
+ * read from the metadata provider, without writing anything to the database.
  *
- * <h2>Consulter n'écrit pas</h2>
- * Une version précédente créait l'Entity à l'ouverture, pour n'avoir qu'une
- * seule route. C'était pratique et faux : parcourir des résultats de recherche
- * remplissait le catalogue d'œuvres qu'on n'a jamais eu l'intention de
- * collectionner. Ici rien n'est écrit tant qu'un tome n'est pas coché puis
- * ajouté - c'est `quickAdd` qui crée la fiche à ce moment-là, et l'aperçu
- * bascule alors vers elle.
+ * <h2>Browsing does not write</h2>
+ * A previous version created the Entity on opening, to have only one
+ * route. It was convenient and wrong: browsing search results
+ * filled the catalog with works that nobody ever intended to
+ * collect. Here nothing is written until a volume is checked and then
+ * added - it is `quickAdd` that creates the detail page at that moment, and the preview
+ * then switches to it.
  *
- * <h2>Identifiée par l'URL, pas par un état de navigation</h2>
- * `?type=…&titre=…` : l'écran se recharge, se partage et revient en arrière.
- * L'ancien écran d'ajout ne vivait que par `location.state` et affichait
- * « Aucune sélection en cours » après un simple F5. La recherche de
- * métadonnées est refaite au chargement pour retrouver l'œuvre - un
- * aller-retour, contre une page qui ne se recharge pas.
+ * <h2>Identified by the URL, not by a navigation state</h2>
+ * `?type=…&titre=…`: the screen reloads, can be shared and goes back.
+ * The old add screen only lived through `location.state` and showed
+ * "Aucune sélection en cours" after a simple F5. The metadata search
+ * is redone on load to find the work again - one
+ * round trip, against a page that does not reload.
  *
- * <h2>Ce qu'il n'affiche pas, et pourquoi</h2>
- * Ni classement, ni note, ni lecture, ni tag, ni relation : ces choses se
- * rattachent à une fiche, et il n'y en a pas encore. Les inventer en lecture
- * seule laisserait croire qu'on peut les renseigner ici.
+ * <h2>What it does not show, and why</h2>
+ * No ranking, no rating, no reading, no tag, no relationship: these things
+ * attach to a detail page, and there is none yet. Inventing them as
+ * read-only would suggest that they can be filled in here.
  */
 export function ApercuOeuvrePage() {
   const [params] = useSearchParams()
@@ -55,15 +55,15 @@ export function ApercuOeuvrePage() {
   const type = typesQuery.data?.find((t) => t.id === entityTypeId)
 
   /**
-   * Cette œuvre a-t-elle DÉJÀ une fiche ?
+   * Does this work ALREADY have a detail page?
    *
-   * L'aperçu est une URL comme une autre : on peut y arriver par un signet,
-   * par le bouton Précédent, ou par un lien reçu - y compris pour une œuvre
-   * qu'on possède depuis longtemps. Sans cette vérification, il affirmait
-   * « Cette œuvre n'est pas encore dans ta collection » devant une série de
-   * 3 tomes possédés (reproduit sur Naruto). L'aperçu s'efface alors devant
-   * la vraie fiche, en REMPLAÇANT l'entrée d'historique : revenir en arrière
-   * doit ramener d'où l'on vient, pas à un aperçu qui redirigerait aussitôt.
+   * The preview is a URL like any other: one can arrive by a bookmark,
+   * by the Back button, or by a received link - including for a work
+   * one has owned for a long time. Without this check, it claimed
+   * "Cette œuvre n'est pas encore dans ta collection" in front of a series of
+   * 3 owned volumes (reproduced on Naruto). The preview then gives way to
+   * the real detail page, REPLACING the history entry: going back
+   * must bring the user back to where they came from, not to a preview that would redirect at once.
    */
   const ficheExistanteQuery = useQuery({
     queryKey: queryKeys.entities.search({ q: titre }),
@@ -77,34 +77,34 @@ export function ApercuOeuvrePage() {
     if (ficheExistante) navigate(`/entity/${ficheExistante.id}`, { replace: true })
   }, [ficheExistante, navigate])
 
-  // On refait la recherche pour retrouver les métadonnées de l'œuvre (auteur,
-  // jaquette, année, identifiants). Même clé de cache que l'écran de
-  // recherche : y revenir juste après ne relance rien.
+  // We redo the search to find the metadata of the work (author,
+  // cover, year, ids). Same cache key as the search screen:
+  // going back there right after does not restart anything.
   const rechercheQuery = useQuery({
     queryKey: queryKeys.metadata.search(entityTypeId, titre),
     queryFn: () => searchMetadata(entityTypeId, titre),
     enabled: entityTypeId !== '' && titre !== '',
   })
 
-  // Le candidat déjà en main, quand on vient de le cliquer : un raccourci,
-  // jamais une dépendance - au rechargement il est absent et la recherche
-  // ci-dessus le retrouve. C'est ce qui distingue cet écran de l'ancien
-  // brouillon, qui n'existait QUE par son `location.state`.
+  // The candidate already in hand, when it was just clicked: a shortcut,
+  // never a dependency - on reload it is absent and the search
+  // above finds it again. This is what sets this screen apart from the old
+  // draft, which only existed through its `location.state`.
   const etatRecu = useLocation().state
   const candidatRecu = (etatRecu as { candidat?: MetadataCandidateDto } | null)?.candidat ?? null
-  // La recherche d'où l'on vient, avec ce qui y était tapé (voir retourFiche).
-  // Absente d'un lien reçu ou d'un F5 : le retour vise alors la recherche nue,
-  // qui reste une destination valable.
+  // The search the user comes from, with what was typed in it (see retourFiche).
+  // Absent from a received link or an F5: the back link then aims at the bare search,
+  // which remains a valid destination.
   const retour = retourDepuis(etatRecu) ?? { to: '/add', libelle: 'Recherche' }
-  // Un jeu n'a pas de tome : la phrase d'accueil ne peut pas demander d'en
-  // cocher (voir lib/typeDeCollection).
+  // A game has no volume: the welcome sentence cannot ask to check
+  // some (see lib/typeDeCollection).
   const parTome = useCollecteParTome(entityTypeId)
 
-  // Sinon, celui dont un des titres correspond exactement à celui de l'URL.
-  // Comparaison insensible à la casse, et sur le titre principal COMME sur le
-  // titre brut : le premier peut venir d'une résolution française que cette
-  // page ne refait pas. Aucun repli sur « le premier résultat » - un homonyme
-  // afficherait l'auteur et la jaquette d'une autre œuvre.
+  // Otherwise, the one with a title that matches exactly the one in the URL.
+  // Case-insensitive comparison, on the main title AS WELL AS on the
+  // raw title: the first may come from a French resolution that this
+  // page does not redo. No fallback to "the first result" - a homonym
+  // would show the author and cover of another work.
   const memeTitre = (valeur: string) => valeur.trim().toLowerCase() === titre.trim().toLowerCase()
   const candidat =
     candidatRecu ??
@@ -129,14 +129,14 @@ export function ApercuOeuvrePage() {
     titre,
     attributs,
     actif: entityTypeId !== '' && titre !== '',
-    // Tant que la recherche n'a pas répondu, `attributs` est vide : ajouter
-    // maintenant créerait une œuvre sans jaquette ni auteur.
+    // As long as the search has not answered, `attributs` is empty: adding
+    // now would create a work without a cover or author.
     attributsEnCours: !candidatRecu && rechercheQuery.isLoading,
-    // Le premier tome ajouté crée la fiche : on quitte l'aperçu pour elle,
-    // en remplaçant l'entrée d'historique - revenir en arrière doit ramener
-    // à la recherche, pas à un aperçu d'une œuvre désormais possédée.
-    // Le retour voyage jusqu'à la fiche : après un ajout, « Recherche » doit
-    // encore rouvrir la recherche telle qu'on l'avait laissée.
+    // The first added volume creates the detail page: we leave the preview for it,
+    // replacing the history entry - going back must bring the user
+    // to the search, not to a preview of a work that is now owned.
+    // The back link travels to the detail page: after an add, "Recherche" must
+    // still reopen the search as it was left.
     onAjoute: (id) => navigate(`/entity/${id}`, { replace: true, state: { retour } }),
   })
 
@@ -184,8 +184,8 @@ export function ApercuOeuvrePage() {
 
       {rechercheQuery.isError && <ErrorBanner message={rechercheQuery.error.message} />}
 
-      {/* Dire que cette œuvre n'est pas encore à soi, plutôt que de laisser
-          l'absence de progression le suggérer. */}
+      {/* Say that this work is not yet one's own, rather than letting the
+          absence of progress suggest it. */}
       <p className="pt-4 text-sm text-textDim">
         {parTome
           ? "Cette œuvre n'est pas encore dans ta collection — coche les tomes que tu possèdes pour l'y ajouter."

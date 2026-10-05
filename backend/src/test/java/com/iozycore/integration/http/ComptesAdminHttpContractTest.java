@@ -14,18 +14,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * <b>La porte de l'administration.</b>
+ * <b>The administration door.</b>
  *
- * <p>Ce que ces routes offrent — la liste des comptes, et la suppression
- * définitive de l'un d'eux — n'a pas d'équivalent ailleurs dans l'application :
- * partout, un compte ne voit que ses données ; ici, quelqu'un voit que les
- * autres existent, et peut les faire disparaître.
+ * <p>What these routes offer - the list of the accounts, and the permanent
+ * deletion of one of them - has no equivalent elsewhere in the application:
+ * everywhere, an account only sees its data; here, someone sees that the
+ * others exist, and can make them disappear.
  *
- * <p>Le refus opposé à un compte ordinaire est donc <b>la</b> chose à vérifier,
- * et elle se casse en silence : une règle déclarée après {@code anyRequest()},
- * un {@code @RequestMapping} qui glisse hors de {@code /api/admin}, et
- * n'importe quel compte connecté peut lister — puis supprimer — tout le monde.
- * Rien à l'écran ne changerait.
+ * <p>The refusal given to an ordinary account is therefore <b>the</b> thing to check,
+ * and it breaks silently: a rule declared after {@code anyRequest()},
+ * a {@code @RequestMapping} that slips out of {@code /api/admin}, and
+ * any connected account can list - then delete - everyone.
+ * Nothing on the screen would change.
  */
 class ComptesAdminHttpContractTest extends HttpContractTestBase {
 
@@ -34,18 +34,18 @@ class ComptesAdminHttpContractTest extends HttpContractTestBase {
 
     @Test
     void un_compte_ordinaire_est_refuse_en_403() throws Exception {
-        // L'identité par défaut de cette suite n'est PAS administratrice : ce
-        // test frappe exactement comme les centaines d'autres.
+        // The default identity of this suite is NOT an administrator: this
+        // test knocks exactly like the hundreds of others.
         mockMvc.perform(get("/api/admin/comptes")).andExpect(status().isForbidden());
         mockMvc.perform(delete("/api/admin/comptes/" + ABSENT)).andExpect(status().isForbidden());
     }
 
     /**
-     * Un compte RÉEL en base.
+     * A REAL account in the database.
      * <p>
-     * L'identité qui signe ces requêtes est un principal fabriqué, pas une
-     * ligne : sans ce semis, la table des comptes est vide et la liste ne
-     * prouverait rien. Annulé avec la transaction du test.
+     * The identity that signs these requests is a made-up principal, not a
+     * row: without this seed, the accounts table is empty and the list would
+     * prove nothing. Rolled back with the transaction of the test.
      */
     private AppUser unCompte() {
         String pseudo = "invite" + UUID.randomUUID().toString().substring(0, 8);
@@ -62,16 +62,16 @@ class ComptesAdminHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$[?(@.id=='" + invite.id() + "')].email").value(invite.email()))
                 .andExpect(jsonPath("$[?(@.id=='" + invite.id() + "')].admin").value(false))
                 .andExpect(jsonPath("$[?(@.id=='" + invite.id() + "')].creeLe").exists())
-                // Un compte neuf ne possède rien - et c'est un ZÉRO, pas une
-                // absence : c'est ce nombre qui dit à l'administrateur ce qu'il
-                // détruirait.
+                // A new account owns nothing - and it is a ZERO, not an
+                // absence: it is this number that tells the administrator what they
+                // would destroy.
                 .andExpect(jsonPath("$[?(@.id=='" + invite.id() + "')].volume.total").value(0));
     }
 
     @Test
     void la_liste_ne_rend_jamais_un_hachage_de_mot_de_passe() throws Exception {
-        // Le record de réponse ne le porte pas ; ce test existe pour le jour où
-        // quelqu'un rendra `AppUser` directement, ce qui marcherait.
+        // The response record does not carry it; this test exists for the day when
+        // someone returns `AppUser` directly, which would work.
         unCompte();
 
         mockMvc.perform(get("/api/admin/comptes").with(user(IDENTITE_ADMIN)))
@@ -105,8 +105,8 @@ class ComptesAdminHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(delete("/api/admin/comptes/" + invite.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isNoContent());
 
-        // Et il ne revient pas : une suppression qui répond 204 sans effacer se
-        // lit exactement comme une suppression réussie.
+        // And it does not come back: a deletion that answers 204 without erasing
+        // reads exactly like a successful deletion.
         mockMvc.perform(delete("/api/admin/comptes/" + invite.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isNotFound());
     }

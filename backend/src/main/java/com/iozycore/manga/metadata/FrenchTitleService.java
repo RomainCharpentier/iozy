@@ -15,20 +15,20 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Le titre de l'édition FRANÇAISE d'un manga - un geste qui n'a de sens que
- * pour cet univers (extrait de MetadataSearchService au Lot 132).
+ * The title of the FRENCH edition of a manga - a step that only makes sense
+ * for this universe (extracted from MetadataSearchService in Batch 132).
  * <p>
- * Les fournisseurs de mangas rendent un titre original ou romaji ; c'est le
- * titre sous lequel la série est vendue en France qu'il faut afficher et
- * chercher ensuite (tomes, éditions). Open Library puis Google Books le
- * connaissent ; les gardes-fous ci-dessous évitent qu'un titre trouvé par le
- * seul nom de l'auteur ne soit en fait celui d'une AUTRE œuvre - ce que les
- * fournisseurs qui cataloguent les titres originaux (voir
- * {@link MetadataProvider#catalogsOriginalTitles}) permettent de vérifier.
+ * Manga providers return an original or romaji title; the title under which
+ * the series is sold in France is the one to show and to
+ * search next (volumes, editions). Open Library then Google Books know
+ * it; the safeguards below prevent a title found by the
+ * author name alone from being in fact the title of ANOTHER work - which providers
+ * that catalog original titles (see
+ * {@link MetadataProvider#catalogsOriginalTitles}) allow us to check.
  * <p>
- * frenchTitleCache ne mémorise QUE les résultats trouvés (jamais une
- * absence) : un échec réseau transitoire ne doit pas condamner le même titre
- * à échouer pendant 24 h.
+ * frenchTitleCache stores ONLY the results found (never an
+ * absence): a temporary network failure must not condemn the same title
+ * to fail for 24 h.
  */
 @Service
 public class FrenchTitleService {
@@ -44,43 +44,43 @@ public class FrenchTitleService {
         this.frenchTitleProviders = frenchTitleProviders;
     }
 
-    /** La cle de comparaison des titres - accents et ponctuation plies, comme la recherche locale (voir TexteRecherche). */
+    /** The comparison key of titles - accents and punctuation folded, like the local search (see TexteRecherche). */
     private static String normalize(String value) {
         return TexteRecherche.normaliser(value);
     }
 
     /**
-     * Recherche best-effort d'un titre d'édition française (voir
-     * OpenLibraryFrenchTitleProvider, essayé en premier, puis
-     * GoogleBooksFrenchTitleProvider en repli) - déclenchée uniquement quand
-     * l'utilisateur choisit une suggestion (jamais pour toute une liste de
-     * résultats de recherche), pour limiter les appels externes. Vide si le
-     * type n'est pas couvert ou si aucun fournisseur n'a rien trouvé.
+     * Best-effort search of a French edition title (see
+     * OpenLibraryFrenchTitleProvider, tried first, then
+     * GoogleBooksFrenchTitleProvider as a fallback) - triggered only when
+     * the user chooses a suggestion (never for a whole list of
+     * search results), to limit external calls. Empty if the
+     * type is not covered or if no provider found anything.
      *
-     * @param author mangaka, si connu (voir MetadataCandidate.attributes) -
-     *               améliore nettement la précision (voir OpenLibraryFrenchTitleProvider).
+     * @param author mangaka, if known (see MetadataCandidate.attributes) -
+     *               clearly improves the precision (see OpenLibraryFrenchTitleProvider).
      */
     public Optional<String> findFrenchTitle(EntityType entityType, String query, String author) {
         return findFrenchTitle(entityType, query, author, List.of());
     }
 
-    /** Variante avec exclusion de suites/spin-offs connus (voir RelatedSeriesService) -
-     * ex: "Dragon Ball Super nº 18" résolu à tort comme titre français de
-     * "Dragon Ball" (sa suite étant beaucoup mieux référencée sur Open
-     * Library, vérifié manuellement, voir historique de la conversation). */
+    /** Variant with exclusion of known sequels/spin-offs (see RelatedSeriesService) -
+     * e.g. "Dragon Ball Super nº 18" wrongly resolved as the French title of
+     * "Dragon Ball" (its sequel being much better referenced on Open
+     * Library, checked manually, see the history of the conversation). */
     public Optional<String> findFrenchTitle(EntityType entityType, String query, String author, List<String> excludedTitleFragments) {
         return findFrenchTitle(entityType, query, author, excludedTitleFragments, null);
     }
 
     /**
-     * @param externalId identifiant de la série cherchée chez la source qui
-     *                   l'a proposée (malId, voir MetadataCandidate) - sert
-     *                   uniquement à reconnaître la série elle-même parmi les
-     *                   œuvres cataloguées quand un titre trouvé par le seul
-     *                   nom de l'auteur est vérifié (voir
-     *                   {@link #namesAnotherKnownWork}). Best-effort, sans
-     *                   effet si absent : la comparaison retombe alors sur
-     *                   les titres.
+     * @param externalId id of the searched series at the source that
+     *                   proposed it (malId, see MetadataCandidate) - used
+     *                   only to recognize the series itself among the
+     *                   cataloged works when a title found by the author
+     *                   name alone is checked (see
+     *                   {@link #namesAnotherKnownWork}). Best-effort, has no
+     *                   effect if absent: the comparison then falls back on
+     *                   the titles.
      */
     public Optional<String> findFrenchTitle(EntityType entityType, String query, String author,
                                              List<String> excludedTitleFragments, String externalId) {
@@ -96,16 +96,16 @@ public class FrenchTitleService {
     }
 
     /**
-     * Arbitre entre fournisseurs par la VALEUR DE PREUVE du résultat, pas par
-     * leur ordre (voir {@link FrenchTitleMatch.Confidence}) : une
-     * correspondance sur la série cherchée est retenue immédiatement, tandis
-     * qu'une trouvaille "auteur seul" est mise de côté le temps de laisser
-     * les fournisseurs suivants proposer mieux - sans quoi le premier
-     * fournisseur (Open Library) impose sa supposition alors que le suivant
-     * (Google Books) connaît parfois la vraie réponse. Coût : un appel
-     * externe de plus dans ce seul cas, resté rare (un fournisseur ne
-     * descend à son dernier recours que quand rien du titre cherché n'a
-     * matché).
+     * Chooses between providers by the PROOF VALUE of the result, not by
+     * their order (see {@link FrenchTitleMatch.Confidence}): a
+     * match on the searched series is kept at once, while
+     * an "author only" find is set aside to let the following
+     * providers offer better - otherwise the first
+     * provider (Open Library) imposes its guess while the next one
+     * (Google Books) sometimes knows the real answer. Cost: one more
+     * external call in this case only, which stays rare (a provider
+     * only goes down to its last resort when nothing of the searched title
+     * matched).
      */
     private Optional<String> resolveFrenchTitle(EntityType entityType, String query, String author,
                                                  List<String> excludedTitleFragments, String externalId) {
@@ -133,35 +133,35 @@ public class FrenchTitleService {
     }
 
     /**
-     * Vrai si {@code candidateTitle} est LUI-MÊME le titre catalogué d'une
-     * AUTRE œuvre que celle cherchée - une édition française traduite n'est
-     * par nature référencée nulle part sous ce titre côté catalogue japonais
-     * (MyAnimeList/Jikan), alors qu'une autre œuvre du même auteur y est
-     * évidemment référencée sous le sien. C'est ce qui sépare les deux
-     * résultats "auteur seul" possibles, vérifié en direct sur ces deux cas
-     * réels (voir historique de la conversation) :
+     * True if {@code candidateTitle} is ITSELF the cataloged title of
+     * ANOTHER work than the searched one - a translated French edition is
+     * by nature not referenced anywhere under this title in the Japanese
+     * catalog (MyAnimeList/Jikan), while another work by the same author is
+     * obviously referenced there under its own. This is what separates the two
+     * possible "author only" results, checked live on these two
+     * real cases (see the history of the conversation):
      * <ul>
-     *   <li>"Vagabond" (Takehiko Inoue) donnait "Slam Dunk" - catalogué tel
-     *   quel sous un autre malId : c'est son autre manga, pas une traduction.
-     *   Le titre français réel de Vagabond étant "Vagabond", ne rien
-     *   retourner laisse le client garder le titre déjà affiché, ce qui est
-     *   ici exactement la bonne réponse ;</li>
-     *   <li>"Zom 100" (Haro Aso) donne "Bucket List of the Dead", son vrai
-     *   titre français - le catalogue ne connaît que "Zom 100: Bucket List of
-     *   the Dead", titre DIFFÉRENT (la comparaison est une égalité exacte,
-     *   jamais un contains(), sans quoi ce cas serait écarté à tort).</li>
+     *   <li>"Vagabond" (Takehiko Inoue) gave "Slam Dunk" - cataloged as
+     *   is under another malId: it is his other manga, not a translation.
+     *   The real French title of Vagabond being "Vagabond", returning nothing
+     *   lets the client keep the title already shown, which is
+     *   here exactly the right answer;</li>
+     *   <li>"Zom 100" (Haro Aso) gives "Bucket List of the Dead", its real
+     *   French title - the catalog only knows "Zom 100: Bucket List of
+     *   the Dead", a DIFFERENT title (the comparison is an exact equality,
+     *   never a contains(), otherwise this case would be wrongly rejected).</li>
      * </ul>
-     * Vérification impossible (panne/quota du catalogue) = résultat écarté :
-     * une supposition non corroborée vaut moins qu'un 404 honnête, le client
-     * gardant alors le titre original déjà affiché plutôt que de se voir
-     * imposer le titre d'une autre série (jaquettes et tomes suivraient).
+     * Check impossible (catalog down/quota) = result rejected:
+     * an unconfirmed guess is worth less than an honest 404, the client
+     * then keeping the original title already shown rather than having
+     * the title of another series imposed on it (covers and volumes would follow).
      * <p>
-     * N'interroge QUE les fournisseurs qui cataloguent sous le titre
-     * d'origine (voir {@link MetadataProvider#catalogsOriginalTitles()}) :
-     * inclure celui qui cherche par titre français reviendrait à faire
-     * écarter tous les vrais titres français, puisqu'il les trouve
-     * justement - c'est toute la logique de cette vérification qui
-     * s'inverserait.
+     * Queries ONLY the providers that catalog under the original
+     * title (see {@link MetadataProvider#catalogsOriginalTitles()}):
+     * including the one that searches by French title would make it reject
+     * all the real French titles, since it finds them
+     * precisely - the whole logic of this check would
+     * be reversed.
      */
     private boolean namesAnotherKnownWork(EntityType entityType, String candidateTitle, String query, String externalId) {
         List<MetadataCandidate> catalogued;
@@ -171,7 +171,7 @@ public class FrenchTitleService {
                     .flatMap(provider -> provider.search(candidateTitle).stream())
                     .collect(Collectors.toList());
         } catch (RuntimeException e) {
-            log.warn("Titre français '{}' (trouvé par le seul nom de l'auteur) écarté : catalogue non joignable pour le vérifier - {}",
+            log.warn("French title '{}' (found by the author name alone) rejected: catalog not reachable to check it - {}",
                     candidateTitle, e.getMessage());
             return true;
         }
@@ -179,7 +179,7 @@ public class FrenchTitleService {
             if (!hasTitle(candidate, candidateTitle) || isQueriedSeries(candidate, query, externalId)) {
                 continue;
             }
-            log.info("Titre français '{}' (trouvé par le seul nom de l'auteur) écarté : c'est le titre catalogué de '{}' ({}), une autre œuvre",
+            log.info("French title '{}' (found by the author name alone) rejected: it is the cataloged title of '{}' ({}), another work",
                     candidateTitle, candidate.title(), candidate.externalId());
             return true;
         }
@@ -190,18 +190,18 @@ public class FrenchTitleService {
         if (externalId != null && !externalId.isBlank() && externalId.equals(candidate.externalId())) {
             return true;
         }
-        // Repli quand l'identifiant est inconnu, ou vient d'une autre source
-        // que celle qui a répondu ici (deux identifiants ne sont comparables
-        // qu'au sein d'une même source) : le titre original cherché suffit à
-        // reconnaître la série - "Vagabond" catalogué sous "Vagabond" EST
-        // bien la série cherchée, pas une autre œuvre.
+        // Fallback when the id is unknown, or comes from another source
+        // than the one that answered here (two ids can only be compared
+        // within the same source): the searched original title is enough to
+        // recognize the series - "Vagabond" cataloged under "Vagabond" IS
+        // indeed the searched series, not another work.
         return hasTitle(candidate, query);
     }
 
-    /** Égalité exacte (insensible à la casse) avec l'un des titres connus du
-     * candidat - titre principal ET titres alternatifs (voir
-     * MyAnimeListMetadataProvider : titleRomaji/titleEnglish/titleJapanese),
-     * un même manga étant catalogué sous plusieurs formes. */
+    /** Exact equality (case-insensitive) with one of the known titles of the
+     * candidate - main title AND alternative titles (see
+     * MyAnimeListMetadataProvider: titleRomaji/titleEnglish/titleJapanese),
+     * the same manga being cataloged under several forms. */
     private static boolean hasTitle(MetadataCandidate candidate, String title) {
         if (title == null || title.isBlank()) {
             return false;

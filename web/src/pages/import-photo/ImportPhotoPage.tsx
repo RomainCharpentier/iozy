@@ -31,37 +31,37 @@ import type {
 } from '@/common/types/shelfImport'
 
 /**
- * Importer sa bibliothèque depuis des photos de l'étagère.
+ * Import your library from photos of the shelf.
  *
- * <h2>Le même écran de vérification que l'analyse d'annonce</h2>
- * Les photos sont lues par le même moteur, et rendues de la même façon :
- * une série par groupe, les tomes en pastilles, l'édition choisie une fois
- * par série. Ce qui change, c'est la question posée : sur une annonce, « que
- * contient ce lot ? » ; sur son étagère, « qu'est-ce qui manque encore à ma
- * collection ? ». D'où les tomes **déjà possédés**, cochés et inertes, et la
- * **fiche proposée** pour une série encore inconnue du catalogue.
+ * <h2>The same check screen as the listing analysis</h2>
+ * The photos are read by the same engine, and rendered the same way:
+ * one series per group, the volumes as pills, the edition chosen once
+ * per series. What changes is the question asked: on a listing, "what
+ * does this lot contain?"; on one's shelf, "what is still missing from my
+ * collection?". Hence the **already owned** volumes, checked and inert, and the
+ * **proposed work page** for a series that is still unknown to the catalog.
  *
- * <h2>Rien n'est écrit avant le geste - et le geste vient en deux temps</h2>
- * La lecture ne crée rien. « Vérifier l'ajout de N tomes » passe à une
- * relecture qui montre, série par série, ce qui partirait ; c'est là que
- * « Ajouter N tomes à ma collection » envoie exactement ce qui est coché -
- * titre, numéro, édition, fiche gardée ou non - et le serveur écrit en une
- * transaction, en refusant de créer un second exemplaire d'un tome encore
- * possédé. Demandé après le premier essai sur une vraie étagère : tout
- * pré-coché, un seul clic écrivait 33 tomes.
+ * <h2>Nothing is written before the gesture - and the gesture comes in two steps</h2>
+ * The reading creates nothing. "Vérifier l'ajout de N tomes" moves to a
+ * review that shows, series by series, what would be sent; it is there that
+ * "Ajouter N tomes à ma collection" sends exactly what is checked -
+ * title, number, edition, work page kept or not - and the server writes in one
+ * transaction, refusing to create a second copy of a volume that is still
+ * owned. Asked for after the first try on a real shelf: everything
+ * pre-checked, one single click wrote 33 volumes.
  *
- * <h2>Les photos quittent la machine</h2>
- * Le sous-titre le dit avant le choix des fichiers, et rien ne part sans ce
- * choix : c'est le consentement, pas un drapeau à part.
+ * <h2>The photos leave the machine</h2>
+ * The subtitle says so before the choice of files, and nothing is sent without this
+ * choice: it is the consent, not a separate flag.
  */
 
-/** « Je ne sais pas » : le tome est ajouté sans édition. */
+/** "Je ne sais pas": the volume is added without an edition. */
 const SANS_EDITION = ''
 
 interface Correction {
   coche?: boolean
   decoche?: boolean
-  /** Le numéro saisi quand la photo ne le donnait pas. */
+  /** The number typed when the photo did not give it. */
   numero?: number
 }
 
@@ -83,7 +83,7 @@ interface Groupe {
   lignes: Ligne[]
 }
 
-/** Une série telle que la relecture la montre : ce qui partirait, et rien d'autre. */
+/** A series as the review shows it: what would be sent, and nothing else. */
 interface SerieARelire {
   groupe: Groupe
   numeros: number[]
@@ -93,7 +93,7 @@ function pluriel(n: number, un: string, plusieurs: string): string {
   return n > 1 ? plusieurs : un
 }
 
-/** Une URL locale pour montrer la photo - vide là où le navigateur ne sait pas en fabriquer (jsdom). */
+/** A local URL to show the photo - empty where the browser cannot build one (jsdom). */
 function creerUrl(fichier: File): string {
   return typeof URL.createObjectURL === 'function' ? URL.createObjectURL(fichier) : ''
 }
@@ -107,23 +107,23 @@ export function ImportPhotoPage() {
   const champFichiers = useRef<HTMLInputElement | null>(null)
   const [resultat, setResultat] = useState<ShelfAnalysisDto | null>(null)
   const [refusees, setRefusees] = useState<string | null>(null)
-  /** Corrections indexées par identité de candidat - jamais par position. */
+  /** Corrections indexed by candidate identity - never by position. */
   const [corrections, setCorrections] = useState<Record<string, Correction>>({})
-  /** L'édition choisie par série ; absente = pas encore choisie, '' = sans édition. */
+  /** The edition chosen per series; absent = not chosen yet, '' = without edition. */
   const [editions, setEditions] = useState<Record<string, string>>({})
-  /** La fiche proposée, gardée ou non - explicitement ; sans choix, la règle par défaut s'applique (voir ficheGardee). */
+  /** The proposed work page, kept or not - explicitly; without a choice, the default rule applies (see ficheGardee). */
   const [fichesChoisies, setFichesChoisies] = useState<Record<string, boolean>>({})
   const [groupesRetires, setGroupesRetires] = useState<Record<string, boolean>>({})
   /**
-   * Deux temps avant d'écrire : vérifier (cocher, corriger, choisir), puis
-   * relire noir sur blanc ce qui partirait. Le bouton du premier écran ne
-   * fait que passer au second ; seul celui de la relecture écrit.
+   * Two steps before writing: check (check, correct, choose), then
+   * reread in black and white what would be sent. The button of the first screen only
+   * moves to the second; only the one of the review writes.
    */
   const [etape, setEtape] = useState<'verification' | 'unparun' | 'relecture'>('verification')
-  /** Les photos envoyées, telles que le navigateur peut les montrer : des URLs locales, révoquées quand on en change. */
+  /** The photos sent, as the browser can show them: local URLs, revoked when they change. */
   const [urls, setUrls] = useState<string[]>([])
   const [tailles, setTailles] = useState<Record<number, { w: number; h: number }>>({})
-  /** L'extrait en cours dans la validation un par un. */
+  /** The excerpt currently shown in the one-by-one validation. */
   const [pas, setPas] = useState(0)
   useEffect(() => () => urls.forEach(revoquerUrl), [urls])
 
@@ -135,10 +135,10 @@ export function ImportPhotoPage() {
       setEditions({})
       setFichesChoisies({})
       setGroupesRetires({})
-      // La vérification, c'est un par un : dès qu'il y a quelque chose à
-      // valider, on y entre directement ; le récapitulatif par série vient
-      // après. Sans rien à valider (tout possédé, rien lu), le récapitulatif
-      // dit pourquoi.
+      // The check is one by one: as soon as there is something to
+      // validate, we enter it directly; the summary by series comes
+      // after. With nothing to validate (all owned, nothing read), the summary
+      // says why.
       setEtape(reponse.items.some((entree) => !entree.alreadyOwned) ? 'unparun' : 'verification')
       setPas(0)
     },
@@ -152,17 +152,17 @@ export function ImportPhotoPage() {
   const choisirPhotos = (liste: FileList | null) => {
     setRefusees(null)
     if (!liste || liste.length === 0) return
-    // Copié AVANT de vider le champ : la FileList est vivante, la vider
-    // viderait aussi ce qu'on tient.
+    // Copied BEFORE emptying the field: the FileList is live, emptying it
+    // would also empty what we are holding.
     const fichiers = Array.from(liste)
     if (champFichiers.current) champFichiers.current.value = ''
 
     void preparerLesPhotos(fichiers).then(({ retenues, message }) => {
       setRefusees(message)
       if (retenues.length > 0) {
-        // La lecture précédente s'efface tout de suite : la laisser à l'écran
-        // pendant la nouvelle ferait relire des tomes d'une autre photo, ou
-        // d'avant l'import - « déjà possédé » y serait faux.
+        // The previous reading is cleared right away: leaving it on screen
+        // during the new one would make one reread volumes of another photo, or
+        // from before the import - "already owned" would be wrong there.
         setResultat(null)
         setUrls(retenues.map(creerUrl))
         setTailles({})
@@ -172,19 +172,19 @@ export function ImportPhotoPage() {
     })
   }
 
-  // ----------------------------------------------------------- Les groupes
+  // ----------------------------------------------------------- The groups
 
   const lignes: Ligne[] = (resultat?.items ?? []).map((entree, index) => ({
     entree,
-    // L'index ne sert qu'à séparer deux « tome non lu » de la même série :
-    // sans lui, ils partageraient une identité, donc un même numéro saisi.
+    // The index only serves to separate two "unread volume" of the same series:
+    // without it, they would share an identity, therefore a same typed number.
     cle: `${identite(entree.item)}#${index}`,
   }))
 
   /**
-   * Une série par groupe. L'édition **lue** entre dans la clé : si les photos
-   * distinguent « Perfect » et « Standard », ce sont deux groupes - les fondre
-   * choisirait à la place de l'utilisateur.
+   * One series per group. The edition **read** is part of the key: if the photos
+   * distinguish "Perfect" and "Standard", they are two groups - merging them
+   * would choose in place of the user.
    */
   const groupes: Groupe[] = []
   for (const ligne of lignes) {
@@ -226,10 +226,10 @@ export function ImportPhotoPage() {
     const correction = corrections[ligne.cle]
     if (correction?.decoche) return false
     if (correction?.coche) return true
-    // Pré-coché : ce que le moteur juge sûr (titre ET numéro nets), série
-    // connue OU nouvelle - sur une étagère, une série nouvelle est précisément
-    // ce qu'on vient importer, là où un lot d'annonce ne pré-coche que le
-    // catalogue. Jamais sans numéro : rien à ajouter tant qu'il n'est pas saisi.
+    // Pre-checked: what the engine considers certain (clear title AND number), series
+    // known OR new - on a shelf, a new series is precisely
+    // what one comes to import, whereas a listing lot only pre-checks the
+    // catalog. Never without a number: nothing to add until it is typed.
     const item = ligne.entree.item
     return item.preselected || (item.catalogStatus === 'NOT_IN_CATALOG' && item.confidence === 'HIGH')
   }
@@ -239,10 +239,10 @@ export function ImportPhotoPage() {
   }
 
   /**
-   * L'édition retenue pour une série. Connue du catalogue : la sienne. À
-   * confirmer : rien tant que l'utilisateur n'a pas choisi - une seule édition
-   * connue n'est pas une raison de la lui attribuer. Série nouvelle : ce que
-   * la photo disait, s'il y avait quelque chose.
+   * The edition kept for a series. Known from the catalog: its own. To
+   * confirm: nothing until the user has chosen - a single known edition
+   * is not a reason to assign it to them. New series: what
+   * the photo said, if there was something.
    */
   function editionDe(groupe: Groupe): string {
     const choisie = editions[groupe.cle]
@@ -252,11 +252,11 @@ export function ImportPhotoPage() {
   }
 
   /**
-   * La fiche qui partira avec la série. Retrouvée par son titre : gardée
-   * d'office. Simple premier résultat de recherche (titre français lu, fiche
-   * en romaji) : montrée comme une piste, gardée seulement si l'utilisateur le
-   * dit - une fiche fausse importée avec assurance coûte plus qu'une série
-   * créée avec son seul titre.
+   * The work page that will go with the series. Found by its title: kept
+   * by default. Simple first search result (French title read, work page
+   * in romaji): shown as a lead, kept only if the user says
+   * so - a wrong work page imported with confidence costs more than a series
+   * created with its title alone.
    */
   function ficheGardee(groupe: Groupe): FicheProposeeDto | null {
     if (groupe.catalogStatus !== 'NOT_IN_CATALOG' || !groupe.proposal) return null
@@ -264,7 +264,7 @@ export function ImportPhotoPage() {
     return gardee ? groupe.proposal : null
   }
 
-  /** Le titre envoyé : celui de la fiche gardée, sinon celui du catalogue ou de la lecture. */
+  /** The title sent: the one of the kept work page, otherwise the one of the catalog or of the reading. */
   function titreDe(groupe: Groupe): string {
     return ficheGardee(groupe)?.title ?? groupe.titre
   }
@@ -273,7 +273,7 @@ export function ImportPhotoPage() {
     setCorrections((prev) => ({ ...prev, [cle]: { ...prev[cle], ...patch } }))
   }
 
-  /** Tout cocher ou tout décocher dans une série - les tomes possédés ne bougent pas. */
+  /** Check or uncheck everything in a series - the owned volumes do not move. */
   function basculerGroupe(groupe: Groupe, cocher: boolean) {
     setCorrections((prev) => {
       const suivant = { ...prev }
@@ -302,7 +302,7 @@ export function ImportPhotoPage() {
   }
 
   const aImporter = tomesAImporter()
-  /** Ce que la relecture affiche : par série, les numéros qui partiraient. */
+  /** What the review displays: by series, the numbers that would be sent. */
   const relecture: SerieARelire[] = groupes
     .map((groupe) => ({
       groupe,
@@ -312,25 +312,25 @@ export function ImportPhotoPage() {
   const dejaPossedes = lignes.filter((ligne) => ligne.entree.alreadyOwned).length
   const enCours = lecture.isPending || importation.isPending
 
-  // ------------------------------------------- Les cadres sur la photo, les extraits
+  // ------------------------------------------- The frames on the photo, the excerpts
 
-  /** L'état d'un tome, le même sur sa pastille et sur son cadre. */
+  /** The state of a volume, the same on its pill and on its frame. */
   function etatDe(ligne: Ligne): EtatCadre {
     if (ligne.entree.alreadyOwned) return 'possede'
     if (numeroDe(ligne) === null) return 'sansNumero'
     return estCoche(ligne) ? 'coche' : 'decoche'
   }
 
-  /** Les lignes encore à l'écran, avec leur série - une série retirée emporte ses cadres. */
+  /** The lines still on screen, with their series - a removed series takes its frames with it. */
   const lignesEnPlace = lignes.flatMap((ligne) => {
     const groupe = groupes.find((g) => g.lignes.includes(ligne))
     return groupe ? [{ ligne, groupe }] : []
   })
 
   /**
-   * Ce que la validation un par un fait défiler : par photo, de gauche à
-   * droite - l'ordre d'une rangée - puis ce que le moteur n'a pas su situer.
-   * Un tome déjà possédé n'a rien à valider.
+   * What the one-by-one validation scrolls through: by photo, from left to
+   * right - the order of a row - then what the engine could not place.
+   * An already owned volume has nothing to validate.
    */
   const extraits: Extrait[] = lignesEnPlace
     .filter(({ ligne }) => !ligne.entree.alreadyOwned)
@@ -464,9 +464,9 @@ export function ImportPhotoPage() {
               </p>
             )}
 
-            {/* La vérification se fait un par un, sur la photo ; ce récapitulatif
-                sert à cocher en bloc, choisir l'édition et la fiche par série,
-                et à repasser en revue si besoin. */}
+            {/* The check is done one by one, on the photo; this summary
+                serves to check in bulk, choose the edition and the work page per series,
+                and to go over it again if needed. */}
             {extraits.length > 0 && (
               <button
                 type="button"
@@ -525,9 +525,9 @@ export function ImportPhotoPage() {
               </p>
             )}
 
-            {/* Pas encore l'ajout : ce bouton passe à la relecture, où ce
-                qui partirait s'affiche noir sur blanc. L'écriture vient
-                de là-bas, et de là-bas seulement. */}
+            {/* Not the add yet: this button moves to the review, where what
+                would be sent is shown in black and white. The writing comes
+                from there, and only from there. */}
             {lignes.length > 0 && (
               <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -586,7 +586,7 @@ function GroupeEtagere({
   const nouvelle = groupe.catalogStatus === 'NOT_IN_CATALOG'
   const selectionnables = groupe.lignes.filter((ligne) => !ligne.entree.alreadyOwned && numeroDe(ligne) !== null)
   const toutesCochees = selectionnables.length > 0 && selectionnables.every(estCoche)
-  /** Ce que le lecteur a vu pour ce tome (« Chiffre 62 sur la tranche ») - au survol, pour vérifier à la main. */
+  /** What the reader saw for this volume ("Chiffre 62 sur la tranche") - on hover, to check by hand. */
   const indice = (ligne: Ligne) => ligne.entree.item.evidence.join(' · ') || undefined
 
   return (
@@ -595,7 +595,7 @@ function GroupeEtagere({
         <div className="flex min-w-0 flex-col">
           <TexteCoupe texte={groupe.titre} className="truncate text-sm font-medium text-textPrimary" />
           <span className="flex flex-wrap items-center gap-x-2 text-xs">
-            {/* La provenance parle de la donnée (« photos »), jamais du fournisseur d'IA. */}
+            {/* The provenance speaks of the data ("photos"), never of the AI provider. */}
             <span className="text-textDim">{groupe.sourceLabels.join(' + ')}</span>
             <span className={COULEURS_CONFIANCE[groupe.confiance]}>{LIBELLES_CONFIANCE[groupe.confiance]}</span>
             {nouvelle ? (
@@ -615,9 +615,9 @@ function GroupeEtagere({
         </button>
       </div>
 
-      {/* La fiche que le Catalogue créerait : montrée AVANT l'import, avec sa
-          jaquette, et refusable - une lecture de tranche peut se tromper de
-          série, et la fiche fausse aurait alors l'aplomb d'une vraie. */}
+      {/* The work page that the Catalog would create: shown BEFORE the import, with its
+          cover, and refusable - a spine reading can get the series
+          wrong, and the wrong work page would then have the confidence of a real one. */}
       {nouvelle && groupe.proposal && (
         <div className="flex items-center gap-2">
           <Jaquette
@@ -647,7 +647,7 @@ function GroupeEtagere({
         <p className="text-xs text-textDim">Aucune fiche trouvée chez les sources : la série sera créée avec ce titre.</p>
       )}
 
-      {/* Les tomes en pastilles : quatorze tomes tiennent sur deux lignes. */}
+      {/* The volumes as pills: fourteen volumes fit on two lines. */}
       <div className="flex flex-wrap items-center gap-1.5">
         {groupe.lignes.map((ligne) => {
           const possede = ligne.entree.alreadyOwned
@@ -696,7 +696,7 @@ function GroupeEtagere({
           )
         })}
 
-        {/* Pour qui préfère partir de rien et cocher à la main, tome par tome. */}
+        {/* For whoever prefers to start from nothing and check by hand, volume by volume. */}
         {selectionnables.length > 1 && (
           <button
             type="button"
@@ -708,7 +708,7 @@ function GroupeEtagere({
         )}
       </div>
 
-      {/* Une seule fois pour la série : l'édition n'est pas une propriété du tome. */}
+      {/* Once for the series: the edition is not a property of the volume. */}
       {aChoisir && groupe.catalogStatus === 'MATCHED' && groupe.editionLue && (
         <p className="text-xs text-textDim">
           Édition : <span className="font-medium text-textPrimary">{groupe.editionLue}</span>
@@ -730,9 +730,9 @@ function GroupeEtagere({
               {option.editionName}
             </button>
           ))}
-          {/* Ce que la photo dit de l'édition (« Masked », « Perfect ») vaut
-              d'être proposé même quand la série est déjà au catalogue : ses
-              éditions connues ne la couvrent pas forcément. */}
+          {/* What the photo says about the edition ("Masked", "Perfect") is worth
+              proposing even when the series is already in the catalog: its
+              known editions do not necessarily cover it. */}
           {groupe.editionLue && !groupe.editionOptions.some((option) => option.editionName === groupe.editionLue) && (
             <button
               type="button"
@@ -762,9 +762,9 @@ function GroupeEtagere({
 }
 
 /**
- * La relecture : ce qui partirait, série par série, noir sur blanc - et le
- * seul bouton qui écrit. Rien de ce qui est affiché ici n'est encore dans la
- * collection ; « Revenir » ramène à la vérification sans rien perdre.
+ * The review: what would be sent, series by series, in black and white - and the
+ * only button that writes. Nothing shown here is in the
+ * collection yet; "Revenir" goes back to the check without losing anything.
  */
 function Relecture({
   series,

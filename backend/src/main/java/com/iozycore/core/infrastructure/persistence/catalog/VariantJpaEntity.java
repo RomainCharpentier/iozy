@@ -28,7 +28,7 @@ public class VariantJpaEntity {
     private UUID mangaEditionId;
 
     protected VariantJpaEntity() {
-        // requis par JPA
+        // required by JPA
     }
 
     public VariantJpaEntity(UUID id, UUID entityId, String label, Map<String, Object> attributes, UUID mangaEditionId) {

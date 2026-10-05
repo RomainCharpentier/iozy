@@ -12,22 +12,22 @@ import com.iozycore.core.metadata.MetadataSearchService;
 import com.iozycore.core.metadata.MetadataCandidate;
 
 /**
- * Branche la reconnaissance de codes-barres sur les providers bibliographiques
- * déjà en place.
+ * Plugs the barcode recognition into the bibliographic providers
+ * already in place.
  *
- * <h2>Rien de neuf côté réseau</h2>
- * Ce sont exactement les mêmes {@code BarcodeMetadataProvider} — Google Books,
- * Open Library — que la page « Scanner » interroge depuis longtemps, avec leur
- * cache et leur ordre de préséance. Lire un code sur une photo aboutit donc au
- * même endroit qu'en le scannant à la caméra ; seule l'entrée change.
+ * <h2>Nothing new on the network side</h2>
+ * These are exactly the same {@code BarcodeMetadataProvider} - Google Books,
+ * Open Library - that the "Scanner" page has been querying for a long time, with their
+ * cache and their order of precedence. Reading a code on a photo therefore ends up in the
+ * same place as scanning it with the camera; only the input changes.
  *
- * <h2>Pourquoi l'adaptateur vit ici et pas dans {@code recognition}</h2>
- * {@code recognition} déclare ce dont il a besoin ({@link BarcodeWorkLookup} :
- * un code, un titre) sans connaître ni {@code EntityType}, ni les providers,
- * ni leur cache. C'est ce qui permet aux tests de reconnaissance de tourner
- * sans la moindre requête — et c'est aussi ce qui rendra le jour venu une
- * résolution locale (un EAN stocké au catalogue) substituable sans toucher au
- * décodeur.
+ * <h2>Why the adapter lives here and not in {@code recognition}</h2>
+ * {@code recognition} declares what it needs ({@link BarcodeWorkLookup}:
+ * a code, a title) without knowing {@code EntityType}, the providers,
+ * or their cache. This is what lets the recognition tests run
+ * without a single request - and it is also what will make, when the day comes, a
+ * local resolution (an EAN stored in the catalog) replaceable without touching the
+ * decoder.
  */
 @Component
 public class MetadataBarcodeWorkLookup implements BarcodeWorkLookup {
@@ -46,9 +46,9 @@ public class MetadataBarcodeWorkLookup implements BarcodeWorkLookup {
     @Override
     public Optional<String> titleFor(String ean, String entityTypeCode) {
         if (ean == null || ean.isBlank() || entityTypeCode == null || entityTypeCode.isBlank()) {
-            // Sans univers, aucun provider ne peut se déclarer compétent :
-            // demander « à qui appartient ce code » sans dire dans quel monde
-            // n'a pas de réponse.
+            // Without a universe, no provider can declare itself competent:
+            // asking "who does this code belong to" without saying in which world
+            // has no answer.
             return Optional.empty();
         }
 
@@ -57,19 +57,19 @@ public class MetadataBarcodeWorkLookup implements BarcodeWorkLookup {
             return Optional.empty();
         }
 
-        // Pas de capture de QuotaExceededException ici, et c'était une erreur de
-        // ma part que d'en écrire une : GoogleBooksBarcodeProvider l'avale déjà
-        // lui-même et rend vide, laissant Open Library - qui n'a pas de quota -
-        // prendre le relais. Le catch ne pouvait donc jamais s'exécuter, tout en
-        // laissant croire que ce cas se traitait ici.
+        // No catch of QuotaExceededException here, and it was a mistake on
+        // my part to write one: GoogleBooksBarcodeProvider already swallows it
+        // itself and returns empty, leaving Open Library - which has no quota -
+        // to take over. The catch could therefore never run, while
+        // making it look as if this case was handled here.
         try {
             return metadataSearchService.lookupByBarcode(type.get(), ean.trim())
                     .map(MetadataCandidate::title)
                     .filter(titre -> titre != null && !titre.isBlank());
         } catch (RuntimeException e) {
-            // Le reste - réseau coupé, réponse illisible - est une identification
-            // en moins, jamais une analyse interrompue.
-            log.info("Identification d'un code-barres indisponible : {}", e.getClass().getSimpleName());
+            // The rest - network down, unreadable response - is one identification
+            // less, never an interrupted analysis.
+            log.info("Barcode identification unavailable: {}", e.getClass().getSimpleName());
             return Optional.empty();
         }
     }

@@ -10,20 +10,20 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * Les jaquettes du catalogue de la BnF, verifiees AU MOMENT DE LES GARDER,
- * jamais au moment de les lister (Lot 127).
+ * The covers of the BnF catalog, checked AT THE TIME OF KEEPING THEM,
+ * never at the time of listing them (Batch 127).
  *
- * <p>Le lot 120 verifiait chaque adresse par un HEAD des la recherche de
- * tomes, par vagues de quatre. Sur Boruto (20 tomes) c'etait tenable ; sur
- * Naruto (72) ou One Piece (112), c'est une salve qui fait bloquer l'adresse
- * par la BnF pendant un quart d'heure - constate a repetition le
- * 2026-09-04, et subi par l'instance de l'utilisateur, qui partage l'adresse.
- * Or l'ecran, lui, n'a pas besoin de cette verification : une image qui
- * repond 500 tombe sur le repli du composant Jaquette. Seule la
- * PERSISTANCE en a besoin - une adresse morte enregistree sur un tome
- * bloquerait le rattrapage de jaquettes, qui ne retente que les tomes sans
- * image. D'ou une verification a l'ecriture, une par tome ajoute, au
- * rythme des gestes de l'utilisateur.
+ * <p>Batch 120 checked each address with a HEAD as soon as the volume search ran,
+ * in waves of four. On Boruto (20 volumes) it was fine; on
+ * Naruto (72) or One Piece (112), it is a burst that makes the BnF block the address
+ * for a quarter of an hour - seen repeatedly on
+ * 2026-09-04, and suffered by the user's instance, which shares the address.
+ * Yet the screen does not need this check: an image that
+ * answers 500 falls back on the fallback of the Jaquette component. Only
+ * PERSISTENCE needs it - a dead address saved on a volume
+ * would block the cover catch-up, which only retries the volumes without
+ * an image. Hence a check at write time, one per volume added, at the
+ * pace of the user's actions.
  */
 public final class BnfCouverture {
 
@@ -39,9 +39,9 @@ public final class BnfCouverture {
     }
 
     /**
-     * Vrai si l'image existe (200). Une adresse qui n'est pas une couverture
-     * BnF est reputee vivante : les autres sources ne repondent pas 500 pour
-     * dire « pas d'image », et ce n'est pas le role de cette classe.
+     * True if the image exists (200). An address that is not a BnF
+     * cover is assumed alive: the other sources do not answer 500 to
+     * say "no image", and it is not the role of this class.
      */
     public static boolean estVivante(String url) {
         if (!estUneCouvertureBnf(url)) {
@@ -57,7 +57,7 @@ public final class BnfCouverture {
                 return HTTP.send(head, HttpResponse.BodyHandlers.discarding()).statusCode() == 200;
             } catch (Exception e) {
                 if (tentative == 2) {
-                    log.warn("Couverture BnF injoignable, non conservée : {} ({})", url, e.getMessage());
+                    log.warn("BnF cover unreachable, not kept: {} ({})", url, e.getMessage());
                     return false;
                 }
                 try {

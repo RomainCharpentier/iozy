@@ -209,22 +209,22 @@ public class VerdictScorer {
     }
 
     /**
-     * Le seul facteur qui parle d'ALIGNEMENT sur le marché - il lui faut donc un repère, et un
-     * repère suppose des relevés structurellement comparables au lot évalué.
+     * The only factor that talks about ALIGNMENT with the market - so it needs a benchmark, and a
+     * benchmark needs observations that are structurally comparable to the lot assessed.
      * <p>
-     * Il s'appuyait sur {@code anyObservedMarketData}, c'est-à-dire sur l'existence d'un relevé
-     * quelconque rattaché à l'édition. Un tome seul y valorisait un lot de trois, et l'écran
-     * annonçait « prix réellement relevé, confiance haute » **juste sous** le bloc Prix qui venait
-     * de dire « Des prix existent pour cette édition, mais aucun sur un lot comparable » - les deux
-     * moitiés d'un même écran, en désaccord sur la même donnée. C'est exactement le défaut que
-     * {@link MarketComparableSelector} a été écrit pour supprimer, resté vivant de ce côté-ci.
+     * It used to rely on {@code anyObservedMarketData}, that is, on the existence of any
+     * observation linked to the edition. A single volume there valued a lot of three, and the screen
+     * said "price really observed, high confidence" **just under** the Price block that had just
+     * said "Prices exist for this edition, but none on a comparable lot" - the two
+     * halves of the same screen, disagreeing on the same data. This is exactly the flaw that
+     * {@link MarketComparableSelector} was written to remove, still alive on this side.
      * <p>
-     * Un relevé non comparable n'apprend rien sur l'alignement du prix DE CE LOT : il vaut donc ici
-     * la même note qu'aucun relevé, avec un message qui dit la différence - il y a quelque chose à
-     * faire (relever un prix sur un lot de taille voisine), et ce n'est pas la même chose que de
-     * n'avoir aucune donnée. Les deux autres lecteurs de {@code anyObservedMarketData}
-     * (la confiance du rapport prix/valeur, le signal de rareté) gardent le sens plus large :
-     * eux demandent seulement si un vrai prix a nourri la valorisation.
+     * A non-comparable observation teaches nothing about the alignment of the price OF THIS LOT: it is therefore worth here
+     * the same score as no observation, with a message that says the difference - there is something to
+     * do (note a price on a lot of a close size), and it is not the same thing as
+     * having no data. The two other readers of {@code anyObservedMarketData}
+     * (the confidence of the price/value ratio, the rarity signal) keep the wider meaning:
+     * they only ask whether a real price fed the valuation.
      */
     private FactorScore scoreRealMarketAlignment(Input input) {
         if (input.anyComparableObservation()) {
@@ -281,8 +281,8 @@ public class VerdictScorer {
         if (input.itemTiers().isEmpty()) {
             return null;
         }
-        // Même règle que pour les poids : un classement vide n'est pas un classement, c'est une
-        // absence de classement - et sans lui toute gamme vaut 50, y compris une Perfect.
+        // Same rule as for the weights: an empty ranking is not a ranking, it is an
+        // absence of ranking - and without it every tier is worth 50, including a Perfect.
         List<EditionTier> ranking = preferences.editionTierRanking().isEmpty()
                 ? CollectorPreferences.SPECIFIED_EDITION_TIER_RANKING
                 : preferences.editionTierRanking();
@@ -346,10 +346,10 @@ public class VerdictScorer {
         return ratio.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP);
     }
 
-    // Ces justifications sont lues telles quelles par l'utilisateur (voir Lot 30) :
-    // y interpoler la constante d'enum laissait passer "GOOD" ou "[STANDARD]" au
-    // milieu d'une phrase française. Libellés alignés sur ceux déjà utilisés par
-    // l'interface (CONDITION_LABELS / EDITION_TIER_LABELS, web/src/types).
+    // These rationales are read as they are by the user (see Batch 30):
+    // interpolating the enum constant there let "GOOD" or "[STANDARD]" through in the
+    // middle of a French sentence. Labels aligned with those already used by
+    // the interface (CONDITION_LABELS / EDITION_TIER_LABELS, web/src/types).
     private static String label(Condition condition) {
         return switch (condition) {
             case MINT_SEALED -> "neuf sous blister";

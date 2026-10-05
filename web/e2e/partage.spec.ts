@@ -1,25 +1,24 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * <b>Un lien qu'on envoie, et qu'on peut reprendre.</b>
+ * <b>A link that we send, and that we can take back.</b>
  *
- * <p>C'est la seule surface de l'application dont une régression est
- * <b>irréversible</b> : ailleurs, un défaut affiche un mauvais chiffre ; ici,
- * il montre à un tiers ce qu'on avait choisi de garder — et un lien distribué
- * ne se rappelle pas.
+ * <p>This is the only surface of the application whose regression is
+ * <b>irreversible</b>: elsewhere, a defect shows a wrong number; here, it
+ * shows a third party what we had chosen to keep — and a distributed link
+ * cannot be recalled.
  *
- * <p>Ce que les tests de contrat HTTP ne peuvent pas dire, et qui se vérifie
- * ici : que le lien affiché à l'écran est bien celui qui fonctionne, qu'il
- * s'ouvre <b>sans aucune session</b> (contexte de navigateur neuf, pas juste
- * un onglet privé de façade), et que « Désactiver le partage » le referme
- * pour de bon.
+ * <p>What the HTTP contract tests cannot say, and what is checked here: that
+ * the link displayed on the screen is the one that works, that it opens
+ * <b>without any session</b> (a new browser context, not just a private tab
+ * for show), and that "Désactiver le partage" closes it for good.
  */
 
-test('générer un lien, le lire sans compte, puis le reprendre', async ({ page, browser }) => {
+test('generate a link, read it without an account, then take it back', async ({ page, browser }) => {
   const univers = `Vinyle ${Date.now()}`
   const oeuvre = 'Random Access Memories'
 
-  // --- Une collection à partager
+  // --- A collection to share
   await page.goto('/types/new')
   await page.getByLabel('Label').fill(univers)
   await page.getByRole('button', { name: 'Créer', exact: true }).click()
@@ -32,28 +31,28 @@ test('générer un lien, le lire sans compte, puis le reprendre', async ({ page,
   await page.getByRole('button', { name: 'Ajouter à ma collection' }).click()
   await expect(page.getByRole('heading', { name: oeuvre })).toBeVisible()
 
-  // --- Le lien se génère depuis Profil, sa maison
+  // --- The link is generated from Profil, its home
   await page.goto('/profile')
   await page.getByRole('button', { name: 'Générer un lien' }).click()
 
   const lien = await page.getByText(/\/public\/share\//).innerText()
   expect(lien).toContain('/public/share/')
 
-  // --- Un visiteur SANS session : contexte neuf, aucun cookie hérité
+  // --- A visitor WITHOUT a session: new context, no inherited cookie
   const visiteur = await browser.newContext({ storageState: { cookies: [], origins: [] } })
   const pageVisiteur = await visiteur.newPage()
   await pageVisiteur.goto(lien)
 
   await expect(pageVisiteur.getByRole('heading', { name: /Collection|Espace partagé/ }).first()).toBeVisible()
-  // Deux occurrences : le titre de la tuile, et le repli affiché à la place
-  // de la jaquette absente. La première suffit - c'est la présence qui est
-  // en jeu, pas le nombre de fois où elle est écrite.
+  // Two occurrences: the title of the tile, and the fallback displayed in
+  // place of the missing cover. The first one is enough - it is the presence
+  // that is at stake, not the number of times it is written.
   await expect(pageVisiteur.getByText(oeuvre).first()).toBeVisible()
-  // Ce qu'un visiteur ne doit jamais voir : la navigation privée du
-  // propriétaire. La page de partage vit hors de l'application.
+  // What a visitor must never see: the owner's private navigation. The share
+  // page lives outside the application.
   await expect(pageVisiteur.getByRole('link', { name: 'Ma collection' })).toHaveCount(0)
 
-  // --- Reprendre le lien le referme immédiatement
+  // --- Taking the link back closes it immediately
   await page.getByRole('button', { name: 'Désactiver le partage' }).click()
   await expect(page.getByRole('button', { name: 'Générer un lien' })).toBeVisible()
 

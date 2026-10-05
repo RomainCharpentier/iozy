@@ -16,73 +16,73 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Le seul chemin par lequel IozyCore va chercher une page d'annonce, et le seul
- * endroit où les limites de cette récupération sont écrites.
+ * The only path through which IozyCore fetches a listing page, and the only
+ * place where the limits of this fetching are written.
  * <p>
- * Ce n'est pas un client HTTP générique : il ne sait récupérer qu'un document
- * HTML, depuis un hôte explicitement autorisé, avec un plafond de taille et un
- * délai maximum. Il n'existe volontairement aucun endpoint « donne-moi cette
- * URL » - le serveur ne récupère que ce qu'un provider déclaré lui demande.
+ * It is not a generic HTTP client: it can only fetch an HTML
+ * document, from an explicitly allowed host, with a size cap and a
+ * maximum delay. There is deliberately no "give me this
+ * URL" endpoint - the server only fetches what a declared provider asks of it.
  * <p>
- * <b>Les redirections sont suivies à la main</b>, un saut à la fois, chacun
- * revalidé par {@link ListingUrlGuard}. Laisser {@link HttpClient} les suivre
- * seul rouvrirait exactement la faille que le garde-fou ferme : un hôte
- * autorisé qui redirige vers {@code localhost}.
+ * <b>Redirects are followed by hand</b>, one hop at a time, each one
+ * revalidated by {@link ListingUrlGuard}. Letting {@link HttpClient} follow them
+ * alone would reopen exactly the hole that the guard closes: an allowed
+ * host that redirects to {@code localhost}.
  * <p>
- * L'en-tête {@code User-Agent} annonce honnêtement IozyCore. Se faire passer
- * pour un navigateur serait un contournement, et il n'y a rien à contourner :
- * la récupération est déclenchée par un utilisateur qui vient de coller ce lien
- * précis, pas par un robot qui parcourt le site.
+ * The {@code User-Agent} header honestly announces IozyCore. Pretending to be
+ * a browser would be a workaround, and there is nothing to work around:
+ * the fetching is triggered by a user who has just pasted this exact
+ * link, not by a robot that crawls the site.
  */
 @Component
 public class ListingHttpFetcher {
 
     private static final Logger log = LoggerFactory.getLogger(ListingHttpFetcher.class);
 
-    /** Au-delà, on abandonne : l'utilisateur attend devant son formulaire. */
+    /** Beyond this, we give up: the user is waiting in front of their form. */
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(12);
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
 
     /**
-     * Plafond de lecture. Une page d'annonce pèse quelques mégaoctets ; ce
-     * plafond existe pour qu'une réponse anormalement grosse (volontairement ou
-     * non) ne remplisse pas la mémoire du serveur. On coupe la lecture, on ne
-     * charge pas d'abord pour mesurer ensuite.
+     * Read cap. A listing page weighs a few megabytes; this
+     * cap exists so that an abnormally large response (on purpose or
+     * not) does not fill the memory of the server. We cut the reading, we do not
+     * load first to measure afterwards.
      */
     private static final int MAX_BYTES = 4 * 1024 * 1024;
 
-    /** Une page d'annonce est du HTML. Tout le reste (PDF, archive, binaire) n'a rien à faire ici. */
+    /** A listing page is HTML. Everything else (PDF, archive, binary) has no business here. */
     private static final String EXPECTED_CONTENT_TYPE = "text/html";
 
     private static final int MAX_REDIRECTS = 4;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(CONNECT_TIMEOUT)
-            // NEVER : les sauts sont revalidés un par un ci-dessous.
+            // NEVER: the hops are revalidated one by one below.
             .followRedirects(HttpClient.Redirect.NEVER)
             .build();
 
-    /** Ce qu'on a obtenu, ou pourquoi on n'a rien obtenu. */
+    /** What we got, or why we got nothing. */
     public record Fetched(String html, URI finalUri, Failure failure) {
         public boolean isSuccess() {
             return failure == null;
         }
     }
 
-    /** Catégories d'échec, distinguées parce que l'utilisateur n'a pas la même chose à faire dans chaque cas. */
+    /** Failure categories, told apart because the user has not the same thing to do in each case. */
     public enum Failure {
-        /** URL refusée avant tout appel réseau (hôte non autorisé, adresse interne, schéma interdit). */
+        /** URL refused before any network call (host not allowed, internal address, forbidden scheme). */
         URL_REJECTED,
-        /** L'annonce n'existe plus, ou n'a jamais existé (404/410). */
+        /** The listing no longer exists, or never existed (404/410). */
         NOT_FOUND,
-        /** La source a répondu autre chose qu'une page exploitable : blocage, panne, format inattendu. */
+        /** The source answered something other than a usable page: blocking, outage, unexpected format. */
         UNAVAILABLE
     }
 
     /**
-     * Récupère la page, ou dit pourquoi elle n'a pas pu l'être.
+     * Fetches the page, or says why it could not be.
      *
-     * @param allowedHosts hôtes déclarés par le provider appelant - jamais une liste globale
+     * @param allowedHosts hosts declared by the calling provider - never a global list
      */
     public Fetched fetchHtml(String rawUrl, Set<String> allowedHosts) {
         ListingUrlGuard.Result guard = ListingUrlGuard.check(rawUrl, allowedHosts);
@@ -100,8 +100,8 @@ public class ListingHttpFetcher {
                                 .timeout(REQUEST_TIMEOUT)
                                 .header("User-Agent", "IozyCore/1.0 (personal collection manager; user-pasted link)")
                                 .header("Accept", "text/html")
-                                // Pas de cookie, pas d'identifiant, pas de session : on ne
-                                // lit que ce qu'un visiteur anonyme voit.
+                                // No cookie, no identifier, no session: we only
+                                // read what an anonymous visitor sees.
                                 .GET()
                                 .build(),
                         HttpResponse.BodyHandlers.ofInputStream());
@@ -114,8 +114,8 @@ public class ListingHttpFetcher {
                         return failed(Failure.UNAVAILABLE, current, start, "redirect without location");
                     }
                     URI next = current.resolve(location.get());
-                    // Le saut suivant repasse par la liste blanche ET par le contrôle
-                    // d'adresse : c'est tout l'intérêt de les suivre soi-même.
+                    // The next hop goes again through the whitelist AND through the
+                    // address check: this is the whole point of following them ourselves.
                     ListingUrlGuard.Result hopGuard = ListingUrlGuard.check(next.toString(), allowedHosts);
                     if (!hopGuard.isAllowed()) {
                         log.warn("Listing redirect refused ({}) after {} hop(s)", hopGuard.rejection(), hop + 1);
@@ -148,8 +148,8 @@ public class ListingHttpFetcher {
             }
             return failed(Failure.UNAVAILABLE, current, start, "too many redirects");
         } catch (Exception e) {
-            // Le message d'exception peut contenir l'URL complète ; la catégorie et
-            // l'hôte suffisent au diagnostic, le reste n'a pas à finir dans les logs.
+            // The exception message can contain the full URL; the category and
+            // the host are enough for diagnosis, the rest must not end up in the logs.
             return failed(Failure.UNAVAILABLE, current, start, e.getClass().getSimpleName());
         }
     }
@@ -160,7 +160,7 @@ public class ListingHttpFetcher {
         return new Fetched(null, uri, failure);
     }
 
-    /** Lecture bornée : on s'arrête à {@link #MAX_BYTES}, on ne mesure pas après coup. */
+    /** Bounded reading: we stop at {@link #MAX_BYTES}, we do not measure afterwards. */
     private static String readAtMost(InputStream body) throws Exception {
         try (InputStream in = body) {
             byte[] buffer = new byte[8192];

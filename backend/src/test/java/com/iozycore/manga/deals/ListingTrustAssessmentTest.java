@@ -7,14 +7,14 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Les points à vérifier sur une annonce.
+ * The points to check on a listing.
  * <p>
- * Ces tests vérifient des <b>signaux</b>, jamais un score : il n'y a pas de
- * « confiance 94/100 » à assert, parce qu'il n'y en a pas à produire. Et le
- * test le plus important est
- * {@link #un_prix_tres_bas_appelle_la_vigilance_sans_condamner_l_annonce()} :
- * une excellente affaire existe réellement, et la confondre avec une arnaque
- * ferait passer à côté.
+ * These tests check <b>signals</b>, never a score: there is no
+ * "trust 94/100" to assert, because there is none to produce. And the
+ * most important test is
+ * {@link #un_prix_tres_bas_appelle_la_vigilance_sans_condamner_l_annonce()}:
+ * an excellent deal really exists, and mistaking it for a scam
+ * would make us miss it.
  */
 class ListingTrustAssessmentTest {
 
@@ -50,9 +50,9 @@ class ListingTrustAssessmentTest {
         ListingTrustAssessment trust = ListingTrustAssessment.assess(
                 DESCRIPTION_NORMALE, 20, new BigDecimal("70"), new BigDecimal("75"));
 
-        // Vingt photos ne prouvent rien. Transformer l'abondance en gage de
-        // sérieux serait exactement le raccourci qu'un vendeur malintentionné
-        // exploite.
+        // Twenty photos prove nothing. Turning abundance into a pledge of
+        // seriousness would be exactly the shortcut that a malicious seller
+        // exploits.
         assertThat(trust.signals()).isEmpty();
         assertThat(trust.level()).isEqualTo(TrustLevel.NO_OBVIOUS_SIGNAL);
     }
@@ -67,8 +67,8 @@ class ListingTrustAssessmentTest {
 
     @Test
     void une_longue_description_n_est_pas_une_garantie() {
-        // Elle retire seulement le signal « description courte ». Elle n'ajoute
-        // aucun crédit : la longueur n'est pas de l'honnêteté.
+        // It only removes the "short description" signal. It adds
+        // no credit: length is not honesty.
         ListingTrustAssessment trust = ListingTrustAssessment.assess(
                 DESCRIPTION_NORMALE, 1, new BigDecimal("70"), new BigDecimal("75"));
 
@@ -91,13 +91,13 @@ class ListingTrustAssessmentTest {
 
     @Test
     void un_prix_tres_bas_appelle_la_vigilance_sans_condamner_l_annonce() {
-        // 20 € contre une référence de 75 € : très en dessous.
+        // 20 EUR against a reference of 75 EUR: far below.
         ListingTrustAssessment trust = ListingTrustAssessment.assess(
                 DESCRIPTION_NORMALE, 6, new BigDecimal("20"), new BigDecimal("75"));
 
         assertThat(trust.signals()).containsExactly(TrustSignal.PRICE_FAR_BELOW_REFERENCE);
-        // Un signal modéré, pas un verdict de fraude - et surtout, le prix reste
-        // évalué comme une très bonne affaire de son côté.
+        // A moderate signal, not a fraud verdict - and above all, the price stays
+        // assessed as a very good deal on its own side.
         assertThat(trust.level()).isEqualTo(TrustLevel.A_FEW_THINGS_TO_CHECK);
         assertThat(DealAssessmentPolicy.positionOf(new BigDecimal("20"), new BigDecimal("75"), MarketReferenceConfidence.HIGH))
                 .isEqualTo(PricePosition.VERY_GOOD_PRICE);
@@ -108,8 +108,8 @@ class ListingTrustAssessmentTest {
         ListingTrustAssessment trust = ListingTrustAssessment.assess(
                 DESCRIPTION_NORMALE, 6, new BigDecimal("5"), null);
 
-        // 5 € est peut-être dérisoire, mais sans référence on ne sait pas
-        // par rapport à quoi.
+        // 5 EUR may be tiny, but without a reference we do not know
+        // compared to what.
         assertThat(trust.signals()).doesNotContain(TrustSignal.PRICE_FAR_BELOW_REFERENCE);
     }
 
@@ -128,7 +128,7 @@ class ListingTrustAssessmentTest {
         ListingTrustAssessment trust = ListingTrustAssessment.assess(
                 "paypal", 2, new BigDecimal("70"), new BigDecimal("75"));
 
-        // L'ordre porte du sens à l'écran : ce qui compte le plus se lit d'abord.
+        // Order carries meaning on screen: what matters most is read first.
         assertThat(trust.signals().get(0).severity()).isEqualTo(TrustSignalSeverity.HIGH);
     }
 }

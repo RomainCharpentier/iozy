@@ -1,49 +1,49 @@
 import type { VariantDto } from '@/common/types/api'
 
 /**
- * Ce qu'on lit sur un tome, et comment.
+ * What we read on a volume, and how.
  *
- * <h2>Pourquoi un module pour deux lignes</h2>
- * Les attributs d'un Variant sont un sac non typé (voir useBrouillonInspecteur) :
- * chaque lecteur doit donc décider lui-même ce qu'il accepte. Ils étaient
- * quatre à réécrire la même expression pour l'édition, et quatre pour le
- * numéro - avec des règles qui avaient déjà divergé : l'assistant acceptait un
- * numéro écrit en TEXTE (`"12"`), la grille non. Un tome ainsi saisi aurait été
- * compté d'un côté et invisible de l'autre.
+ * <h2>Why a module for two lines</h2>
+ * The attributes of a Variant are an untyped bag (see useBrouillonInspecteur):
+ * each reader must therefore decide for itself what it accepts. There were
+ * four of them rewriting the same expression for the edition, and four for the
+ * number - with rules that had already diverged: the assistant accepted a
+ * number written as TEXT (`"12"`), the grid did not. A volume entered that way
+ * would have been counted on one side and invisible on the other.
  *
- * <p>Une seule règle, ici, et les écarts délibérés (la comparaison sans casse
- * du rattrapage de jaquettes) deviennent visibles sur la ligne d'appel plutôt
- * que noyés dans une copie qui ressemble aux autres.
+ * <p>One single rule, here, and the deliberate differences (the
+ * case-insensitive comparison of the cover backfill) become visible on the
+ * calling line instead of being buried in a copy that looks like the others.
  */
 
 /**
- * Le nom de l'édition d'un tome, tel qu'il sert de CLÉ : découpé aux
- * extrémités, `''` quand aucune n'est précisée.
+ * The edition name of a volume, as it is used as a KEY: trimmed at the
+ * ends, `''` when none is given.
  *
- * <p>La casse est conservée : c'est ce nom qui s'affiche, et c'est lui que le
- * serveur renvoie dans `sourceEditions` (voir CollectionProgressService). Un
- * appelant qui compare à une source EXTERNE - où « Kana » et « KANA » désignent
- * la même édition - abaisse la casse lui-même, explicitement.
+ * <p>The case is kept: this is the name that is displayed, and it is the one
+ * the server returns in `sourceEditions` (see CollectionProgressService). A
+ * caller that compares with an EXTERNAL source - where "Kana" and "KANA" mean
+ * the same edition - lowers the case itself, explicitly.
  */
 export function editionDe(variant: Pick<VariantDto, 'attributes'>): string {
   return typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
 }
 
 /**
- * Le numéro d'un tome, ou `null` s'il n'en a pas d'exploitable.
+ * The number of a volume, or `null` if it has no usable one.
  *
- * <p>`typeof === 'number'` STRICT, comme partout ailleurs dans l'app (voir
- * `lib/seriesInfo.totalVolumesFrom` et les CLES_NUMERIQUES de useBrouillonInspecteur,
- * qui préservent le type à l'écriture précisément pour ça). Accepter `"12"`
- * ici reviendrait à tolérer une donnée que les écrivains s'interdisent de
- * produire, et à faire diverger deux écrans sur le même tome.
+ * <p>STRICT `typeof === 'number'`, like everywhere else in the app (see
+ * `lib/seriesInfo.totalVolumesFrom` and the CLES_NUMERIQUES of
+ * useBrouillonInspecteur, which keep the type on write precisely for this).
+ * Accepting `"12"` here would mean tolerating data that the writers forbid
+ * themselves to produce, and making two screens diverge on the same volume.
  */
 export function numeroDe(variant: Pick<VariantDto, 'attributes'>): number | null {
   return typeof variant.attributes.volumeNumber === 'number' ? variant.attributes.volumeNumber : null
 }
 
-/** "Tome 12" si un numéro est exploitable, sinon le libellé brut - même règle
- *  que le sous-titre d'une tuile de Ma collection, gardée cohérente ici. */
+/** "Tome 12" if a number is usable, otherwise the raw label - same rule as
+ *  the subtitle of a tile in Ma collection, kept consistent here. */
 export function variantLabel(variant: VariantDto): string {
   const numero = numeroDe(variant)
   return numero !== null ? `Tome ${numero}` : variant.label

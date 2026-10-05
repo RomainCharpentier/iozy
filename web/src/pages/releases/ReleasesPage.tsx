@@ -19,29 +19,29 @@ import { Squelette } from '@/common/components/Squelette'
 
 const PARAMETRE_MOIS = 'mois'
 
-/** L'intertitre d'un jour de l'agenda : la même voix que le titre du mois, un cran dessous. */
+/** The subheading of a day of the agenda: the same voice as the month title, one step below. */
 const CLASSE_INTERTITRE = 'font-display text-base font-bold tracking-[-0.01em] text-textPrimary'
 
 /**
- * Le calendrier des sorties : mois par mois, ce qui sort pour les œuvres
- * qu'on possède ou qu'on veut, toutes catégories confondues (lot 146).
+ * The release calendar: month by month, what comes out for the works
+ * that one owns or wants, all categories together (batch 146).
  *
- * <p>Trois lectures du même calendrier. La <b>grille</b> donne la forme du
- * mois - où tombe aujourd'hui, quels jours sont chargés, ce qui sort dans
- * chaque case. L'<b>agenda</b> donne le détail du mois, rangé par jour ;
- * toucher une case le réduit à ce jour. Et <b>à venir</b>, à côté de la grille
- * sur desktop, dessous en mobile, liste tout ce qui sort dans l'année sans
- * tourner les pages ; une de ses lignes amène la grille sur son jour. Une
- * liste des seuls jours qui ont quelque chose ne faisait pas un calendrier :
- * c'est le premier retour d'usage de cet écran, et la raison de la grille.
+ * <p>Three readings of the same calendar. The <b>grid</b> gives the shape of the
+ * month - where today falls, which days are busy, what comes out in
+ * each cell. The <b>agenda</b> gives the detail of the month, sorted by day;
+ * touching a cell reduces it to that day. And <b>à venir</b>, next to the grid
+ * on desktop, below on mobile, lists everything that comes out within the year without
+ * turning the pages; one of its rows brings the grid to its day. A
+ * list of only the days that have something did not make a calendar:
+ * it is the first usage feedback of this screen, and the reason for the grid.
  *
- * <p>Le serveur ne rend jamais une date approximative : ce qui n'est connu
- * qu'au mois près se lit « date à préciser », hors de la grille ; une année
- * seule ne se lit pas du tout.
+ * <p>The server never returns an approximate date: what is only known
+ * to the month reads "date à préciser", outside the grid; a year
+ * alone is not read at all.
  *
- * <p>Le mois vit dans l'URL (`?mois=2026-10`) : un lien s'y partage, et
- * revenir en arrière revient au mois d'avant, pas à la page d'avant. Le jour
- * choisi, lui, ne vit qu'à l'écran : c'est un regard, pas un endroit.
+ * <p>The month lives in the URL (`?mois=2026-10`): a link can be shared there, and
+ * going back returns to the previous month, not to the previous page. The chosen
+ * day, for its part, only lives on the screen: it is a look, not a place.
  */
 export function ReleasesPage() {
   const [parametres, setParametres] = useSearchParams()
@@ -60,13 +60,13 @@ export function ReleasesPage() {
 
   const toutes = calendrierQuery.data?.entries ?? []
   const comptes = compterParCategorie(toutes)
-  // Une catégorie choisie qui n'a rien ce mois-ci retombe sur « Tout » : une
-  // puce qu'on ne peut plus voir ne doit pas filtrer en silence.
+  // A chosen category that has nothing this month falls back on "Tout": a
+  // chip that can no longer be seen must not filter silently.
   const categorieActive = categorie && comptes.has(categorie) ? categorie : null
   const visibles = categorieActive ? toutes.filter((e) => e.entityTypeId === categorieActive) : toutes
   const range = rangerParJour(visibles)
   const parJour = new Map(range.jours.map((jour) => [jour.iso, jour.entries]))
-  // Même règle pour le jour : choisi puis vidé par un filtre ou un autre mois, il s'efface.
+  // Same rule for the day: chosen then emptied by a filter or another month, it clears.
   const jourActif = jourChoisi && parJour.has(jourChoisi) ? jourChoisi : null
   const jours = jourActif ? range.jours.filter((jour) => jour.iso === jourActif) : range.jours
 
@@ -79,12 +79,12 @@ export function ReleasesPage() {
     setParametres({ [PARAMETRE_MOIS]: cible })
   }
 
-  /** Depuis la liste de ce qui vient : le mois, et le jour quand la source le connaît. */
+  /** From the list of what is coming: the month, and the day when the source knows it. */
   function voirDansLaGrille(cible: string, jour: string | null) {
     setJourChoisi(jour)
     setParametres({ [PARAMETRE_MOIS]: cible })
-    // En mobile la liste est sous l'agenda : ramener la grille sous les yeux.
-    // `nearest` ne bouge rien quand elle y est déjà (desktop).
+    // On mobile the list is under the agenda: bring the grid back in view.
+    // `nearest` moves nothing when it is already there (desktop).
     grilleRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
   }
 
@@ -100,8 +100,8 @@ export function ReleasesPage() {
 
       <EnTeteSection niveau={1} titre="Calendrier des sorties" sousTitre="Ce qui sort pour les œuvres que tu suis." />
 
-      {/* Deux colonnes dès 1100 px (la page passe à 960 px, voir AppShell) : le
-          mois à gauche, tout ce qui vient à droite. En mobile, l'un sous l'autre. */}
+      {/* Two columns from 1100 px (the page goes to 960 px, see AppShell): the
+          month on the left, everything that is coming on the right. On mobile, one under the other. */}
       <div className="flex flex-col gap-8 min-[1100px]:grid min-[1100px]:grid-cols-[1.6fr_1fr] min-[1100px]:items-start min-[1100px]:gap-x-8">
         <div className="flex min-w-0 flex-col gap-5">
           <div ref={grilleRef} className="flex items-center justify-between gap-2">

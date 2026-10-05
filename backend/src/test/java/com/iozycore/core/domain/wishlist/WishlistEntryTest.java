@@ -20,15 +20,15 @@ class WishlistEntryTest {
         assertEquals(1, entry.pullDomainEvents().size());
     }
 
-    // Sans cette garde, un corps sans entityId descendait jusqu'à Hibernate, qui
-    // remontait sa violation de contrainte en 500 - requête SQL comprise (Lot 28).
+    // Without this guard, a body without entityId went down to Hibernate, which
+    // raised its constraint violation as a 500 - SQL query included (Batch 28).
     @Test
     void an_entry_without_an_entity_is_refused_before_reaching_the_database() {
         assertThrows(IllegalArgumentException.class, () -> WishlistEntry.add(null, LocalDate.now()));
     }
 
-    // reconstitute() relit ce que la base contient déjà : elle ne crée rien et
-    // n'a donc pas à se défendre du même corps de requête incomplet.
+    // reconstitute() re-reads what the database already holds: it creates nothing and
+    // so does not have to defend against the same incomplete request body.
     @Test
     void reconstituting_an_existing_entry_records_no_event() {
         WishlistEntry entry = WishlistEntry.reconstitute(

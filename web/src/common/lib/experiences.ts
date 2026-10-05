@@ -1,17 +1,17 @@
 /**
- * Les expériences, dites en français.
+ * Experiences, said in French.
  *
- * <h2>Le défaut</h2>
- * Une expérience porte un code (`READ`, `PLAYED`, `FINISHED`…) que le type de
- * collection déclare (voir EntityType.allowedExperienceTypes). L'éditeur de la
- * fiche affichait ce code tel quel : des pastilles « READ », « IN_PROGRESS »,
- * « ABANDONED » au milieu d'un écran entièrement en français - le vocabulaire
- * de la base de données, pas celui de la personne qui lit.
+ * <h2>The flaw</h2>
+ * An experience carries a code (`READ`, `PLAYED`, `FINISHED`...) that the
+ * collection type declares (see EntityType.allowedExperienceTypes). The editor
+ * of the detail page displayed this code as it is: "READ", "IN_PROGRESS",
+ * "ABANDONED" chips in the middle of an entirely French screen - the
+ * vocabulary of the database, not the one of the person reading.
  *
- * <h2>Ce que ce module ne fait pas</h2>
- * Un code inconnu (un type créé à la main avec ses propres expériences) est
- * rendu tel quel plutôt que traduit au hasard : mieux vaut un mot brut qu'un
- * mot faux.
+ * <h2>What this module does not do</h2>
+ * An unknown code (a type created by hand with its own experiences) is
+ * rendered as it is rather than translated at random: a raw word is better
+ * than a wrong word.
  */
 const LIBELLES: Record<string, string> = {
   READ: 'Lu',
@@ -23,16 +23,16 @@ const LIBELLES: Record<string, string> = {
   LISTENED: 'Écouté',
 }
 
-/** « Lu », « Joué », « Terminé » - ou le code lui-même s'il n'est pas connu. */
+/** "Lu", "Joué", "Terminé" - or the code itself if it is not known. */
 export function libelleExperienceType(code: string): string {
   return LIBELLES[code.toUpperCase()] ?? code
 }
 
 /**
- * L'intitulé de la rangée « expériences » d'une fiche, dans le vocabulaire du
- * type : « Lectures » ne vaut que pour ce qui se lit, et la fiche d'un jeu
- * vidéo l'affichait quand même. Un type qui se joue a des parties ; un type
- * qu'on ne sait pas nommer a des expériences, mot neutre plutôt que mot faux.
+ * The title of the "experiences" row of a detail page, in the vocabulary of
+ * the type: "Lectures" only fits what is read, and the detail page of a video
+ * game displayed it anyway. A type that is played has games; a type that we
+ * cannot name has experiences, a neutral word rather than a wrong word.
  */
 export function libelleSectionExperiences(codes: string[]): string {
   const majuscules = codes.map((c) => c.toUpperCase())

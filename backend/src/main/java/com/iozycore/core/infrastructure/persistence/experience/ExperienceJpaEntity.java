@@ -21,10 +21,10 @@ public class ExperienceJpaEntity {
     @Column(name = "variant_id")
     private UUID variantId;
 
-    // Cloisonnement par propriétaire : Hibernate ajoute cette colonne à la
-    // clause WHERE de toute requête sur cette entité, et la remplit à
-    // l'insertion depuis ProprietaireCourant. Un filtre qu'on ne peut pas
-    // oublier, plutôt qu'une condition à réécrire dans chaque requête.
+    // Isolation by owner: Hibernate adds this column to the
+    // WHERE clause of every query on this entity, and fills it on
+    // insert from ProprietaireCourant. A filter you cannot
+    // forget, instead of a condition to rewrite in every query.
     @TenantId
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;
@@ -35,11 +35,11 @@ public class ExperienceJpaEntity {
     @Column(name = "occurred_at", nullable = false)
     private LocalDate occurredAt;
 
-    // Le type Integer suffit côté Java (mêmes bornes que le CHECK SQL 0-10) ;
-    // @JdbcTypeCode force le type JDBC utilisé par Hibernate pour la
-    // validation de schéma (ddl-auto=validate) à SMALLINT, qui est le type
-    // réel de la colonne créée par la migration V1. columnDefinition seul
-    // ne suffit pas : il ne pilote que la génération DDL, pas la validation.
+    // The Integer type is enough on the Java side (same bounds as the SQL CHECK 0-10);
+    // @JdbcTypeCode forces the JDBC type used by Hibernate for
+    // schema validation (ddl-auto=validate) to SMALLINT, which is the
+    // real type of the column created by migration V1. columnDefinition alone
+    // is not enough: it only drives DDL generation, not validation.
     @JdbcTypeCode(SqlTypes.SMALLINT)
     private Integer rating;
 

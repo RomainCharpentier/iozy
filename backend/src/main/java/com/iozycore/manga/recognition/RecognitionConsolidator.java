@@ -8,46 +8,46 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Réunit en un seul élément ce qui est le même tome vu sur plusieurs photos.
+ * Merges into a single item what is the same volume seen on several photos.
  *
- * <h2>Le problème</h2>
- * Un vendeur photographie son lot de face, puis de côté, puis en gros plan. Le
- * tome 4 apparaît sur trois photos. Sans cette étape, l'analyse compterait
- * <b>trois</b> tomes 4 : le prix par tome serait divisé par trois, la
- * complétude fausse, et le verdict d'achat calculé sur un lot qui n'existe pas.
+ * <h2>The problem</h2>
+ * A seller photographs their batch from the front, then from the side, then in close-up.
+ * Volume 4 appears on three photos. Without this step, the analysis would count
+ * <b>three</b> volumes 4: the price per volume would be divided by three, the
+ * completeness wrong, and the purchase verdict computed on a batch that does not exist.
  *
- * <h2>La clé de regroupement</h2>
- * Titre normalisé + numéro de tome. La normalisation retire accents, casse,
- * ponctuation et espaces multiples : « Platinum End », « platinum end » et
- * « PLATINUM-END » se rejoignent. Elle ne va pas plus loin - pas de distance
- * d'édition, pas de synonymes : rapprocher « Naruto » et « Boruto » parce
- * qu'ils se ressemblent ferait bien plus de dégâts que de laisser deux lignes
- * à l'écran, que l'utilisateur fusionne d'un geste.
+ * <h2>The grouping key</h2>
+ * Normalised title + volume number. The normalisation removes accents, case,
+ * punctuation and multiple spaces: "Platinum End", "platinum end" and
+ * "PLATINUM-END" come together. It goes no further - no edition
+ * distance, no synonyms: matching "Naruto" and "Boruto" because
+ * they look alike would do far more damage than leaving two lines
+ * on screen, which the user merges with one action.
  *
- * <h2>Ce qui reste séparé, volontairement</h2>
- * Un tome <b>sans numéro lu</b> ne se fond dans aucun tome numéroté : « Death
- * Note, tome inconnu » et « Death Note tome 3 » peuvent être le même livre ou
- * deux livres différents, et rien sur la photo ne permet de trancher. Les
- * fusionner inventerait une certitude ; les laisser côte à côte laisse
- * l'utilisateur décider.
+ * <h2>What stays separate, deliberately</h2>
+ * A volume <b>with no number read</b> does not merge into any numbered volume: "Death
+ * Note, tome inconnu" and "Death Note tome 3" may be the same book or
+ * two different books, and nothing on the photo allows us to decide. Merging
+ * them would invent a certainty; leaving them side by side lets
+ * the user decide.
  *
- * <h2>Le numéro et l'édition ne suivent pas la même règle - et c'est voulu</h2>
- * Un numéro absent bloque la fusion, une édition absente ne la bloque pas.
- * L'asymétrie est délibérée :
+ * <h2>The number and the edition do not follow the same rule - and this is intended</h2>
+ * A missing number blocks the merge, a missing edition does not block it.
+ * The asymmetry is deliberate:
  * <ul>
- *   <li>le <b>numéro de tome</b> est ce qui <i>identifie</i> un élément dans un
- *       lot. Deux « Death Note » sans numéro peuvent être les tomes 1 et 5 ;
- *       les fondre en un ferait disparaître un livre du décompte ;</li>
- *   <li>l'<b>édition</b> est un <i>attribut</i> d'un élément déjà identifié par
- *       sa série et son numéro. « Vinland Saga 7 » et « Vinland Saga 7,
- *       Standard » désignent presque toujours le même livre, dont l'édition
- *       n'était simplement pas lisible sur une des deux photos. Une édition
- *       absente est une information manquante, pas une édition différente :
- *       la compléter par la seule lecture disponible n'invente rien.</li>
+ *   <li>the <b>volume number</b> is what <i>identifies</i> an item in a
+ *       batch. Two "Death Note" with no number may be volumes 1 and 5;
+ *       merging them into one would make a book disappear from the count;</li>
+ *   <li>the <b>edition</b> is an <i>attribute</i> of an item already identified by
+ *       its series and its number. "Vinland Saga 7" and "Vinland Saga 7,
+ *       Standard" almost always designate the same book, whose edition
+ *       was simply not readable on one of the two photos. A missing
+ *       edition is missing information, not a different edition:
+ *       completing it with the only available reading invents nothing.</li>
  * </ul>
- * En revanche, deux éditions <b>toutes deux lues et différentes</b> restent
- * deux éléments : là, les photos se contredisent, et c'est à l'utilisateur de
- * trancher.
+ * On the other hand, two editions <b>both read and different</b> stay
+ * two items: there, the photos contradict each other, and it is up to the user to
+ * decide.
  */
 public final class RecognitionConsolidator {
 
@@ -55,17 +55,17 @@ public final class RecognitionConsolidator {
     }
 
     /**
-     * Fusionne les doublons, en conservant la trace de <b>toutes</b> les photos
-     * qui ont soutenu chaque élément - l'utilisateur doit pouvoir vérifier sur
-     * l'image d'où vient une proposition.
+     * Merges the duplicates, keeping the trace of <b>all</b> the photos
+     * that supported each item - the user must be able to check on
+     * the image where a proposal comes from.
      */
     public static List<RecognizedItem> consolidate(List<RecognizedItem> bruts) {
         if (bruts == null || bruts.isEmpty()) {
             return List.of();
         }
 
-        // LinkedHashMap : l'ordre de première apparition est celui des photos,
-        // donc celui que l'utilisateur a sous les yeux.
+        // LinkedHashMap: the order of first appearance is that of the photos,
+        // hence the one the user has in front of them.
         Map<String, List<RecognizedItem>> parSerieEtTome = new LinkedHashMap<>();
         List<RecognizedItem> sansNumero = new ArrayList<>();
 
@@ -74,8 +74,8 @@ public final class RecognitionConsolidator {
                 continue;
             }
             if (item.volumeNumber() == null) {
-                // Voir la Javadoc : un tome sans numéro ne se fond dans rien.
-                // Il est seulement dédoublonné contre ses semblables exacts.
+                // See the Javadoc: a volume with no number does not merge into anything.
+                // It is only deduplicated against its exact equals.
                 fusionnerSansNumero(sansNumero, item);
                 continue;
             }
@@ -89,9 +89,9 @@ public final class RecognitionConsolidator {
     }
 
     /**
-     * Dans un groupe de même série et même tome, réunit ce dont les éditions
-     * sont <b>compatibles</b> - égales, ou l'une non lue. Deux éditions lues et
-     * différentes restent séparées : voir la Javadoc de la classe.
+     * In a group of the same series and the same volume, merges the ones whose editions
+     * are <b>compatible</b> - equal, or one not read. Two editions that were read and
+     * are different stay separate: see the Javadoc of the class.
      */
     private static List<RecognizedItem> fusionnerParEdition(List<RecognizedItem> groupe) {
         List<RecognizedItem> fusionnes = new ArrayList<>();
@@ -119,10 +119,10 @@ public final class RecognitionConsolidator {
     }
 
     /**
-     * Deux « Death Note, tome inconnu » sur deux photos peuvent être deux
-     * exemplaires réels. On ne les fusionne que s'ils portent le même indice
-     * d'édition ET la même photo source - autrement dit s'il s'agit
-     * manifestement de la même lecture rapportée deux fois.
+     * Two "Death Note, tome inconnu" on two photos may be two
+     * real copies. We merge them only if they carry the same edition
+     * hint AND the same source photo - in other words if it is
+     * obviously the same reading reported twice.
      */
     private static void fusionnerSansNumero(List<RecognizedItem> accumules, RecognizedItem item) {
         for (int i = 0; i < accumules.size(); i++) {
@@ -139,10 +139,10 @@ public final class RecognitionConsolidator {
     }
 
     /**
-     * L'édition n'entre <b>pas</b> dans cette clé : elle est arbitrée ensuite
-     * par {@link #fusionnerParEdition}, qui sait distinguer « non lue » de
-     * « lue et différente ». La mettre ici séparerait « tome 7 » de « tome 7,
-     * Standard », c'est-à-dire le doublon que cette classe existe pour éviter.
+     * The edition does <b>not</b> enter this key: it is arbitrated afterwards
+     * by {@link #fusionnerParEdition}, which knows how to tell "not read" from
+     * "read and different". Putting it here would separate "volume 7" from "volume 7,
+     * Standard", that is, the duplicate that this class exists to avoid.
      */
     private static String cleSerieEtTome(RecognizedItem item) {
         return cleTitre(item) + "|" + item.volumeNumber();
@@ -152,7 +152,7 @@ public final class RecognitionConsolidator {
         return normaliser(item.seriesTitleRaw());
     }
 
-    /** Minuscules, sans accents, sans ponctuation, espaces réduits. */
+    /** Lowercase, without accents, without punctuation, spaces reduced. */
     static String normaliser(String valeur) {
         if (valeur == null) {
             return "";

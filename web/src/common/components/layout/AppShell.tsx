@@ -7,43 +7,43 @@ import { PiedDePage } from './PiedDePage'
 import { TabBar } from './TabBar'
 import { useRefusDeVisite } from '@/common/hooks/useRefusDeVisite'
 
-/** Point de bascule unique entre navigation mobile (TabBar, en bas, fixed) et
- * navigation desktop (DesktopHeader, en haut, sticky) - voir TabBar.tsx
- * (`md:hidden`) et DesktopHeader.tsx (`hidden md:block`), qui s'appliquent
- * chacune cette même valeur Tailwind (`md` = 768px) indépendamment : les deux
- * ne sont jamais visibles en même temps, sans dépendre d'un état JS. */
+/** Single switch point between mobile navigation (TabBar, at the bottom, fixed) and
+ * desktop navigation (DesktopHeader, at the top, sticky) - see TabBar.tsx
+ * (`md:hidden`) and DesktopHeader.tsx (`hidden md:block`), which each apply
+ * this same Tailwind value (`md` = 768px) independently: the two
+ * are never visible at the same time, without depending on a JS state. */
 const NAV_BREAKPOINT_PX = 768
 
-/** Trois largeurs de contenu nommées plutôt que des tests de route dispersés
- * dans le JSX (voir la refonte layout demandée - "notion explicite" plutôt
- * que des hacks). `wide` = écrans "bibliothèque visuelle" qui doivent pouvoir
- * occuper une part significative d'un écran large (Ma Collection, fiche
- * détail) ; `narrow` = tout le reste (formulaires, Paramètres, Profil...),
- * qui reste à la largeur de lecture d'origine - jamais demandé plus large et
- * souvent moins lisible étiré (champs de formulaire flottants, longues
- * listes de liens). `medium` sert à « Évaluer un achat ».
+/** Three named content widths rather than scattered route tests
+ * in the JSX (see the requested layout rework - "explicit notion" rather than
+ * hacks). `wide` = "visual library" screens that must be able to
+ * take up a significant part of a wide screen (Ma Collection, detail
+ * page); `narrow` = everything else (forms, Settings, Profile...),
+ * which stays at the original reading width - never asked to be wider and
+ * often less readable when stretched (floating form fields, long
+ * lists of links). `medium` is used for "Évaluer un achat".
  *
- * `detail` est la 4e valeur que le commentaire précédent gardait en réserve
- * « le jour où le besoin apparaît ». Il est apparu, et sur preuve : une
- * capture de la fiche d'une œuvre montre le contenu tassé à gauche et le côté
- * droit blanc sur trois rangées d'affilée - la rangée de tomes s'arrête à
- * mi-largeur, l'Assistant aussi, et le hero garde un trou en son milieu. Une
- * fiche n'a tout simplement pas de quoi remplir 1600px : son bloc d'identité
- * plafonne à 792px et ses actions à 420px, soit 1244px de contenu réel.
- * Marges extérieures plus larges plutôt que trous intérieurs - les premières
- * se lisent comme une mise en page, les seconds comme un défaut. */
+ * `detail` is the 4th value that the previous comment kept in reserve
+ * "the day the need appears". It appeared, and with proof: a
+ * screenshot of the detail page of a work shows the content packed to the left and the
+ * right side blank on three rows in a row - the row of volumes stops at
+ * half width, the Assistant too, and the hero keeps a hole in its middle. A
+ * detail page simply has nothing to fill 1600px: its identity block
+ * caps at 792px and its actions at 420px, which is 1244px of real content.
+ * Wider outer margins rather than inner holes - the former
+ * read as a layout, the latter as a defect. */
 type ContentWidth = 'wide' | 'detail' | 'medium' | 'narrow'
 
-/** Classes complètes et littérales (jamais un nombre interpolé dans un
- * template string) : Tailwind scanne le CODE SOURCE statiquement pour savoir
- * quelles classes générer - une classe construite dynamiquement
- * (`` `md:w-[...${n}px)]` ``) ne serait jamais détectée et son CSS ne serait
- * jamais généré, silencieusement (le composant fonctionnerait en dev via le
- * serveur Vite qui re-scanne à la volée, mais casserait au build). Chaque
- * variante doit donc apparaître ici mot pour mot. Desktop = `min(100% -
- * 48px, Npx)` centré (jamais littéralement Npx fixe - une fenêtre à 1200px
- * avec un container wide=1600px doit occuper ~1152px, pas déborder) ; mobile
- * = pleine largeur + 16px de marge fixe (voir la refonte layout demandée). */
+/** Complete and literal classes (never a number interpolated in a
+ * template string): Tailwind scans the SOURCE CODE statically to know
+ * which classes to generate - a dynamically built class
+ * (`` `md:w-[...${n}px)]` ``) would never be detected and its CSS would
+ * never be generated, silently (the component would work in dev through the
+ * Vite server that re-scans on the fly, but would break at build). Each
+ * variant must therefore appear here word for word. Desktop = `min(100% -
+ * 48px, Npx)` centered (never literally a fixed Npx - a window at 1200px
+ * with a wide=1600px container must take up ~1152px, not overflow); mobile
+ * = full width + 16px of fixed margin (see the requested layout rework). */
 const CONTAINER_CLASS: Record<ContentWidth, string> = {
   wide: 'grid grid-cols-[1fr_min(100%_-_2rem,1600px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1600px)_1fr] [--largeur-page:1600px]',
   detail: 'grid grid-cols-[1fr_min(100%_-_2rem,1320px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1320px)_1fr] [--largeur-page:1320px]',
@@ -52,46 +52,46 @@ const CONTAINER_CLASS: Record<ContentWidth, string> = {
 }
 
 /**
- * Ce qu'une bande PLEINE LARGEUR doit porter pour traverser tout l'écran, et
- * ce que son contenu doit porter pour rester aligné sur le reste de la page.
+ * What a FULL-WIDTH band must carry to cross the whole screen, and
+ * what its content must carry to stay aligned with the rest of the page.
  *
- * <h2>Une grille à trois colonnes, et pas un `100vw`</h2>
- * `<main>` est une grille `1fr | contenu | 1fr` : tout enfant tombe dans la
- * colonne du milieu (voir la règle `main[data-grille] > *` dans index.css), et
- * celui qui porte `col-span-full` occupe les trois. Aucune unité `vw` n'entre
- * en jeu - or c'est précisément `100vw` qui compte la barre de défilement et
- * fait déborder la page de ~15px, la classe de bug corrigée au Lot 10. La
- * grille, elle, ne connaît que la largeur réellement disponible.
+ * <h2>A three-column grid, and not a `100vw`</h2>
+ * `<main>` is a `1fr | content | 1fr` grid: every child falls into the
+ * middle column (see the `main[data-grille] > *` rule in index.css), and
+ * the one that carries `col-span-full` takes up all three. No `vw` unit comes
+ * into play - and it is precisely `100vw` that counts the scrollbar and
+ * makes the page overflow by ~15px, the class of bug fixed in Batch 10. The
+ * grid only knows the width that is really available.
  *
- * <h2>Pourquoi la règle par défaut vit dans `@layer base`</h2>
- * Écrite en utilitaire (`*:col-start-2`), elle l'emporterait sur le
- * `col-span-full` de l'enfant : le sélecteur du parent (`.x > *`) est plus
- * spécifique que la classe de l'enfant. Posée dans la couche `base`, elle
- * passe systématiquement APRÈS les utilitaires dans la cascade des couches -
- * même raisonnement que la règle de survol déjà présente dans index.css.
+ * <h2>Why the default rule lives in `@layer base`</h2>
+ * Written as a utility (`*:col-start-2`), it would win over the
+ * child's `col-span-full`: the parent's selector (`.x > *`) is more
+ * specific than the child's class. Placed in the `base` layer, it
+ * systematically comes AFTER the utilities in the layer cascade -
+ * same reasoning as the hover rule already present in index.css.
  */
 export const CLASSE_BANDE_PLEINE_LARGEUR = 'col-span-full'
 
-/** Le conteneur intérieur d'une bande pleine largeur : ramène son contenu à
- *  la largeur exacte de la colonne du milieu, pour que rien ne se décale par
- *  rapport au reste de la page.
+/** The inner container of a full-width band: brings its content back to
+ *  the exact width of the middle column, so that nothing shifts
+ *  compared to the rest of the page.
  *
- *  Passe par `--largeur-page`, posée juste au-dessus par la même entrée de
- *  CONTAINER_CLASS : sans elle, une bande recopierait en dur la largeur de
- *  l'écran pour lequel elle a été écrite, et se décalerait dès qu'on la
- *  réutilise ailleurs - ce qui est exactement ce qu'on fait en la partageant
- *  entre la fiche et l'écran d'ajout. */
+ *  Goes through `--largeur-page`, set just above by the same entry of
+ *  CONTAINER_CLASS: without it, a band would hard-code the width of the
+ *  screen for which it was written, and would shift as soon as it is
+ *  reused elsewhere - which is exactly what we do by sharing it
+ *  between the detail page and the add screen. */
 export const CLASSE_CONTENU_BANDE =
   'mx-auto w-[calc(100%_-_2rem)] md:w-[min(100%_-_3rem,var(--largeur-page))]'
 
-/** `/entity/:id` couvre tous les types (Manga/Jeu vidéo/Jeu de société
- * partagent la même route) : la largeur du container est neutre pour ces
- * deux derniers tant que leur propre mise en page n'est pas retravaillée
- * (voir EntityDetailPage - hors périmètre pour l'instant). */
+/** `/entity/:id` covers all types (Manga/Video game/Board game
+ * share the same route): the width of the container is neutral for these
+ * last two as long as their own layout is not reworked
+ * (see EntityDetailPage - out of scope for now). */
 function contentWidthFor(pathname: string): ContentWidth {
-  // La fiche d'une œuvre a sa propre largeur - voir `detail` ci-dessus.
-  // `/apercu` est la même page, lue chez le fournisseur : même largeur, sinon
-  // la bande du hero surplomberait une colonne plus étroite.
+  // The detail page of a work has its own width - see `detail` above.
+  // `/apercu` is the same page, read from the provider: same width, otherwise
+  // the hero band would overhang a narrower column.
   if (pathname.startsWith('/entity/') || pathname === '/apercu') return 'detail'
   if (
     pathname === '/' ||
@@ -101,54 +101,54 @@ function contentWidthFor(pathname: string): ContentWidth {
     pathname.startsWith('/tier-lists/')
   )
     return 'wide'
-  // « Évaluer un achat » n'est pas un formulaire de réglages : il porte un
-  // résumé d'annonce, une liste de tomes en pastilles et des propositions
-  // groupées, à l'étroit sur 672 px alors que l'écran est vide autour.
+  // "Évaluer un achat" is not a settings form: it carries a listing
+  // summary, a list of volumes in pills and grouped proposals,
+  // cramped in 672 px while the screen is empty around.
   if (pathname.startsWith('/purchase-analysis')) return 'medium'
-  // Le calendrier des sorties pose une grille de sept colonnes et, à côté,
-  // la liste de tout ce qui vient dans l'année (lot 146) : deux colonnes qui
-  // ne tiennent pas dans 672 px.
+  // The release calendar places a seven-column grid and, next to it,
+  // the list of everything coming during the year (batch 146): two columns that
+  // do not fit in 672 px.
   if (pathname.startsWith('/releases')) return 'medium'
   return 'narrow'
 }
 
-/** Mise en page racine : contenu scrollable + navigation, mobile (TabBar,
- * fixed en bas) ou desktop (DesktopHeader, sticky en haut) selon la largeur -
- * jamais les deux (voir NAV_BREAKPOINT_PX). Le dégagement de la TabBar
- * (hauteur de la barre + safe-area du bas) est porté par le PIED DE PAGE et
- * non par `<main>` : c'est le pied qui termine la page, et l'espace doit être
- * sous lui pour que la version ne se lise pas derrière la barre fixe. Sur
- * desktop, il n'y a pas de barre à dégager, d'où la valeur plus faible. */
+/** Root layout: scrollable content + navigation, mobile (TabBar,
+ * fixed at the bottom) or desktop (DesktopHeader, sticky at the top) depending on the width -
+ * never both (see NAV_BREAKPOINT_PX). The clearance for the TabBar
+ * (height of the bar + bottom safe-area) is carried by the FOOTER and
+ * not by `<main>`: the footer is what ends the page, and the space must be
+ * under it so that the version is not read behind the fixed bar. On
+ * desktop, there is no bar to clear, hence the lower value. */
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const width = contentWidthFor(pathname)
-  // Ici parce que c'est le seul composant qui enveloppe TOUS les écrans
-  // privés : un refus de visite doit s'expliquer d'où qu'il vienne.
+  // Here because it is the only component that wraps ALL the
+  // private screens: a visit refusal must be explained wherever it comes from.
   useRefusDeVisite()
   return (
     <div className="min-h-screen bg-background">
       <DesktopHeader />
       <MobileHeader />
-      {/* Sous les en-têtes et hors de `<main>` : c'est une information sur la
-          SESSION, pas sur la page - elle ne doit ni défiler avec le contenu ni
-          entrer dans la grille qui le range. Ne rend rien hors visite. */}
+      {/* Below the headers and outside `<main>`: it is information about the
+          SESSION, not about the page - it must neither scroll with the content nor
+          enter the grid that lays it out. Renders nothing outside a visit. */}
       <BandeauVisite />
-      {/* `data-grille` est ce que cible la règle de base d'index.css qui range
-          chaque enfant dans la colonne du milieu. Un attribut plutôt qu'une
-          classe : il dit ce que l'élément EST (une grille de page), pas de
-          quoi il a l'air, et rien ne peut le remplacer par mégarde en
-          réécrivant un className. */}
+      {/* `data-grille` is what the base rule of index.css targets to place
+          each child in the middle column. An attribute rather than a
+          class: it says what the element IS (a page grid), not what
+          it looks like, and nothing can replace it by accident when
+          rewriting a className. */}
       <main data-grille className={`${CONTAINER_CLASS[width]} pt-6 pb-6`}>{children}</main>
-      {/* Le dégagement de la barre du pouce est passé de `main` à ce pied :
-          c'est lui, désormais, le dernier élément de la page, et l'espace doit
-          être SOUS lui - sinon la version se lirait derrière la barre fixe. Le
-          bas de document total ne change pas. */}
+      {/* The clearance for the thumb bar moved from `main` to this footer:
+          it is now the last element of the page, and the space must
+          be UNDER it - otherwise the version would be read behind the fixed bar. The
+          total document bottom does not change. */}
       <PiedDePage />
       <TabBar />
     </div>
   )
 }
 
-// Exporté uniquement pour que les tests/outils puissent s'aligner sur le même
-// point de bascule que TabBar/DesktopHeader sans le redupliquer en dur.
+// Exported only so that tests/tools can align on the same
+// switch point as TabBar/DesktopHeader without duplicating it by hand.
 export { NAV_BREAKPOINT_PX }

@@ -25,21 +25,21 @@ import { SqueletteGrille } from '@/common/components/Squelette'
 
 
 /**
- * "Vue catégorie" (voir la maquette V1.2) - la grille complète d'un seul type,
- * accessible via "Tout voir" depuis une ligne de Ma collection.
+ * "Category view" (see the V1.2 mockup) - the full grid of a single type,
+ * reached through "Tout voir" from a row of My collection.
  *
- * <h2>Deux réglages, deux portées</h2>
- * Le filtre d'ÉTAT (Complètes/Incomplètes) est propre à cette page : filtrer
- * "Incomplètes" ici ne doit pas affecter les autres rails quand on revient en
- * arrière. Le filtre Tout/Possédés/Envies, la vue et le tri, eux, sont les
- * préférences PARTAGÉES de Ma collection : arriver ici par "Tout voir" depuis
- * « Envies » et retomber sur les possessions serait une rupture, pas un
- * filtre local.
+ * <h2>Two settings, two scopes</h2>
+ * The STATE filter (Complètes/Incomplètes) belongs to this page: filtering
+ * "Incomplètes" here must not affect the other rails when going back.
+ * The Tout/Possédés/Envies filter, the view and the sort, for their part, are the
+ * SHARED preferences of My collection: arriving here through "Tout voir" from
+ * "Envies" and landing on the owned items would be a break, not a
+ * local filter.
  */
 export function CategoryPage() {
   const { entityTypeId } = useParams<{ entityTypeId: string }>()
   const navigate = useNavigate()
-  // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
+  // Named by the screen of origin when it passes it, otherwise the natural parent.
   const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
 
@@ -89,9 +89,9 @@ export function CategoryPage() {
     [ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies, venues],
   )
 
-  /** Ce que chaque filtre donnerait dans la VUE COURANTE - même règle que sur
-   *  Ma collection : un nombre posé à côté d'un libellé compte ce que ce
-   *  libellé montre, groupes ou éléments. */
+  /** What each filter would give in the CURRENT VIEW - same rule as on
+   *  My collection: a number placed next to a label counts what this
+   *  label shows, groups or items. */
   const comptes = useMemo(() => {
     const compter = (filtre: FiltreCollection) => {
       const retenues = retenuesPour(filtre)
@@ -120,23 +120,23 @@ export function CategoryPage() {
     [entities, owned, progression, ownerships, tomesVoulus, oeuvresVoulues, oeuvresSuivies, preferences.filtre],
   )
 
-  // Un seul type ici : pas de badge de type sur les tuiles, il serait le même
-  // partout et répéterait le titre de la page.
+  // A single type here: no type badge on the tiles, it would be the same
+  // everywhere and would repeat the title of the page.
   const tuilesElements = useMemo(() => {
     const tuiles = aplatirEnElements(entities, preferences.filtre, contexteAplatissement)
-    // Par titre, l'ordre des œuvres suffit ; par récence, ce sont les ÉLÉMENTS
-    // qu'il faut réordonner - sinon « Récents d'abord » ne ferait rien de
-    // visible dans la vue qui les délie justement de leur groupe.
+    // By title, the order of the works is enough; by recency, it is the ITEMS
+    // that must be reordered - otherwise "Récents d'abord" would do nothing
+    // visible in the view that precisely unlinks them from their group.
     return preferences.tri === 'titre' ? tuiles : [...tuiles].sort((a, b) => b.depuis.localeCompare(a.depuis))
   }, [entities, preferences.filtre, preferences.tri, contexteAplatissement])
 
-  // Un seul rendu pour les deux vues : dégrouper change les tuiles, pas leur
-  // mise en forme (même raison que sur Ma collection).
+  // A single render for both views: ungrouping changes the tiles, not their
+  // layout (same reason as on My collection).
   const tuilesAffichees = preferences.vue === 'plate' ? tuilesElements : tiles
   const affiches = tuilesAffichees.length
 
-  // L'outil de l'univers manga, sur son rayon et nulle part ailleurs (voir
-  // RattrapageJaquettes) : les mangas possédés, filtre ou pas.
+  // The tool of the manga universe, on its shelf and nowhere else (see
+  // RattrapageJaquettes): the owned mangas, filtered or not.
   const mangasPossedes = useMemo(
     () =>
       entityType?.code === 'MANGA'
@@ -145,16 +145,16 @@ export function CategoryPage() {
     [entityType, duType, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies],
   )
 
-  // Aucun chiffre tant que tout n'est pas arrivé, sans quoi la page annonce une
-  // catégorie vide qui ne l'est pas - la règle vit dans useDonneesCollection.
+  // No number until everything has arrived, otherwise the page announces an
+  // empty category that is not empty - the rule lives in useDonneesCollection.
   const isLoading = donnees.chargement
 
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Le lien de retour commun : 44 px de haut (la copie manuelle d'ici en
-          faisait 20), la destination nommée par celui qui a ouvert l'écran
-          (voir lib/retour), sinon le parent naturel - lien reçu, F5. */}
+      {/* The common back link: 44 px high (the manual copy here
+          made 20), the destination named by whoever opened the screen
+          (see lib/retour), otherwise the natural parent - received link, F5. */}
       <LienRetour parDefaut={{ to: '/', libelle: 'Ma collection' }} />
 
       <div className="flex items-center gap-2.5">

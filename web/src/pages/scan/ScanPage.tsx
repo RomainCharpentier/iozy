@@ -22,20 +22,20 @@ interface ScanEntry {
   title?: string
   volumeNumber?: number
   edition?: string
-  // Une Ownership active référence déjà ce même Variant (voir QuickAddResponse
-  // côté backend) - ne bloque jamais l'ajout (un 2e exemplaire scanné reste
-  // légitime, ex: un doublon accidentel), sert seulement à avertir l'utilisateur
-  // au lieu de laisser croire à un tome tout neuf pour la collection (même
-  // signal que formatAddResultMessage dans QuickAddPage.tsx, resté silencieux
-  // ici jusqu'ici : le résultat de quickAdd() n'était même pas lu).
+  // An active Ownership already references this same Variant (see QuickAddResponse
+  // on the backend) - never blocks the add (a 2nd scanned copy stays
+  // legitimate, e.g. an accidental duplicate), only warns the user
+  // instead of letting them think the volume is brand new for the collection (same
+  // signal as formatAddResultMessage in QuickAddPage.tsx, which stayed silent
+  // here until now: the result of quickAdd() was not even read).
   alreadyOwned?: boolean
 }
 
-/** Ce qu'une ligne de scan raconte, en une phrase.
- *
- * Écrit ici plutôt qu'en quatre conditions dans le JSX : le texte devient une
- * chaîne, donc quelque chose qu'on peut proposer en entier quand la ligne est
- * trop étroite pour l'afficher (voir TexteCoupe). */
+/** What a scan row says, in one sentence.
+  *
+  * Written here rather than as four conditions in the JSX: the text becomes a
+  * string, so something we can offer in full when the row is
+  * too narrow to show it (see TexteCoupe). */
 function libelleEntree(entry: ScanEntry): string {
   const nom = entry.title ?? entry.code
   switch (entry.status) {
@@ -52,31 +52,31 @@ function libelleEntree(entry: ScanEntry): string {
   }
 }
 
-/** Le titre de l'écran, défini une seule fois : il est rendu dans les trois
- * états de la page (chargement, pas de type Manga, écran normal) et deux
- * copies du même h1 finiraient par diverger. */
+/** The screen title, defined once: it is rendered in the three
+  * states of the page (loading, no Manga type, normal screen) and two
+  * copies of the same h1 would end up drifting apart. */
 function TitreScan() {
   return <EnTeteSection niveau={1} titre="Scan rapide" />
 }
 
-/** Best-effort, jamais autoritaire : le lookup par code-barres (voir
- * BarcodeLookupField) ne renvoie pas de volumeNumber structuré - les
- * providers ISBN (Google Books/Open Library) mettent parfois "Tome N" ou
- * "T. N" dans le titre lui-même, sans garantie de présence ni de format.
- * Un tome ajouté sans numéro détecté reste ajouté quand même (rattaché à
- * la série), juste sans Variant "Tome N" dédié - à corriger à la main
- * depuis la fiche ensuite si besoin (voir AddVolumeSection). */
+/** Best-effort, never authoritative: the barcode lookup (see
+  * BarcodeLookupField) does not return a structured volumeNumber - the
+  * ISBN providers (Google Books/Open Library) sometimes put "Tome N" or
+  * "T. N" in the title itself, with no guarantee of presence or format.
+  * A volume added without a detected number is still added (attached to
+  * the series), just without a dedicated "Tome N" Variant - to be fixed by hand
+  * from the detail page afterwards if needed (see AddVolumeSection). */
 function parseVolumeNumberFromTitle(title: string): number | undefined {
   const match = title.match(/\bt(?:ome)?\.?\s*(\d+)\b/i)
   return match ? Number(match[1]) : undefined
 }
 
-/** "Ajout rapide par scan" (brainstorm) - scanne plusieurs codes-barres à la
- * suite via la caméra et enregistre chaque tome reconnu sans repasser par le
- * formulaire complet d'Ajout rapide à chaque fois (voir CameraBarcodeScanner
- * pour la mécanique caméra/détection, purement mécanique, aucun lookup). */
-/** Une fiche ouverte depuis le scan propose de revenir scanner : on scanne
- *  une pile de tomes, pas un seul. */
+/** "Quick add by scan" (brainstorm) - scans several barcodes in a
+  * row with the camera and saves each recognised volume without going through the
+  * full Quick add form each time (see CameraBarcodeScanner
+  * for the camera/detection mechanics, purely mechanical, no lookup). */
+/** A detail page opened from the scan offers to go back to scanning: we scan
+  *  a pile of volumes, not just one. */
 const RETOUR_SCAN: EtatRetour = { retour: { to: '/scan', libelle: 'Scan' } }
 
 export function ScanPage() {
@@ -85,9 +85,9 @@ export function ScanPage() {
   const mangaType = entityTypesQuery.data?.find((t) => t.code === 'MANGA')
   const [entries, setEntries] = useState<ScanEntry[]>([])
   const [processing, setProcessing] = useState(false)
-  // Tant qu'un menu est ouvert, la caméra continue de tourner mais ses
-  // détections sont ignorées (voir handleScan) : sinon le tome suivant
-  // remplacerait la question posée sur le précédent.
+  // While a menu is open, the camera keeps running but its
+  // detections are ignored (see handleScan): otherwise the next volume
+  // would replace the question asked about the previous one.
   const [pending, setPending] = useState<ScanCandidate | null>(null)
   const [adding, setAdding] = useState(false)
   const [manualCode, setManualCode] = useState('')
@@ -101,9 +101,9 @@ export function ScanPage() {
       try {
         candidate = await lookupBarcode(mangaType.id, code)
       } catch (erreur) {
-        // 503 : une base de métadonnées n'a pas répondu. Le dire, plutôt que de
-        // le confondre avec un échec de la recherche - le geste utile n'est pas
-        // le même (réessayer, contre chercher par titre).
+        // 503: a metadata database did not answer. Say so, rather than
+        // confusing it with a failed search - the useful action is not
+        // the same (retry, versus search by title).
         const indisponible = erreur instanceof ApiError && erreur.status === 503
         setEntries((prev) => [{ code, status: indisponible ? 'unavailable' : 'error' }, ...prev])
         return
@@ -114,17 +114,17 @@ export function ScanPage() {
       }
 
       const volumeNumber = parseVolumeNumberFromTitle(candidate.title)
-      // Même repli que QuickAddPage.pickCandidate : l'éditeur renvoyé par le
-      // candidat (Google Books/Open Library sur un scan ISBN) sert de
-      // meilleure estimation d'édition disponible - jamais renseigné pour
-      // Jikan/MyAnimeList, qui ne connaissent pas d'éditeur français. Sans ce
-      // repli, un tome scanné restait avec une édition vide et échappait à la
-      // détection d'éditions mélangées / aux suggestions de complétion, qui
-      // regroupent toutes deux les tomes par cet attribut.
+      // Same fallback as QuickAddPage.pickCandidate: the publisher returned by the
+      // candidate (Google Books/Open Library on an ISBN scan) serves as the
+      // best available edition guess - never filled in for
+      // Jikan/MyAnimeList, which do not know French publishers. Without this
+      // fallback, a scanned volume kept an empty edition and escaped the
+      // detection of mixed editions and the completion suggestions, which
+      // both group volumes by this attribute.
       const edition = typeof candidate.attributes.publisher === 'string' ? candidate.attributes.publisher : undefined
-      // Recherche locale, gratuite : sert à proposer "ouvrir la fiche" quand
-      // l'œuvre a déjà la sienne, plutôt que de laisser l'ajout comme seule
-      // issue. Trouver une fiche ne dit rien de la possession.
+      // Local search, free: used to offer "open the detail page" when
+      // the work already has one, rather than leaving the add as the only
+      // way out. Finding a page says nothing about ownership.
       let existingEntity = null
       try {
         const matches = await searchEntities({ q: candidate.title, entityTypeId: mangaType.id })
@@ -133,7 +133,7 @@ export function ScanPage() {
         existingEntity = null
       }
 
-      // Plus aucune écriture ici : le scan IDENTIFIE, l'utilisateur décide.
+      // No write here anymore: the scan IDENTIFIES, the user decides.
       setPending({ code, candidate, entityTypeId: mangaType.id, volumeNumber, edition, existingEntity })
     } finally {
       setProcessing(false)
@@ -151,9 +151,9 @@ export function ScanPage() {
       const result = await quickAdd({
         entityTypeId: mangaType.id,
         title: candidate.title,
-        // Scanner et ajouter tient en un clic : l'état n'est plus demandé
-        // d'avance (décision utilisateur du 2026-08-27), il se corrige sur
-        // l'exemplaire depuis la fiche (voir OwnershipDetails).
+        // Scanning and adding takes one click: the condition is no longer asked
+        // in advance (user decision of 2026-08-27), it is fixed on
+        // the copy from the detail page (see OwnershipDetails).
         condition: 'NEW',
         attributes,
         volumeNumber,
@@ -179,10 +179,10 @@ export function ScanPage() {
     setPending(null)
   }
 
-  // Le titre reste dans les deux impasses ci-dessous. Une page qui remplace
-  // TOUT son contenu par une ligne de texte perd son h1 - donc le titre de son
-  // onglet, que useDocumentTitle lit dessus, et son seul repère de structure
-  // pour un lecteur d'écran.
+  // The title stays in both dead ends below. A page that replaces
+  // ALL its content with a line of text loses its h1 - so the title of its
+  // tab, which useDocumentTitle reads from it, and its only structure marker
+  // for a screen reader.
   if (entityTypesQuery.isLoading || !mangaType) {
     return (
       <div className="flex flex-col gap-4">
@@ -207,12 +207,12 @@ export function ScanPage() {
 
       <CameraBarcodeScanner onScan={handleScan} />
 
-      {/* Saisie manuelle du code : le repli affiché par CameraBarcodeScanner
-          quand BarcodeDetector est absent (Safari, Firefox, poste sans caméra)
-          renvoyait vers "la recherche par code-barres manuelle ci-dessous",
-          qui n'existait sur aucun de ces écrans - cette page était donc une
-          impasse complète sur ces navigateurs. Elle passe par exactement le
-          même chemin que la caméra, menu contextuel compris. */}
+      {/* Manual entry of the code: the fallback shown by CameraBarcodeScanner
+              when BarcodeDetector is missing (Safari, Firefox, a computer with no camera)
+              pointed to "the manual barcode search below",
+              which existed on none of these screens - so this page was a complete
+              dead end on these browsers. It goes through exactly the
+              same path as the camera, context menu included. */}
       <form
         className="flex flex-col gap-1.5"
         onSubmit={(e) => {
@@ -252,8 +252,8 @@ export function ScanPage() {
           busy={adding}
           onAdd={addPending}
           onSkip={skipPending}
-          // L'aperçu de l'œuvre scannée : rien n'est écrit tant qu'un tome
-          // n'est pas coché (voir ApercuOeuvrePage).
+          // The preview of the scanned work: nothing is written until a volume
+          // is ticked (see ApercuOeuvrePage).
           onOpenDraft={() =>
             navigate(
               `/apercu?type=${encodeURIComponent(mangaType.id)}&titre=${encodeURIComponent(pending.candidate.title)}`,
@@ -274,8 +274,8 @@ export function ScanPage() {
               {entry.status === 'not-found' && <HelpCircle size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'unavailable' && <HelpCircle size={16} className="shrink-0 text-warning" />}
               {entry.status === 'error' && <XCircle size={16} className="shrink-0 text-danger" />}
-              {/* Deux lignes plutôt qu'une coupée : « Une source n'a pas répondu… »
-                  perdait sa fin derrière « Chercher par titre » sur 390 px. */}
+              {/* Two lines rather than one cut off: "Une source n'a pas répondu…"
+                      lost its end behind "Chercher par titre" on 390 px. */}
               <TexteCoupe texte={libelleEntree(entry)} className="line-clamp-2 min-w-0 flex-1 text-textPrimary" />
               {entry.volumeNumber !== undefined && (
                 <span className="shrink-0 text-xs text-textDim">
@@ -283,12 +283,11 @@ export function ScanPage() {
                   {entry.edition && ` · ${entry.edition}`}
                 </span>
               )}
-              {/* Un scan sans résultat n'est pas forcément une absence : le
-                  fournisseur peut simplement n'avoir pas répondu (constaté en
-                  direct, même code-barres servi puis refusé à quelques secondes
-                  d'intervalle). D'où "Rien trouvé" plutôt qu'"Aucune
-                  correspondance", et une porte de sortie plutôt qu'une ligne
-                  morte. */}
+              {/* A scan with no result is not necessarily an absence: the
+                      provider may simply not have answered (seen live, the same barcode served then refused
+                      a few seconds apart). Hence "Rien trouvé" rather than "Aucune
+                      correspondance", and a way out rather than a dead
+                      line. */}
               {(entry.status === 'not-found' || entry.status === 'unavailable' || entry.status === 'error') && (
                 <button
                   type="button"

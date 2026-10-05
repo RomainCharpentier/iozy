@@ -87,9 +87,9 @@ class JikanMetadataProviderTest {
         assertThat(candidates.get(0).title()).isEqualTo("Naruto");
         assertThat(candidates.get(0).attributes()).doesNotContainKey("originalTitle");
         assertThat(candidates.get(0).attributes()).doesNotContainKey("titleJapanese");
-        // titleRomaji/titleEnglish restent inconditionnels même quand identiques
-        // (contrairement à originalTitle) - la composition côté client doit
-        // pouvoir s'appuyer dessus sans se soucier du choix déjà fait ici.
+        // titleRomaji/titleEnglish stay unconditional even when identical
+        // (unlike originalTitle) - the client-side composition must
+        // be able to rely on them without worrying about the choice already made here.
         assertThat(candidates.get(0).attributes()).containsEntry("titleRomaji", "Naruto");
         assertThat(candidates.get(0).attributes()).containsEntry("titleEnglish", "Naruto");
     }

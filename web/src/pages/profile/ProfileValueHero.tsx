@@ -6,15 +6,15 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { formaterEuros } from '@/common/lib/formats'
 
 /**
- * Hero "Valeur estimée" de Profil (voir DS v1.1 §44 : "la valeur domine, le
- * reste suit") : montant + badge de confiance (fiable/partiel/indisponible,
- * voir §55) + un aperçu de 2 stats réelles (titres, tomes possédés - la
- * maquette en montre 3 avec "séries complètes", non repris ici : cette
- * donnée n'existe nulle part côté backend pour l'instant sans recalcul
- * complet côté client, voir docs/DESIGN_MIGRATION_V1.2.md). Cliquable vers
- * /stats, qui contient déjà le détail (CollectionValueSection). Absent
- * entièrement tant qu'aucune possession active n'existe - jamais un "0,00 €"
- * qui aurait l'air d'une vraie valeur.
+ * "Valeur estimée" hero of Profil (see DS v1.1 section 44: "the value dominates, the
+ * rest follows"): amount + confidence badge (reliable/partial/unavailable,
+ * see section 55) + a preview of 2 real stats (titles, owned volumes - the
+ * mockup shows 3 with "complete series", not taken here: this
+ * data exists nowhere on the backend side for now without a full
+ * recomputation on the client side, see docs/DESIGN_MIGRATION_V1.2.md). Clickable to
+ * /stats, which already contains the detail (CollectionValueSection). Absent
+ * entirely as long as no active ownership exists - never a "0,00 €"
+ * that would look like a real value.
  */
 export function ProfileValueHero() {
   const navigate = useNavigate()
@@ -33,11 +33,11 @@ export function ProfileValueHero() {
       onClick={() => navigate('/stats', { state: { focusValeur: true } })}
       className="flex w-full flex-col items-start gap-2 rounded-[22px] bg-surface p-6 text-left shadow-token-elevated transition-transform hover:-translate-y-0.5"
     >
-      {/* Le MÊME nom que la section qu'il ouvre, et que le bouton de Ma
-          collection : « Valeur estimée » ici, « Valeur de la collection »
-          là-bas et « Statistiques » à l'arrivée faisaient trois noms pour
-          une idée (UX-6). Ce que « estimée » disait - une valeur partielle -
-          est déjà porté par la pastille de couverture juste en dessous. */}
+      {/* The SAME name as the section it opens, and as the button of My
+          collection: "Valeur estimée" here, "Valeur de la collection"
+          there and "Statistiques" on arrival made three names for
+          one idea (UX-6). What "estimée" said - a partial value -
+          is already carried by the coverage badge right below. */}
       <span className="text-[11px] font-semibold tracking-widest text-textDim uppercase">Valeur de la collection</span>
       <span className="flex flex-wrap items-baseline gap-3">
         {confidence === 'indisponible' ? (

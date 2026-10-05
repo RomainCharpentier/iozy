@@ -6,34 +6,34 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Stockage durable du résultat de {@link VolumeSearchProvider#searchVolumes}
- * (voir V3__volume_search_cache.sql) - contrairement au {@link TtlCache} en
- * mémoire utilisé ailleurs dans {@link TomeSearchService}, celui-ci
- * survit aux redémarrages du backend. seriesTitle/author sont attendus déjà
- * normalisés (trim + minuscules) par l'appelant, jamais affichés tels quels.
+ * Durable storage of the result of {@link VolumeSearchProvider#searchVolumes}
+ * (see V3__volume_search_cache.sql) - unlike the in-memory {@link TtlCache}
+ * used elsewhere in {@link TomeSearchService}, this one
+ * survives backend restarts. seriesTitle/author are expected to be already
+ * normalized (trim + lowercase) by the caller, never shown as they are.
  */
 public interface VolumeSearchCacheRepository {
 
     Optional<List<VolumeCandidate>> find(UUID entityTypeId, String seriesTitle, String author);
 
-    /** Remplace la ligne existante pour cette clé le cas échéant (upsert) -
-     * c'est le point d'entrée du rafraîchissement manuel (bouton "Actualiser"
-     * côté client) : une nouvelle recherche Google Books écrase l'ancien
-     * résultat stocké plutôt que de s'y ajouter. */
+    /** Replaces the existing row for this key if there is one (upsert) -
+     * this is the entry point of the manual refresh ("Actualiser" button
+     * on the client side): a new Google Books search overwrites the old
+     * stored result instead of being added to it. */
     void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes);
 
-    /** Oublie la ligne de cette cle, si elle existe - voir TomeSearchService.searchVolumes (Lot 126). */
+    /** Forgets the row of this key, if it exists - see TomeSearchService.searchVolumes (Batch 126). */
     void delete(UUID entityTypeId, String seriesTitle, String author);
 
     /**
-     * Les résultats stockés de plusieurs séries d'un type, en UNE lecture -
-     * ce que le calendrier des sorties demande pour toutes les séries
-     * possédées ou voulues, plutôt qu'une lecture par série (lot 146). Les
-     * titres sont attendus normalisés, comme pour {@link #find}. Une liste
-     * vide de titres rend une liste vide sans rien lire.
+     * The stored results of several series of a type, in ONE read -
+     * what the release calendar asks for all the owned
+     * or wished series, instead of one read per series (batch 146). The
+     * titles are expected normalized, like for {@link #find}. An empty list
+     * of titles returns an empty list without reading anything.
      */
     List<StoredVolumeSearch> findAllByEntityTypeIdAndSeriesTitleIn(UUID entityTypeId, Collection<String> seriesTitles);
 
-    /** Les clés stockées de ce type et leur fraîcheur, sans les tomes - pour choisir quoi relire la nuit (lot 146). */
+    /** The stored keys of this type and their freshness, without the volumes - to choose what to read again at night (batch 146). */
     List<StoredVolumeSearchKey> findKeysByEntityTypeId(UUID entityTypeId);
 }

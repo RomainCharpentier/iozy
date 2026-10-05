@@ -1,31 +1,32 @@
 /**
- * <b>Ce qu'on lit sur un tome, et ce qu'on refuse d'y lire.</b>
+ * <b>What we read on a volume, and what we refuse to read there.</b>
  *
- * Les attributs d'un Variant sont un sac non typé : c'est donc le lecteur qui
- * décide de ce qu'il accepte, et c'est exactement là que deux écrans ont déjà
- * divergé - l'assistant acceptait un numéro écrit en TEXTE (`"12"`), la grille
- * non. Un tome ainsi saisi était compté d'un côté et invisible de l'autre.
+ * The attributes of a Variant are an untyped bag: it is therefore the reader
+ * that decides what it accepts, and this is exactly where two screens have
+ * already diverged - the assistant accepted a number written as TEXT
+ * (`"12"`), the grid did not. A volume entered that way was counted on one
+ * side and invisible on the other.
  *
- * <p>La règle vaut donc autant par ce qu'elle rend que par ce qu'elle rejette,
- * et le rejet est la moitié qu'aucun type ne protège : `attributes` étant
- * `Record<string, unknown>`, TypeScript laisse passer n'importe quoi.
+ * <p>The rule is therefore worth as much for what it returns as for what it
+ * rejects, and the rejection is the half that no type protects: `attributes`
+ * being `Record<string, unknown>`, TypeScript lets anything through.
  */
 import { describe, expect, it } from 'vitest'
 import { editionDe, numeroDe, variantLabel } from './attributsTome'
 
 describe('numeroDe', () => {
-  it('accepte un vrai nombre', () => {
+  it('accepts a real number', () => {
     expect(numeroDe({ attributes: { volumeNumber: 12 } })).toBe(12)
     expect(numeroDe({ attributes: { volumeNumber: 0 } })).toBe(0)
   })
 
-  it('refuse un numéro écrit en texte, même parfaitement numérique', () => {
-    // Tolérer "12" ici reviendrait à accepter une donnée que les écrans
-    // d'écriture s'interdisent de produire.
+  it('refuses a number written as text, even a perfectly numeric one', () => {
+    // Tolerating "12" here would mean accepting data that the write screens
+    // forbid themselves to produce.
     expect(numeroDe({ attributes: { volumeNumber: '12' } })).toBeNull()
   })
 
-  it('rend null pour tout ce qui n’est pas un nombre', () => {
+  it('returns null for everything that is not a number', () => {
     expect(numeroDe({ attributes: {} })).toBeNull()
     expect(numeroDe({ attributes: { volumeNumber: null } })).toBeNull()
     expect(numeroDe({ attributes: { volumeNumber: true } })).toBeNull()
@@ -33,16 +34,16 @@ describe('numeroDe', () => {
 })
 
 describe('editionDe', () => {
-  it('découpe aux extrémités - un espace de saisie ne fait pas une autre édition', () => {
+  it('trims at the ends - a typing space does not make another edition', () => {
     expect(editionDe({ attributes: { edition: '  Glénat ' } })).toBe('Glénat')
   })
 
-  it('conserve la casse : c’est ce nom qui s’affiche et que le serveur renvoie', () => {
+  it('keeps the case: this is the name that is displayed and that the server returns', () => {
     expect(editionDe({ attributes: { edition: 'KANA' } })).toBe('KANA')
   })
 
-  it('rend la chaîne vide quand aucune édition n’est précisée', () => {
-    // '' est une VALEUR ici (le groupe des tomes sans édition), pas une absence.
+  it('returns the empty string when no edition is given', () => {
+    // '' is a VALUE here (the group of volumes without an edition), not an absence.
     expect(editionDe({ attributes: {} })).toBe('')
     expect(editionDe({ attributes: { edition: 42 } })).toBe('')
   })
@@ -56,11 +57,11 @@ describe('variantLabel', () => {
     mangaEditionId: null,
   })
 
-  it('nomme le tome par son numéro quand il en a un', () => {
+  it('names the volume by its number when it has one', () => {
     expect(variantLabel(tome({ volumeNumber: 12 }, 'Berserk tome douze'))).toBe('Tome 12')
   })
 
-  it('retombe sur le libellé brut sans numéro exploitable', () => {
+  it('falls back on the raw label without a usable number', () => {
     expect(variantLabel(tome({ volumeNumber: '12' }, 'Coffret collector'))).toBe('Coffret collector')
   })
 })

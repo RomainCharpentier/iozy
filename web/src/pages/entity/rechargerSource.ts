@@ -2,38 +2,38 @@ import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/cover
 import type { MetadataCandidateDto } from '@/common/types/api'
 
 /**
- * Redemander à la source ce qu'elle sait d'une œuvre déjà en collection.
+ * Ask the source again what it knows about a work already in the collection.
  *
- * <h2>Pourquoi ce module</h2>
- * Les attributs d'une œuvre (mangaka, statut, nombre de tomes, jaquette,
- * identifiants externes) sont recopiés d'un fournisseur AU MOMENT DE L'AJOUT,
- * puis plus jamais : une série en cours gardait éternellement le nombre de
- * tomes qu'elle avait le jour où on l'a ajoutée, et une fiche ajoutée à la
- * main n'avait rien du tout. Il n'existait aucun moyen de les redemander
- * (demande utilisateur du 2026-08-27 : « je veux un bouton pour recharger les
- * images ou les infos api »).
+ * <h2>Why this module</h2>
+ * The attributes of a work (mangaka, status, number of volumes, cover,
+ * external ids) are copied from a provider AT THE TIME OF THE ADD,
+ * then never again: an ongoing series kept forever the number of
+ * volumes it had the day it was added, and a page added by
+ * hand had nothing at all. There was no way to ask for them again
+ * (user request of 2026-08-27: "je veux un bouton pour recharger les
+ * images ou les infos api").
  *
- * <h2>Deux fonctions pures, testables à l'œil</h2>
- * Le choix du candidat et le calcul de ce qu'il faut écrire vivent ici, hors
- * de React et hors du réseau - ce sont les deux endroits où une erreur
- * écraserait des données de l'utilisateur.
+ * <h2>Two pure functions, testable by eye</h2>
+ * The choice of the candidate and the computation of what must be written live here, outside
+ * React and outside the network - these are the two places where a mistake
+ * would overwrite user data.
  */
 
-/** L'œuvre telle qu'on en a besoin ici - jamais la réponse entière. */
+/** The work as needed here - never the whole response. */
 export interface OeuvreARecharger {
   title: string
   attributes: Record<string, unknown>
-  /** Les clés saisies à la main (Lot 130) - jamais réécrites. Le serveur
-   *  applique la même règle ; ici elle sert au décompte rendu à l'écran. */
+  /** The keys entered by hand (Batch 130) - never rewritten. The server
+   *  applies the same rule; here it is used for the count shown on screen. */
   champsSaisis?: string[]
 }
 
-/** Les clés sous lesquelles vit l'identifiant du fournisseur, selon le type de
- * collection (voir les rouages de useBrouillonInspecteur). */
+/** The keys under which the provider id lives, depending on the collection
+ * type (see the internals of useBrouillonInspecteur). */
 const CLES_IDENTIFIANT = ['malId', 'igdbId', 'bggId']
 
-/** Jamais rechargée : c'est la remarque de l'utilisateur, pas une donnée de
- * source. Le sac d'attributs mélange les deux (voir EntityDetailPage). */
+/** Never reloaded: it is the user's remark, not a piece of
+ * source data. The attribute bag mixes both (see EntityDetailPage). */
 const CLES_UTILISATEUR = ['note']
 
 function texte(valeur: unknown): string | null {
@@ -50,12 +50,12 @@ function normaliser(titre: string): string {
 }
 
 /**
- * Lequel de ces candidats EST cette œuvre ?
+ * Which of these candidates IS this work?
  *
- * L'identifiant du fournisseur d'abord (malId/igdbId/bggId, déjà stocké depuis
- * l'ajout) : c'est le seul rapprochement sûr. À défaut, le titre exact, aux
- * accents et à la casse près - jamais un « à peu près », qui recopierait
- * tranquillement les informations d'un spin-off sur la série mère.
+ * The provider id first (malId/igdbId/bggId, already stored since
+ * the add): it is the only safe match. Failing that, the exact title, ignoring
+ * accents and case - never an "approximately" match, which would quietly copy
+ * the information of a spin-off onto the parent series.
  */
 export function candidatCorrespondant(
   candidats: MetadataCandidateDto[],
@@ -81,18 +81,18 @@ export function candidatCorrespondant(
 }
 
 /**
- * Ce qu'il faut écrire, et RIEN de plus.
+ * What must be written, and NOTHING more.
  *
- * <p>Seules les clés que la source renseigne vraiment, et seulement quand
- * leur valeur diffère de celle déjà en base : le décompte rendu à l'écran doit
- * pouvoir dire « tout est déjà à jour » sans mentir.
+ * <p>Only the keys that the source really provides, and only when
+ * their value differs from the one already in the database: the count shown on screen must
+ * be able to say "everything is already up to date" without lying.
  *
- * <p><b>Trois exclusions.</b> Les clés SAISIES À LA MAIN (Lot 130 : « si on
- * recharge depuis l'api alors on écrase les infos non déjà éditées »). Les
- * remarques de l'utilisateur, qui ne viennent d'aucune source. Et la jaquette
- * de la série, qui n'est POSÉE QUE SI ELLE MANQUE : elle se choisit à la main
- * sur la fiche (voir le contrôle de couverture), et un rechargement n'a pas à
- * défaire ce choix.
+ * <p><b>Three exclusions.</b> The keys ENTERED BY HAND (Batch 130: "si on
+ * recharge depuis l'api alors on écrase les infos non déjà éditées"). The
+ * user's remarks, which come from no source. And the cover
+ * of the series, which is ONLY SET IF IT IS MISSING: it is chosen by hand
+ * on the detail page (see the cover control), and a reload must not
+ * undo that choice.
  */
 export function attributsARecharger(
   candidat: MetadataCandidateDto,

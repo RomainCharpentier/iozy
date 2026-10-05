@@ -5,22 +5,22 @@ import type { TomeTile } from './tomeTiles'
 export type { FiltreVolumes as FiltreTomes }
 
 /**
- * « Mes tomes » sur la fiche : la grille commune en mode navigation (voir
- * components/GrilleVolumes), précédée du nom de l'édition regardée quand il y
- * en a plusieurs.
+ * "Mes tomes" on the detail page: the common grid in browse mode (see
+ * components/GrilleVolumes), preceded by the name of the edition being looked at when there
+ * are several.
  *
- * <h2>Ce que fait cet adaptateur, et rien de plus</h2>
- * Il traduit des `TomeTile` - la forme du catalogue, avec ses trois états
- * (possédé, catalogué manquant, purement déduit) - vers les `VolumeAffiche`
- * que la grille comprend. C'est tout : la mise en forme, les filtres, les
- * mesures et les actions au survol vivent dans le composant commun, partagé
- * avec l'écran d'ajout.
+ * <h2>What this adapter does, and nothing more</h2>
+ * It translates `TomeTile` - the catalog shape, with its three states
+ * (owned, cataloged missing, purely deduced) - into the `VolumeAffiche`
+ * that the grid understands. That is all: the layout, the filters, the
+ * measures and the hover actions live in the common component, shared
+ * with the add screen.
  *
- * <p>La distinction « catalogué manquant » / « purement déduit » ne survit
- * pas à la traduction, et c'est voulu : elle ne change rien à ce qu'on VOIT
- * (les deux sont des trous dans la collection). Elle continue d'exister là où
- * elle compte, au moment d'agir sur le tome - un tome catalogué se rattache,
- * un tome déduit doit d'abord être créé (voir AddVolumeSection).
+ * <p>The distinction "cataloged missing" / "purely deduced" does not survive
+ * the translation, and this is intended: it changes nothing about what one SEES
+ * (both are holes in the collection). It keeps existing where
+ * it matters, when acting on the volume - a cataloged volume is attached,
+ * a deduced volume must first be created (see AddVolumeSection).
  */
 export function GrilleTomes({
   titre,
@@ -37,39 +37,39 @@ export function GrilleTomes({
   onAjouterTome,
 }: {
   titre: string
-  /** Vrai quand l'œuvre a plus d'une édition. C'est la seule situation où il
-   *  faut redire laquelle cette grille montre : avec une seule édition, sa
-   *  carte juste au-dessus l'a déjà dit, et la répéter ne fait qu'éloigner la
-   *  première jaquette. */
+  /** True when the work has more than one edition. This is the only case where one
+   *  must say again which one this grid shows: with a single edition, its
+   *  card just above has already said it, and repeating it only pushes away the
+   *  first cover. */
   plusieursEditions: boolean
   filtre: FiltreVolumes
   onFiltre: (filtre: FiltreVolumes) => void
   tuiles: TomeTile[]
   onChoisirTome: (numero: number) => void
-  /** Retirer un tome possédé - la grille ne l'appelle qu'au second geste
-   *  (voir GrilleVolumes), jamais sur un simple tap. */
+  /** Remove an owned volume - the grid only calls it on the second gesture
+   *  (see GrilleVolumes), never on a simple tap. */
   onRetirerTome: (numero: number) => void
-  /** « Je l'ai » - ajoute le tome en un clic. */
+  /** "Je l'ai" - adds the volume in one click. */
   onJeLAi: (numero: number) => void
-  /** Les identifiants des tomes de cette œuvre qui sont dans les envies. */
+  /** The ids of the volumes of this work that are in the wishes. */
   tomesVoulus: Set<string>
   onBasculerEnvie: (numero: number) => void
   modeEdition: boolean
   onAjouterTome: () => void
 }) {
-  // La clé est le numéro : une grille de fiche ne montre qu'UNE édition à la
-  // fois, donc le numéro y est déjà unique (contrairement à l'écran d'ajout,
-  // qui mélange les éditions - voir lib/volumeKey).
+  // The key is the number: a detail page grid only shows ONE edition at a
+  // time, so the number is already unique there (unlike the add screen,
+  // which mixes editions - see lib/volumeKey).
   const volumes: VolumeAffiche[] = tuiles.map((tuile) => ({
     cle: String(tuile.volumeNumber),
     numero: tuile.volumeNumber,
     jaquetteUrl: tuile.variant ? coverImageUrlFrom(tuile.variant.attributes) : null,
     possede: tuile.status === 'owned',
-    // Un tome purement déduit n'a pas d'identité, donc rien à quoi rattacher
-    // une envie : il ne peut pas être voulu tant qu'il n'est pas catalogué -
-    // ce que « Je le veux » déclenche justement (voir TomeResolver).
+    // A purely deduced volume has no identity, so nothing to attach
+    // a wish to: it cannot be wanted until it is cataloged -
+    // which is exactly what "Je le veux" triggers (see TomeResolver).
     voulu: !!tuile.variant && tomesVoulus.has(tuile.variant.id),
-    // Plus rien ne s'ouvre au clic : aucun tome n'est « actif ».
+    // Nothing opens on click anymore: no volume is "active".
     actif: false,
   }))
 
@@ -77,8 +77,8 @@ export function GrilleTomes({
     <section className="pt-5">
       <GrilleVolumes
         enTete={
-          // Le NOM seul, et seulement s'il y a un choix. L'avancement vivait
-          // ici aussi ; il est déjà sur la carte de l'édition, jauge comprise.
+          // The NAME alone, and only if there is a choice. Progress used to live
+          // here too; it is already on the edition card, gauge included.
           plusieursEditions ? (
             <h2 className="min-w-0 truncate font-display text-[14px] font-medium tracking-[-0.01em] text-textPrimary">
               {titre}
@@ -91,9 +91,9 @@ export function GrilleTomes({
         onFiltre={onFiltre}
         onActiver={(cle) => onChoisirTome(Number(cle))}
         onRetirer={(cle) => onRetirerTome(Number(cle))}
-        // Les deux gestes agissent désormais sur place : depuis que l'ajout ne
-        // demande plus ni état ni prix, « Je l'ai » n'a pas plus à ouvrir un
-        // panneau que « Je le veux ».
+        // Both gestures now act in place: since adding no longer
+        // asks for a condition or price, "Je l'ai" has no more reason to open a
+        // panel than "Je le veux".
         onJeLAi={(cle) => onJeLAi(Number(cle))}
         onJeLeVeux={(cle) => onBasculerEnvie(Number(cle))}
         action={modeEdition ? { libelle: 'Ajouter un tome', onClick: onAjouterTome } : undefined}

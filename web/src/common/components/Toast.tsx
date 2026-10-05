@@ -10,16 +10,16 @@ interface ToastState {
 const AUTO_DISMISS_MS = 6000
 
 /**
- * Retour visuel bref, avec au plus UNE action - « Annuler » en pratique.
+ * Brief visual feedback, with at most ONE action - "Annuler" in practice.
  * <p>
- * Volontairement minimal : un seul message à la fois (un nouveau remplace le
- * précédent), disparition automatique, aucune file d'attente. L'app n'avait
- * aucun mécanisme de feedback jusqu'ici ; celui-ci n'existe que parce qu'une
- * écriture réversible doit pouvoir proposer son annulation immédiatement après
- * coup, sans transformer chaque action en boîte de dialogue.
+ * Deliberately minimal: one message at a time (a new one replaces the
+ * previous one), automatic disappearance, no queue. The app had
+ * no feedback mechanism until now; this one only exists because a reversible
+ * write must be able to offer its cancellation right after
+ * the fact, without turning every action into a dialog box.
  * <p>
- * Règle : ne JAMAIS afficher « Annuler » si l'annulation ne restaure pas
- * réellement l'état. Un bouton décoratif serait pire que pas de bouton.
+ * Rule: NEVER display "Annuler" if the cancellation does not really restore
+ * the state. A decorative button would be worse than no button.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastState | null>(null)
@@ -47,8 +47,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {toast && (
         <div
-          // Au-dessus de la barre du pouce en mobile (voir TabBar), en bas à
-          // gauche en desktop où rien ne masque cette zone.
+          // Above the thumb bar on mobile (see TabBar), at the bottom
+          // left on desktop where nothing hides this area.
           className="fixed inset-x-4 bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] z-[60] flex items-center gap-3 rounded-xl bg-surface2 p-3 shadow-token-elevated ring-1 ring-line md:inset-x-auto md:bottom-6 md:left-6 md:w-[360px]"
           role="status"
           aria-live="polite"
@@ -61,9 +61,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 toast.action?.onAction()
                 setToast(null)
               }}
-              // 44 px comme partout ailleurs. Ce bouton n'apparaît jamais dans
-              // un balayage automatique - le toast n'est dans le DOM que
-              // quelques secondes - et il portait encore py-1.5, soit 34 px.
+              // 44 px like everywhere else. This button never shows up in
+              // an automatic sweep - the toast is only in the DOM for
+              // a few seconds - and it still carried py-1.5, which is 34 px.
               className="flex min-h-11 shrink-0 items-center rounded-lg px-2.5 text-sm font-semibold text-accentText underline"
             >
               {toast.action.label}

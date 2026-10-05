@@ -11,18 +11,18 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La barrière anti-SSRF. Un endpoint qui accepte une URL et va la chercher
- * côté serveur est un vecteur d'attaque classique : on lui donne
- * {@code http://169.254.169.254/} et il rapporte les identifiants de la
- * machine hôte.
+ * The anti-SSRF barrier. An endpoint that accepts a URL and fetches it
+ * on the server side is a classic attack vector: you give it
+ * {@code http://169.254.169.254/} and it brings back the credentials of the
+ * host machine.
  *
- * <p>Ces tests n'ouvrent aucune connexion : ils vérifient que <b>rien n'est
- * même tenté</b> hors de la liste blanche. C'est justement l'endroit où un
- * test qui laisserait passer un appel réel serait le plus dangereux.
+ * <p>These tests open no connection: they check that <b>nothing is
+ * even attempted</b> outside the whitelist. This is precisely the place where a
+ * test that let a real call through would be the most dangerous.
  */
 class RecognitionImageFetcherTest {
 
-    /** Un provider qui déclare un CDN d'images, comme le fait Vinted. */
+    /** A provider that declares an image CDN, as Vinted does. */
     private static class ProviderAvecImages implements ListingProvider {
         @Override
         public ListingPlatform platform() {
@@ -50,7 +50,7 @@ class RecognitionImageFetcherTest {
         }
     }
 
-    /** Un provider qui ne se prononce pas : il n'autorise donc aucune image. */
+    /** A provider that does not say anything: it therefore allows no image. */
     private static class ProviderSansImages implements ListingProvider {
         @Override
         public ListingPlatform platform() {
@@ -82,8 +82,8 @@ class RecognitionImageFetcherTest {
 
     @Test
     void a_provider_that_says_nothing_grants_no_image_host() {
-        // Le défaut est vide : un provider n'hérite jamais d'une permission
-        // qu'il n'a pas demandée.
+        // The default is empty: a provider never inherits a permission
+        // that it did not ask for.
         RecognitionImageFetcher fetcher = new RecognitionImageFetcher(List.of(new ProviderSansImages()));
 
         assertThat(fetcher.allowedImageHosts()).isEmpty();
@@ -91,8 +91,8 @@ class RecognitionImageFetcherTest {
 
     @Test
     void page_hosts_never_become_image_hosts() {
-        // Lire une page HTML et télécharger un binaire ne présentent pas le même
-        // risque : autoriser l'un ne doit jamais autoriser l'autre.
+        // Reading an HTML page and downloading a binary do not present the same
+        // risk: allowing one must never allow the other.
         RecognitionImageFetcher fetcher = new RecognitionImageFetcher(List.of(new ProviderAvecImages()));
 
         assertThat(fetcher.allowedImageHosts()).doesNotContain("pages-de-test.invalid");
@@ -115,9 +115,9 @@ class RecognitionImageFetcherTest {
 
     @Test
     void the_cloud_metadata_endpoint_is_refused() {
-        // 169.254.169.254 rend les identifiants de la machine chez les
-        // principaux hébergeurs. Refusé deux fois : hors liste blanche, ET
-        // adresse de lien-local.
+        // 169.254.169.254 returns the credentials of the machine at the
+        // main hosting providers. Refused twice: outside the whitelist, AND
+        // link-local address.
         RecognitionImageFetcher fetcher = new RecognitionImageFetcher(List.of(new ProviderAvecImages()));
 
         assertThat(fetcher.fetch(List.of("https://169.254.169.254/latest/meta-data/"))).isEmpty();
@@ -143,8 +143,8 @@ class RecognitionImageFetcherTest {
 
     @Test
     void a_host_that_merely_contains_an_allowed_name_is_refused() {
-        // images-de-test.invalid.attaquant.example ne doit jamais passer pour
-        // images-de-test.invalid : la comparaison est exacte, jamais « contient ».
+        // images-de-test.invalid.attaquant.example must never pass for
+        // images-de-test.invalid: the comparison is exact, never "contains".
         RecognitionImageFetcher fetcher = new RecognitionImageFetcher(List.of(new ProviderAvecImages()));
 
         assertThat(fetcher.fetch(List.of(
@@ -173,7 +173,7 @@ class RecognitionImageFetcherTest {
                 new com.iozycore.core.listing.vinted.VintedListingProvider(null);
 
         assertThat(vinted.allowedImageHosts()).contains("images1.vinted.net");
-        // Les domaines de pages ne sont pas des hôtes d'images.
+        // Page domains are not image hosts.
         assertThat(vinted.allowedImageHosts()).doesNotContain("vinted.fr", "www.vinted.fr");
         assertThat(vinted.allowedImageHosts()).allSatisfy(host -> assertThat(host).endsWith(".vinted.net"));
     }

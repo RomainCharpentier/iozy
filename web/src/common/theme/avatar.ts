@@ -2,35 +2,34 @@ import { djb2Hash } from './gradient'
 import { gradientPalettes } from './tokens'
 
 /**
- * La couleur d'un avatar, déduite du pseudo.
+ * The color of an avatar, derived from the username.
  *
- * <h2>La palette existe déjà</h2>
- * Ce sont les six teintes des « couvertures » sans jaquette (voir
- * {@link gradientFor}), et le même hash déterministe. Inventer une seconde
- * gamme de couleurs pour deux lettres aurait fait entrer une palette de plus
- * dans une application qui en a une - et deux gammes finissent toujours par
- * jurer ensemble.
+ * <h2>The palette already exists</h2>
+ * These are the six shades of the "covers" without a cover image (see
+ * {@link gradientFor}), and the same deterministic hash. Inventing a second
+ * range of colors for two letters would have brought one more palette into an
+ * application that already has one - and two ranges always end up clashing.
  *
- * <h2>L'encre est CHOISIE, pas décidée d'avance</h2>
- * Le blanc passe le 4.5:1 sur cinq des six teintes ; sur la sixième
- * ({@code 6B7D5A}, la verte) il tombe à 4,46 - juste en dessous, invisible à
- * l'œil et bien réel pour qui lit mal. On prend donc, pour chaque teinte, celle
- * du blanc ou du noir qui contraste le mieux : le minimum garanti passe à
- * <b>4,71</b>, quel que soit le pseudo.
+ * <h2>The ink is CHOSEN, not decided in advance</h2>
+ * White passes 4.5:1 on five of the six shades; on the sixth
+ * ({@code 6B7D5A}, the green one) it falls to 4.46 - just below, invisible
+ * to the eye and very real for someone who reads poorly. So for each shade
+ * we take the one of white or black that contrasts best: the guaranteed
+ * minimum goes up to <b>4.71</b>, whatever the username.
  *
- * <p>C'est aussi pourquoi cette couleur ne vient pas d'un token de thème : elle
- * ne s'adapte pas au clair/sombre, elle est la même partout - comme une
- * couleur d'identité doit l'être - et c'est le contraste interne du pastille
- * qui compte, pas son accord avec le fond.
+ * <p>This is also why this color does not come from a theme token: it does
+ * not adapt to light/dark, it is the same everywhere - as an identity color
+ * must be - and it is the internal contrast of the dot that matters, not its
+ * match with the background.
  */
 export interface CouleurDAvatar {
-  /** Le fond de la pastille, en hexadécimal avec le croisillon. */
+  /** The background of the dot, in hexadecimal with the hash sign. */
   fond: string
-  /** Les initiales : `#ffffff` ou `#000000`, selon ce qui se lit le mieux. */
+  /** The initials: `#ffffff` or `#000000`, depending on what reads best. */
   encre: string
 }
 
-/** Sans pseudo, aucune couleur : l'avatar garde son aspect neutre. */
+/** Without a username, no color: the avatar keeps its neutral look. */
 export function couleurDuPseudo(pseudo: string): CouleurDAvatar | null {
   if (!pseudo.trim()) return null
   const [teinte] = gradientPalettes[djb2Hash(pseudo.trim().toLowerCase()) % gradientPalettes.length]

@@ -1,71 +1,71 @@
 /**
- * <b>Ce qui devient faux quand on ajoute ou retire quelque chose.</b>
+ * <b>What becomes wrong when something is added or removed.</b>
  *
- * Cinq écrans recopiaient leur propre liste d'invalidations, et les cinq
- * différaient : au Lot 51, ajouter un tome laissait Ma collection sur l'ancien
- * décompte parce qu'une clé manquait à un endroit sur cinq. Une clé oubliée ne
- * casse rien de visible - l'écran affiche simplement l'état d'avant, ce qui est
- * exactement le genre de bug qu'on met des semaines à croire.
+ * Five screens copied their own list of invalidations, and the five
+ * differed: in Batch 51, adding a volume left Ma collection on the old count
+ * because a key was missing in one place out of five. A forgotten key breaks
+ * nothing visible - the screen simply shows the previous state, which is
+ * exactly the kind of bug that takes weeks to believe.
  *
- * <p>Ces tests vérifient donc les <b>préfixes</b>, pas les clés feuilles :
- * `['entities']` doit couvrir la recherche ET chaque fiche. Vérifier
- * `entities.detail(id)` ici enregistrerait le contraire de la règle.
+ * <p>These tests therefore check the <b>prefixes</b>, not the leaf keys:
+ * `['entities']` must cover the search AND each detail page. Checking
+ * `entities.detail(id)` here would record the opposite of the rule.
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { QueryClient } from '@tanstack/react-query'
 import { invaliderApresEnvie, invaliderApresPossession, invaliderApresSuivi } from './invalidations'
 import { queryKeys } from './queryKeys'
 
-/** Un client réduit à ce que ces fonctions lui demandent. */
+/** A client reduced to what these functions ask of it. */
 function clientEspion() {
   const invalidateQueries = vi.fn()
   return {
     client: { invalidateQueries } as unknown as QueryClient,
-    /** Les préfixes invalidés, aplatis pour se lire d'un coup d'œil. */
+    /** The invalidated prefixes, flattened to be read at a glance. */
     prefixes: () => invalidateQueries.mock.calls.map(([arg]) => (arg.queryKey as unknown[]).join('/')),
   }
 }
 
-describe('après une possession', () => {
-  it('invalide le catalogue, les possessions et la progression', () => {
+describe('after an ownership', () => {
+  it('invalidates the catalog, the ownerships and the progress', () => {
     const { client, prefixes } = clientEspion()
 
     invaliderApresPossession(client)
 
-    // Posséder l'œuvre d'une pièce retire le suivi (un état à la fois), et le
-    // calendrier ne montre que le suivi : les deux deviennent faux aussi.
+    // Owning the work of a piece removes the follow (one state at a time), and
+    // the calendar only shows the follow: both become wrong too.
     expect(prefixes()).toEqual(['entities', 'followedWorks', 'insights/releases', 'ownerships', 'insights/progress'])
   })
 })
 
-describe('après une envie', () => {
-  it('invalide les envies, le catalogue ET la progression', () => {
-    // Une envie posée sur un TOME fait exister ce tome au catalogue : la fiche
-    // et la progression changent sans qu'aucune possession n'ait bougé. Le
-    // seul `invalidateQueries(wishlist)` d'origine laissait la grille ignorer
-    // le tome jusqu'au rechargement.
+describe('after a wish', () => {
+  it('invalidates the wishes, the catalog AND the progress', () => {
+    // A wish placed on a VOLUME makes this volume exist in the catalog: the
+    // detail page and the progress change without any ownership having moved.
+    // The original single `invalidateQueries(wishlist)` let the grid ignore
+    // the volume until a reload.
     const { client, prefixes } = clientEspion()
 
     invaliderApresEnvie(client)
 
-    // Vouloir l'œuvre entière retire le suivi : le suivi et le calendrier suivent.
+    // Wanting the whole work removes the follow: the follow and the calendar follow.
     expect(prefixes()).toEqual(['wishlist', 'followedWorks', 'insights/releases', 'entities', 'insights/progress'])
   })
 })
 
-describe('les préfixes eux-mêmes', () => {
-  it('sont des préfixes, pas des clés feuilles', () => {
-    // C'est ce qui permet à un écran de ne pas savoir QUELLES données il
-    // touche : `['entities']` emporte la recherche et chaque fiche, et
-    // `['insights','progress']` emporte aussi la progression d'une œuvre.
+describe('the prefixes themselves', () => {
+  it('are prefixes, not leaf keys', () => {
+    // This is what lets a screen not know WHICH data it touches:
+    // `['entities']` carries the search and each detail page, and
+    // `['insights','progress']` also carries the progress of a work.
     expect(queryKeys.entities.detail('berserk').slice(0, 1)).toEqual(queryKeys.entities.all)
     expect(queryKeys.entities.search({ q: 'ber' }).slice(0, 1)).toEqual(queryKeys.entities.all)
     expect(queryKeys.insights.progressOf('berserk').slice(0, 2)).toEqual(queryKeys.insights.progress)
   })
 })
 
-describe('après un suivi', () => {
-  it('invalide le suivi, l’envie qu’il a pu retirer, le catalogue et le calendrier', () => {
+describe('after a follow', () => {
+  it('invalidates the follow, the wish it may have removed, the catalog and the calendar', () => {
     const { client, prefixes } = clientEspion()
     invaliderApresSuivi(client)
     expect(prefixes()).toEqual(['followedWorks', 'wishlist', 'entities', 'insights/releases'])

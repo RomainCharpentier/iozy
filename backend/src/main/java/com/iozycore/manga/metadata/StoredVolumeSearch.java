@@ -4,10 +4,10 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Un résultat de recherche de tomes tel qu'il est stocké durablement, avec sa
- * clé (titre et auteur normalisés, jamais affichés tels quels) et sa
- * fraîcheur - ce que le calendrier des sorties lit, en une fois pour toutes
- * les séries qui l'intéressent (lot 146).
+ * A volume search result as it is stored durably, with its
+ * key (normalized title and author, never shown as they are) and its
+ * freshness - what the release calendar reads, at once for all
+ * the series it is interested in (batch 146).
  */
 public record StoredVolumeSearch(String seriesTitle, String author, List<VolumeCandidate> volumes, Instant fetchedAt) {
 
@@ -15,7 +15,7 @@ public record StoredVolumeSearch(String seriesTitle, String author, List<VolumeC
         volumes = List.copyOf(volumes);
     }
 
-    /** La clé sous laquelle {@link TomeSearchService} range ce résultat : titre normalisé, auteur normalisé. */
+    /** The key under which {@link TomeSearchService} stores this result: normalized title, normalized author. */
     public String key() {
         return key(seriesTitle, author);
     }

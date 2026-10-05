@@ -4,17 +4,17 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * "Calcul automatique de la valeur de la collection" (§15 V2 du document de
- * conception) - voir StatsService.computeCollectionValue. N'inclut que les
- * possessions actuellement possédées (OWNED) : la valeur de la collection
- * telle qu'elle existe aujourd'hui, pas un historique cumulé des achats.
+ * "Automatic computation of the collection value" (§15 V2 of the design
+ * document) - see StatsService.computeCollectionValue. Only includes
+ * the possessions currently owned (OWNED): the value of the collection
+ * as it exists today, not a cumulative history of purchases.
  * <p>
- * {@code totalKnownValue} n'est JAMAIS présenté comme la valeur totale
- * réelle de la collection - {@code pricedOwnershipCount} face à
- * {@code totalActiveOwnershipCount} indique toujours combien de possessions
- * ont un prix renseigné, pour ne jamais laisser croire qu'un total partiel
- * est complet (même principe que Purchase Analysis : jamais de donnée
- * inventée ni présentée comme plus certaine qu'elle ne l'est).
+ * {@code totalKnownValue} is NEVER presented as the real total
+ * value of the collection - {@code pricedOwnershipCount} against
+ * {@code totalActiveOwnershipCount} always shows how many possessions
+ * have a price filled in, to never let anyone believe that a partial total
+ * is complete (same principle as Purchase Analysis: never any invented
+ * data, or data presented as more certain than it is).
  */
 public record CollectionValue(
         BigDecimal totalKnownValue,

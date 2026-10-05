@@ -5,26 +5,26 @@ import com.iozycore.core.domain.catalog.EntityType;
 import java.util.List;
 
 /**
- * Point d'extension du cœur : un univers sait quand sortent les œuvres qu'on
- * possède ou qu'on veut.
+ * Extension point of the core: a universe knows when the works we
+ * own or want come out.
  *
- * <p>Le cœur ne connaît aucune source de dates : Google Books pour les tomes
- * d'un manga, IGDB pour un jeu vidéo. Il demande à l'univers qui
- * {@link #supports couvre} la catégorie, en lui donnant ce qu'il a déjà lu
- * (les œuvres possédées ou voulues, leurs possessions, leurs envies - voir
- * {@link ReleaseContext}) pour qu'aucune source ne relise le catalogue de
- * son côté. Une catégorie que personne ne couvre n'a que les dates saisies à
- * la main sur ses fiches, et c'est le type qui le dit au client
- * ({@code hasReleaseSource}), jamais une liste de codes dans un écran.
+ * <p>The core knows no source of dates: Google Books for the volumes
+ * of a manga, IGDB for a video game. It asks the universe that
+ * {@link #supports covers} the category, giving it what it has already read
+ * (the owned or wanted works, their possessions, their wishes - see
+ * {@link ReleaseContext}) so that no source rereads the catalog on
+ * its side. A category that nobody covers only has the dates typed by
+ * hand on its detail pages, and it is the type that tells the client
+ * ({@code hasReleaseSource}), never a list of codes in a screen.
  */
 public interface ReleaseSource {
 
     boolean supports(EntityType entityType);
 
     /**
-     * Les sorties de la période pour les œuvres du contexte - jamais une date
-     * inventée, jamais une panne déguisée en liste vide silencieuse : une
-     * source qui ne sait pas rend simplement ce qu'elle sait.
+     * The releases of the period for the works of the context - never an invented
+     * date, never an outage disguised as a silent empty list: a
+     * source that does not know simply returns what it knows.
      */
     List<ReleaseEntry> releasesBetween(ReleaseContext context);
 }

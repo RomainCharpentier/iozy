@@ -10,10 +10,10 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * Après la suppression d'un tome : son édition de référence, si plus aucun
- * tome ne la porte et qu'aucun prix relevé ne s'y rattache, est effacée
- * avec lui - une édition sans tome ni relevé n'a plus rien à dire (logique
- * extraite de VariantDeletionService au Lot 133).
+ * After the deletion of a volume: its reference edition, if no other
+ * volume carries it and no recorded price is attached to it, is deleted
+ * with it - an edition with no volume and no record has nothing left to say (logic
+ * extracted from VariantDeletionService in Batch 133).
  */
 @Component
 public class MangaOrphanEditionCleanup implements VariantDeletionHook {

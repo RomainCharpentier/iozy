@@ -29,27 +29,27 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * La date de sortie d'un jeu chez IGDB - pour le calendrier des sorties
- * (lot 146).
+ * The release date of a game at IGDB - for the release calendar
+ * (batch 146).
  *
- * <h2>Ce qui est lu, et à quelle précision</h2>
- * Un jeu porte une date par région et par plateforme ({@code release_dates}),
- * chacune avec sa précision : IGDB l'écrit dans {@code human} - « Nov 14,
- * 2026 » est un jour, « Nov 2026 » un mois, « 2026 » ou « Q4 2026 » ou « TBD »
- * ne sont pas des dates de calendrier et sont ignorés. C'est cette forme,
- * stable depuis des années, qui est lue ; le champ {@code category} qui
- * disait la même chose est déprécié chez IGDB.
+ * <h2>What is read, and at what precision</h2>
+ * A game has one date per region and per platform ({@code release_dates}),
+ * each with its precision: IGDB writes it in {@code human} - "Nov 14,
+ * 2026" is a day, "Nov 2026" a month, "2026" or "Q4 2026" or "TBD"
+ * are not calendar dates and are ignored. This form,
+ * stable for years, is the one read; the {@code category} field that
+ * said the same thing is deprecated at IGDB.
  *
- * <h2>Quelle région</h2>
- * L'Europe d'abord, puis le monde entier, puis l'Amérique du Nord, puis le
- * reste : un joueur français attend la sortie française, et un jeu sorti au
- * Japon six mois plus tôt n'est pas « sorti » pour lui. Dans la région
- * retenue, la date la plus précise, puis la plus proche.
+ * <h2>Which region</h2>
+ * Europe first, then the whole world, then North America, then the
+ * rest: a French player waits for the French release, and a game released in
+ * Japan six months earlier is not "released" for them. In the chosen
+ * region, the most precise date, then the closest one.
  *
- * <h2>Un seul appel pour tous les jeux</h2>
- * IGDB accepte une liste d'identifiants : cent jeux, une requête. Et chaque
- * réponse est retenue un jour par jeu - une date de sortie ne bouge pas
- * d'heure en heure. Une panne, elle, n'est jamais retenue.
+ * <h2>One single call for all games</h2>
+ * IGDB accepts a list of identifiers: a hundred games, one request. And each
+ * response is kept for one day per game - a release date does not change
+ * from hour to hour. An outage, on the other hand, is never kept.
  */
 @Component
 public class IgdbReleaseDatesFetcher implements IgdbReleaseDates {
@@ -62,7 +62,7 @@ public class IgdbReleaseDatesFetcher implements IgdbReleaseDates {
 
     private static final Pattern HUMAN_DAY = Pattern.compile("[A-Z][a-z]{2} \\d{1,2}, \\d{4}");
     private static final Pattern HUMAN_MONTH = Pattern.compile("[A-Z][a-z]{2} \\d{4}");
-    /** Les régions IGDB, par préférence : 1 Europe, 8 monde entier, 2 Amérique du Nord. */
+    /** The IGDB regions, by preference: 1 Europe, 8 whole world, 2 North America. */
     private static final List<Integer> PREFERRED_REGIONS = List.of(1, 8, 2);
 
     @Value("${igdb.client-id:}")
@@ -95,10 +95,10 @@ public class IgdbReleaseDatesFetcher implements IgdbReleaseDates {
             List<String> batch = missing.subList(start, Math.min(missing.size(), start + IDS_PER_REQUEST));
             Map<String, Optional<ReleaseDate>> fetched = fetchBatch(batch);
             if (fetched == null) {
-                break; // une panne : ce qui est déjà connu suffit pour cette fois
+                break; // an outage: what is already known is enough for this time
             }
             for (String id : batch) {
-                // Un jeu absent de la réponse n'a pas de date : retenu tel quel, pour ne pas le redemander demain.
+                // A game missing from the response has no date: kept as is, so as not to ask for it again tomorrow.
                 Optional<ReleaseDate> date = fetched.getOrDefault(id, Optional.empty());
                 memory.put(id, date);
                 result.put(id, date);
@@ -107,7 +107,7 @@ public class IgdbReleaseDatesFetcher implements IgdbReleaseDates {
         return result;
     }
 
-    /** {@code null} quand IGDB n'a pas répondu - à distinguer d'une réponse sans date. */
+    /** {@code null} when IGDB did not answer - to be told apart from an answer with no date. */
     private Map<String, Optional<ReleaseDate>> fetchBatch(List<String> igdbIds) {
         try {
             String accessToken = tokenProvider.getAccessToken();
@@ -121,15 +121,15 @@ public class IgdbReleaseDatesFetcher implements IgdbReleaseDates {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("IGDB a répondu {} pour les dates de sortie de {} jeu(x)", response.statusCode(), igdbIds.size());
+                log.warn("IGDB answered {} for the release dates of {} game(s)", response.statusCode(), igdbIds.size());
                 return null;
             }
             return parse(response.body());
         } catch (IgdbUnavailableException e) {
-            log.warn("IGDB indisponible pour les dates de sortie : {}", e.getMessage());
+            log.warn("IGDB unavailable for the release dates: {}", e.getMessage());
             return null;
         } catch (Exception e) {
-            log.warn("Échec de l'appel IGDB pour les dates de sortie : {}", e.getMessage());
+            log.warn("IGDB call failed for the release dates: {}", e.getMessage());
             return null;
         }
     }
@@ -167,7 +167,7 @@ public class IgdbReleaseDatesFetcher implements IgdbReleaseDates {
                 .map(Dated::date);
     }
 
-    /** La précision se lit dans {@code human}, la date dans {@code date} (secondes Unix, minuit UTC). */
+    /** The precision is read in {@code human}, the date in {@code date} (Unix seconds, midnight UTC). */
     private static Optional<ReleaseDate> dateOf(JsonNode release) {
         String human = release.path("human").asText("");
         if (!release.path("date").isNumber()) {

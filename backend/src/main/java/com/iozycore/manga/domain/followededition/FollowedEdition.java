@@ -5,22 +5,22 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * L'édition d'une série que l'utilisateur collectionne réellement - le badge
- * « SUIVIE » de la maquette « Fiche série (multi-éditions) ».
+ * The edition of a series that the user really collects - the
+ * "SUIVIE" badge of the mockup "Fiche série (multi-éditions)".
  * <p>
- * À ne pas confondre avec {@code MangaEdition} = la fiche documentaire d'une
- * édition (éditeur, nombre de tomes, épuisée...). Elle décrit l'édition pour
- * tout le monde ; celle-ci dit ce que MOI j'en fais.
+ * Not to be confused with {@code MangaEdition} = the documentation page of an
+ * edition (publisher, number of volumes, out of print...). It describes the edition for
+ * everyone; this one says what I do with it.
  * <p>
- * Désigne l'édition par son NOM, jamais par l'id d'une {@code MangaEdition} :
- * une série peut avoir des tomes dans une édition qui n'a encore aucune fiche
- * documentaire (elle n'est créée qu'au moment où on renseigne éditeur/nombre
- * de tomes). Suivre une édition ne doit pas exiger de l'avoir d'abord
- * documentée.
+ * Designates the edition by its NAME, never by the id of a {@code MangaEdition}:
+ * a series can have volumes in an edition that has no documentation page yet
+ * (it is created only when publisher/number
+ * of volumes is filled in). Following an edition must not require having
+ * documented it first.
  * <p>
- * Porte un ownerId, mais ne le CHOISIT pas : null à la création, la session
- * tranche à l'écriture via la colonne marquée @TenantId (voir
- * ProprietaireCourant). Même règle que Ownership.
+ * Carries an ownerId, but does not CHOOSE it: null at creation, the session
+ * decides at write time through the column marked @TenantId (see
+ * ProprietaireCourant). Same rule as Ownership.
  */
 public class FollowedEdition {
 
@@ -32,11 +32,11 @@ public class FollowedEdition {
 
     private FollowedEdition(UUID id, UUID entityId, UUID ownerId, String editionName, LocalDate followedAt) {
         if (editionName == null || editionName.isBlank()) {
-            // Suivre « l'édition non précisée » ne veut rien dire : c'est le
-            // fourre-tout des tomes dont l'édition est inconnue, pas une
-            // édition qu'on peut décider de collectionner. Garde AVANT le trim
-            // ci-dessous, pour qu'un corps sans nom ressorte en 400 plutôt
-            // qu'en 500.
+            // Following "the unspecified edition" means nothing: it is the
+            // catch-all for volumes whose edition is unknown, not an
+            // edition one can decide to collect. Guard BEFORE the trim
+            // below, so that a body without a name comes out as a 400 rather
+            // than a 500.
             throw new IllegalArgumentException("L'édition suivie ne peut pas être vide");
         }
         this.id = id;
@@ -56,11 +56,11 @@ public class FollowedEdition {
     }
 
     /**
-     * Change l'édition suivie en gardant la même identité de ligne - c'est ce
-     * qui fait respecter « une seule édition suivie par série » sans jamais
-     * dépendre d'un DELETE puis d'un INSERT, qui laisserait une fenêtre où la
-     * série n'en a aucune (et violerait la contrainte d'unicité si les deux
-     * ordres se croisaient).
+     * Changes the followed edition while keeping the same row identity - this is what
+     * enforces "a single followed edition per series" without ever
+     * depending on a DELETE then an INSERT, which would leave a window where the
+     * series has none (and would violate the uniqueness constraint if the two
+     * orders crossed).
      */
     public FollowedEdition suivreALaPlace(String nouvelleEdition) {
         return new FollowedEdition(id, entityId, ownerId, nouvelleEdition, LocalDate.now());

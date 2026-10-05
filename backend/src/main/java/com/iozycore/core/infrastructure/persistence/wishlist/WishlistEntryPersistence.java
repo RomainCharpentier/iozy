@@ -14,11 +14,11 @@ import java.util.stream.Collectors;
 interface WishlistEntryJpaRepository extends JpaRepository<WishlistEntryJpaEntity, UUID> {
 
     /**
-     * Charger par identifiant, mais PAR UNE REQUÊTE.
+     * Load by id, but THROUGH A QUERY.
      *
-     * <p>{@code findById} de JPA charge par clé primaire sans passer par une
-     * requête : Hibernate n'y applique pas le cloisonnement par propriétaire
-     * (voir ProprietaireCourant), et la ligne d'un AUTRE compte remonte.
+     * <p>JPA {@code findById} loads by primary key without a query:
+     * Hibernate does not apply the owner isolation there
+     * (see ProprietaireCourant), and the row of ANOTHER account comes back.
      */
     Optional<WishlistEntryJpaEntity> findOneById(UUID id);
     Optional<WishlistEntryJpaEntity> findByEntityIdAndVariantIdIsNull(UUID entityId);
@@ -46,10 +46,10 @@ class JpaWishlistEntryRepositoryAdapter implements WishlistEntryRepository {
     }
 
     /**
-     * `findByEntityIdAndVariantIdIsNull` et non `findByEntityId` : depuis que
-     * l'envie peut porter sur un tome (voir V21), une même œuvre a autant de
-     * lignes que de tomes voulus. Cette méthode-ci répond à « l'ŒUVRE entière
-     * est-elle voulue ? », ce qui n'a de sens que pour un type sans tome.
+     * `findByEntityIdAndVariantIdIsNull` and not `findByEntityId`: since
+     * a wish can be about a volume (see V21), one work has as many
+     * rows as wanted volumes. This method answers "is the WHOLE
+     * WORK wanted?", which only makes sense for a type with no volumes.
      */
     @Override
     public Optional<WishlistEntry> findByEntityId(UUID entityId) {
@@ -82,11 +82,11 @@ class JpaWishlistEntryRepositoryAdapter implements WishlistEntryRepository {
 
     @Override
     public void deleteById(UUID id) {
-        // Passer par une LECTURE filtrée, jamais par un deleteById : celui-ci
-        // charge par clé primaire sans requête, donc sans le cloisonnement par
-        // propriétaire - il effaçait la ligne d'un autre compte, sans erreur et
-        // sans trace (constaté par le test d'isolation). Rien à supprimer est
-        // aussi le cas normal : le contrat du port est idempotent.
+        // Go through a filtered READ, never through deleteById: it
+        // loads by primary key without a query, so without the owner
+        // isolation - it deleted the row of another account, with no error and
+        // no trace (found by the isolation test). Nothing to delete is
+        // also the normal case: the port contract is idempotent.
         jpaRepository.findOneById(id).ifPresent(jpaRepository::delete);
     }
 }

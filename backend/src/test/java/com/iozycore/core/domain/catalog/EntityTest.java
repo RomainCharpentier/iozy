@@ -75,9 +75,9 @@ class EntityTest {
 
     @Test
     void merging_entity_attributes_adds_new_keys_without_touching_others() {
-        // Correction manuelle de la Série elle-même (audit UX "correction
-        // manuelle") - même sémantique que mergeVariantAttributes, appliquée
-        // à l'Entity plutôt qu'à un Variant imbriqué.
+        // Manual correction of the Series itself (UX audit "manual
+        // correction") - same semantics as mergeVariantAttributes, applied
+        // to the Entity rather than to a nested Variant.
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         entity.setAttribute("mangaka", "Tsugumi Ohba");
 
@@ -99,10 +99,10 @@ class EntityTest {
 
     @Test
     void removing_an_attribute_makes_it_disappear_rather_than_leaving_it_empty() {
-        // Vider un champ dans le formulaire "Informations" de la fiche doit
-        // vraiment retirer l'attribut : une chaîne vide ressemblerait ensuite
-        // à une donnée renseignée (voir la javadoc de mergeAttributes, qui
-        // interdit justement la valeur vide comme moyen d'effacer).
+        // Clearing a field in the "Informations" form of the detail page must
+        // really remove the attribute: an empty string would later look like
+        // a filled-in value (see the javadoc of mergeAttributes, which
+        // forbids the empty value as a way to erase).
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         entity.setAttribute("mangaka", "Tsugumi Ohba");
 

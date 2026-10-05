@@ -9,42 +9,42 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Ce qu'une annonce contient probablement, en croisant tout ce qu'on sait
- * d'elle.
+ * What a listing probably contains, by cross-checking everything we know
+ * about it.
  *
  * <pre>
- * titre + description ──> ListingTextRecognizer ──┐
+ * title + description ──> ListingTextRecognizer ──┐
  *                                                 │
- * photos ──> fetch borné ──> ImageRecognitionProvider ──┤──> consolidation
+ * photos ──> bounded fetch ──> ImageRecognitionProvider ──┤──> consolidation
  *                                                 │      (RecognitionConsolidator)
- * EAN lu ─────────────────────────────────────────┘            │
+ * EAN read ───────────────────────────────────────┘            │
  *                                                              ↓
  *                                                     CatalogResolution
  *                                                              ↓
- *                                                  propositions à confirmer
+ *                                                  proposals to confirm
  * </pre>
  *
- * <h2>Le gratuit avant le coûteux</h2>
- * Le texte est lu <b>systématiquement</b> : c'est local, déterministe,
- * instantané et sans coût. Les photos ne sont lues que si l'appelant en
- * fournit - autrement dit sur un geste explicite de l'utilisateur. Une annonce
- * bien rédigée est donc comprise <b>sans aucun appel d'IA</b>.
+ * <h2>The free before the costly</h2>
+ * The text is read <b>systematically</b>: it is local, deterministic,
+ * instant and free. The photos are read only if the caller
+ * provides some - in other words on an explicit action of the user. A listing
+ * that is well written is therefore understood <b>without any AI call</b>.
  *
- * <h2>Une seule liste, plusieurs sources</h2>
- * Il n'existe pas un « résultat texte » et un « résultat photos » : les deux
- * alimentent la même consolidation, et un élément peut porter les deux
- * provenances. L'utilisateur n'a jamais deux listes à réconcilier lui-même.
+ * <h2>One single list, several sources</h2>
+ * There is no "text result" and "photo result": both
+ * feed the same consolidation, and an item can carry both
+ * origins. The user never has two lists to reconcile by themselves.
  *
- * <h2>La vision enrichit, elle ne remplace pas</h2>
- * La consolidation est une <b>union</b>. Si le titre annonce les tomes 1 à 14
- * et que les photos n'en montrent que douze, les tomes 13 et 14 restent
- * proposés : une photo qui ne montre pas un livre ne prouve pas son absence.
- * Inversement, une photo qui lit « Perfect Edition » complète un tome dont le
- * texte ne disait rien de l'édition.
+ * <h2>Vision enriches, it does not replace</h2>
+ * The consolidation is a <b>union</b>. If the title announces volumes 1 to 14
+ * and the photos show only twelve, volumes 13 and 14 stay
+ * proposed: a photo that does not show a book does not prove its absence.
+ * Conversely, a photo that reads "Perfect Edition" completes a volume whose
+ * text said nothing about the edition.
  *
- * <h2>Ce service ne crée jamais rien</h2>
- * Ni Ownership, ni Wishlist, ni Entity, ni Édition, ni Tome. Il rend des
- * propositions ; l'écriture vient d'un geste de l'utilisateur, ailleurs.
+ * <h2>This service never creates anything</h2>
+ * No Ownership, no Wishlist, no Entity, no Edition, no Volume. It returns
+ * proposals; writing comes from an action of the user, elsewhere.
  */
 @Service
 public class ListingRecognitionService {
@@ -67,16 +67,16 @@ public class ListingRecognitionService {
     }
 
     /**
-     * Ce que l'écran de confirmation reçoit.
+     * What the confirmation screen receives.
      *
-     * @param visionStatus  l'issue de la lecture des photos, ou {@code null} si aucune
-     *                      photo n'a été demandée - à ne pas confondre avec un échec
-     * @param textItemCount combien de propositions le seul texte a produites, avant
-     *                      consolidation : sert à dire « l'annonce en décrit déjà N »
-     * @param announcedVolumeCount ce que l'annonce affirme contenir SANS dire lesquels
-     *                      (« 9 tomes de Naruto ») - null sinon. Jamais accompagné d'items :
-     *                      quand les numéros sont connus, ils font foi
-     * @param announcedSeriesTitle la série nommée dans ce cas, null si le titre n'en désigne aucune
+     * @param visionStatus  the outcome of reading the photos, or {@code null} if no
+     *                      photo was requested - not to be confused with a failure
+     * @param textItemCount how many proposals the text alone produced, before
+     *                      consolidation: used to say "the listing already describes N"
+     * @param announcedVolumeCount what the listing claims to contain WITHOUT saying which ones
+     *                      ("9 tomes de Naruto") - null otherwise. Never accompanied by items:
+     *                      when the numbers are known, they are authoritative
+     * @param announcedSeriesTitle the series named in this case, null if the title names none
      */
     public record Analysis(RecognitionStatus visionStatus, List<ResolvedItem> items, int unidentifiedCount,
                             int textItemCount, int analyzedImageCount, int requestedImageCount,
@@ -88,42 +88,42 @@ public class ListingRecognitionService {
     }
 
     /**
-     * @param imageUrls les photos à lire - <b>vide ou null</b> signifie « texte
-     *                  seulement », et alors <b>aucun moteur n'est appelé</b>
+     * @param imageUrls the photos to read - <b>empty or null</b> means "text
+     *                  only", and then <b>no engine is called</b>
      */
     public Analysis analyze(String title, String description, List<String> imageUrls, RecognitionContext context) {
         ListingTextRecognizer.TextReading texte = ListingTextRecognizer.read(title, description);
 
         int demandees = imageUrls == null ? 0 : imageUrls.size();
         if (demandees == 0) {
-            // Chemin sans la moindre dépendance externe : ni CDN, ni moteur.
+            // Path without the slightest external dependency: no CDN, no engine.
             return terminer(texte.items(), texte, null, 0, 0, 0);
         }
 
-        // Les photos sont récupérées même sans moteur de vision : les
-        // code-barres, eux, se lisent en local et gratuitement.
+        // The photos are fetched even without a vision engine: the
+        // barcodes, for their part, are read locally and for free.
         return avecPhotos(texte, fetcher.fetch(imageUrls), premierMoteurDisponible(), context, demandees);
     }
 
     /**
-     * Le même parcours, à partir de photos <b>déjà en mémoire</b> - celles que
-     * l'utilisateur a envoyées lui-même.
+     * The same flow, from photos <b>already in memory</b> - the ones
+     * the user sent themselves.
      *
-     * <h2>Pourquoi une seconde entrée plutôt qu'un paramètre de plus</h2>
-     * Les deux chemins diffèrent sur un point qui n'est pas un détail : celui-ci
-     * ne connaît <b>aucune URL</b>. Rien à joindre, donc rien à autoriser, donc
-     * pas de liste blanche à franchir. Faire cohabiter les deux dans une seule
-     * signature obligerait à écrire « si l'un est fourni, alors l'autre est
-     * ignoré » - une règle qu'on finit toujours par lire de travers.
+     * <h2>Why a second entry rather than one more parameter</h2>
+     * The two paths differ on a point that is not a detail: this one
+     * knows <b>no URL</b>. Nothing to attach, so nothing to authorise, so
+     * no whitelist to cross. Making the two coexist in a single
+     * signature would force us to write "if one is provided, then the other is
+     * ignored" - a rule that one always ends up reading wrongly.
      *
-     * <p>Tout ce qui suit la récupération est en revanche <b>strictement le
-     * même code</b> : consolidation, arbitrage, résolution catalogue. Une photo
-     * envoyée n'est pas mieux crue qu'une photo d'annonce.
+     * <p>Everything that follows the fetching is, however, <b>strictly the
+     * same code</b>: consolidation, arbitration, catalog resolution. A sent
+     * photo is not believed more than a listing photo.
      *
-     * @param photos les images déjà lues et validées par {@link UploadedImageReader} ;
-     *               vide signifie « texte seulement »
-     * @param requestedImageCount ce que l'utilisateur a envoyé, y compris ce qui
-     *                            a été écarté - l'écran doit pouvoir dire l'écart
+     * @param photos the images already read and validated by {@link UploadedImageReader};
+     *               empty means "text only"
+     * @param requestedImageCount what the user sent, including what
+     *                            was dropped - the screen must be able to say the gap
      */
     public Analysis analyzeUploadedPhotos(String title, String description, List<RecognitionImage> photos,
                                           RecognitionContext context, int requestedImageCount) {
@@ -137,16 +137,16 @@ public class ListingRecognitionService {
     }
 
     /**
-     * D'ici à la fin, l'origine des octets ne change plus rien.
+     * From here to the end, the origin of the bytes changes nothing anymore.
      *
-     * <h2>Les codes-barres d'abord, et même sans moteur</h2>
-     * {@code moteur} peut être {@code null} : aucun moteur de vision n'est
-     * configuré. Ce n'est plus une raison de ne rien faire des photos, car les
-     * codes-barres se lisent <b>en local et gratuitement</b>. C'est le moment
-     * où « l'IA n'est jamais obligatoire » cesse d'être une intention pour
-     * devenir un comportement — sur un lot photographié de dos, la lecture des
-     * EAN peut suffire à tout identifier, avec des identifiants exacts là où un
-     * modèle n'aurait produit que des suppositions.
+     * <h2>Barcodes first, and even without an engine</h2>
+     * {@code moteur} can be {@code null}: no vision engine is
+     * configured. This is no longer a reason to do nothing with the photos, because
+     * barcodes are read <b>locally and for free</b>. This is the moment
+     * where "AI is never mandatory" stops being an intention and
+     * becomes a behaviour - on a batch photographed from the back, reading the
+     * EANs can be enough to identify everything, with exact identifiers where a
+     * model would have produced only guesses.
      */
     private Analysis avecPhotos(ListingTextRecognizer.TextReading texte, List<RecognitionImage> images,
                                 ImageRecognitionProvider moteur, RecognitionContext context, int demandees) {
@@ -157,19 +157,19 @@ public class ListingRecognitionService {
         List<RecognizedItem> depuisCodes = barcodeRecognizer.recognize(images, context);
 
         if (moteur == null) {
-            // NO_ENGINE reste le statut : il décrit la VISION, et l'écran doit
-            // continuer à dire qu'elle n'a pas tourné. Mais les propositions du
-            // texte et des codes-barres, elles, sont bien là.
+            // NO_ENGINE stays the status: it describes the VISION, and the screen must
+            // keep saying that it did not run. But the proposals from the
+            // text and the barcodes are indeed there.
             return terminer(avec(texte.items(), depuisCodes), texte, RecognitionStatus.NO_ENGINE,
                     0, images.size(), demandees);
         }
 
         RecognitionResult vu = lireSansJamaisCasser(moteur, images, context);
         if (vu.status() == RecognitionStatus.UNAVAILABLE || vu.status() == RecognitionStatus.QUOTA_EXCEEDED) {
-            // Le moteur a échoué, ou n'a plus le droit de répondre : ce que le
-            // texte disait reste vrai, et ce que les codes-barres ont donné aussi.
-            // Le statut est rendu tel quel - « réessaie » et « quota atteint »
-            // n'appellent pas la même phrase à l'écran.
+            // The engine failed, or is no longer allowed to answer: what the
+            // text said stays true, and what the barcodes gave too.
+            // The status is returned as is - "try again" and "quota reached"
+            // do not call for the same sentence on screen.
             return terminer(avec(texte.items(), depuisCodes), texte, vu.status(),
                     0, images.size(), demandees);
         }
@@ -185,17 +185,17 @@ public class ListingRecognitionService {
         return tout;
     }
 
-    /** Consolidation, arbitrage, puis catalogue - le même chemin quelles que soient les sources. */
+    /** Consolidation, arbitration, then catalog - the same path whatever the sources. */
     private Analysis terminer(List<RecognizedItem> bruts, ListingTextRecognizer.TextReading texte,
                                RecognitionStatus visionStatus,
                                int nonIdentifies, int imagesLues, int imagesDemandees) {
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(bruts);
         List<ResolvedItem> resolus = catalogResolver.resolve(prioriser(consolides));
 
-        // Le nombre annoncé ne survit PAS à une identification réussie : si les
-        // photos ont fini par nommer les tomes, « l'annonce en annonce 9 » n'est
-        // plus une question ouverte, et l'afficher encore ferait douter d'un
-        // résultat désormais complet.
+        // The announced number does NOT survive a successful identification: if the
+        // photos ended up naming the volumes, "the listing announces 9" is
+        // no longer an open question, and showing it again would cast doubt on a
+        // result that is now complete.
         boolean questionEncoreOuverte = resolus.isEmpty() && texte.announcedVolumeCount() != null;
 
         return new Analysis(visionStatus, resolus, nonIdentifies, texte.items().size(),
@@ -214,9 +214,9 @@ public class ListingRecognitionService {
     }
 
     /**
-     * L'interface interdit déjà de lever, mais un moteur est du code externe au
-     * domaine : cette ceinture garantit qu'un bug chez lui ne se transforme
-     * jamais en 500 sur le parcours d'analyse.
+     * The interface already forbids throwing, but an engine is code external to the
+     * domain: this belt guarantees that a bug on its side never turns
+     * into a 500 on the analysis flow.
      */
     private RecognitionResult lireSansJamaisCasser(ImageRecognitionProvider moteur,
                                                     List<RecognitionImage> images,
@@ -225,19 +225,19 @@ public class ListingRecognitionService {
             RecognitionResult resultat = moteur.recognize(images, context);
             return resultat == null ? RecognitionResult.unavailable() : resultat;
         } catch (RuntimeException e) {
-            log.warn("Le moteur de reconnaissance {} a échoué : {}", moteur.name(), e.getClass().getSimpleName());
+            log.warn("Recognition engine {} failed: {}", moteur.name(), e.getClass().getSimpleName());
             return RecognitionResult.unavailable();
         }
     }
 
     /**
-     * L'ordre d'affichage : d'abord ce qui est le plus sûr, puis l'ordre
-     * naturel d'un lot.
+     * The display order: first what is most certain, then the natural
+     * order of a batch.
      * <p>
-     * Un identifiant exact passe devant tout - un code-barres correspond ou ne
-     * correspond pas, là où un titre lu de travers « ressemble ». Vient
-     * ensuite la source la plus fiable, puis la confiance de lecture, et enfin
-     * le numéro de tome : à sources égales, un lot se lit 1, 2, 3.
+     * An exact identifier goes before everything - a barcode matches or does not
+     * match, where a title read wrongly "looks like" one. Next comes
+     * the most reliable source, then the reading confidence, and finally
+     * the volume number: with equal sources, a batch reads 1, 2, 3.
      */
     private List<RecognizedItem> prioriser(List<RecognizedItem> items) {
         List<RecognizedItem> tries = new ArrayList<>(items);

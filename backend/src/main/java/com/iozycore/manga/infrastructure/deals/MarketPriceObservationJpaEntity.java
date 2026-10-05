@@ -19,9 +19,9 @@ public class MarketPriceObservationJpaEntity {
     @Id
     private UUID id;
 
-    // Cloisonnement par propriétaire (V26) : Hibernate ajoute cette colonne
-    // à la clause WHERE de toute requête sur cette entité, et la remplit à
-    // l'insertion depuis ProprietaireCourant.
+    // Separation by owner (V26): Hibernate adds this column
+    // to the WHERE clause of every query on this entity, and fills it in at
+    // insert time from ProprietaireCourant.
     @TenantId
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;
@@ -49,7 +49,7 @@ public class MarketPriceObservationJpaEntity {
 
     private String note;
 
-    /** Voir V18 : ex-colonne `source`, écrite en dur et jamais relue, devenue l'origine réelle. */
+    /** See V18: former column `source`, written hard-coded and never read again, now the real origin. */
     @Column(nullable = false)
     private String origin;
 

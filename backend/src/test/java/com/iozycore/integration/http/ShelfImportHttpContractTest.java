@@ -28,12 +28,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat de l'import d'étagère : lire des photos sans rien écrire, puis
- * écrire ce qui a été confirmé, sans jamais créer un second exemplaire.
+ * The contract of the shelf import: read photos without writing anything, then
+ * write what was confirmed, without ever creating a second copy.
  *
- * <p>Le faux moteur de vision rend « Platinum End » tomes 1 et 2 ; la série
- * est toujours cataloguée AVANT l'analyse, pour que l'import ne parte jamais
- * chercher une fiche chez de vraies sources pendant un test.
+ * <p>The fake vision engine returns "Platinum End" volumes 1 and 2; the series
+ * is always catalogued BEFORE the analysis, so that the import never goes
+ * looking for a detail page in real sources during a test.
  */
 @Import(FakeRecognitionProvider.class)
 class ShelfImportHttpContractTest extends HttpContractTestBase {
@@ -53,7 +53,7 @@ class ShelfImportHttpContractTest extends HttpContractTestBase {
     @Autowired
     private OwnershipRepository ownershipRepository;
 
-    /** Un JPEG réel dont les octets portent le mot-clé attendu par le faux moteur. */
+    /** A real JPEG whose bytes carry the keyword expected by the fake engine. */
     private static MockMultipartFile photo(String declencheur) {
         byte[] mot = declencheur.getBytes(StandardCharsets.ISO_8859_1);
         byte[] octets = new byte[Math.max(64, mot.length + 16)];
@@ -97,7 +97,7 @@ class ShelfImportHttpContractTest extends HttpContractTestBase {
         return ownershipRepository.findByEntityId(entityId).stream().filter(Ownership::isActive).count();
     }
 
-    // ====================================================== Lecture
+    // ====================================================== Read
 
     @Test
     void reading_the_shelf_returns_the_volumes_matched_to_the_catalog_and_writes_nothing() throws Exception {
@@ -114,7 +114,7 @@ class ShelfImportHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.items[0].item.entityId").value(serie.id().toString()))
                 .andExpect(jsonPath("$.items[0].alreadyOwned").value(false))
                 .andExpect(jsonPath("$.items[0].proposal").doesNotExist())
-                // Où le livre a été vu : de quoi dessiner un cadre sur la photo.
+                // Where the book was seen: enough to draw a frame on the photo.
                 .andExpect(jsonPath("$.items[0].item.boxes[0].image").value(0))
                 .andExpect(jsonPath("$.items[0].item.boxes[0].top").value(0.1))
                 .andExpect(jsonPath("$.items[0].item.boxes[0].right").value(0.3))
@@ -139,7 +139,7 @@ class ShelfImportHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(requete).andExpect(status().isBadRequest());
     }
 
-    // ====================================================== Écriture
+    // ====================================================== Write
 
     @Test
     void importing_confirmed_volumes_adds_them_once_and_flags_them_owned_next_time() throws Exception {
@@ -157,7 +157,7 @@ class ShelfImportHttpContractTest extends HttpContractTestBase {
 
         assertThat(possessionsActives(serie.id())).isEqualTo(2);
 
-        // Le même import une seconde fois : rien de plus n'est écrit.
+        // The same import a second time: nothing more is written.
         mockMvc.perform(post(ROUTE_IMPORT).contentType("application/json").content(json(demande(List.of(
                         tome("Platinum End", 1, "Standard"), tome("Platinum End", 2, "Standard"))))))
                 .andExpect(status().isOk())
@@ -167,7 +167,7 @@ class ShelfImportHttpContractTest extends HttpContractTestBase {
 
         assertThat(possessionsActives(serie.id())).isEqualTo(2);
 
-        // Et l'étagère relue dit que ces tomes sont possédés.
+        // And the shelf read again says that these volumes are owned.
         mockMvc.perform(multipart(ROUTE_ANALYSE).file(photo("normal")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].alreadyOwned").value(true))

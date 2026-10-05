@@ -1,10 +1,10 @@
-// Les frontières du rangement par page (Lot 134), vérifiées comme le contraste :
-//   - `common` ne connaît aucune page ni l'app : ce qu'il contient est partagé,
-//     il ne peut pas dépendre de qui le partage ;
-//   - une page ne connaît pas une autre page : ce dont deux pages ont besoin
-//     vit dans `common`. Une sous-page peut lire sa page mère, et une page ses
-//     sous-pages - c'est le même écran.
-// Un import est lu tel qu'il est écrit : alias `@/...` ou chemin relatif.
+// The boundaries of the per-page layout (Batch 134), checked like the contrast:
+//   - `common` knows no page and not the app: what it contains is shared,
+//     it cannot depend on whoever shares it;
+//   - a page does not know another page: what two pages need lives in
+//     `common`. A subpage may read its parent page, and a page its
+//     subpages - it is the same screen.
+// An import is read as it is written: `@/...` alias or relative path.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,7 +19,7 @@ function fichiers(dossier) {
   })
 }
 
-/** Le chemin d'un import, relatif à src et sans extension - ou null s'il vient de node_modules. */
+/** The path of an import, relative to src and without extension - or null if it comes from node_modules. */
 function cible(fichier, spec) {
   if (spec.startsWith('@/')) return spec.slice(2)
   if (spec.startsWith('.')) return relative(SRC, resolve(dirname(fichier), spec)).replaceAll('\\', '/')
@@ -43,17 +43,17 @@ for (const fichier of fichiers(SRC)) {
     if (vers === null) continue
     const versPage = page(vers)
     if (depuis === 'common' && (versPage.startsWith('pages/') || versPage === 'app')) {
-      violations.push(`${relatif} : common ne peut pas dépendre de ${vers}`)
+      violations.push(`${relatif} : common cannot depend on ${vers}`)
     }
     if (depuis.startsWith('pages/') && versPage.startsWith('pages/') && versPage !== depuis) {
-      violations.push(`${relatif} : une page ne lit pas une autre page (${vers}) - ce qui est partagé va dans common`)
+      violations.push(`${relatif} : a page does not read another page (${vers}) - what is shared goes in common`)
     }
   }
 }
 
 if (violations.length > 0) {
-  console.error(`Frontières du front : ${violations.length} violation(s)`)
+  console.error(`Front boundaries: ${violations.length} violation(s)`)
   for (const v of violations) console.error('  - ' + v)
   process.exit(1)
 }
-console.log('Frontières du front : common ne dépend d’aucune page, aucune page ne lit une autre page.')
+console.log('Front boundaries: common depends on no page, no page reads another page.')

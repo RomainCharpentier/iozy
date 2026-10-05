@@ -1,8 +1,8 @@
 import { buildQuery, del, get, put } from './client'
 
-/** Une œuvre suivie : le troisième état, à côté de Possédé et Envie (voir
- *  WorkFollowing côté serveur). Un état à la fois : suivre retire l'envie de
- *  l'œuvre, vouloir l'œuvre ou la posséder d'une pièce retire le suivi. */
+/** A followed work: the third state, next to Owned and Wish (see
+ *  WorkFollowing on the server side). One state at a time: following removes the work's
+ *  wish, wanting the work or owning one piece of it removes the follow. */
 export interface FollowedWorkDto {
   entityId: string
   followedAt: string
@@ -12,12 +12,12 @@ export function listFollowedWorks(): Promise<FollowedWorkDto[]> {
   return get<FollowedWorkDto[]>('/followed-works')
 }
 
-/** PUT : suivre est idempotent - suivre deux fois, c'est suivre. */
+/** PUT: following is idempotent - following twice is following. */
 export function followWork(entityId: string): Promise<FollowedWorkDto> {
   return put<FollowedWorkDto>('/followed-works', { entityId })
 }
 
-/** Idempotent aussi : ne plus suivre ce qu'on ne suivait pas ne renvoie pas d'erreur. */
+/** Idempotent too: unfollowing what was not followed does not return an error. */
 export function unfollowWork(entityId: string): Promise<void> {
   return del<void>(`/followed-works${buildQuery({ entityId })}`)
 }

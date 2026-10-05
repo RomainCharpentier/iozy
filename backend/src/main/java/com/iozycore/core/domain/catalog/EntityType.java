@@ -4,14 +4,14 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Définit une catégorie d'Entity : ses champs personnalisés attendus
- * (schema) et les types d'Experience valides pour ce type.
+ * Defines a category of Entity: its expected custom fields
+ * (schema) and the valid Experience types for this type.
  * <p>
- * Éditeur de types dynamique (V2) : les instances sont créées/modifiées
- * par l'utilisateur via {@link com.iozycore.custom.EntityTypeService}
- * et persistées dans la table {@code entity_type} (déjà présente depuis
- * V1, seedée avec les 3 types MVP historiques) - ce record reste un
- * agrégat pur, sans dépendance à sa persistance.
+ * Dynamic type editor (V2): instances are created/changed
+ * by the user via {@link com.iozycore.custom.EntityTypeService}
+ * and saved in the table {@code entity_type} (already there since
+ * V1, seeded with the 3 historic MVP types) - this record stays a
+ * pure aggregate, with no dependency on its persistence.
  */
 public record EntityType(
         UUID id,
@@ -24,15 +24,15 @@ public record EntityType(
         String aspectKey
 ) {
 
-    /** Constructeur historique (sans identité visuelle) - conservé pour que les
-     * appelants qui n'en ont rien à faire, tests compris, restent inchangés.
-     * null = le client retombe sur son visuel par défaut. */
+    /** Historic constructor (without visual identity) - kept so that
+     * callers that do not care, tests included, stay unchanged.
+     * null = the client falls back to its default look. */
     public EntityType(UUID id, String code, String label, Set<String> allowedExperienceTypes,
                        Set<String> customFieldKeys) {
         this(id, code, label, allowedExperienceTypes, customFieldKeys, null, null, null);
     }
 
-    /** Signature d'avant le format de jaquette - même rôle que celle ci-dessus. */
+    /** Signature from before the cover format - same role as the one above. */
     public EntityType(UUID id, String code, String label, Set<String> allowedExperienceTypes,
                        Set<String> customFieldKeys, String colorKey, String iconKey) {
         this(id, code, label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey, null);
@@ -45,18 +45,18 @@ public record EntityType(
         if (code == null || code.isBlank()) {
             throw new IllegalArgumentException("Le code d'un EntityType ne peut pas être vide");
         }
-        // Normalisé en UPPER_SNAKE_CASE pour rester cohérent avec les codes
-        // historiques (MANGA, VIDEO_GAME, BOARD_GAME) quel que soit ce que
-        // l'utilisateur saisit dans l'éditeur (ex: "Films d'animation" -> "FILMS_D_ANIMATION").
+        // Normalized to UPPER_SNAKE_CASE to stay consistent with the historic
+        // codes (MANGA, VIDEO_GAME, BOARD_GAME) whatever the user
+        // types in the editor (e.g. "Films d'animation" -> "FILMS_D_ANIMATION").
         code = code.trim().toUpperCase().replaceAll("[^A-Z0-9]+", "_").replaceAll("^_+|_+$", "");
         allowedExperienceTypes = allowedExperienceTypes == null ? Set.of() : Set.copyOf(allowedExperienceTypes);
         customFieldKeys = customFieldKeys == null ? Set.of() : Set.copyOf(customFieldKeys);
-        // colorKey/iconKey sont des CLÉS, pas des valeurs de rendu : le backend
-        // ne connaît ni les codes couleur ni le jeu d'icônes (affaire du client,
-        // voir lib/entityTypeVisuals). Il ne valide donc que la forme - un
-        // slug court - et laisse le client retomber sur son défaut pour une clé
-        // qu'il ne connaîtrait pas. Stocker "#c05a3c" ici figerait au contraire
-        // une couleur qui ne saurait pas s'adapter au thème.
+        // colorKey/iconKey are KEYS, not render values: the backend
+        // knows neither the color codes nor the icon set (the client's job,
+        // see lib/entityTypeVisuals). So it only validates the shape - a
+        // short slug - and lets the client fall back to its default for a key
+        // that it does not know. Storing "#c05a3c" here would instead freeze
+        // a color that could not adapt to the theme.
         colorKey = normalizeKey(colorKey);
         iconKey = normalizeKey(iconKey);
         aspectKey = normalizeKey(aspectKey);
@@ -70,20 +70,20 @@ public record EntityType(
         return trimmed.matches("[a-zA-Z0-9_-]{1,32}") ? trimmed : null;
     }
 
-    /** Crée un nouveau type (id généré, code normalisé). */
+    /** Creates a new type (generated id, normalized code). */
     public static EntityType create(String code, String label, Set<String> allowedExperienceTypes,
                                      Set<String> customFieldKeys) {
         return create(code, label, allowedExperienceTypes, customFieldKeys, null, null, null);
     }
 
-    /** Variante avec identité visuelle choisie (voir colorKey/iconKey). */
+    /** Variant with a chosen visual identity (see colorKey/iconKey). */
     public static EntityType create(String code, String label, Set<String> allowedExperienceTypes,
                                      Set<String> customFieldKeys, String colorKey, String iconKey, String aspectKey) {
         return new EntityType(UUID.randomUUID(), code, label, allowedExperienceTypes, customFieldKeys, colorKey,
                 iconKey, aspectKey);
     }
 
-    /** Reconstruit un type depuis la persistance (mêmes garanties que {@link #create}, id conservé). */
+    /** Rebuilds a type from persistence (same guarantees as {@link #create}, id kept). */
     public static EntityType reconstitute(UUID id, String code, String label, Set<String> allowedExperienceTypes,
                                            Set<String> customFieldKeys) {
         return new EntityType(id, code, label, allowedExperienceTypes, customFieldKeys, null, null);
@@ -95,19 +95,19 @@ public record EntityType(
         return new EntityType(id, code, label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey, aspectKey);
     }
 
-    /** Retourne une copie avec le label/schema modifiés - le code ne change jamais après création
-     * (même invariant que {@link Entity#entityTypeId()} : changer de code ferait perdre le sens
-     * des attributs déjà enregistrés sous l'ancien code). */
+    /** Returns a copy with the label/schema changed - the code never changes after creation
+     * (same invariant as {@link Entity#entityTypeId()}: changing the code would lose the meaning
+     * of the attributes already saved under the old code). */
     public EntityType withUpdatedFields(String newLabel, Set<String> newAllowedExperienceTypes,
                                          Set<String> newCustomFieldKeys) {
         return withUpdatedFields(newLabel, newAllowedExperienceTypes, newCustomFieldKeys, colorKey, iconKey, aspectKey);
     }
 
-    /** Variante qui touche aussi l'identité visuelle - null y signifie "retour
-     * au visuel par défaut", jamais "inchangé" : l'appelant envoie l'état voulu
-     * en entier (voir EntityTypeController.update). {@code aspectKey} : format
-     * de jaquette (une pochette de vinyle est carrée, un boîtier de jeu ne
-     * l'est pas) - même nature de clé que les deux autres. */
+    /** Variant that also changes the visual identity - null here means "back
+     * to the default look", never "unchanged": the caller sends the whole wanted
+     * state (see EntityTypeController.update). {@code aspectKey}: cover format
+     * (a vinyl sleeve is square, a game box is not) - same kind of key as
+     * the two others. */
     public EntityType withUpdatedFields(String newLabel, Set<String> newAllowedExperienceTypes,
                                          Set<String> newCustomFieldKeys, String newColorKey, String newIconKey,
                                          String newAspectKey) {

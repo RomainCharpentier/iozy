@@ -8,9 +8,9 @@ const SIZE_CLASSES = {
   picker: 'h-[52px] w-[52px] rounded-2xl text-xl',
 } as const
 
-/** Pastille de rang - voir DS v1.1 §9 "Composants Tier" : la LETTRE porte
- * l'info, la couleur ne fait que la renforcer. 3 tailles (compact = fiche/
- * aperçu de hub, default = board, picker = sélecteur de rang). */
+/** Rank pill - see DS v1.1 §9 "Tier components": the LETTER carries
+ * the info, the color only reinforces it. 3 sizes (compact = detail page/
+ * hub preview, default = board, picker = rank picker). */
 export function TierBadge({
   rank,
   size = 'default',

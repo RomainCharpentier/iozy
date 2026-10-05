@@ -2,38 +2,39 @@ import { useLayoutEffect } from 'react'
 import { useNavigationType } from 'react-router-dom'
 
 /**
- * Ouvrir un écran, c'est en voir le haut.
+ * Opening a screen means seeing its top.
  *
- * <h2>Ce que son absence donnait</h2>
- * Une application à page unique ne recharge rien : la position de défilement
- * survit donc à la navigation. Descendre dans « Ma collection » puis toucher
- * une œuvre ouvrait sa fiche <b>à la même hauteur</b>. Mesuré entre deux
- * fiches : parti de 902 px sur l'une, on arrivait à 1055 px sur l'autre, son
- * titre hors écran, la section « Assistant » en haut de l'écran - au milieu
- * d'une page qu'on vient d'ouvrir.
+ * <h2>What its absence gave</h2>
+ * A single-page application reloads nothing: the scroll position therefore
+ * survives navigation. Scrolling down in "Ma collection" and then touching a
+ * work opened its detail page <b>at the same height</b>. Measured between two
+ * detail pages: starting from 902 px on one, we arrived at 1055 px on the
+ * other, its title off screen, the "Assistant" section at the top of the
+ * screen - in the middle of a page that had just been opened.
  *
- * <p>Le défaut se cache bien : il ne se voit que si la page d'arrivée est au
- * moins aussi haute que le décalage courant, sinon le navigateur ramène tout
- * seul dans les clous. Avec cinq œuvres en base, presque rien ; avec une vraie
- * collection, systématique.
+ * <p>The flaw hides well: it only shows if the arrival page is at least as
+ * tall as the current offset, otherwise the browser brings everything back
+ * within bounds on its own. With five works in the database, almost nothing;
+ * with a real collection, systematic.
  *
- * <h2>Pourquoi seulement en avant</h2>
- * `POP` - retour et avance - est laissé au navigateur, qui restaure très bien :
- * vérifié, 1200 px retrouvés au pixel près sur une fiche. Reprendre la main
- * dessus ne ferait qu'abîmer quelque chose qui marche.
+ * <h2>Why only forward</h2>
+ * `POP` - back and forward - is left to the browser, which restores very
+ * well: checked, 1200 px found again to the pixel on a detail page. Taking
+ * control of it would only damage something that works.
  *
- * <h2>Pourquoi un effet de MISE EN PAGE</h2>
- * Deux raisons, et la seconde est la vraie.
+ * <h2>Why a LAYOUT effect</h2>
+ * Two reasons, and the second is the real one.
  * <ol>
- *   <li>Le saut a lieu pendant le commit, avant le premier affichage : on ne
- *       voit jamais la page apparaître décalée puis se recadrer.</li>
- *   <li>React exécute TOUS les effets de mise en page avant le moindre effet
- *       ordinaire. Un écran qui vise volontairement une section précise le fait
- *       dans un `useEffect` - voir ProfilePage, qui déroule jusqu'au partage
- *       quand on y arrive par le raccourci. En `useEffect` ici, ce hook aurait
- *       gagné la course (les effets d'un parent passent après ceux de ses
- *       enfants) et annulé cette intention. En `useLayoutEffect`, il passe
- *       avant : l'écran garde le dernier mot sur sa propre destination.</li>
+ *   <li>The jump happens during the commit, before the first display: we
+ *       never see the page appear shifted and then re-center.</li>
+ *   <li>React runs ALL the layout effects before any ordinary effect. A
+ *       screen that deliberately aims at a precise section does so in a
+ *       `useEffect` - see ProfilePage, which scrolls down to the sharing
+ *       section when you arrive by the shortcut. In `useEffect` here, this
+ *       hook would have won the race (the effects of a parent run after those
+ *       of its children) and canceled this intention. In `useLayoutEffect`,
+ *       it runs before: the screen keeps the last word on its own
+ *       destination.</li>
  * </ol>
  */
 export function useScrollToTopOnNavigation(pathname: string): void {

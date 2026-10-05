@@ -89,10 +89,10 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * @param externalListingId identifiant de l'annonce chez la source, quand la lecture du lien
-     *                          l'a donné. Sert uniquement à reconnaître deux analyses de la MEME
-     *                          annonce (voir {@link ListingIdentity}) - jamais affiché, jamais
-     *                          conservé dans l'analyse elle-même.
+     * @param externalListingId identifier of the listing at the source, when reading the link
+     *                          gave it. Only used to recognise two analyses of the SAME
+     *                          listing (see {@link ListingIdentity}) - never shown, never
+     *                          kept in the analysis itself.
      */
     public record AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, String description, BigDecimal askingPrice,
                                          BigDecimal shippingFee, com.iozycore.core.listing.ShippingEstimateKind shippingKind,
@@ -100,7 +100,7 @@ public class PurchaseAnalysisService {
                                          boolean conditionAppliesToContainer, List<AnalyzeListingItemCommand> items,
                                          List<String> photoUrls, String externalListingId) {
 
-        /** Appelants qui n'ont pas d'identifiant de source - saisie entierement manuelle, et la plupart des tests. */
+        /** Callers that have no source identifier - fully manual entry, and most tests. */
         public AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, String description,
                                       BigDecimal askingPrice, BigDecimal shippingFee,
                                       com.iozycore.core.listing.ShippingEstimateKind shippingKind,
@@ -132,15 +132,15 @@ public class PurchaseAnalysisService {
                     .map(edition -> marketPriceObservationRepository.findByEditionId(edition.id()))
                     .orElseGet(List::of);
 
-            // "Analyse d'un lot" (brainstorm) - jamais deviné : vide tant que la série
-            // n'est pas reconnue dans le catalogue (series.knownEntityId() == null).
+            // "Lot analysis" (brainstorm) - never guessed: empty as long as the series
+            // is not recognised in the catalogue (series.knownEntityId() == null).
             Set<Integer> alreadyOwnedVolumes = series.knownEntityId() != null
                     ? findOwnedVolumeNumbers(series.knownEntityId(), itemCommand.editionName())
                     : Set.of();
 
-            // Phase 2 (assistance IA) - seulement quand il n'existe aucune observation réelle : la
-            // donnée réelle a toujours priorité, l'IA ne fait que combler l'absence de données, jamais
-            // les compléter/contredire (voir AiMarketPriceAdvisor).
+            // Phase 2 (AI assistance) - only when no real observation exists: the
+            // real data always has priority, the AI only fills the absence of data, never
+            // completes/contradicts it (see AiMarketPriceAdvisor).
             AiPriceEstimate aiEstimate = observations.isEmpty()
                     ? avisIA(series.title(), itemCommand.editionName(),
                             itemCommand.itemConditionOverride() != null ? itemCommand.itemConditionOverride() : command.condition())
@@ -157,85 +157,85 @@ public class PurchaseAnalysisService {
                 java.time.Instant.now());
 
         CollectorPreferences preferences = collectorPreferencesRepository.find();
-        // Les envies sont lues ICI : le moteur reste un domaine pur, il recoit
-        // un nombre. Vouloir une oeuvre n'est pas la posseder - ce compte ne
-        // retire donc rien aux manquants, il qualifie leur interet.
-        // L'identite est etablie AVANT le calcul : elle sert d'abord a exclure
-        // de la reference les releves issus de cette meme annonce, analysee une
-        // fois deja. Sans quoi une reanalyse se comparerait a son propre prix.
+        // The wishes are read HERE: the engine stays a pure domain, it receives
+        // a number. Wanting a work is not owning it - this count therefore
+        // removes nothing from the missing ones, it qualifies their interest.
+        // The identity is established BEFORE the calculation: it is first used to exclude
+        // from the reference the observations coming from this same listing, analysed once
+        // already. Otherwise a new analysis would be compared to its own price.
         String identiteAnnonce = ListingIdentity.of(command.platform(), command.externalListingId(), command.url());
 
         PurchaseAnalysis analysis = engine.analyze(listing, itemContexts, preferences,
                 comptePresentDansLesEnvies(itemContexts), identiteAnnonce);
         PurchaseAnalysis enregistree = purchaseAnalysisRepository.save(analysis);
 
-        // APRES seulement : le prix demande rejoint les releves de marche. Le
-        // moment compte - a ce stade l'utilisateur a corrige la serie, choisi
-        // l'edition et valide la composition, donc le releve porte sur un
-        // produit reellement identifie plutot que sur un brouillon.
+        // Only AFTER: the asking price joins the market observations. The
+        // moment matters - at this stage the user has corrected the series, chosen
+        // the edition and validated the composition, so the observation is about a
+        // product that is really identified rather than a draft.
         releverLePrixDemande(enregistree, identiteAnnonce);
         return enregistree;
     }
 
     /**
-     * Retient le prix demande d'une annonce analysee comme un prix de marche.
+     * Keeps the asking price of an analysed listing as a market price.
      *
-     * <h2>Ce qui est enregistre, et ce qui ne l'est pas</h2>
-     * Le prix de l'annonce, <b>hors frais</b>. Protection acheteur et livraison
-     * appartiennent au cout d'acquisition de l'acheteur, pas a ce que vaut le
-     * produit : les inclure ici comparerait plus tard des annonces hors frais a
-     * des totaux frais compris.
+     * <h2>What is recorded, and what is not</h2>
+     * The price of the listing, <b>without fees</b>. Buyer protection and shipping
+     * belong to the buyer's acquisition cost, not to what the
+     * product is worth: including them here would later compare listings without fees to
+     * totals with fees.
      *
-     * <h2>Quatre refus</h2>
+     * <h2>Four refusals</h2>
      * <ul>
-     *   <li><b>Lot multi-series</b> : le prix couvre l'ensemble, et le repartir
-     *       au prorata fabriquerait un prix que personne n'a jamais demande.</li>
-     *   <li><b>Edition non identifiee</b> : un releve doit se rattacher a un
-     *       produit. « Lot manga divers » ne produit rien - mieux vaut aucune
-     *       reference qu'une reference mal rattachee.</li>
-     *   <li><b>Composition inconnue</b> : sans nombre de tomes, la forme du lot
-     *       est indeterminable, donc le releve incomparable.</li>
-     *   <li><b>Prix nul</b> : rien a observer.</li>
-     *   <li><b>Annonce sans identite</b> : voir ci-dessous.</li>
+     *   <li><b>Multi-series lot</b>: the price covers the whole, and splitting it
+     *       proportionally would build a price that nobody ever asked.</li>
+     *   <li><b>Edition not identified</b>: an observation must be linked to a
+     *       product. "Lot manga divers" produces nothing - better no
+     *       reference than a badly linked reference.</li>
+     *   <li><b>Unknown composition</b>: without a number of volumes, the shape of the lot
+     *       cannot be determined, so the observation is not comparable.</li>
+     *   <li><b>Zero price</b>: nothing to observe.</li>
+     *   <li><b>Listing without identity</b>: see below.</li>
      * </ul>
-     * Ni estimation IA ni prix neuf catalogue n'arrivent jamais ici : cette
-     * methode ne lit que le prix demande de l'annonce.
+     * Neither an AI estimate nor a catalogue new price ever arrives here: this
+     * method only reads the asking price of the listing.
      *
-     * <h2>Pourquoi une annonce sans identite ne produit RIEN</h2>
-     * Deux des six regles de {@link MarketComparableSelector} ne tiennent que
-     * par l'identite de l'annonce : « une annonce, un comparable » (regle 5) et
-     * « l'annonce en cours d'evaluation est exclue » (regle 6). Sans identite,
-     * ni l'une ni l'autre ne peut s'appliquer a la ligne ecrite ici.
+     * <h2>Why a listing without identity produces NOTHING</h2>
+     * Two of the six rules of {@link MarketComparableSelector} hold only
+     * through the identity of the listing: "one listing, one comparable" (rule 5) and
+     * "the listing being assessed is excluded" (rule 6). Without identity,
+     * neither can apply to the row written here.
      * <p>
-     * Constate en direct le 2026-08-28 : une meme annonce saisie a la main
-     * (donc sans identite - c'est le cas NORMAL, aucun fournisseur public
-     * n'existe, voir l'en-tete de {@link PurchaseAnalysisEngine}) analysee deux
-     * fois se retrouvait comparee a elle-meme. La seconde analyse rendait
-     * {@code referenceSampleSize = 2} - des « annonces comparables
-     * INDEPENDANTES » qui etaient la meme -, une reference egale au prix
-     * demande, et un verdict de position « FAIR_PRICE » : l'annonce certifiait
-     * son propre prix. Trois passages auraient suffi a decrocher la confiance
-     * HIGH, exactement le defaut que le selecteur a ete ecrit pour supprimer.
+     * Seen live on 2026-08-28: the same listing entered by hand
+     * (so without identity - this is the NORMAL case, no public provider
+     * exists, see the header of {@link PurchaseAnalysisEngine}) analysed twice
+     * ended up compared to itself. The second analysis returned
+     * {@code referenceSampleSize = 2} - "INDEPENDENT comparable
+     * listings" that were the same one -, a reference equal to the asking
+     * price, and a position verdict "FAIR_PRICE": the listing certified
+     * its own price. Three passes would have been enough to get HIGH
+     * confidence, exactly the flaw that the selector was written to remove.
      * <p>
-     * Le geste explicite de l'utilisateur, lui, reste entier : le bouton
-     * « Relever ce prix comme observation de marche » ecrit un
-     * {@code MANUAL_ENTRY}, qu'il assume. Ce qui disparait, c'est la ligne que
-     * personne n'a demandee et que personne ne peut plus rattacher.
+     * The explicit action of the user, however, stays intact: the button
+     * "Relever ce prix comme observation de marche" writes a
+     * {@code MANUAL_ENTRY}, which they own. What disappears is the row that
+     * nobody asked for and that nobody can link any more.
      */
     /**
-     * L'avis de l'IA sur le prix d'un tome, memorise.
+     * The AI opinion on the price of a volume, remembered.
      *
-     * <p>Cet avis n'est demande que lorsqu'aucun releve reel n'existe pour
-     * l'edition - donc precisement sur les editions qu'on analyse en boucle en
-     * esperant s'en faire une idee. Sans memoire, chaque analyse reposait la
-     * meme question au meme modele : le palier gratuit de Gemini est un choix
-     * explicite de l'utilisateur, et c'est son quota qui payait. Meme
-     * raisonnement qu'au cache des recherches de tomes (V3).
+     * <p>This opinion is only asked when no real observation exists for
+     * the edition - so exactly on the editions that are analysed again and again in
+     * the hope of getting an idea. Without memory, each analysis asked the
+     * same question to the same model: the free tier of Gemini is an
+     * explicit choice of the user, and it was their quota that paid. Same
+     * reasoning as for the cache of volume searches (V3).
      *
-     * <p>Ce qui se memorise est une REPONSE, « je ne sais pas » compris (voir
-     * {@link AiPriceEstimate}). Un echec - cle absente, quota depasse, reseau -
-     * ne laisse rien : il sera retente, parce qu'une panne passagere ne doit
-     * pas devenir un « je ne sais pas » definitif.
+     * <p>What is remembered is an ANSWER, "I do not know" included (see
+     * {@link AiPriceEstimate}). A failure - missing key, quota exceeded, network -
+     * leaves nothing: it will be tried again, because a short outage must
+     * not become a permanent "I do not know".
      */
     private AiPriceEstimate avisIA(String seriesTitle, String editionName, Condition condition) {
         String cleSerie = normaliserPourCache(seriesTitle);
@@ -249,8 +249,8 @@ public class PurchaseAnalysisService {
         return reponse.orElse(null);
     }
 
-    /** Meme regle que pour le cache des recherches de tomes : trim + minuscules,
-     * cle de cache uniquement, jamais reaffichee telle quelle. */
+    /** Same rule as for the cache of volume searches: trim + lower case,
+     * cache key only, never shown again as it is. */
     private static String normaliserPourCache(String valeur) {
         return valeur == null ? "" : valeur.trim().toLowerCase(java.util.Locale.ROOT);
     }
@@ -272,10 +272,10 @@ public class PurchaseAnalysisService {
         }
 
         LocalDate observeLe = LocalDate.ofInstant(analysis.requestedAt(), java.time.ZoneId.systemDefault());
-        // Rien de neuf a dire : la meme annonce, au meme prix, deja relevee. Une
-        // ligne de plus ne serait pas une observation supplementaire du marche.
-        // L'identite est desormais garantie non nulle par le garde d'entree -
-        // c'est justement ce qui rend ce test capable de faire son travail.
+        // Nothing new to say: the same listing, at the same price, already noted. One
+        // more row would not be an additional observation of the market.
+        // The identity is now guaranteed non-null by the entry guard -
+        // this is exactly what makes this test able to do its job.
         if (dejaReleveAuMemePrix(edition.id(), identiteAnnonce, listing.askingPrice())) {
             return;
         }
@@ -283,8 +283,8 @@ public class PurchaseAnalysisService {
         Condition etat = item.item().itemConditionOverride() != null
                 ? item.item().itemConditionOverride()
                 : listing.condition();
-        // La portee reste la plage couverte, pour l'affichage ; c'est
-        // volumeCount qui fait foi, un lot pouvant etre discontinu.
+        // The scope stays the range covered, for display; it is
+        // volumeCount that is the reference, since a lot can be non-continuous.
         VolumeRange portee = new VolumeRange(java.util.Collections.min(tomes), java.util.Collections.max(tomes));
         marketPriceObservationRepository.save(MarketPriceObservation.fromAnalyzedListing(
                 edition.id(), portee, tomes.size(), listing.askingPrice(), listing.platform(),
@@ -292,11 +292,11 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * Vrai quand le dernier releve connu de cette annonce affichait deja ce
-     * prix. Un prix different, lui, est enregistre : une annonce passee de 70 a
-     * 60 EUR dit quelque chose du marche, et l'historique le conserve - sans
-     * pour autant compter pour deux vendeurs, le regroupement par annonce s'en
-     * chargeant a la lecture.
+     * True when the last known observation of this listing already showed this
+     * price. A different price is recorded: a listing that went from 70 to
+     * 60 EUR says something about the market, and the history keeps it - without
+     * counting for two sellers, since the grouping by listing takes care of that
+     * at read time.
      */
     private boolean dejaReleveAuMemePrix(UUID editionId, String identiteAnnonce, BigDecimal prix) {
         return marketPriceObservationRepository.findByEditionId(editionId).stream()
@@ -308,15 +308,15 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * Les tomes du lot qui manquent ET dont la série est déjà dans les envies.
+     * The volumes of the lot that are missing AND whose series is already in the wishes.
      * <p>
-     * La wishlist d'IozyCore porte sur l'ŒUVRE, pas sur le tome : « je cherche
-     * Vinland Saga », pas « je cherche le tome 7 ». On compte donc les tomes
-     * manquants des séries souhaitées - ce sont eux que ce lot vient combler,
-     * et c'est ce qui distingue un lot utile d'un lot activement recherché.
+     * The wishlist of IozyCore is about the WORK, not the volume: "I am looking for
+     * Vinland Saga", not "I am looking for volume 7". We therefore count the missing
+     * volumes of the wished series - these are the ones that this lot fills,
+     * and this is what tells a useful lot from an actively sought lot.
      * <p>
-     * Ce compte ne retire rien aux manquants et n'en ajoute pas : vouloir n'est
-     * pas posséder, il qualifie leur intérêt sans changer leur nombre.
+     * This count removes nothing from the missing ones and adds none: wanting is
+     * not owning, it qualifies their interest without changing their number.
      */
     private int comptePresentDansLesEnvies(List<PurchaseAnalysisEngine.ItemContext> contextes) {
         Set<UUID> souhaitees = wishlistEntryRepository.findAll().stream()
@@ -349,41 +349,41 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * Retire une analyse de l'historique, et rien d'autre : les prix relevés et
-     * les éditions de référence renseignés au fil de cette analyse survivent -
-     * ce sont des données de référence qui servent toutes les analyses
-     * suivantes, pas des sous-objets de celle-ci.
+     * Removes an analysis from the history, and nothing else: the observed prices and
+     * the reference editions filled in during this analysis survive -
+     * they are reference data that serve all the following analyses,
+     * not sub-objects of this one.
      */
     public void deleteAnalysis(UUID id) {
         purchaseAnalysisRepository.deleteById(id);
     }
 
-    /** Les relevés d'une édition, pour pouvoir les relire et en retirer un faux. */
+    /** The observations of an edition, to be able to read them again and remove a wrong one. */
     public List<MarketPriceObservation> observationsOfEdition(UUID mangaEditionId) {
         return marketPriceObservationRepository.findByEditionId(mangaEditionId);
     }
 
     /**
-     * Retire un relevé de prix saisi par erreur. Les analyses déjà enregistrées
-     * ne changent pas : chacune fige ses propres chiffres au moment du calcul.
-     * Ce sont les analyses SUIVANTES qui cesseront de compter ce relevé.
+     * Removes a price observation entered by mistake. The analyses already saved
+     * do not change: each one freezes its own numbers at the time of the calculation.
+     * It is the FOLLOWING analyses that will stop counting this observation.
      */
     public void deleteMarketObservation(UUID id) {
         marketPriceObservationRepository.deleteById(id);
     }
 
     /**
-     * {@code entityId} (voir migration "Série -> Édition par ID", historique de la conversation) est
-     * désormais la source de vérité une fois connue : recherche par ID d'abord, jamais reconsultée via
-     * {@code seriesTitle} pour une édition déjà rattachée - immunisé contre un renommage de Série
-     * survenu depuis (voir {@code Entity.rename}, {@code seriesTitle} sur {@link MangaEdition} n'est
-     * alors qu'une donnée figée à sa création, jamais mise à jour en cascade).
+     * {@code entityId} (see migration "Series -> Edition by ID", history of the conversation) is
+     * now the source of truth once known: search by ID first, never looked up again via
+     * {@code seriesTitle} for an edition that is already linked - immune to a Series rename
+     * that happened since (see {@code Entity.rename}, {@code seriesTitle} on {@link MangaEdition} is
+     * then only data frozen at its creation, never updated in cascade).
      * <p>
-     * Le repli texte ({@code seriesTitle}) ne sert plus que pour les deux cas où l'ID ne suffit pas :
-     * {@code entityId} inconnu de l'appelant (ex: Analyse d'achat sur une série pas encore en
-     * collection), ou édition trouvée par titre mais pas encore rattachée (ancien enregistrement) -
-     * dans ce dernier cas, rattachée ici même, best-effort, avant d'être renvoyée (voir
-     * {@link #linkToKnownEntityIfNeeded}) : le prochain appel passera directement par l'ID.
+     * The text fallback ({@code seriesTitle}) is only used for the two cases where the ID is not enough:
+     * {@code entityId} unknown to the caller (e.g. Purchase Analysis on a series not yet in the
+     * collection), or an edition found by title but not yet linked (old record) -
+     * in this last case, linked right here, best-effort, before being returned (see
+     * {@link #linkToKnownEntityIfNeeded}): the next call will go directly through the ID.
      */
     public Optional<MangaEdition> findEdition(UUID entityId, String seriesTitle, String editionName) {
         if (entityId != null) {
@@ -396,16 +396,16 @@ public class PurchaseAnalysisService {
         return byTitle.map(edition -> linkToKnownEntityIfNeeded(edition, entityId));
     }
 
-    /** Lecture par identifiant - utilisée avant une suppression, pour distinguer
-     * "cette édition n'existe pas" (404) de "elle existe mais est encore
-     * utilisée" (409). */
+    /** Read by identifier - used before a deletion, to tell
+     * "this edition does not exist" (404) from "it exists but is still
+     * in use" (409). */
     public Optional<MangaEdition> findEditionById(UUID editionId) {
         return mangaEditionRepository.findById(editionId);
     }
 
     /**
-     * Ce qui retient encore une édition de référence et empêche sa suppression.
-     * Aucun blocage = elle a bien été supprimée.
+     * What still holds a reference edition and prevents its deletion.
+     * No blocker = it was really deleted.
      */
     public record EditionDeletionBlockers(int linkedVolumes, int linkedObservations) {
         public boolean none() {
@@ -414,28 +414,28 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * Supprime une édition de référence - REFUSÉE tant qu'un Tome y est encore
-     * rattaché (Variant.mangaEditionId) OU qu'une observation de prix s'y
-     * réfère, pour ne jamais laisser derrière soi une ligne pointant vers une
-     * édition disparue. Même parti pris que la suppression d'un EntityType
-     * (voir EntityTypeService) : on explique ce qui bloque plutôt que de délier
-     * en silence des données que l'utilisateur croyait liées.
+     * Deletes a reference edition - REFUSED as long as a Volume is still
+     * linked to it (Variant.mangaEditionId) OR a price observation
+     * refers to it, to never leave behind a row pointing to a
+     * missing edition. Same stance as the deletion of an EntityType
+     * (see EntityTypeService): we explain what blocks rather than unlink
+     * silently data that the user thought was linked.
      * <p>
-     * Les observations manquaient à cet inventaire : la contrainte de clé
-     * étrangère de Postgres restait alors seule à protéger la table, et
-     * remontait une erreur SQL brute en 500 au lieu du 409 explicite prévu
-     * ici (constaté en vérification, Lot 26).
+     * The observations were missing from this inventory: the foreign key
+     * constraint of Postgres was then alone in protecting the table, and
+     * returned a raw SQL error as a 500 instead of the explicit 409 planned
+     * here (found during verification, Batch 26).
      *
-     * @return ce qui bloque, ou des compteurs à zéro quand la suppression a
-     *         bien eu lieu.
+     * @return what blocks, or counters at zero when the deletion
+     *         did take place.
      */
     public EditionDeletionBlockers deleteEdition(UUID editionId) {
         long linkedVolumes = entityRepository.search(null, null, null).stream()
                 .flatMap(entity -> entity.variants().stream())
                 .filter(variant -> editionId.equals(variant.mangaEditionId()))
                 .count();
-        // Tous comptes confondus : une édition est partagée, et la supprimer
-        // casserait les relevés d'un autre autant que les siens.
+        // All accounts together: an edition is shared, and deleting it
+        // would break the observations of another account as much as one's own.
         int linkedObservations = marketPriceObservationRepository.countByEditionIdAllOwners(editionId);
         if (linkedVolumes > 0 || linkedObservations > 0) {
             return new EditionDeletionBlockers((int) linkedVolumes, linkedObservations);
@@ -444,18 +444,18 @@ public class PurchaseAnalysisService {
         return new EditionDeletionBlockers(0, 0);
     }
 
-    /** Toutes les éditions connues, toutes séries confondues - pour un écran qui
-     * affiche la progression de PLUSIEURS séries d'un coup (Ma collection) sans
-     * un appel par tuile. Aucun filtrage/enrichissement : c'est une lecture
-     * brute du référentiel, volontairement distincte de {@link #findEdition},
-     * qui elle rattache opportunément une édition à une Série. */
+    /** All the known editions, all series together - for a screen that
+     * shows the progress of SEVERAL series at once (My collection) without
+     * one call per tile. No filtering/enrichment: it is a raw
+     * read of the reference data, deliberately different from {@link #findEdition},
+     * which opportunistically links an edition to a Series. */
     public List<MangaEdition> findAllEditions() {
         return mangaEditionRepository.findAll();
     }
 
-    /** Même principe que {@link #findEdition} : par ID quand connu (jamais de repli texte dans ce cas,
-     * contrairement à {@link #findEdition} - une liste "toutes les éditions rattachées" n'a pas de
-     * raison de se compléter avec un résultat de correspondance textuelle une fois l'ID disponible). */
+    /** Same principle as {@link #findEdition}: by ID when known (never a text fallback in this case,
+     * unlike {@link #findEdition} - a list of "all the linked editions" has no
+     * reason to be completed with a text match result once the ID is available). */
     public List<MangaEdition> findEditionsForSeries(UUID entityId, String seriesTitle) {
         if (entityId != null) {
             return mangaEditionRepository.findByEntityId(entityId);
@@ -464,7 +464,7 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * "Assistance IA" (Phase 2, project memory) - a best-effort draft for an
+     * "AI assistance" (Phase 2, project memory) - a best-effort draft for an
      * edition unknown to the system, to pre-fill the manual-entry form
      * instead of leaving it blank. Deliberately read-only: never calls
      * {@link MangaEditionRepository#save}, the user must still submit
@@ -475,7 +475,7 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * "Coût pour compléter une série" (Ma collection) - same completeness
+     * "Cost to complete a series" (My collection) - same completeness
      * engine as a listing being evaluated (see CompletenessCalculator),
      * applied instead to a series already in the user's own collection.
      * {@code editionName} is expected already resolved (e.g. from a
@@ -487,7 +487,7 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * @param cataloguedVolumes étape 6/8 (modèle Tome != Ownership) - volume numbers that have a real
+     * @param cataloguedVolumes step 6/8 (Volume != Ownership model) - volume numbers that have a real
      *                          catalogued Variant regardless of Ownership, so the response can
      *                          distinguish "missing but already catalogued" from "missing and purely
      *                          virtual" (see {@link CollectionStatus#cataloguedMissingVolumeNumbers()}) -
@@ -504,23 +504,23 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * "Suggestions d'achats" (Mon profil) - séries déjà en collection dont
-     * une édition nommée est connue mais pas complète, triées par nombre de
-     * tomes manquants croissant (les plus proches de la complétion en
-     * premier). Une série sans édition nommée sur ses tomes (attribut
-     * "edition" absent/vide) n'a rien à rattacher dans manga_edition et est
-     * donc silencieusement ignorée ici, comme pour la détection d'éditions
-     * mélangées côté web (voir groupVariantsByEdition côté web/editionGroups.ts).
+     * "Purchase suggestions" (My profile) - series already in the collection with
+     * a known named edition that is not complete, sorted by increasing number of
+     * missing volumes (the closest to completion
+     * first). A series without a named edition on its volumes (attribute
+     * "edition" missing/empty) has nothing to link in manga_edition and is
+     * therefore silently ignored here, as for the detection of mixed
+     * editions on the web side (see groupVariantsByEdition in web/editionGroups.ts).
      * <p>
-     * {@code ownedCount}/{@code missingVolumeNumbers} mesurent la possession réelle
-     * (Ownership active), jamais la simple existence catalogue d'un Variant (étape 6,
-     * modèle Tome ≠ Ownership) - un tome revendu ou dont l'Ownership a été supprimée
-     * (voir OwnershipDeletionService) redevient "manquant" ici même si son Variant
-     * catalogué existe toujours. {@code cataloguedMissingVolumeNumbers} distingue,
-     * parmi les tomes manquants, ceux qui sont déjà catalogués (un Variant existe,
-     * juste sans Ownership - potentiellement enrichissable via merge-attributes sans
-     * jamais créer de doublon) de ceux purement virtuels (aucun Variant, seulement un
-     * numéro déduit de totalVolumes).
+     * {@code ownedCount}/{@code missingVolumeNumbers} measure real possession
+     * (active Ownership), never the mere catalogue existence of a Variant (step 6,
+     * Volume ≠ Ownership model) - a volume that was resold or whose Ownership was deleted
+     * (see OwnershipDeletionService) becomes "missing" again here even if its catalogued
+     * Variant still exists. {@code cataloguedMissingVolumeNumbers} tells apart,
+     * among the missing volumes, those that are already catalogued (a Variant exists,
+     * just without Ownership - potentially enrichable via merge-attributes without
+     * ever creating a duplicate) from the purely virtual ones (no Variant, only a
+     * number deduced from totalVolumes).
      */
     public record NearCompleteSuggestion(UUID entityId, String seriesTitle, String editionName, int ownedCount,
                                           int totalVolumes, int missingCount, List<Integer> missingVolumeNumbers,
@@ -529,26 +529,26 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * <h2>Tout est chargé EN MASSE, et c'est le sujet de cette méthode</h2>
-     * Cet écran parle de TOUTES les séries à la fois. Écrit série par série, il
-     * demandait la progression une fois par série, puis, pour chaque couple
-     * (série × édition), retrouvait l'édition de référence et relisait ses prix
-     * relevés : mesuré à 88 requêtes pour 5 séries et 148 pour 11, soit une
-     * dizaine de plus par série ajoutée (constat C1 de l'audit technique). Sur
-     * 200 séries, l'ordre de grandeur devenait deux mille requêtes par appel.
+     * <h2>Everything is loaded IN BULK, and this is the subject of this method</h2>
+     * This screen talks about ALL the series at once. Written series by series, it
+     * asked for the progress once per series, then, for each pair
+     * (series × edition), found the reference edition and read its observed prices
+     * again: measured at 88 requests for 5 series and 148 for 11, that is about
+     * ten more per series added (finding C1 of the technical audit). On
+     * 200 series, the order of magnitude became two thousand requests per call.
      * <p>
-     * Les trois sources sont donc lues une seule fois - la progression par
-     * {@code computeAll()}, qui existait déjà et servait au partage public ; le
-     * référentiel d'éditions, petit par nature ; les prix relevés, groupés par
-     * édition. Le reste se calcule en mémoire.
+     * The three sources are therefore read only once - the progress through
+     * {@code computeAll()}, which already existed and served the public share; the
+     * edition reference data, small by nature; the observed prices, grouped by
+     * edition. The rest is computed in memory.
      *
-     * <h2>Une réparation qui n'a pas sa place ici</h2>
-     * {@link #findEdition} rattache au passage une édition retrouvée par son
-     * titre à la série connue (voir {@code linkToKnownEntityIfNeeded}) - une
-     * ÉCRITURE, utile là où l'utilisateur agit sur une édition précise. Un écran
-     * qui liste des suggestions ne répare rien : il lit. La résolution ci-dessous
-     * suit donc les mêmes règles (par identifiant d'abord, par titre ensuite,
-     * sans tenir compte de la casse) sans écrire.
+     * <h2>A repair that has no place here</h2>
+     * {@link #findEdition} links on the way an edition found by its
+     * title to the known series (see {@code linkToKnownEntityIfNeeded}) - a
+     * WRITE, useful where the user acts on a precise edition. A screen
+     * that lists suggestions repairs nothing: it reads. The resolution below
+     * therefore follows the same rules (by identifier first, by title next,
+     * ignoring case) without writing.
      */
     public List<NearCompleteSuggestion> findNearCompleteSuggestions() {
         Optional<EntityType> mangaType = entityTypeRepository.findByCode("MANGA");
@@ -557,10 +557,10 @@ public class PurchaseAnalysisService {
         }
         List<Entity> mangaEntities = entityRepository.findAllByType(mangaType.get().id());
 
-        // Les groupes et le possédé viennent de CollectionProgressService, source
-        // unique de la progression : ce moteur les recalculait pour son compte et
-        // ignorait les tomes sans édition précisée, d'où une série annoncée 2/72
-        // ici et 3/72 sur Ma collection (audit du 2026-08-21, Lot 31).
+        // The groups and what is owned come from CollectionProgressService, the single
+        // source of progress: this engine used to recompute them on its own and
+        // ignored volumes without a specified edition, hence a series shown as 2/72
+        // here and 3/72 on My collection (audit of 2026-08-21, Batch 31).
         Map<UUID, CollectionProgress> progressionParSerie = progressService.computeAll().stream()
                 .collect(Collectors.toMap(CollectionProgress::entityId, progression -> progression));
 
@@ -577,7 +577,7 @@ public class PurchaseAnalysisService {
             for (CollectionProgress.EditionProgress group : progression.editions()) {
                 String editionName = group.editionName();
                 if (editionName.isEmpty()) {
-                    continue; // sans édition nommée, rien à confronter à manga_edition
+                    continue; // without a named edition, nothing to compare with manga_edition
                 }
                 MangaEdition edition = editionDeLaListe(toutesLesEditions, entity, editionName);
                 Set<Integer> cataloguedVolumes = new TreeSet<>(group.cataloguedVolumeNumbers());
@@ -599,14 +599,14 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * L'édition de référence d'un couple (série, nom d'édition), cherchée dans
-     * une liste déjà chargée plutôt qu'en base.
+     * The reference edition of a pair (series, edition name), searched in
+     * a list that is already loaded rather than in the database.
      * <p>
-     * Mêmes règles que {@link #findEdition} : le rattachement structurel
-     * (entityId) fait foi, le titre ne sert qu'à défaut - et sans tenir compte de
-     * la casse, comme les requêtes correspondantes. {@code null} quand aucune
-     * édition de référence n'existe : la complétude est alors inconnue, jamais
-     * devinée.
+     * Same rules as {@link #findEdition}: the structural link
+     * (entityId) is the reference, the title is only used as a fallback - ignoring
+     * case, like the matching queries. {@code null} when no reference
+     * edition exists: completeness is then unknown, never
+     * guessed.
      */
     private static MangaEdition editionDeLaListe(List<MangaEdition> editions, Entity entity, String editionName) {
         for (MangaEdition edition : editions) {
@@ -624,24 +624,24 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * "Analyse d'un lot" - tomes de cette édition actuellement possédés (ownership active
-     * uniquement : un tome revendu/perdu n'est plus un doublon si on le rachète).
+     * "Lot analysis" - volumes of this edition currently owned (active ownership
+     * only: a volume that was resold/lost is no longer a duplicate if we buy it again).
      * <p>
-     * Passe par {@link CollectionProgressService}, source UNIQUE de la progression, comme
-     * les suggestions ci-dessus. Cette méthode refaisait le calcul pour son compte et
-     * exigeait que l'attribut {@code edition} du tome corresponde EXACTEMENT : un tome
-     * catalogué sans édition précisée n'était donc compté dans aucune édition. Partout
-     * ailleurs il rejoint l'unique édition nommée de la série (voir resolveEditionView côté
-     * web, et le regroupement de CollectionProgressService côté serveur).
+     * Goes through {@link CollectionProgressService}, the SINGLE source of progress, like
+     * the suggestions above. This method used to redo the calculation on its own and
+     * required the {@code edition} attribute of the volume to match EXACTLY: a catalogued
+     * volume without a specified edition was therefore counted in no edition. Everywhere
+     * else it joins the single named edition of the series (see resolveEditionView on the
+     * web side, and the grouping of CollectionProgressService on the server side).
      * <p>
-     * Conséquence constatée en éprouvant le parcours le 2026-08-27 : la fiche de Naruto
-     * annonçait le tome 1 possédé dans l'édition Kana, et l'analyse d'un lot "Naruto 1-5"
-     * répondait "5 manquants" - elle conseillait donc de racheter un tome déjà en rayon,
-     * ce qui est l'inverse de ce que cet écran sert à faire. Même défaut, même fichier,
-     * que celui corrigé au Lot 31 pour les suggestions - corrigé là, pas ici.
+     * Consequence seen while testing the flow on 2026-08-27: the work page of Naruto
+     * said volume 1 was owned in the Kana edition, and the analysis of a lot "Naruto 1-5"
+     * answered "5 missing" - so it advised buying again a volume already on the shelf,
+     * which is the opposite of what this screen is for. Same flaw, same file,
+     * as the one fixed in Batch 31 for the suggestions - fixed there, not here.
      * <p>
-     * Jamais deviné : ensemble vide si l'Entity a disparu depuis la résolution du
-     * knownEntityId, ou si aucun groupe ne porte cette édition.
+     * Never guessed: empty set if the Entity has disappeared since the resolution of the
+     * knownEntityId, or if no group carries this edition.
      */
     private Set<Integer> findOwnedVolumeNumbers(UUID entityId, String editionName) {
         String recherchee = editionName == null ? "" : editionName.trim();
@@ -676,30 +676,30 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * @param entityId l'appelant peut fournir directement l'ID de la Série (ex: fiche Série, qui la
-     *                 connaît déjà avec certitude) - utilisé tel quel, sans passer par SeriesMatcher.
-     *                 {@code null} (ex: Analyse d'achat sur une série pas nécessairement en collection)
-     *                 retombe sur le matching texte best-effort existant.
+     * @param entityId the caller can directly provide the ID of the Series (e.g. series detail page, which
+     *                 already knows it for sure) - used as is, without going through SeriesMatcher.
+     *                 {@code null} (e.g. Purchase Analysis on a series not necessarily in the collection)
+     *                 falls back on the existing best-effort text matching.
      */
     public MangaEdition createEdition(UUID entityId, String seriesTitle, String editionName, EditionTier tier, String publisher,
                                        Integer totalVolumes, BigDecimal retailPriceNewPerVolume, boolean outOfPrint,
                                        boolean betterEditionAnnounced, String betterEditionNote) {
-        // Une Série fournie explicitement doit exister. Sans ce contrôle, seule la
-        // contrainte de clé étrangère protégeait la table, et le client recevait
-        // « Cette donnée entre en conflit avec une donnée existante » - alors que
-        // la Série est ABSENTE, pas conflictuelle.
+        // A Series provided explicitly must exist. Without this check, only the
+        // foreign key constraint protected the table, and the client received
+        // "Cette donnée entre en conflit avec une donnée existante" - while
+        // the Series is MISSING, not conflicting.
         //
-        // 400 et non 404, comme les autres routes qui référencent une œuvre
-        // depuis un CORPS de requête (/experiences, /wishlist, /relationships). La ressource visée -
-        // POST /editions - existe bel et bien ; c'est la référence fournie qui
-        // est invalide. Et le client remplace le message de tout 404 par un
-        // repli générique : en 404, « Série introuvable » n'atteindrait jamais
-        // l'écran.
+        // 400 and not 404, like the other routes that reference a work
+        // from a request BODY (/experiences, /wishlist, /relationships). The target resource -
+        // POST /editions - does exist; it is the reference provided that
+        // is invalid. And the client replaces the message of any 404 with a
+        // generic fallback: with a 404, "Série introuvable" would never reach
+        // the screen.
         if (entityId != null && entityRepository.findById(entityId).isEmpty()) {
             throw new IllegalArgumentException("Série introuvable : " + entityId);
         }
-        // Modèle catalogue cible (Série -> Édition -> Tome) : si cette série est déjà une Entity
-        // connue, lie l'édition dès sa création plutôt que d'attendre une prochaine analyse.
+        // Target catalogue model (Series -> Edition -> Volume): if this series is already a known
+        // Entity, link the edition from its creation rather than wait for a next analysis.
         UUID linkedEntityId = entityId != null ? entityId : seriesMatcher.match(seriesTitle).knownEntityId();
         MangaEdition edition = MangaEdition.create(linkedEntityId, seriesTitle, editionName, tier, publisher,
                 totalVolumes, retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote);
@@ -707,12 +707,12 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * Le matching texte ({@link SeriesMatcher}, comparaison de titres) reste le mécanisme de
-     * résolution à l'usage, mais la relation persistante cible est bien {@code manga_edition.entity_id}
-     * une fois connue - dès qu'une édition déjà enregistrée est utilisée aux côtés d'une Entity
-     * elle-même déjà résolue, le lien est enregistré une bonne fois pour toutes plutôt que
-     * rematché à chaque appel. Jamais l'inverse : n'invente/ne force jamais un entityId sans un
-     * match déjà établi ailleurs (ici, par {@link SeriesMatcher}).
+     * Text matching ({@link SeriesMatcher}, comparison of titles) stays the mechanism of
+     * resolution in use, but the target persistent relation is {@code manga_edition.entity_id}
+     * once known - as soon as an edition that is already saved is used next to an Entity
+     * that is itself already resolved, the link is saved once and for all rather than
+     * matched again at each call. Never the opposite: never makes up/forces an entityId without a
+     * match already established elsewhere (here, by {@link SeriesMatcher}).
      */
     private MangaEdition linkToKnownEntityIfNeeded(MangaEdition edition, UUID knownEntityId) {
         if (edition.entityId() != null || knownEntityId == null) {
@@ -742,9 +742,9 @@ public class PurchaseAnalysisService {
         return marketPriceObservationRepository.save(observation);
     }
 
-    /** Édition existante portant ce couple (titre de série, nom d'édition) - la
-     * contrainte d'unicité de la base porte exactement sur ce couple, quel que
-     * soit l'entityId. Sert à refuser un doublon avant l'insert (voir Lot 36). */
+    /** Existing edition carrying this pair (series title, edition name) - the
+     * uniqueness constraint of the database is exactly on this pair, whatever
+     * the entityId. Used to refuse a duplicate before the insert (see Batch 36). */
     public Optional<MangaEdition> findEditionBySeriesAndName(String seriesTitle, String editionName) {
         if (seriesTitle == null || editionName == null) {
             return Optional.empty();

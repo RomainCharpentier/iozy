@@ -8,13 +8,13 @@ public interface FollowedEditionRepository {
 
     FollowedEdition save(FollowedEdition followedEdition);
 
-    /** L'édition suivie d'une série, vide si l'utilisateur n'en a désigné aucune
-     *  (cas normal : une série à édition unique n'a rien à choisir). */
+    /** The followed edition of a series, empty if the user designated none
+     *  (normal case: a series with a single edition has nothing to choose). */
     Optional<FollowedEdition> findByEntityId(UUID entityId);
 
-    /** Les éditions suivies de plusieurs séries d'un coup - « Ma collection »
-     *  affiche une progression par série et ne doit pas émettre une requête
-     *  par ligne. */
+    /** The followed editions of several series at once - "Ma collection"
+     *  shows one progression per series and must not issue one query
+     *  per row. */
     List<FollowedEdition> findByEntityIdIn(List<UUID> entityIds);
 
     void deleteByEntityId(UUID entityId);

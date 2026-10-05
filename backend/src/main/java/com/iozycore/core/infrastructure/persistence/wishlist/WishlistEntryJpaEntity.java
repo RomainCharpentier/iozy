@@ -13,22 +13,22 @@ public class WishlistEntryJpaEntity {
     @Id
     private UUID id;
 
-    // Plus d'`unique` ici : l'unicité descend au couple (œuvre, tome) et se
-    // tient par deux index partiels côté base (voir V21), parce que deux NULL
-    // ne sont jamais égaux en SQL et qu'une contrainte ordinaire laisserait
-    // passer autant d'envies d'œuvre qu'on voudrait.
+    // No more `unique` here: the uniqueness goes down to the pair (work, volume) and is
+    // held by two partial indexes on the database side (see V21), because two NULLs
+    // are never equal in SQL and an ordinary constraint would let through
+    // as many work wishes as you like.
     @Column(name = "entity_id", nullable = false)
     private UUID entityId;
 
-    /** Le tome voulu. Vide pour un type sans notion de tome, où l'œuvre est
-     *  elle-même l'objet collectionnable. */
+    /** The wanted volume. Empty for a type with no notion of volume, where the work is
+     *  itself the collectible object. */
     @Column(name = "variant_id")
     private UUID variantId;
 
-    // Cloisonnement par propriétaire : Hibernate ajoute cette colonne à la
-    // clause WHERE de toute requête sur cette entité, et la remplit à
-    // l'insertion depuis ProprietaireCourant. Un filtre qu'on ne peut pas
-    // oublier, plutôt qu'une condition à réécrire dans chaque requête.
+    // Isolation by owner: Hibernate adds this column to the
+    // WHERE clause of every query on this entity, and fills it on
+    // insert from ProprietaireCourant. A filter you cannot
+    // forget, instead of a condition to rewrite in every query.
     @TenantId
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;

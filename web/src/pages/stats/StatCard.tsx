@@ -3,7 +3,7 @@ interface StatCardProps {
   label: string
 }
 
-/** Carte KPI - ligne de stats Shelf et grille de la page Stats. */
+/** KPI card - Shelf stats row and grid of the Stats page. */
 export function StatCard({ value, label }: StatCardProps) {
   return (
     <div className="rounded-[15px] border border-surface2 bg-surface p-4 text-left">

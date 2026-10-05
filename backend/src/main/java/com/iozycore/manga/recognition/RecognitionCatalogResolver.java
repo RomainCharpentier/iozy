@@ -14,27 +14,27 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Relie ce qui a été lu sur une photo à ce qu'IozyCore connaît déjà.
+ * Links what was read on a photo to what IozyCore already knows.
  *
- * <h2>Lecture seule, absolument</h2>
- * Ce service ne crée <b>ni Entity, ni Édition, ni Tome, ni Ownership, ni
- * Wishlist</b>. Il s'appuie sur {@link SeriesMatcher}, qui est déjà read-only
- * et insensible à la casse - et surtout pas sur {@code
- * CatalogEntityResolver.resolveOrCreate}, dont le nom dit qu'il crée. Une
- * reconnaissance qui écrit dans le catalogue transformerait une lecture
- * approximative en vérité, ce que ce projet refuse.
+ * <h2>Read-only, absolutely</h2>
+ * This service creates <b>no Entity, no Edition, no Volume, no Ownership, no
+ * Wishlist</b>. It relies on {@link SeriesMatcher}, which is already read-only
+ * and case-insensitive - and above all not on {@code
+ * CatalogEntityResolver.resolveOrCreate}, whose name says that it creates. A
+ * recognition that writes into the catalog would turn an approximate
+ * reading into truth, which this project refuses.
  *
- * <h2>Casse et doublons</h2>
- * « Platinum end » lu sur une photo retrouve la Série « Platinum End » du
- * catalogue : le rapprochement se fait déjà sans tenir compte de la casse
- * ({@code findByEntityTypeIdAndTitleIgnoreCase}). C'est ce qui empêche un
- * doublon de naître d'une différence de majuscules.
+ * <h2>Case and duplicates</h2>
+ * "Platinum end" read on a photo finds the series "Platinum End" of the
+ * catalog: the matching is already done without regard to case
+ * ({@code findByEntityTypeIdAndTitleIgnoreCase}). This is what prevents a
+ * duplicate from being born from a difference in capital letters.
  *
- * <h2>Édition ambiguë : on demande, on ne choisit pas</h2>
- * « Death Note tome 1 » sans indice d'édition ne devient pas Black Edition
- * parce qu'elle serait la première trouvée. L'élément ressort en
- * {@link CatalogStatus#EDITION_TO_CONFIRM} avec la liste des éditions connues,
- * et c'est l'utilisateur qui tranche.
+ * <h2>Ambiguous edition: we ask, we do not choose</h2>
+ * "Death Note tome 1" without an edition hint does not become Black Edition
+ * because it would be the first one found. The item comes out as
+ * {@link CatalogStatus#EDITION_TO_CONFIRM} with the list of known editions,
+ * and it is the user who decides.
  */
 @Service
 public class RecognitionCatalogResolver {
@@ -43,14 +43,14 @@ public class RecognitionCatalogResolver {
     private final MangaEditionRepository editionRepository;
 
     /**
-     * {@link SeriesMatcher} n'est pas un bean : {@code PurchaseAnalysisService}
-     * construit déjà le sien à partir des deux repositories. On suit la même
-     * convention plutôt que d'en faire un composant partagé - ce serait un
-     * changement sur une surface stabilisée pour un gain nul, l'objet étant sans
-     * état.
+     * {@link SeriesMatcher} is not a bean: {@code PurchaseAnalysisService}
+     * already builds its own from the two repositories. We follow the same
+     * convention rather than making it a shared component - it would be a
+     * change on a stabilised surface for no gain, the object being
+     * stateless.
      * <p>
-     * {@code @Autowired} est nécessaire : deux constructeurs coexistent, et
-     * Spring n'en choisit un seul d'office que lorsqu'il est unique.
+     * {@code @Autowired} is needed: two constructors coexist, and
+     * Spring picks only one by itself when it is unique.
      */
     @Autowired
     public RecognitionCatalogResolver(EntityRepository entityRepository,
@@ -59,7 +59,7 @@ public class RecognitionCatalogResolver {
         this(new SeriesMatcher(entityRepository, entityTypeRepository), editionRepository);
     }
 
-    /** Pour les tests, qui injectent un matcher doublure. */
+    /** For tests, which inject a stand-in matcher. */
     RecognitionCatalogResolver(SeriesMatcher seriesMatcher, MangaEditionRepository editionRepository) {
         this.seriesMatcher = seriesMatcher;
         this.editionRepository = editionRepository;
@@ -80,14 +80,14 @@ public class RecognitionCatalogResolver {
         MangaSeries serie = seriesMatcher.match(item.seriesTitleRaw());
 
         if (serie.knownEntityId() == null) {
-            // Reconnu, mais pas encore au catalogue. On le dit, on ne crée rien :
-            // l'utilisateur a un parcours d'ajout, et c'est le sien.
+            // Recognised, but not yet in the catalog. We say so, we create nothing:
+            // the user has an add flow, and it is theirs.
             //
-            // Le titre retenu reste celui que SeriesMatcher a normalisé, pas le
-            // brut : « 🔥 Hell's Paradise » entrerait sinon tel quel dans le lot
-            // puis dans l'analyse enregistrée. La décoration du vendeur n'a pas
-            // à devenir le nom d'une œuvre - et le texte d'origine reste lisible
-            // dans seriesTitleAsRead.
+            // The title kept is the one that SeriesMatcher normalised, not the
+            // raw one: "🔥 Hell's Paradise" would otherwise enter the batch as is
+            // then the saved analysis. The seller's decoration must not
+            // become the name of a work - and the original text stays readable
+            // in seriesTitleAsRead.
             return new ResolvedItem(item, CatalogStatus.NOT_IN_CATALOG, null, serie.title(), List.of(),
                     preselectable(item, CatalogStatus.NOT_IN_CATALOG));
         }
@@ -97,23 +97,23 @@ public class RecognitionCatalogResolver {
 
         CatalogStatus statut = exacte.isPresent() ? CatalogStatus.MATCHED : CatalogStatus.EDITION_TO_CONFIRM;
 
-        // Une seule édition connue et rien de lu sur la photo : c'est tentant de
-        // la choisir. On ne le fait pas - une série peut parfaitement avoir une
-        // seconde édition que le catalogue ignore encore, et le lot en contenir.
-        // La liste est proposée, le geste reste à l'utilisateur.
+        // A single known edition and nothing read on the photo: it is tempting to
+        // choose it. We do not do it - a series may very well have a
+        // second edition that the catalog does not know yet, and the batch contain it.
+        // The list is proposed, the action stays with the user.
         List<ResolvedItem.EditionOption> options = statut == CatalogStatus.EDITION_TO_CONFIRM
                 ? editions.stream()
                         .map(e -> new ResolvedItem.EditionOption(e.id(), e.editionName(), e.totalVolumes()))
                         .toList()
                 : List.of();
 
-        // Quand le catalogue a reconnu l'édition, c'est SON libellé qui fait foi.
+        // When the catalog has recognised the edition, ITS label is authoritative.
         //
-        // L'annonce écrit « édition Kana », le catalogue dit « Kana ». Garder ce
-        // qui a été lu ferait entrer « Kana Edition » dans le lot, puis dans
-        // l'analyse enregistrée, puis dans les prix relevés - un nom d'édition
-        // que le catalogue ne porte pas, et qui ne se rapprocherait plus de rien.
-        // Le texte d'origine reste lisible dans seriesTitleAsRead.
+        // The listing writes "édition Kana", the catalog says "Kana". Keeping what
+        // was read would bring "Kana Edition" into the batch, then into the saved
+        // analysis, then into the recorded prices - an edition name
+        // that the catalog does not carry, and that would no longer match anything.
+        // The original text stays readable in seriesTitleAsRead.
         RecognizedItem retenu = exacte
                 .map(edition -> avecEdition(item, edition.editionName()))
                 .orElse(item);
@@ -130,9 +130,9 @@ public class RecognitionCatalogResolver {
     }
 
     /**
-     * L'édition du catalogue qui correspond à ce qui a été lu. Comparaison
-     * normalisée (casse, accents, ponctuation) : « perfect edition » retrouve
-     * « Perfect Edition ». Sans indice lu, rien ne correspond - c'est voulu.
+     * The catalog edition that matches what was read. Normalised comparison
+     * (case, accents, punctuation): "perfect edition" finds
+     * "Perfect Edition". With no hint read, nothing matches - this is intended.
      */
     private Optional<MangaEdition> editionLue(RecognizedItem item, List<MangaEdition> editions) {
         if (item.editionIsUnknown()) {
@@ -147,12 +147,12 @@ public class RecognitionCatalogResolver {
             return exacte;
         }
 
-        // Repli : le mot « edition » lui-même n'est pas discriminant, et les deux
-        // côtés ne le portent pas toujours. Le catalogue nomme une édition
-        // « Kana » quand l'annonce écrit « édition Kana » ; il en nomme une
-        // « Perfect Edition » quand l'annonce écrit « Naruto Perfect ». Comparer
-        // les libellés bruts faisait échouer les deux, et un élément
-        // parfaitement identifié repassait en « édition à confirmer ».
+        // Fallback: the word "edition" itself is not discriminating, and the two
+        // sides do not always carry it. The catalog names an edition
+        // "Kana" when the listing writes "édition Kana"; it names one
+        // "Perfect Edition" when the listing writes "Naruto Perfect". Comparing
+        // the raw labels made both fail, and a perfectly identified
+        // item went back to "édition à confirmer".
         String noyauLu = sansLeMotEdition(lue);
         if (noyauLu.isBlank()) {
             return Optional.empty();
@@ -162,17 +162,17 @@ public class RecognitionCatalogResolver {
                         .equals(noyauLu))
                 .toList();
 
-        // Une seule, sinon rien : si le catalogue portait à la fois « Perfect »
-        // et « Perfect Edition », choisir pour l'utilisateur serait deviner.
+        // Only one, otherwise nothing: if the catalog carried both "Perfect"
+        // and "Perfect Edition", choosing for the user would be guessing.
         return approchantes.size() == 1 ? Optional.of(approchantes.get(0)) : Optional.empty();
     }
 
-    /** Le libellé privé du mot « edition », déjà normalisé (sans accents, minuscules). */
+    /** The label without the word "edition", already normalised (no accents, lowercase). */
     private static String sansLeMotEdition(String normalise) {
         return normalise.replaceAll("\\bedition[s]?\\b", " ").replaceAll("\\s+", " ").trim();
     }
 
-    /** Le titre du catalogue fait foi ; les éditions le portent aussi, on prend le premier connu. */
+    /** The catalog title is authoritative; editions carry it too, we take the first known one. */
     private String catalogTitle(MangaSeries serie, List<MangaEdition> editions) {
         return editions.stream()
                 .map(MangaEdition::seriesTitle)
@@ -182,9 +182,9 @@ public class RecognitionCatalogResolver {
     }
 
     /**
-     * Pré-cocher n'est jamais un droit d'écriture, seulement un confort. On ne
-     * pré-coche que ce dont on est sûr <b>et</b> que le catalogue reconnaît
-     * entièrement : une confiance haute sur une série inconnue reste à regarder.
+     * Pre-ticking is never a right to write, only a comfort. We only
+     * pre-tick what we are sure of <b>and</b> that the catalog recognises
+     * entirely: a high confidence on an unknown series still needs a look.
      */
     private boolean preselectable(RecognizedItem item, CatalogStatus statut) {
         return item.confidence().worthPreselecting()

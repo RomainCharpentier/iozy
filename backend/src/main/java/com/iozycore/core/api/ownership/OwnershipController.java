@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/ownerships")
-@Tag(name = "Ownerships", description = "UC2 - gestion des possessions, indépendante des Experience")
+@Tag(name = "Ownerships", description = "UC2 - management of ownerships, independent of Experiences")
 public class OwnershipController {
 
     private final OwnershipRepository ownershipRepository;
@@ -29,9 +29,9 @@ public class OwnershipController {
         this.ownershipDeletionService = ownershipDeletionService;
     }
 
-    @Operation(summary = "Lister les Ownership - filtrées sur une Entity si entityId est fourni, toutes sinon "
-            + "(ex: calcul de progression par série sur Ma collection, qui a besoin de la possession réelle de "
-            + "chaque série affichée en une seule fois plutôt que d'une requête par série)")
+    @Operation(summary = "List the Ownerships - filtered on an Entity if entityId is given, all otherwise "
+            + "(e.g. progress computation per series on My collection, which needs the real ownership of "
+            + "each displayed series in one go rather than one query per series)")
     @GetMapping
     public List<OwnershipResponse> list(@RequestParam(required = false) UUID entityId) {
         List<Ownership> ownerships = entityId != null
@@ -42,7 +42,7 @@ public class OwnershipController {
                 .collect(Collectors.toList());
     }
 
-    @Operation(summary = "Marquer une Ownership comme vendue")
+    @Operation(summary = "Mark an Ownership as sold")
     @PostMapping("/{id}/sell")
     public OwnershipResponse markSold(@PathVariable UUID id) {
         Ownership ownership = findOrThrow(id);
@@ -50,7 +50,7 @@ public class OwnershipController {
         return OwnershipResponse.from(ownershipRepository.save(ownership));
     }
 
-    @Operation(summary = "Marquer une Ownership comme perdue")
+    @Operation(summary = "Mark an Ownership as lost")
     @PostMapping("/{id}/lose")
     public OwnershipResponse markLost(@PathVariable UUID id) {
         Ownership ownership = findOrThrow(id);
@@ -58,13 +58,13 @@ public class OwnershipController {
         return OwnershipResponse.from(ownershipRepository.save(ownership));
     }
 
-    @Operation(summary = "Remettre en possession un exemplaire vendu ou perdu - sert l'action \"Annuler\" "
-            + "proposée juste après avoir marqué vendu/perdu. 409 si l'exemplaire est déjà actif.")
-    // Aucun appelant web aujourd'hui, et pourtant conservée : le client iOS
-    // sait marquer vendu et perdu (/sell, /lose). Sans cette route, ces deux
-    // gestes seraient des allers simples. C'est un écran qui manque, pas du
-    // code mort - même distinction qu'au Lot 51 pour les préférences
-    // d'analyse d'achat.
+    @Operation(summary = "Put a sold or lost copy back in ownership - serves the \"Undo\" action "
+            + "offered right after marking sold/lost. 409 if the copy is already active.")
+    // No web caller today, and yet kept: the iOS client
+    // knows how to mark sold and lost (/sell, /lose). Without this route, these two
+    // actions would be one-way. It is a missing screen, not
+    // dead code - same distinction as in Batch 51 for the purchase
+    // analysis preferences.
     @PostMapping("/{id}/restore")
     public OwnershipResponse restore(@PathVariable UUID id) {
         Ownership ownership = findOrThrow(id);
@@ -72,11 +72,11 @@ public class OwnershipController {
         return OwnershipResponse.from(ownershipRepository.save(ownership));
     }
 
-    @Operation(summary = "Supprimer définitivement un exemplaire - contrairement à \"marquer vendu/perdu\" "
-            + "(changement de statut réversible), cette action est irréversible. Le Tome catalogué qu'il "
-            + "référence n'est jamais supprimé : seule la possession disparaît.")
-    @ApiResponse(responseCode = "204", description = "Exemplaire supprimé - aucun corps. Idempotent : "
-            + "un identifiant déjà supprimé ou inconnu rend également 204.")
+    @Operation(summary = "Permanently delete a copy - unlike \"mark sold/lost\" "
+            + "(reversible status change), this action is irreversible. The cataloged Volume that it "
+            + "references is never deleted: only the ownership disappears.")
+    @ApiResponse(responseCode = "204", description = "Copy deleted - no body. Idempotent: "
+            + "an id already deleted or unknown also returns 204.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         ownershipDeletionService.delete(id);

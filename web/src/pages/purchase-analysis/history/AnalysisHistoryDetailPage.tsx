@@ -9,8 +9,8 @@ import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { Squelette } from '@/common/components/Squelette'
 
-/** Une analyse passée précise, revue en entier (même carte de résultat que
- * juste après "ANALYSER LE LOT") - voir AnalysisHistoryPage pour la liste. */
+/** One specific past analysis, reviewed in full (same result card as
+ * right after "ANALYSER LE LOT") - see AnalysisHistoryPage for the list. */
 export function AnalysisHistoryDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()

@@ -7,19 +7,19 @@ import { PhotoAnnotee, type EtatCadre } from './PhotoAnnotee'
 import { rapportDuBloc, recadrer } from './recadrage'
 
 /**
- * La vérification : les lectures une par une.
+ * The check: the readings one by one.
  *
- * Pour chaque livre, la photo avec son seul cadre - pour le situer sur
- * l'étagère - puis ce cadre en gros plan et ce qui en a été lu. On confirme,
- * on corrige le numéro, ou on écarte, puis le suivant, de gauche à droite.
- * Rien n'est écrit ici : chaque geste ne fait que cocher ou décocher la
- * pastille correspondante ; le récapitulatif par série vient après, et la
- * relecture avant écriture reste le seul passage obligé.
+ * For each book, the photo with its single frame - to place it on
+ * the shelf - then this frame in close-up and what was read from it. The user confirms,
+ * corrects the number, or sets it aside, then the next one, from left to right.
+ * Nothing is written here: each gesture only checks or unchecks the
+ * matching pill; the summary by series comes after, and the
+ * review before writing remains the only required step.
  */
 export interface Extrait {
   cle: string
   titre: string
-  /** Le numéro retenu (lu, ou saisi plus tôt) ; null tant qu'on ne le connaît pas. */
+  /** The number kept (read, or typed earlier); null as long as it is not known. */
   numero: number | null
   editionLue: string | null
   confiance: RecognitionConfidence
@@ -94,8 +94,8 @@ export function ValidationUnParUn({
         }
       />
 
-      {/* La photo entière avec le seul cadre du livre en cours : de quoi le
-          situer sur l'étagère avant de le regarder de près. */}
+      {/* The whole photo with the single frame of the current book: enough to
+          place it on the shelf before looking at it closely. */}
       {extrait.box && (
         <PhotoAnnotee
           src={urls[extrait.box.image] ?? ''}
@@ -133,7 +133,7 @@ export function ValidationUnParUn({
   )
 }
 
-/** Un extrait à la fois - remonté avec sa clé pour que le numéro saisi reparte de zéro à chaque livre. */
+/** One excerpt at a time - remounted with its key so that the typed number starts from zero for each book. */
 function FicheExtrait({
   extrait,
   url,
@@ -161,9 +161,9 @@ function FicheExtrait({
 
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-surface p-3 sm:flex-row sm:items-start">
-      {/* Le morceau de photo : la photo en fond, agrandie et décalée sur le
-          cadre. Sans cadre (lecture venue du texte ou d'un code-barres), on le
-          dit plutôt que de montrer une photo entière sans repère. */}
+      {/* The piece of photo: the photo as background, enlarged and shifted onto the
+          frame. Without a frame (reading from the text or from a barcode), we say
+          so rather than showing a whole photo without a landmark. */}
       {recadrage && url ? (
         <div
           role="img"

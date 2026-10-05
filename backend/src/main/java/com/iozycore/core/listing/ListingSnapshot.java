@@ -7,35 +7,35 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Ce qu'IozyCore a réellement pu lire d'une annonce en ligne, à un instant
- * donné, sous une forme indépendante de la plateforme d'origine.
+ * What IozyCore has really been able to read from an online listing, at a given
+ * moment, in a form independent of the original platform.
  * <p>
- * <b>Tout est facultatif sauf la source et l'URL.</b> Une annonce dont seuls le
- * titre et le prix sont lisibles produit un snapshot avec ces deux champs et
- * rien d'autre - jamais un échec, jamais une valeur inventée pour combler un
- * trou. {@link #retrievedFields()} dit exactement ce qui a été trouvé, ce qui
- * permet au client de ne pré-remplir que ça, et à l'utilisateur de savoir ce
- * qu'il lui reste à saisir.
+ * <b>Everything is optional except the source and the URL.</b> A listing of which only the
+ * title and price are readable produces a snapshot with these two fields and
+ * nothing else - never a failure, never a value invented to fill a
+ * gap. {@link #retrievedFields()} says exactly what was found, which
+ * lets the client pre-fill only that, and the user know what
+ * is left to type.
  * <p>
- * <b>C'est une photographie, pas un lien vivant.</b> {@code retrievedAt} date
- * la lecture ; si le vendeur change son prix ensuite, ce snapshot ne bouge pas
- * et l'analyse qui s'appuie dessus non plus. Aucune synchronisation n'existe.
+ * <b>It is a photograph, not a live link.</b> {@code retrievedAt} dates
+ * the reading; if the seller changes their price afterwards, this snapshot does not move
+ * and neither does the analysis that relies on it. No synchronization exists.
  * <p>
- * Volontairement dépourvu de données personnelles du vendeur : pseudo, avatar,
- * localisation précise n'apportent rien au verdict d'achat et n'ont donc pas à
- * être récupérés ni conservés.
+ * Deliberately without personal data of the seller: nickname, avatar,
+ * precise location bring nothing to the purchase verdict and so do not have to
+ * be retrieved or kept.
  *
- * @param externalId identifiant de l'annonce chez la source, quand il est lisible - sert à reconnaître deux URL de la même annonce
- * @param price              prix affiché, hors frais - le formulaire d'analyse les tient séparés
- * @param shippingFee        montant de livraison lu, ou null s'il est illisible
- * @param shippingKind       ce que ce montant vaut réellement - offert, ferme, ou simple plancher
- *                           quand plusieurs modes de livraison existent. Sans lui, « 2,83 € » et
- *                           « à partir de 2,83 € » deviendraient indiscernables. Un snapshot ne
- *                           porte jamais {@link ShippingEstimateKind#ESTIMATED} : celui-là qualifie
- *                           une saisie de l'utilisateur, pas une lecture de source.
- * @param buyerProtectionFee frais de protection acheteur, montant réellement facturé (après remise
- *                           éventuelle), pas le tarif affiché avant promotion
- * @param imageUrls  photos de l'annonce elle-même, dans l'ordre d'affichage - jamais les avatars ni les vignettes d'articles similaires
+ * @param externalId identifier of the listing at the source, when it is readable - used to recognize two URLs of the same listing
+ * @param price              displayed price, excluding fees - the analysis form keeps them separate
+ * @param shippingFee        shipping amount read, or null if it is unreadable
+ * @param shippingKind       what this amount is really worth - free, firm, or just a floor
+ *                           when several shipping modes exist. Without it, "2.83 EUR" and
+ *                           "from 2.83 EUR" would become indistinguishable. A snapshot never
+ *                           carries {@link ShippingEstimateKind#ESTIMATED}: that one qualifies
+ *                           a user entry, not a reading of a source.
+ * @param buyerProtectionFee buyer protection fee, amount really charged (after any
+ *                           discount), not the price displayed before the promotion
+ * @param imageUrls  photos of the listing itself, in display order - never the avatars or the thumbnails of similar items
  */
 public record ListingSnapshot(ListingPlatform source, String sourceUrl, String externalId, String title,
                                String description, BigDecimal price, String currency,
@@ -44,25 +44,25 @@ public record ListingSnapshot(ListingPlatform source, String sourceUrl, String e
                                List<String> imageUrls, Instant retrievedAt, List<ListingField> retrievedFields) {
 
     public ListingSnapshot {
-        // Jamais de zéro implicite : une livraison illisible reste inconnue,
-        // la supposer offerte minorerait le coût d'acquisition.
+        // Never an implicit zero: an unreadable shipping stays unknown,
+        // assuming it is free would understate the acquisition cost.
         shippingKind = shippingKind == null ? ShippingEstimateKind.UNKNOWN : shippingKind;
         imageUrls = imageUrls == null ? List.of() : List.copyOf(imageUrls);
         retrievedFields = retrievedFields == null ? List.of() : List.copyOf(retrievedFields);
     }
 
-    /** Les champs qu'un provider peut rapporter - sert à dire ce qui a été trouvé, pas ce qui existe. */
+    /** The fields a provider can report - used to say what was found, not what exists. */
     public enum ListingField {
         TITLE,
         DESCRIPTION,
         PRICE,
-        /** Frais de port - voir la réserve « à partir de » sur {@link ListingSnapshot#shippingFee()}. */
+        /** Shipping fee - see the "from" reservation on {@link ListingSnapshot#shippingFee()}. */
         SHIPPING_FEE,
         BUYER_PROTECTION_FEE,
         IMAGES
     }
 
-    /** Rien de lisible : ni titre, ni prix, ni description, ni photo. Le parcours manuel reprend la main. */
+    /** Nothing readable: no title, no price, no description, no photo. The manual flow takes over again. */
     public boolean isEmpty() {
         return retrievedFields.isEmpty();
     }

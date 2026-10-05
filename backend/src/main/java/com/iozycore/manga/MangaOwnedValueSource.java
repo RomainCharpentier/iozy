@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Ce que valent, au prix du neuf, les tomes qu'on possède : le prix neuf
- * par tome de l'édition de référence, multiplié par les tomes possédés de
- * cette édition. Un tome trouvé d'occasion à 2 € vaut ce que vaut ce tome
- * (logique extraite de StatsService au Lot 133).
+ * What the volumes the user owns are worth, at the new price: the new price
+ * per volume of the reference edition, multiplied by the owned volumes of
+ * this edition. A volume found second-hand for 2 EUR is worth what this volume is worth
+ * (logic extracted from StatsService in Batch 133).
  */
 @Component
 public class MangaOwnedValueSource implements OwnedValueSource {

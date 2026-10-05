@@ -4,18 +4,18 @@ import { RANKS, type Rank, type TierListEntryDto } from '@/common/types/tierList
 import { Jaquette } from '@/common/components/Jaquette'
 
 /**
- * Board de classement, présentation pure - partagé entre le classement
- * général et une Tier List personnalisée (même rendu, seule la source des
- * données et les mutations diffèrent, voir GeneralTierBoardPage/
- * CustomTierBoardPage). Interaction principale : clic sur une jaquette ->
- * TierPicker (voir le parent).
+ * Ranking board, pure presentation - shared between the general ranking
+ * and a custom Tier List (same rendering, only the data source
+ * and the mutations differ, see GeneralTierBoardPage/
+ * CustomTierBoardPage). Main interaction: click on a cover ->
+ * TierPicker (see the parent).
  * <p>
- * Le glisser-déposer (DS v1.1 §47) vient EN PLUS depuis le Lot 14, jamais à
- * la place : il n'est disponible qu'à la souris (l'API HTML5 de drag &
- * drop ignore le tactile), et le §47 exige justement qu'il ne soit jamais
- * la seule façon de classer. Le clic et le clavier (Tab + Entrée sur la
- * jaquette, puis S-F dans le sélecteur) restent donc intacts et suffisent à
- * tout faire.
+ * Drag and drop (DS v1.1 section 47) comes IN ADDITION since batch 14, never
+ * instead: it is only available with a mouse (the HTML5 drag &
+ * drop API ignores touch), and section 47 requires precisely that it never be
+ * the only way to rank. Click and keyboard (Tab + Enter on the
+ * cover, then S-F in the picker) therefore stay intact and are enough to
+ * do everything.
  */
 export function TierBoard({
   ranked,
@@ -28,13 +28,13 @@ export function TierBoard({
   unranked: TierListEntryDto[]
   activeRanks: Rank[]
   onSelectEntry: (entry: TierListEntryDto) => void
-  /** Absent = board en lecture seule pour le glisser-déposer (le clic reste
-   * actif). `null` en rang = ramené vers "À classer". */
+  /** Absent = board read-only for drag and drop (click stays
+   * active). `null` as a rank = brought back to "À classer". */
   onDropEntry?: (entry: TierListEntryDto, rank: Rank | null) => void
 }) {
-  // Entrée en cours de déplacement : gardée ici plutôt que lue depuis
-  // dataTransfer, qui n'est pas lisible pendant dragover (spec HTML) - or
-  // c'est pendant dragover qu'on décide de surligner la zone.
+  // Entry being moved: kept here rather than read from
+  // dataTransfer, which is not readable during dragover (HTML spec) - yet
+  // it is during dragover that we decide to highlight the zone.
   const [draggedEntry, setDraggedEntry] = useState<TierListEntryDto | null>(null)
   const [hoveredZone, setHoveredZone] = useState<Rank | 'unranked' | null>(null)
 
@@ -53,8 +53,8 @@ export function TierBoard({
             setHoveredZone(null)
             const entry = draggedEntry
             setDraggedEntry(null)
-            // Déposer une œuvre là où elle est déjà : ne rien envoyer plutôt
-            // que de re-jouer la même mutation pour un résultat identique.
+            // Dropping a work where it already is: send nothing rather
+            // than replay the same mutation for an identical result.
             if (!entry) return
             const target = zone === 'unranked' ? null : zone
             if (entry.rank === target) return
@@ -69,8 +69,8 @@ export function TierBoard({
           draggable: true,
           onDragStart: (e: React.DragEvent) => {
             setDraggedEntry(entry)
-            // Un dataTransfer non vide est requis par Firefox pour que le
-            // glissement démarre - la valeur elle-même n'est jamais relue.
+            // A non-empty dataTransfer is required by Firefox for the
+            // drag to start - the value itself is never read back.
             e.dataTransfer.setData('text/plain', entry.entityId)
             e.dataTransfer.effectAllowed = 'move'
           },
@@ -107,12 +107,12 @@ export function TierBoard({
                   key={entry.entityId}
                   type="button"
                   onClick={() => onSelectEntry(entry)}
-                  // Le rang fait partie du nom : il se lit visuellement dans la
-                  // ligne (voir TierBadge à gauche), mais rien ne l'associe à la
-                  // tuile pour qui ne voit pas la mise en page. Sans aria-label,
-                  // une tuile à jaquette n'avait pour tout nom que son `title`,
-                  // dernier recours de l'algorithme accname (voir Lot 29) - la
-                  // tuile SANS jaquette, elle, portait déjà son titre en texte.
+                  // The rank is part of the name: it reads visually in the
+                  // row (see TierBadge on the left), but nothing associates it with the
+                  // tile for whoever does not see the layout. Without aria-label,
+                  // a tile with a cover had no name but its `title`,
+                  // last resort of the accname algorithm (see batch 29) - the
+                  // tile WITHOUT a cover, for its part, already carried its title as text.
                   aria-label={`${entry.title}, rang ${rank}`}
                   title={entry.title}
                   {...tileHandlers(entry)}
@@ -136,10 +136,10 @@ export function TierBoard({
         )
       })}
 
-      {/* "À classer" est aussi une zone de dépôt : c'est le seul moyen de
-          DÉ-classer au glisser-déposer, sinon le geste ne serait
-          réversible qu'au clic. Affichée dès qu'un glissement est en cours,
-          même vide, sinon il n'y aurait nulle part où viser. */}
+      {/* "À classer" is also a drop zone: it is the only way to
+          UN-rank by drag and drop, otherwise the gesture would only be
+          reversible by clicking. Shown as soon as a drag is in progress,
+          even empty, otherwise there would be nowhere to aim. */}
       {(unranked.length > 0 || draggedEntry) && (
         <div
           {...dropHandlers('unranked')}

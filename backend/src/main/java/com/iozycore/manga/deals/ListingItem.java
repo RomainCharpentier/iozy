@@ -22,27 +22,27 @@ public record ListingItem(MangaSeries series, String editionNameRaw, Set<Integer
                            Condition itemConditionOverride) {
 
     /**
-     * Ce que porte un lot dont l'utilisateur ne sait pas nommer l'édition.
+     * What a lot carries when the user cannot name the edition.
      *
-     * <h2>Pourquoi une valeur plutôt qu'un {@code null}</h2>
-     * L'édition reste obligatoire ici - c'est la clé qui relie un lot à une
-     * fiche d'édition, et la rendre nullable toucherait un invariant du
-     * domaine pour un gain que le choix explicite obtient déjà. Ce que le
-     * produit corrige, c'est l'<b>obligation de deviner</b> : plutôt que de
-     * taper « Standard » au hasard - étiquette qui pourrait correspondre par
-     * accident à une autre édition et fausser la référence marché -
-     * l'utilisateur déclare ne pas savoir, et le moteur en tire les
-     * conséquences honnêtement.
+     * <h2>Why a value rather than a {@code null}</h2>
+     * The edition stays mandatory here - it is the key that links a lot to an
+     * edition page, and making it nullable would touch a domain invariant
+     * for a gain that the explicit choice already gets. What the
+     * product fixes is the <b>obligation to guess</b>: instead of
+     * typing "Standard" at random - a label that could match another
+     * edition by accident and distort the market reference -
+     * the user says they do not know, and the engine honestly draws
+     * the consequences.
      * <p>
-     * Aucune fiche d'édition ne porte ce nom, donc la résolution échoue
-     * <b>volontairement</b> : complétude inconnue, valeur neuve non calculée,
-     * confiance basse. Exactement le comportement déjà prévu par
-     * {@link PurchaseAnalysisEngine} pour une édition introuvable - voir le
-     * message dédié qu'il produit dans ce cas.
+     * No edition page has this name, so the resolution fails
+     * <b>on purpose</b>: completeness unknown, new value not computed,
+     * low confidence. Exactly the behaviour already planned by
+     * {@link PurchaseAnalysisEngine} for an edition that cannot be found - see the
+     * dedicated message it produces in this case.
      */
     public static final String EDITION_INCONNUE = "Édition inconnue";
 
-    /** Vrai si l'utilisateur a explicitement déclaré ne pas connaître l'édition. */
+    /** True if the user explicitly said they do not know the edition. */
     public boolean editionIsUnknown() {
         return EDITION_INCONNUE.equalsIgnoreCase(editionNameRaw);
     }

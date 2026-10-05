@@ -4,63 +4,63 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Ce que pèse chaque compte, et comment effacer le sien.
+ * What each account weighs, and how to erase one's own.
  *
- * <h2>Le seul endroit de l'application qui regarde par-dessus la cloison</h2>
- * Partout ailleurs, une requête ne voit que les lignes du propriétaire courant
- * - c'est Hibernate qui l'impose, par le filtre de {@code @TenantId}, et c'est
- * ce qui rend l'isolation vraie plutôt que promise (voir le Lot 95). Les deux
- * gestes ci-dessous ne peuvent pas s'écrire ainsi : compter les possessions de
- * QUELQU'UN D'AUTRE, ou effacer les siennes, c'est précisément sortir de sa
- * propre cloison.
+ * <h2>The only place in the application that looks over the partition</h2>
+ * Everywhere else, a query only sees the rows of the current owner
+ * - Hibernate enforces it, through the {@code @TenantId} filter, and this is
+ * what makes isolation true rather than promised (see Batch 95). The two
+ * actions below cannot be written that way: counting the ownerships of
+ * SOMEONE ELSE, or erasing one's own, is precisely going out of one's
+ * own partition.
  *
- * <p>D'où un port séparé, et une implémentation en SQL direct : ce n'est pas
- * un contournement discret glissé dans un dépôt ordinaire, c'est une porte
- * nommée, avec un seul appelant ({@link GestionDesComptes}) et une garde
- * devant (le rôle {@code ADMIN}, voir {@code SecurityConfig}).
+ * <p>Hence a separate port, and an implementation in direct SQL: this is not
+ * a discreet workaround slipped into an ordinary repository, it is a named
+ * door, with a single caller ({@link GestionDesComptes}) and a guard
+ * in front (the {@code ADMIN} role, see {@code SecurityConfig}).
  *
- * <h2>Des NOMBRES, jamais du contenu</h2>
- * {@link #compter()} rend des décomptes. Aucune méthode ici ne rend une ligne :
- * un administrateur doit pouvoir décider s'il supprime un compte - donc savoir
- * ce qu'il détruit - sans jamais lire la collection de personne.
+ * <h2>NUMBERS, never content</h2>
+ * {@link #compter()} returns counts. No method here returns a row:
+ * an administrator must be able to decide whether to delete an account - so know
+ * what it destroys - without ever reading anyone's collection.
  */
 public interface DonneesParProprietaire {
 
     /**
-     * @param possessions les tomes et objets réellement possédés
-     * @param envies      la liste d'envies
-     * @param experiences lectures, parties, visionnages - ce qu'on a vécu
-     * @param classements les Tier Lists personnelles
-     * @param analyses    les analyses d'annonces enregistrées
+     * @param possessions the volumes and items really owned
+     * @param envies      the wishlist
+     * @param experiences readings, games, viewings - what was lived
+     * @param classements the personal Tier Lists
+     * @param analyses    the saved listing analyses
      */
     record Volume(long possessions, long envies, long experiences, long classements, long analyses) {
 
         public static final Volume AUCUN = new Volume(0, 0, 0, 0, 0);
 
-        /** Ce qu'on détruirait en supprimant ce compte - zéro veut dire « rien ». */
+        /** What would be destroyed by deleting this account - zero means "nothing". */
         public long total() {
             return possessions + envies + experiences + classements + analyses;
         }
     }
 
     /**
-     * Le volume de chaque propriétaire, en une seule requête.
+     * The volume of each owner, in a single query.
      * <p>
-     * Une requête par compte ferait grandir le coût de l'écran avec le nombre
-     * de comptes, pour un écran qui les liste tous - la figure exacte du
-     * constat C1.
+     * One query per account would make the cost of the screen grow with the number
+     * of accounts, for a screen that lists them all - the exact figure of
+     * finding C1.
      */
     Map<UUID, Volume> compter();
 
     /**
-     * Efface TOUT ce qui appartient à ce propriétaire, dans les onze tables qui
-     * portent un {@code owner_id}. Le compte lui-même est retiré ailleurs (voir
-     * {@code AppUserRepository#supprimer}) : cette méthode ne connaît que les
-     * données.
+     * Erases EVERYTHING that belongs to this owner, in the eleven tables that
+     * carry an {@code owner_id}. The account itself is removed elsewhere (see
+     * {@code AppUserRepository#supprimer}): this method only knows the
+     * data.
      * <p>
-     * Le catalogue - œuvres, tomes, éditions, relations - n'est PAS touché : il
-     * est partagé, une œuvre est la même pour tout le monde, et la supprimer
-     * retirerait de la collection des autres.
+     * The catalog - works, volumes, editions, relationships - is NOT touched: it
+     * is shared, a work is the same for everyone, and deleting it
+     * would remove it from the collection of the others.
      */
     void effacerToutCeQuiAppartientA(UUID proprietaire);
 }

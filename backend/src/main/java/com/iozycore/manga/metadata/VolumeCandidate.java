@@ -3,60 +3,60 @@ package com.iozycore.manga.metadata;
 import com.iozycore.core.domain.shared.TexteRecherche;
 
 /**
- * Un tome précis d'une édition française réelle d'une série (ex: "Tome 5"
- * de l'édition "Kana"), avec sa jaquette propre - distinct de
- * {@link MetadataCandidate} qui décrit la SÉRIE dans son ensemble (un seul
- * candidat par œuvre, pas un par tome). Résultat de
- * {@link VolumeSearchProvider#searchVolumes}, utilisé pour proposer une
- * sélection visuelle des tomes possédés (façon Mangacollec) plutôt que de
- * saisir un numéro de tome à l'aveugle.
+ * A precise volume of a real French edition of a series (e.g. "Tome 5"
+ * of the "Kana" edition), with its own cover - distinct from
+ * {@link MetadataCandidate} which describes the SERIES as a whole (one
+ * candidate per work, not one per volume). Result of
+ * {@link VolumeSearchProvider#searchVolumes}, used to offer a
+ * visual selection of owned volumes (Mangacollec style) instead of
+ * typing a volume number blindly.
  *
- * @param edition      nom de l'édition détecté (ex: "Kana", "Édition
- *                     originale") - jamais vide, replié sur l'éditeur brut
- *                     si aucun nom de collection n'a pu être isolé.
- * @param volumeNumber numéro de tome, tel qu'extrait du titre de la fiche.
- * @param imageUrl     jaquette de CE tome précis (peut différer de tome en
- *                     tome), ou null si la source n'en fournit pas.
- * @param title        titre brut de la fiche source, conservé pour du
- *                     débogage éventuel - jamais affiché tel quel.
- * @param isbn         ISBN de CE tome, chiffres seuls, ou null - c'est lui qui
- *                     distingue deux éditions d'un même éditeur portant le
- *                     même numéro de tome (voir
+ * @param edition      detected edition name (e.g. "Kana", "Édition
+ *                     originale") - never empty, falls back to the raw publisher
+ *                     if no collection name could be isolated.
+ * @param volumeNumber volume number, as extracted from the title of the source entry.
+ * @param imageUrl     cover of THIS precise volume (can differ from volume to
+ *                     volume), or null if the source gives none.
+ * @param title        raw title of the source entry, kept for possible
+ *                     debugging - never shown as it is.
+ * @param isbn         ISBN of THIS volume, digits only, or null - it is what
+ *                     tells apart two editions of the same publisher with the
+ *                     same volume number (see
  *                     {@code TomeSearchService.separerLesEditionsHomonymes}).
- * @param annee        année de publication, ou null - sert à NOMMER une édition
- *                     ainsi séparée, jamais à décider de la séparation.
- * @param releaseDate  la date de parution telle que la source la connaît, en
- *                     ISO partiel : « 2026-10-14 », « 2026-10 » ou « 2026 » -
- *                     ou null. C'est ce que lit le calendrier des sorties
- *                     (lot 146), qui n'y prend que le jour et le mois : une
- *                     année seule n'est pas une date de calendrier. Google
- *                     Books donne le jour (précommandes comprises), la BnF et
- *                     Open Library l'année seule.
+ * @param annee        publication year, or null - used to NAME an edition
+ *                     separated this way, never to decide the separation.
+ * @param releaseDate  the release date as the source knows it, in
+ *                     partial ISO: "2026-10-14", "2026-10" or "2026" -
+ *                     or null. This is what the release calendar reads
+ *                     (batch 146), which only takes the day and month from it: a
+ *                     year alone is not a calendar date. Google
+ *                     Books gives the day (pre-orders included), the BnF and
+ *                     Open Library the year alone.
  */
 public record VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title,
                                String isbn, Integer annee, String releaseDate) {
 
     /**
-     * Les deux champs d'identification d'édition sont facultatifs : ce
-     * constructeur laisse intacts les appelants (et les tests) qui n'en ont
-     * pas - même procédé que {@code PurchaseAnalysisEngine.ItemContext} au
-     * Lot Phase 2, pour ajouter un champ à un record sans toucher ses
-     * dizaines de sites d'appel.
+     * The two edition identification fields are optional: this
+     * constructor leaves untouched the callers (and the tests) that have
+     * none - same method as {@code PurchaseAnalysisEngine.ItemContext} in
+     * Batch Phase 2, to add a field to a record without touching its
+     * dozens of call sites.
      */
     public VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title) {
         this(edition, volumeNumber, imageUrl, title, null, null, null);
     }
 
-    /** Sans date de parution - les sites d'appel d'avant le calendrier des sorties (lot 146). */
+    /** Without a release date - the call sites from before the release calendar (batch 146). */
     public VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title, String isbn, Integer annee) {
         this(edition, volumeNumber, imageUrl, title, isbn, annee, null);
     }
 
     /**
-     * La date la plus précise des deux - « 2026-10-14 » l'emporte sur
-     * « 2026-10 », qui l'emporte sur « 2026 » ; à précision égale, la première.
-     * C'est ainsi qu'un tome vu par la BnF (année seule) et par Google Books
-     * (jour) garde le jour, quel que soit le fournisseur passé en premier.
+     * The most precise date of the two - "2026-10-14" wins over
+     * "2026-10", which wins over "2026"; at equal precision, the first one.
+     * This is how a volume seen by the BnF (year alone) and by Google Books
+     * (day) keeps the day, whichever provider came first.
      */
     public static String mostPreciseReleaseDate(String first, String second) {
         if (first == null) {
@@ -68,7 +68,7 @@ public record VolumeCandidate(String edition, int volumeNumber, String imageUrl,
         return second.length() > first.length() ? second : first;
     }
 
-    /** Les chiffres de l'ISBN, sans tirets ni espaces - null si absent ou vide. */
+    /** The digits of the ISBN, without hyphens or spaces - null if absent or empty. */
     public String isbnNormalise() {
         if (isbn == null) {
             return null;
@@ -78,19 +78,19 @@ public record VolumeCandidate(String edition, int volumeNumber, String imageUrl,
     }
 
     /**
-     * L'identité d'un tome dans une série : (édition, numéro), à la casse et
-     * aux espaces près. Une série a un tome 1 PAR édition - le numéro seul
-     * n'identifie rien.
+     * The identity of a volume in a series: (edition, number), ignoring case
+     * and spaces. A series has a volume 1 PER edition - the number alone
+     * identifies nothing.
      *
-     * <p>Statique et prenant ses deux morceaux séparément parce que les deux
-     * appelants ne partent pas du même objet : {@link TomeSearchService}
-     * dédoublonne des candidats, {@code MetadataController} compare un Variant
-     * déjà catalogué à ces candidats pour dire « déjà possédé ». Chacun en
-     * avait sa copie.
+     * <p>Static and taking its two parts separately because the two
+     * callers do not start from the same object: {@link TomeSearchService}
+     * removes duplicate candidates, {@code MetadataController} compares a Variant
+     * already cataloged to these candidates to say "already owned". Each one
+     * had its own copy.
      */
     public static String key(String edition, int volumeNumber) {
-        // Accents et ponctuation plies aussi (Lot 125) : la BnF ecrit
-        // « Kazé », Google Books « KAZE », et c'etait deux editions.
+        // Accents and punctuation folded too (Batch 125): the BnF writes
+        // "Kazé", Google Books "KAZE", and that was two editions.
         return TexteRecherche.normaliser(edition) + "|" + volumeNumber;
     }
 

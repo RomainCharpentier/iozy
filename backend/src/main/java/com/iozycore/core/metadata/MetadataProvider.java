@@ -5,30 +5,30 @@ import com.iozycore.core.domain.catalog.EntityType;
 import java.util.List;
 
 /**
- * Un MetadataProvider sait interroger une source externe précise
- * (Jikan, BGG, IGDB plus tard) et ne répond que pour les EntityType
- * qu'il couvre. MetadataSearchService route la recherche vers le(s)
- * provider(s) compétent(s) sans connaître leurs détails d'implémentation.
+ * A MetadataProvider knows how to query one precise external source
+ * (Jikan, BGG, IGDB later) and only answers for the EntityTypes
+ * that it covers. MetadataSearchService routes the search to the competent
+ * provider(s) without knowing their implementation details.
  */
 public interface MetadataProvider {
 
     boolean supports(EntityType entityType);
 
-    /** Ne doit jamais lever d'exception pour une panne réseau : voir MetadataSearchService. */
+    /** Must never throw an exception for a network outage: see MetadataSearchService. */
     List<MetadataCandidate> search(String query);
 
     /**
-     * Vrai si cette source catalogue les œuvres sous leur titre D'ORIGINE
-     * (japonais/anglais/romaji pour un manga), comme Jikan/MyAnimeList - le
-     * cas courant, d'où ce défaut.
+     * True if this source catalogs the works under their ORIGINAL title
+     * (Japanese/English/romaji for a manga), like Jikan/MyAnimeList - the
+     * common case, hence this default.
      * <p>
-     * Sert à une seule chose (voir FrenchTitleService.namesAnotherKnownWork) :
-     * reconnaître qu'un titre français trouvé par le seul nom de l'auteur est
-     * en fait le titre d'une AUTRE œuvre de cet auteur. Le raisonnement
-     * repose entièrement sur le fait qu'une traduction française n'existe PAS
-     * dans le catalogue interrogé - un fournisseur qui, lui, cherche
-     * justement par titre français (voir GoogleBooksTitleSearchProvider)
-     * ferait donc écarter les bonnes réponses, et doit répondre faux.
+     * Used for one thing only (see FrenchTitleService.namesAnotherKnownWork):
+     * recognizing that a French title found by the author name alone is
+     * in fact the title of ANOTHER work by this author. The reasoning
+     * relies entirely on the fact that a French translation does NOT exist
+     * in the queried catalog - a provider that, on the contrary, searches
+     * by French title (see GoogleBooksTitleSearchProvider)
+     * would make the right answers get discarded, and must answer false.
      */
     default boolean catalogsOriginalTitles() {
         return true;

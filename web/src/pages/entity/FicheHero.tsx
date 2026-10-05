@@ -5,22 +5,22 @@ import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '@/common/comp
 import { tonDe } from './useTeinteJaquette'
 
 /**
- * Le haut de la fiche, d'après la maquette « Fiche série - multi-éditions » :
- * une bande qui traverse tout l'écran, teintée par la jaquette de la série.
+ * The top of the detail page, after the mockup "Fiche série - multi-éditions":
+ * a band that crosses the whole screen, tinted by the cover of the series.
  *
- * <h2>Pleine largeur, pour de vrai</h2>
- * La bande sort de la colonne de contenu par la grille de page
- * (`col-span-full`, voir AppShell) et non par un `100vw` - qui compterait la
- * barre de défilement et ferait déborder la page de quinze pixels. Son
- * contenu, lui, revient à la largeur exacte du reste de la page, sans quoi le
- * titre serait décalé par rapport à la grille de tomes juste dessous.
+ * <h2>Really full width</h2>
+ * The band leaves the content column through the page grid
+ * (`col-span-full`, see AppShell) and not through a `100vw` - which would count the
+ * scrollbar and make the page overflow by fifteen pixels. Its
+ * content, however, goes back to the exact width of the rest of the page, otherwise the
+ * title would be shifted compared to the volume grid just below.
  *
- * <h2>La teinte</h2>
- * Deux couches de dégradés tirées de la couleur moyenne de la jaquette (voir
- * useTeinteJaquette) : chaque série a son ambiance sans qu'on saisisse quoi
- * que ce soit. Quand la jaquette refuse d'être lue - hôte externe sans CORS,
- * cas fréquent - c'est le terracotta de la marque qui sert, et la bande reste
- * exactement celle de la maquette.
+ * <h2>The tint</h2>
+ * Two layers of gradients taken from the average color of the cover (see
+ * useTeinteJaquette): each series has its own mood without the user entering anything
+ * at all. When the cover refuses to be read - external host without CORS,
+ * a frequent case - the brand terracotta is used, and the band stays
+ * exactly the one of the mockup.
  */
 export function FicheHero({
   teinte,
@@ -42,62 +42,62 @@ export function FicheHero({
   colleEnHaut = true,
 }: {
   teinte: [number, number, number]
-  /** Le type de collection en petites capitales au-dessus du titre. */
+  /** The collection type in small caps above the title. */
   kicker: string | null
   titre: string
   auteur: string | null
-  /** « Terminée » / « En cours », avec sa pastille de couleur. null si le
-   *  statut n'est pas connu - on ne l'invente pas. */
+  /** "Terminée" / "En cours", with its color pill. null if the
+   *  status is not known - we do not invent it. */
   statut: { libelle: string; couleur: string } | null
   annees: string | null
   couvertureUrl: string | null
   repliCouverture: ReactNode
-  /** Absent quand il n'y a rien à corriger : sur l'écran d'ajout l'œuvre
-   *  n'existe pas encore, sa jaquette vient du candidat choisi. La jaquette
-   *  cesse alors d'être un bouton plutôt que d'en rester un qui ne fait rien. */
+  /** Absent when there is nothing to fix: on the add screen the work
+   *  does not exist yet, its cover comes from the chosen candidate. The cover
+   *  then stops being a button rather than staying one that does nothing. */
   onCouverture?: () => void
-  /** null pour un type sans notion d'annonce à évaluer, et à l'ajout. */
+  /** null for a type without the notion of a listing to evaluate, and when adding. */
   onEvaluer?: (() => void) | null
   actionEnvies?: ReactNode
-  /** Le bouton « Suivre » (voir BoutonSuivreHero) ; absent en visite. */
+  /** The "Suivre" button (see BoutonSuivreHero); absent when visiting. */
   actionSuivre?: ReactNode
-  /** Ce que l'œuvre est pour la collection - Suivie, Possédée, Dans mes envies :
-   *  un seul état à la fois ; null quand elle n'est rien de tout ça. */
+  /** What the work is for the collection - Followed, Owned, In my wishes:
+   *  one state at a time; null when it is none of these. */
   etat?: { libelle: string; couleur: string } | null
   /**
-   * Le passage en mode édition, dans l'en-tête de la fiche - donc sur TOUTE
-   * fiche, quel que soit son type.
+   * The switch to edit mode, in the header of the detail page - so on EVERY
+   * detail page, whatever its type.
    *
-   * <p>Il vivait dans la rangée « Éditions » (voir CartesEditions), qui n'est
-   * rendue que par une œuvre ayant des tomes. Un jeu vidéo, un jeu de société,
-   * une série dont aucun tome n'est encore catalogué n'avaient donc AUCUN
-   * accès au mode édition - ni renommer, ni recharger depuis la source, ni
-   * relations, ni champs techniques, ni supprimer. Le geste ne dépend pas des
-   * éditions : il ouvre le catalogue de l'œuvre entière.
+   * <p>It used to live in the "Éditions" row (see CartesEditions), which is only
+   * rendered for a work that has volumes. A video game, a board game,
+   * a series with no volume cataloged yet therefore had NO
+   * access to edit mode - no rename, no reload from the source, no
+   * relationships, no technical fields, no delete. The gesture does not depend on
+   * editions: it opens the catalog of the whole work.
    *
-   * <p>Nommé, et pas un simple pinceau : « Éditer » dit dans quel espace on
-   * entre. Un pictogramme seul laissait deviner, et c'est ce qui avait rendu
-   * « Suivre cette édition » introuvable au Lot 36.
+   * <p>Named, and not a simple brush: "Éditer" says which space is
+   * being entered. A pictogram alone left people guessing, and that is what had made
+   * "Suivre cette édition" impossible to find in Batch 36.
    */
   modeEdition?: boolean
   onBasculerMode?: () => void
-  /** La rangée « ÉDITIONS · n » (voir CartesEditions), absente pour un type
-   *  qui n'a pas d'éditions. */
+  /** The "ÉDITIONS · n" row (see CartesEditions), absent for a type
+   *  that has no editions. */
   editions?: ReactNode
-  /** La bande remonte sous l'en-tête en annulant le `pt-6` de `<main>`, pour
-   *  qu'aucune bande de fond ne s'intercale. À mettre à false quand quelque
-   *  chose la précède dans la page (un lien de retour) : sinon elle lui
-   *  passerait par-dessus. */
+  /** The band goes up under the header by cancelling the `pt-6` of `<main>`, so
+   *  that no background band comes in between. Set to false when something
+   *  comes before it in the page (a back link): otherwise it would
+   *  go over it. */
   colleEnHaut?: boolean
 }) {
   return (
     <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative ${colleEnHaut ? '-mt-6' : ''}`}>
-      {/* Les deux couches de la maquette, dans l'ordre : le dégradé vertical
-          qui pose l'ambiance, puis le lavis radial qui la casse pour qu'elle
-          ne ressemble pas à un aplat. `-z-10` et non `z-0` : elles doivent
-          passer DERRIÈRE le contenu sans lui imposer un contexte
-          d'empilement, sinon le panneau d'un tome ouvert plus bas passerait
-          dessous. */}
+      {/* The two layers of the mockup, in order: the vertical gradient
+          that sets the mood, then the radial wash that breaks it so that it
+          does not look like a flat color. `-z-10` and not `z-0`: they must
+          go BEHIND the content without forcing a stacking
+          context on it, otherwise the panel of a volume opened further down would go
+          under it. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[660px]"
@@ -207,9 +207,9 @@ export function FicheHero({
   )
 }
 
-/** Le bouton « envies » du hero : une icône carrée sur surface, comme la
- *  maquette - le libellé vit dans le `title`/`aria-label`, la rangée d'actions
- *  n'a la place que d'un bouton plein et d'une icône. */
+/** The "wishes" button of the hero: a square icon on a surface, like the
+ *  mockup - the label lives in the `title`/`aria-label`, the action row
+ *  only has room for one full button and one icon. */
 export function BoutonEnviesHero({
   dedans,
   onBasculer,
@@ -224,8 +224,8 @@ export function BoutonEnviesHero({
       type="button"
       onClick={onBasculer}
       disabled={disabled}
-      // Le libellé visible n'existe pas : le nom accessible doit donc porter
-      // l'ACTION, pas l'état (même règle que WishlistToggle).
+      // There is no visible label: the accessible name must therefore carry
+      // the ACTION, not the state (same rule as WishlistToggle).
       aria-label={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
       aria-pressed={dedans}
       title={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
@@ -238,9 +238,9 @@ export function BoutonEnviesHero({
   )
 }
 
-/** Le bouton « Suivre » du hero : même forme que le bouton des envies, un
- *  calendrier pour icône - suivre, c'est attendre les sorties. Le nom
- *  accessible porte l'ACTION ; l'état, lui, se lit dans la pastille du titre. */
+/** The "Suivre" button of the hero: same shape as the wishes button, a
+ *  calendar as icon - following means waiting for releases. The accessible
+ *  name carries the ACTION; the state is read in the pill of the title. */
 export function BoutonSuivreHero({
   suivie,
   onBasculer,

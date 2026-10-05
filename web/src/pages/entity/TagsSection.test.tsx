@@ -1,13 +1,13 @@
 /**
- * <b>Les tags d'une œuvre : lus par tous, posés par un administrateur.</b>
+ * <b>The tags of a work: read by everyone, set by an administrator.</b>
  *
- * <p>Un tag décrit l'ŒUVRE et vit dans le catalogue partagé : le poser engage
- * tous les comptes. Le serveur refuse l'écriture (403) — ce composant évite
- * seulement de proposer des gestes qui ne mèneraient qu'à un refus.
+ * <p>A tag describes the WORK and lives in the shared catalog: setting it affects
+ * all accounts. The server refuses writes (403) - this component only avoids
+ * offering gestures that would lead to a refusal.
  *
- * <p>Les deux erreurs sont muettes : proposer les chips à qui ne peut rien
- * (des clics qui échouent sans qu'on comprenne), ou les masquer à qui peut
- * (une capacité qui disparaît).
+ * <p>Both mistakes are silent: offering the chips to someone who can do nothing
+ * (clicks that fail without explanation), or hiding them from someone who can
+ * (a capability that disappears).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
@@ -37,23 +37,23 @@ function ecranPour(admin: boolean) {
 
 beforeEach(() => vi.clearAllMocks())
 
-describe('un compte ordinaire', () => {
-  it('voit les tags de l’œuvre, sans pouvoir y toucher', () => {
+describe('an ordinary account', () => {
+  it('sees the tags of the work, without being able to touch them', () => {
     ecranPour(false)
 
-    // Lecture : ils décrivent l'œuvre, et ils servent à filtrer sa collection.
+    // Reading: they describe the work, and they are used to filter its collection.
     expect(screen.getByText('seinen')).toBeInTheDocument()
-    // Aucun geste : ni retirer, ni attacher, ni créer.
+    // No gesture: no removing, no attaching, no creating.
     expect(screen.queryByRole('button', { name: /seinen/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /shonen/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Ajouter ce tag' })).not.toBeInTheDocument()
-    // Et l'écran DIT pourquoi, au lieu de laisser chercher.
+    // And the screen SAYS why, instead of leaving people searching.
     expect(screen.getByText(/seul un administrateur les pose/)).toBeInTheDocument()
   })
 })
 
-describe('un administrateur', () => {
-  it('peut retirer, attacher et créer', () => {
+describe('an administrator', () => {
+  it('can remove, attach and create', () => {
     ecranPour(true)
 
     expect(screen.getByRole('button', { name: 'seinen' })).toBeInTheDocument()

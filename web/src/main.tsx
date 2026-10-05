@@ -14,36 +14,35 @@ import { applyStoredTheme } from '@/common/lib/theme'
 import App from '@/app/App'
 import { ToastProvider } from '@/common/components/Toast'
 
-// Avant le premier rendu React - évite un flash thème par défaut puis
-// thème stocké (voir lib/theme.ts).
+// Before the first React render - avoids a flash default theme then
+// stored theme (see lib/theme.ts).
 applyStoredTheme()
 
-// networkMode 'always' : par défaut, TanStack Query MET EN PAUSE toute requête
-// dès que navigator.onLine passe à false - la requête reste alors `pending` avec
-// un fetchStatus `paused`, donc `isLoading` vaut false (isLoading = isPending &&
-// isFetching) alors qu'aucune donnée n'arrivera jamais. Les écrans tombaient
-// dans leur garde "pas de données" et n'affichaient plus RIEN : ni chargement,
-// ni erreur (constaté sur la fiche d'œuvre, écran entièrement blanc).
-// Ce signal est de toute façon peu fiable (navigator.onLine ment dès qu'une
-// interface réseau existe) et sans intérêt ici : l'API est jointe en local, pas
-// à l'autre bout d'Internet. Sans pause, une requête échoue franchement,
-// remonte en `isError`, et les ErrorBanner déjà en place font leur travail.
+// networkMode 'always': by default, TanStack Query PAUSES any request
+// as soon as navigator.onLine becomes false - the request then stays `pending` with
+// a `paused` fetchStatus, so `isLoading` is false (isLoading = isPending &&
+// isFetching) while no data will ever arrive. The screens fell into
+// their "no data" guard and displayed NOTHING anymore: neither loading nor
+// error (seen on the work detail page, an entirely white screen).
+// This signal is unreliable anyway (navigator.onLine lies as soon as a network
+// interface exists) and of no interest here: the API is reached locally, not
+// at the other end of the Internet. Without a pause, a request fails openly,
+// goes up as `isError`, and the ErrorBanners already in place do their job.
 const queryClient = new QueryClient({
   defaultOptions: { queries: { networkMode: 'always' }, mutations: { networkMode: 'always' } },
 })
 
-// Le service worker ne sert PAS à travailler hors ligne (il ne met en cache
-// que la coquille de l'app, jamais /api - voir public/sw.js) : il sert à ce
-// que le navigateur propose d'installer IozyCore sur l'écran d'accueil, ce
-// qu'il refuse sans gestionnaire `fetch`. Uniquement dans le build de prod :
-// en développement, un cache d'app shell se mettrait en travers du
-// rechargement à chaud, et le serveur de dev ne sert de toute façon pas
-// `/sw.js` depuis `public/` avec les mêmes URL qu'en production.
+// The service worker is NOT used to work offline (it only caches the shell
+// of the app, never /api - see public/sw.js): it is used so that the browser
+// offers to install IozyCore on the home screen, which it refuses without a
+// `fetch` handler. Only in the prod build: in development, an app shell
+// cache would get in the way of hot reload, and the dev server does not
+// serve `/sw.js` from `public/` with the same URLs as in production anyway.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Un échec d'enregistrement (HTTP sans TLS, stockage refusé, navigation
-    // privée) ne doit pas empêcher l'app de démarrer : elle marche
-    // exactement pareil sans, elle ne s'installe simplement pas.
+    // A registration failure (HTTP without TLS, storage refused, private
+    // browsing) must not prevent the app from starting: it works
+    // exactly the same without it, it just does not get installed.
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   })
 }

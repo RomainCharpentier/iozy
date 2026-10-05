@@ -1,19 +1,20 @@
 /**
- * <b>Le clavier dans une surface modale : ouvrir, tourner en rond, ressortir.</b>
+ * <b>The keyboard in a modal surface: open, go around in circles, get out.</b>
  *
- * Trois comportements que personne ne voit à la souris, et que rien d'autre ne
- * garde : <b>Échap ferme</b>, <b>Tab reste piégé</b> dans le dialogue, et le
- * focus <b>revient au déclencheur</b> à la fermeture. Sans le dernier, on
- * ferme un panneau et le curseur repart en haut de page - au clavier, on est
- * perdu ; au lecteur d'écran, on a changé de contexte sans le savoir.
+ * Three behaviors that nobody sees with a mouse, and that nothing else
+ * guards: <b>Escape closes</b>, <b>Tab stays trapped</b> in the dialog, and
+ * the focus <b>goes back to the trigger</b> on close. Without the last one,
+ * you close a panel and the cursor starts again at the top of the page - with
+ * a keyboard, you are lost; with a screen reader, you changed context without
+ * knowing it.
  *
- * <h2>Une prothèse assumée : `offsetParent`</h2>
- * jsdom ne fait aucune mise en page, donc `offsetParent` y vaut toujours
- * `null` - or le hook s'en sert pour ignorer les éléments cachés, et sans
- * prothèse il ne trouverait <b>aucun</b> élément focusable : les tests
- * passeraient en ne vérifiant rien. On rend donc `offsetParent` non nul pour
- * les éléments réellement dans le document, ce qui est le seul point où ces
- * tests s'écartent d'un vrai navigateur.
+ * <h2>A deliberate prosthesis: `offsetParent`</h2>
+ * jsdom does no layout, so `offsetParent` is always `null` there - but the
+ * hook uses it to ignore hidden elements, and without a prosthesis it would
+ * find <b>no</b> focusable element: the tests would pass while checking
+ * nothing. So we make `offsetParent` non-null for the elements that are
+ * really in the document, which is the only point where these tests differ
+ * from a real browser.
  */
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -54,7 +55,7 @@ function Dialogue({
   )
 }
 
-/** Ouvre le dialogue depuis un vrai déclencheur, qui a le focus. */
+/** Opens the dialog from a real trigger, which has the focus. */
 function ouvrir(options: { focusInitialSurNom?: boolean } = {}) {
   const onClose = vi.fn()
   function Ecran() {
@@ -82,23 +83,23 @@ function ouvrir(options: { focusInitialSurNom?: boolean } = {}) {
   return { onClose, declencheur }
 }
 
-describe('à l’ouverture', () => {
-  it('donne le focus au premier élément du dialogue', () => {
+describe('on opening', () => {
+  it('gives the focus to the first element of the dialog', () => {
     ouvrir()
 
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Fermer' }))
   })
 
-  it('respecte l’élément désigné, plutôt que l’ordre du DOM', () => {
-    // « Nom » doit recevoir le focus, pas le bouton Fermer qui le précède.
+  it('respects the designated element, rather than the DOM order', () => {
+    // "Nom" must receive the focus, not the Fermer button that precedes it.
     ouvrir({ focusInitialSurNom: true })
 
     expect(document.activeElement).toBe(screen.getByLabelText('Nom'))
   })
 })
 
-describe('pendant que le dialogue est ouvert', () => {
-  it('ferme sur Échap', () => {
+describe('while the dialog is open', () => {
+  it('closes on Escape', () => {
     const { onClose } = ouvrir()
 
     fireEvent.keyDown(document, { key: 'Escape' })
@@ -106,7 +107,7 @@ describe('pendant que le dialogue est ouvert', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('ramène Tab au premier élément après le dernier', () => {
+  it('brings Tab back to the first element after the last one', () => {
     ouvrir()
     screen.getByRole('button', { name: 'Créer' }).focus()
 
@@ -115,7 +116,7 @@ describe('pendant que le dialogue est ouvert', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Fermer' }))
   })
 
-  it('renvoie Maj+Tab au dernier élément depuis le premier', () => {
+  it('sends Shift+Tab to the last element from the first one', () => {
     ouvrir()
     screen.getByRole('button', { name: 'Fermer' }).focus()
 
@@ -124,7 +125,7 @@ describe('pendant que le dialogue est ouvert', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Créer' }))
   })
 
-  it('rattrape un focus parti hors du dialogue', () => {
+  it('catches a focus that went outside the dialog', () => {
     ouvrir()
     screen.getByRole('button', { name: 'Ouvrir' }).focus()
 
@@ -134,8 +135,8 @@ describe('pendant que le dialogue est ouvert', () => {
   })
 })
 
-describe('à la fermeture', () => {
-  it('rend le focus au déclencheur', () => {
+describe('on closing', () => {
+  it('gives the focus back to the trigger', () => {
     const { declencheur } = ouvrir()
 
     fireEvent.keyDown(document, { key: 'Escape' })

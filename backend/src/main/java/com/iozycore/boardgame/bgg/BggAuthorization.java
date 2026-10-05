@@ -3,17 +3,17 @@ package com.iozycore.boardgame.bgg;
 import java.net.http.HttpRequest;
 
 /**
- * Depuis juillet 2025, BGG exige un enregistrement d'application et un
- * token Bearer pour la quasi-totalité de son API XML (voir
- * https://boardgamegeek.com/using_the_xml_api) - la seule exception
- * documentée est le téléchargement de sa PROPRE collection depuis un
- * navigateur connecté, ce qui ne couvre pas nos appels serveur-à-serveur.
+ * Since July 2025, BGG requires an application registration and a
+ * Bearer token for almost all of its XML API (see
+ * https://boardgamegeek.com/using_the_xml_api) - the only documented
+ * exception is downloading your OWN collection from a
+ * logged-in browser, which does not cover our server-to-server calls.
  * <p>
- * Le token est optionnel côté configuration (bgg.application-token) pour
- * ne pas bloquer le développement local le temps qu'une application soit
- * enregistrée et approuvée par BGG (jusqu'à une semaine ou plus selon leur
- * documentation) - mais son absence est loggée pour rester honnête sur le
- * fait que l'usage n'est alors pas conforme aux conditions actuelles de BGG.
+ * The token is optional in the configuration (bgg.application-token) so as
+ * not to block local development while an application is
+ * registered and approved by BGG (up to a week or more according to their
+ * documentation) - but its absence is logged to stay honest about the
+ * fact that the usage is then not compliant with BGG's current terms.
  */
 final class BggAuthorization {
 

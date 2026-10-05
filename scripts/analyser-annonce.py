@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
-"""Analyse une annonce Vinted depuis son lien, en une commande.
+"""Analyse a Vinted listing from its link, in one command.
 
     python scripts/analyser-annonce.py <url> --serie "Vinland Saga" --edition "Standard" --tomes 1-12
 
-Ce script n'analyse rien lui-même : il enchaîne deux endpoints d'IozyCore déjà
-en place, et se contente d'afficher le résultat lisiblement.
+This script analyses nothing itself: it chains two IozyCore endpoints that are
+already in place, and only prints the result in a readable way.
 
-    1. POST /listing-metadata/resolve   lit l'annonce (titre, prix, description, photos)
-    2. POST /purchase-analysis/analyze  croise avec TA collection et rend un verdict
+    1. POST /listing-metadata/resolve   reads the listing (title, price, description, photos)
+    2. POST /purchase-analysis/analyze  compares with YOUR collection and gives a verdict
 
-Le second est ce qui fait la différence avec un outil autonome : il sait ce que
-tu possèdes déjà. Un lot à 60 € dont tu as déjà la moitié des tomes n'est pas la
-même affaire qu'un lot à 60 € entièrement neuf pour toi, et c'est exactement ce
-que « bonne annonce » veut dire ici.
+The second one is what makes the difference with a standalone tool: it knows what
+you already own. A lot at 60 EUR of which you already own half of the volumes is not the
+same deal as a lot at 60 EUR that is entirely new for you, and that is exactly
+what "good listing" means here.
 
-Aucun compte, aucun cookie, aucune usurpation de navigateur : la page d'annonce
-publique est lue telle qu'un visiteur anonyme la reçoit (voir
-docs/LISTING_SOURCES.md). Si Vinted décide un jour de fermer cet accès, le
-script le dira au lieu de contourner.
+No account, no cookie, no browser impersonation: the public listing page
+is read as an anonymous visitor receives it (see
+docs/LISTING_SOURCES.md). If Vinted one day decides to close this access, the
+script will say so instead of working around it.
 
-Le contenu du lot (série, édition, tomes) se déclare à la main : IozyCore n'a
-pas de reconnaissance d'images, et deviner à partir du titre produirait des
-verdicts calculés sur des tomes inventés.
+The content of the lot (series, edition, volumes) is declared by hand: IozyCore has
+no image recognition, and guessing from the title would give
+verdicts computed on invented volumes.
 """
 
 from __future__ import annotations
@@ -33,9 +33,9 @@ import sys
 import urllib.error
 import urllib.request
 
-# La console Windows est en cp1252 par défaut : sans ça, chaque accent du
-# rapport sort en mojibake. On force l'UTF-8 en sortie plutôt que de retirer
-# les accents.
+# The Windows console is cp1252 by default: without this, every accent of the
+# report comes out as mojibake. We force UTF-8 on output rather than remove
+# the accents.
 if hasattr(sys.stdout, "buffer"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
@@ -43,40 +43,40 @@ if hasattr(sys.stdout, "buffer"):
 API_PAR_DEFAUT = "http://localhost:8080/api"
 
 MESSAGES_ECHEC = {
-    "UNSUPPORTED_SOURCE": "Plateforme pas encore lue automatiquement — donne les champs à la main.",
-    "LISTING_NOT_FOUND": "Cette annonce n'est plus accessible.",
-    "UNAVAILABLE": "Impossible de lire l'annonce pour le moment.",
-    "INVALID_URL": "Lien inexploitable.",
+    "UNSUPPORTED_SOURCE": "Platform not read automatically yet - give the fields by hand.",
+    "LISTING_NOT_FOUND": "This listing is no longer available.",
+    "UNAVAILABLE": "Unable to read the listing right now.",
+    "INVALID_URL": "Unusable link.",
 }
 
 VERDICTS = {
-    "EXCELLENT_DEAL": "EXCELLENTE AFFAIRE",
-    "GOOD_DEAL": "BONNE AFFAIRE",
-    "FAIR_PRICE": "PRIX CORRECT",
-    "EXPENSIVE": "CHER",
-    "AVOID": "À ÉVITER",
+    "EXCELLENT_DEAL": "EXCELLENT DEAL",
+    "GOOD_DEAL": "GOOD DEAL",
+    "FAIR_PRICE": "FAIR PRICE",
+    "EXPENSIVE": "EXPENSIVE",
+    "AVOID": "AVOID",
 }
 
-# Ce que vaut le montant de livraison retenu. Un total qui n'inclut aucune
-# livraison n'est pas un coût d'acquisition, et un « à partir de » n'est pas un
-# tarif : le rapport doit nommer les trois cas différemment.
+# What the chosen shipping amount is worth. A total that includes no
+# shipping is not an acquisition cost, and a "from" is not a
+# price: the report must name the three cases differently.
 LIVRAISON = {
-    "FREE": "offerte",
+    "FREE": "free",
     "EXACT": "{montant}",
-    "FROM": "à partir de {montant}",
-    "ESTIMATED": "{montant} estimés",
-    "UNKNOWN": "non communiquée",
+    "FROM": "from {montant}",
+    "ESTIMATED": "{montant} estimated",
+    "UNKNOWN": "not given",
 }
 
 TOTAUX = {
-    "FROM": "Coût min.",
-    "UNKNOWN": "Sous-total",
+    "FROM": "Min. cost",
+    "UNKNOWN": "Subtotal",
 }
 
 CONSEILS = {
-    "NEGOTIATE": "négocier",
-    "ACCEPTABLE_AS_IS": "acceptable tel quel",
-    "SKIP_LISTING": "passer cette annonce",
+    "NEGOTIATE": "negotiate",
+    "ACCEPTABLE_AS_IS": "acceptable as it is",
+    "SKIP_LISTING": "skip this listing",
 }
 
 
@@ -96,16 +96,16 @@ def appeler(api: str, chemin: str, corps: dict) -> dict:
             detail = json.loads(detail).get("message", detail)
         except json.JSONDecodeError:
             pass
-        raise SystemExit(f"Erreur {erreur.code} sur {chemin} : {detail}") from erreur
+        raise SystemExit(f"Error {erreur.code} on {chemin}: {detail}") from erreur
     except urllib.error.URLError as erreur:
         raise SystemExit(
-            f"IozyCore est injoignable sur {api} ({erreur.reason}).\n"
-            "Démarre le backend, ou passe --api si tu l'exposes ailleurs."
+            f"IozyCore cannot be reached on {api} ({erreur.reason}).\n"
+            "Start the backend, or pass --api if you expose it elsewhere."
         ) from erreur
 
 
 def analyser_tomes(texte: str) -> list[int]:
-    """Accepte « 1-12 », « 1,2,5-9 ». Un fragment illisible est ignoré, jamais deviné."""
+    """Accepts "1-12", "1,2,5-9". An unreadable fragment is ignored, never guessed."""
     tomes: set[int] = set()
     for morceau in texte.split(","):
         morceau = morceau.strip()
@@ -123,60 +123,60 @@ def analyser_tomes(texte: str) -> list[int]:
 
 
 def euros(valeur: float | None) -> str:
-    return "non calculable" if valeur is None else f"{valeur:.2f} EUR"
+    return "not computable" if valeur is None else f"{valeur:.2f} EUR"
 
 
 def main() -> int:
     parseur = argparse.ArgumentParser(
-        description="Analyse une annonce Vinted en la croisant avec ta collection IozyCore.",
-        epilog="Exemple : %(prog)s https://www.vinted.fr/items/123456 "
+        description="Analyse a Vinted listing by comparing it with your IozyCore collection.",
+        epilog="Example: %(prog)s https://www.vinted.fr/items/123456 "
         '--serie "Vinland Saga" --edition "Standard" --tomes 1-12',
     )
-    parseur.add_argument("url", help="lien de l'annonce")
-    parseur.add_argument("--serie", help="série du lot (sinon : lecture seule de l'annonce)")
-    parseur.add_argument("--edition", default="Standard", help="édition (défaut : Standard)")
-    parseur.add_argument("--tomes", default="", help="tomes inclus, ex. 1-12 ou 1,3,5-9")
+    parseur.add_argument("url", help="link of the listing")
+    parseur.add_argument("--serie", help="series of the lot (otherwise: read-only of the listing)")
+    parseur.add_argument("--edition", default="Standard", help="edition (default: Standard)")
+    parseur.add_argument("--tomes", default="", help="volumes included, e.g. 1-12 or 1,3,5-9")
     parseur.add_argument("--etat", default="VERY_GOOD",
                          help="MINT_SEALED, LIKE_NEW, VERY_GOOD, GOOD, ACCEPTABLE, VISIBLE_DEFECTS")
     parseur.add_argument("--port", type=float, default=None,
-                         help="frais de port en euros (à défaut : ceux lus sur l'annonce)")
+                         help="shipping cost in euros (by default: the one read on the listing)")
     parseur.add_argument("--protection", type=float, default=None,
-                         help="frais de protection acheteur (à défaut : ceux lus sur l'annonce)")
-    parseur.add_argument("--api", default=API_PAR_DEFAUT, help=f"base de l'API (défaut : {API_PAR_DEFAUT})")
-    parseur.add_argument("--json", action="store_true", help="sortie brute, pour enchaîner un autre outil")
+                         help="buyer protection fee (by default: the one read on the listing)")
+    parseur.add_argument("--api", default=API_PAR_DEFAUT, help=f"API base (default: {API_PAR_DEFAUT})")
+    parseur.add_argument("--json", action="store_true", help="raw output, to chain another tool")
     args = parseur.parse_args()
 
-    # --- 1. Lire l'annonce ---------------------------------------------------
+    # --- 1. Read the listing -------------------------------------------------
     annonce = appeler(args.api, "/listing-metadata/resolve", {"url": args.url})
     statut = annonce["status"]
 
     if statut not in ("SUCCESS", "PARTIAL"):
-        print(f"Lecture de l'annonce : {MESSAGES_ECHEC.get(statut, statut)}", file=sys.stderr)
+        print(f"Reading the listing: {MESSAGES_ECHEC.get(statut, statut)}", file=sys.stderr)
         if not args.serie:
             return 1
-        print("On continue avec ce que tu as déclaré à la main.\n", file=sys.stderr)
+        print("Continuing with what you declared by hand.\n", file=sys.stderr)
 
     if not args.json:
         print("=" * 62)
-        print(f"  {annonce.get('title') or '(titre non lu)'}")
+        print(f"  {annonce.get('title') or '(title not read)'}")
         print("=" * 62)
         print(f"  Source      : {annonce['source']}")
-        print(f"  Prix affiché: {euros(annonce.get('price'))}")
+        print(f"  Shown price : {euros(annonce.get('price'))}")
         print(f"  Photos      : {len(annonce.get('imageUrls') or [])}")
-        print(f"  Lu          : {', '.join(annonce.get('retrievedFields') or []) or 'rien'}")
+        print(f"  Read        : {', '.join(annonce.get('retrievedFields') or []) or 'nothing'}")
         if statut == "PARTIAL":
-            print("  (lecture partielle — le reste est à compléter à la main)")
+            print("  (partial reading - the rest has to be filled in by hand)")
 
     prix = annonce.get("price")
     if prix is None:
-        print("\nPrix illisible sur l'annonce : impossible de juger l'offre.", file=sys.stderr)
-        print("Rien n'est supposé à sa place — relance en le renseignant dans l'app.", file=sys.stderr)
+        print("\nPrice unreadable on the listing: cannot judge the offer.", file=sys.stderr)
+        print("Nothing is assumed in its place - run again after entering it in the app.", file=sys.stderr)
         return 1
 
-    # --- 2. Croiser avec la collection --------------------------------------
+    # --- 2. Compare with the collection --------------------------------------
     if not args.serie:
-        print("\nAnnonce lue, mais pas analysée : indique --serie et --tomes pour")
-        print("obtenir un verdict croisé avec ta collection.")
+        print("\nListing read, but not analysed: give --serie and --tomes to")
+        print("get a verdict compared with your collection.")
         return 0
 
     port = args.port if args.port is not None else annonce.get("shippingFee")
@@ -187,7 +187,7 @@ def main() -> int:
 
     tomes = analyser_tomes(args.tomes)
     if not tomes:
-        print("\n--tomes n'a produit aucun numéro exploitable (ex. attendu : 1-12).", file=sys.stderr)
+        print("\n--tomes produced no usable number (e.g. expected: 1-12).", file=sys.stderr)
         return 1
 
     analyse = appeler(args.api, "/purchase-analysis/analyze", {
@@ -195,10 +195,10 @@ def main() -> int:
         "url": annonce.get("url") or args.url,
         "rawTitle": annonce.get("title") or f"Lot {args.serie}",
         "askingPrice": prix,
-        # Un port saisi à la main est une ESTIMATION : utilisable, mais pas un
-        # tarif constaté. Sans saisie, on garde ce que l'annonce disait - nature
-        # comprise -, et à défaut on reste explicitement ignorant plutôt que de
-        # compter un port à 0 qui rendrait le coût trop favorable.
+        # A shipping cost typed by hand is an ESTIMATE: usable, but not an
+        # observed price. Without input, we keep what the listing said - kind
+        # included -, and failing that we stay explicitly ignorant rather than
+        # count a shipping of 0 that would make the cost too favourable.
         "shippingFee": port,
         "shippingKind": nature_port,
         "buyerProtectionFee": protection,
@@ -215,32 +215,32 @@ def main() -> int:
     negociation = analyse["negotiation"]
     print()
     print(f"  VERDICT     : {VERDICTS.get(analyse['verdict'], analyse['verdict'])} "
-          f"({analyse['verdictScore']}/100, confiance {analyse['overallConfidence']})")
-    libelle_total = TOTAUX.get(nature_port, "Coût acq.")
+          f"({analyse['verdictScore']}/100, confidence {analyse['overallConfidence']})")
+    libelle_total = TOTAUX.get(nature_port, "Acq. cost")
     print(f"  {libelle_total:<12}: {euros(analyse['totalRealCost'])}   "
-          f"(valeur neuve {euros(analyse['totalNewValue'])})")
-    print(f"  Livraison   : "
-          + LIVRAISON.get(nature_port, "non communiquée").format(montant=euros(port)))
+          f"(new value {euros(analyse['totalNewValue'])})")
+    print(f"  Shipping    : "
+          + LIVRAISON.get(nature_port, "not given").format(montant=euros(port)))
     if analyse.get("discountPercent") is not None:
-        print(f"  Décote      : {analyse['discountPercent']:.0f} % vs neuf")
-    print(f"  Conseil     : {CONSEILS.get(negociation['advice'], negociation['advice'])}")
+        print(f"  Discount    : {analyse['discountPercent']:.0f} % vs new")
+    print(f"  Advice      : {CONSEILS.get(negociation['advice'], negociation['advice'])}")
     if negociation.get("recommendedOffer") is not None:
-        print(f"  Offre       : {euros(negociation['recommendedOffer'])}  "
-              f"(cible {euros(negociation['targetPriceMin'])}–{euros(negociation['targetPriceMax'])}, "
+        print(f"  Offer       : {euros(negociation['recommendedOffer'])}  "
+              f"(target {euros(negociation['targetPriceMin'])}–{euros(negociation['targetPriceMax'])}, "
               f"max {euros(negociation['maxPrice'])})")
-    print(f"  Pourquoi    : {negociation['rationale']}")
+    print(f"  Why         : {negociation['rationale']}")
 
     for detail in analyse["itemBreakdown"]:
         doublons = detail["duplicates"]["duplicateVolumeNumbers"]
         utiles = detail["duplicates"]["usefulVolumeCount"]
-        print(f"\n  {detail['item']['series']['title']} — {len(detail['item']['includedVolumes'])} tome(s)")
-        print(f"    utiles pour toi : {utiles}")
+        print(f"\n  {detail['item']['series']['title']} — {len(detail['item']['includedVolumes'])} volume(s)")
+        print(f"    useful for you  : {utiles}")
         if doublons:
-            print(f"    déjà possédés   : {', '.join(map(str, doublons))}")
+            print(f"    already owned   : {', '.join(map(str, doublons))}")
 
     avertissements = analyse.get("warnings") or []
     if avertissements:
-        print("\n  Points d'attention :")
+        print("\n  Warnings:")
         for a in avertissements:
             print(f"    [{a['severity']}] {a['message']}")
 

@@ -21,36 +21,36 @@ const WARNING_COLORS: Record<WarningSeverity, string> = {
 
 const CONFIDENCE_LABELS = { HIGH: 'haute', MEDIUM: 'moyenne', LOW: 'faible' } as const
 
-/** Détail d'une série au sein d'un lot (obligatoire pour un lot multi-séries,
- * voir l'exemple 20th/21st Century Boys + Sanctuary du cahier des charges) -
- * complétude (✓/⚠️) et avertissements d'édition, avec la distinction
- * observé/théorique toujours visible sur le prix. */
+/** Detail of a series within a batch (required for a multi-series batch,
+ * see the 20th/21st Century Boys + Sanctuary example of the specification) -
+ * completeness (✓/⚠️) and edition warnings, with the
+ * observed/theoretical distinction always visible on the price. */
 export function SeriesBreakdownItem({
   item,
   listing = null,
   observedAt = null,
 }: {
   item: ItemAnalysisDto
-  /** L'annonce d'où vient ce lot - plateforme et état pour l'observation de
-   * prix ci-dessous. Absente = pas de bouton (voir observationPossible). */
+  /** The listing this batch comes from - platform and condition for the observation of
+   * price below. Missing = no button (see observationPossible). */
   listing?: ListingDto | null
-  /** Date de l'analyse ("YYYY-MM-DD"), pas celle du jour : depuis
-   * l'historique, le prix relevé est celui du jour de l'analyse. */
+  /** Date of the analysis ("YYYY-MM-DD"), not today's: from
+   * the history, the recorded price is the one of the day of the analysis. */
   observedAt?: string | null
 }) {
   const { completeness, marketPrice, matchedEdition, editionWarnings, duplicates } = item
   const includedCount = item.item.includedVolumes.length
   const hasDuplicates = duplicates.duplicateVolumeNumbers.length > 0
 
-  // "Prix observé sur N annonces" s'affichait déjà juste en dessous, mais RIEN
-  // dans l'app ne savait alimenter ce journal : POST /purchase-analysis/
-  // market-observations était livré sans appelant, donc la branche
-  // OBSERVED_MARKET du moteur restait inatteignable en usage normal.
+  // "Prix observé sur N annonces" was already displayed right below, but NOTHING
+  // in the app could feed this log: POST /purchase-analysis/
+  // market-observations was shipped with no caller, so the
+  // OBSERVED_MARKET branch of the engine stayed unreachable in normal use.
   //
-  // Les tomes doivent être CONTIGUS : le backend divise le prix relevé par le
-  // nombre de tomes de l'intervalle (voir MarketPriceCalculator), donc un lot
-  // "1, 2, 5" enregistré en 1-5 donnerait un prix/tome faux. Mieux vaut ne
-  // rien proposer que relever un prix erroné.
+  // The volumes must be CONTIGUOUS: the backend divides the recorded price by the
+  // number of volumes of the range (see MarketPriceCalculator), so a batch
+  // "1, 2, 5" saved as 1-5 would give a wrong price per volume. Better to
+  // offer nothing than to record a wrong price.
   const volumes = item.item.includedVolumes
   const contiguous =
     includedCount > 0 && Math.max(...volumes) - Math.min(...volumes) + 1 === includedCount
@@ -63,12 +63,12 @@ export function SeriesBreakdownItem({
         mangaEditionId: matchedEdition!.id,
         volumeRangeStart: Math.min(...volumes),
         volumeRangeEnd: Math.max(...volumes),
-        // La part du prix TOTAL revenant à ce lot, pas un prix/tome : c'est le
-        // backend qui divise par l'intervalle.
+        // The share of the TOTAL price going to this batch, not a price per volume: the
+        // backend divides by the range.
         observedPrice: item.itemCostShare!,
         platform: listing!.platform,
-        // L'état propre au lot prime sur celui de l'annonce entière, comme
-        // partout ailleurs dans le moteur (voir ListingItem.itemConditionOverride).
+        // The condition specific to the batch takes priority over the one of the whole listing, as
+        // everywhere else in the engine (see ListingItem.itemConditionOverride).
         observedCondition: item.item.itemConditionOverride ?? listing!.condition,
         observedAt: observedAt!,
         note: listing!.rawTitle,
@@ -141,11 +141,11 @@ export function SeriesBreakdownItem({
       <div className="flex items-center gap-1.5 text-xs">
         {marketPrice.basis === 'OBSERVED_MARKET' && (
           <span className="rounded-full bg-accent/15 px-2 py-0.5 text-accentText">
-            {/* Ce compte est celui des RELEVÉS, pas des annonces : une même
-                offre suivie dans le temps y apparaît plusieurs fois. Le nombre
-                d'annonces indépendantes est celui de la section Prix, qui les
-                regroupe. Les appeler « annonces » ici gonflerait l'échantillon
-                aux yeux du lecteur. */}
+            {/* This count is the one of RECORDS, not listings: the same
+                offer followed over time appears several times in it. The number
+                of independent listings is the one of the Prix section, which groups
+                them. Calling them "annonces" here would inflate the sample
+                in the reader's eyes. */}
             Prix observé sur {marketPrice.observationCount} relevé{marketPrice.observationCount > 1 ? 's' : ''}
             {marketPrice.observedMedian !== null && ` · médiane ${formaterEuros(marketPrice.observedMedian)}/tome`}
           </span>
@@ -166,13 +166,13 @@ export function SeriesBreakdownItem({
         )}
       </div>
 
-      {/* Le geste explicite : c'est LUI qui fait entrer un prix dans les données
-          de marché, et il reste le seul chemin pour une annonce saisie à la main
-          - c'est-à-dire le cas normal, aucun fournisseur public n'existant.
-          (Une annonce lue depuis un lien porte une identité : son prix est
-          relevé automatiquement, parce que là seulement le moteur sait
-          reconnaître deux analyses de la même annonce et l'exclure de sa propre
-          référence. Voir releverLePrixDemande côté serveur.) */}
+      {/* The explicit action: it is THIS that makes a price enter the market
+          data, and it stays the only path for a listing entered by hand
+          - that is, the normal case, no public provider existing.
+          (A listing read from a link carries an identity: its price is
+          recorded automatically, because only there does the engine know how to
+          recognise two analyses of the same listing and exclude it from its own
+          reference. See releverLePrixDemande on the server.) */}
       {observationPossible && (
         <div className="text-xs">
           {observationMutation.isSuccess ? (
@@ -195,13 +195,13 @@ export function SeriesBreakdownItem({
         </div>
       )}
 
-      {/* Plus de filtre sur le texte : le backend n'émet plus l'avertissement
-          "doublons" en prose, la même information partant déjà structurée dans
-          le bloc dédié ci-dessus (Lot 30). Reconnaître un avertissement à sa
-          formulation anglaise n'aurait de toute façon pas survécu à sa
-          traduction. Les analyses d'AVANT ce lot, elles, gardent la phrase
-          anglaise figée dans leur historique - un instantané, pas un calcul
-          rejoué : elle réapparaît donc dans cette liste, à sa place. */}
+      {/* No more filter on the text: the backend no longer emits the
+          "doublons" warning in prose, the same information already leaving structured in
+          the dedicated block above (Batch 30). Recognising a warning by its
+          English wording would not have survived its
+          translation anyway. The analyses from BEFORE this batch keep the
+          English sentence frozen in their history - a snapshot, not a calculation
+          replayed: it therefore reappears in this list, in its place. */}
       {editionWarnings.length > 0 && (
         <ul className="flex flex-col gap-1">
           {editionWarnings.map((warning, index) => {

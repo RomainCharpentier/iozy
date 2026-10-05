@@ -13,9 +13,9 @@ import com.iozycore.manga.deals.Volume;
 
 class MyAnimeListMetadataProviderTest {
 
-    // Forme documentée de l'API officielle MyAnimeList v2 (endpoint de
-    // recherche manga), avec les champs demandés via `fields` (voir
-    // MyAnimeListMetadataProvider.SEARCH_URL) : authors{first_name,last_name},
+    // Documented shape of the official MyAnimeList v2 API (manga search
+    // endpoint), with the fields requested via `fields` (see
+    // MyAnimeListMetadataProvider.SEARCH_URL): authors{first_name,last_name},
     // serialization{name}, status, main_picture.
     private static final String SAMPLE_RESPONSE = """
             {
@@ -108,9 +108,9 @@ class MyAnimeListMetadataProviderTest {
         assertThat(candidates.get(0).title()).isEqualTo("Naruto");
         assertThat(candidates.get(0).attributes()).doesNotContainKey("originalTitle");
         assertThat(candidates.get(0).attributes()).doesNotContainKey("titleJapanese");
-        // titleRomaji/titleEnglish restent inconditionnels même quand identiques
-        // (contrairement à originalTitle) - la composition côté client doit
-        // pouvoir s'appuyer dessus sans se soucier du choix déjà fait ici.
+        // titleRomaji/titleEnglish stay unconditional even when identical
+        // (unlike originalTitle) - the client-side composition must
+        // be able to rely on them without worrying about the choice already made here.
         assertThat(candidates.get(0).attributes()).containsEntry("titleRomaji", "Naruto");
         assertThat(candidates.get(0).attributes()).containsEntry("titleEnglish", "Naruto");
     }

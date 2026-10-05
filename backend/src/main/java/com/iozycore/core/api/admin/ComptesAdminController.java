@@ -19,21 +19,21 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Les comptes de l'instance, pour qui en répond.
+ * The accounts of the instance, for whoever answers for it.
  *
- * <h2>Deux routes, et la garde est ailleurs</h2>
- * Tout {@code /api/admin/**} exige le rôle {@code ADMIN} - déclaré une fois
- * dans {@code SecurityConfig}, jamais répété ici. Une annotation par méthode
- * serait une occasion de plus de l'oublier sur la prochaine.
+ * <h2>Two routes, and the guard is elsewhere</h2>
+ * All of {@code /api/admin/**} requires the {@code ADMIN} role - declared once
+ * in {@code SecurityConfig}, never repeated here. An annotation per method
+ * would be one more chance to forget it on the next one.
  *
- * <h2>Ce qui sort d'ici</h2>
- * Des métadonnées et des <b>nombres</b>. Aucune route de ce contrôleur ne rend
- * une ligne de la collection de qui que ce soit : l'administration porte sur
- * l'instance, pas sur les données (voir {@link GestionDesComptes}).
+ * <h2>What comes out of here</h2>
+ * Metadata and <b>numbers</b>. No route of this controller returns
+ * a row of anyone's collection: administration is about the
+ * instance, not about the data (see {@link GestionDesComptes}).
  */
 @RestController
 @RequestMapping("/api/admin/comptes")
-@Tag(name = "Administration", description = "Les comptes de l'instance - réservé aux administrateurs")
+@Tag(name = "Administration", description = "The accounts of the instance - reserved for administrators")
 public class ComptesAdminController {
 
     private final GestionDesComptes comptes;
@@ -43,8 +43,8 @@ public class ComptesAdminController {
     }
 
     /**
-     * @param volume ce que le compte détruirait s'il était supprimé - le seul
-     *               moyen de décider en connaissance de cause
+     * @param volume what the account would destroy if it were deleted - the only
+     *               way to decide knowingly
      */
     public record CompteReponse(UUID id, String pseudo, String email, boolean admin, Instant creeLe,
                                  VolumeReponse volume) {
@@ -54,7 +54,7 @@ public class ComptesAdminController {
                                  long total) {
     }
 
-    @Operation(summary = "Tous les comptes de l'instance, du plus ancien au plus récent.")
+    @Operation(summary = "All accounts of the instance, from the oldest to the newest.")
     @GetMapping
     public List<CompteReponse> lister() {
         return comptes.lister().stream()
@@ -66,8 +66,8 @@ public class ComptesAdminController {
                 .toList();
     }
 
-    @Operation(summary = "Supprimer un compte et TOUTES ses données. Définitif. "
-            + "Un administrateur ne peut pas supprimer le sien.")
+    @Operation(summary = "Delete an account and ALL its data. Final. "
+            + "An administrator cannot delete their own.")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable UUID id,

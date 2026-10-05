@@ -19,8 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 /** Validates the WishlistEntry persistence module against a real PostgreSQL - mirrors
- * les autres modules de persistance. Focused on the retrait ("Retirer de la wishlist") flow :
- * round-trip, idempotence de deleteById, et absence de tout effet de bord sur le catalogue/la collection. */
+ * the other persistence modules. Focused on the removal ("Retirer de la wishlist") flow:
+ * round-trip, idempotence of deleteById, and no side effect on the catalogue/the collection. */
 class WishlistEntryPersistenceIntegrationTest extends PostgresIntegrationTest {
 
 
@@ -58,8 +58,8 @@ class WishlistEntryPersistenceIntegrationTest extends PostgresIntegrationTest {
 
         wishlistEntryRepository.deleteById(entry.id());
 
-        // Double retrait (double clic, tuile obsolète après un rechargement tardif...) : jamais une erreur,
-        // voir le contrat documenté sur WishlistEntryRepository.deleteById.
+        // Double removal (double click, obsolete tile after a late reload...): never an error,
+        // see the contract documented on WishlistEntryRepository.deleteById.
         assertThatCode(() -> wishlistEntryRepository.deleteById(entry.id())).doesNotThrowAnyException();
     }
 
@@ -70,8 +70,8 @@ class WishlistEntryPersistenceIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void removing_a_wishlist_entry_never_touches_the_referenced_entity_or_ownership() {
-        // Même entityId des deux côtés à dessein (cas le plus exigeant) : si un quelconque partage de clé
-        // déclenchait une cascade, ce serait ici qu'elle se verrait.
+        // Same entityId on both sides on purpose (the most demanding case): if any key sharing
+        // triggered a cascade, this is where it would be seen.
         UUID entityId = createMangaEntity();
         Ownership ownership = ownershipRepository.save(
                 Ownership.acquire(entityId, null, OwnershipCondition.NEW, LocalDate.now(), null));

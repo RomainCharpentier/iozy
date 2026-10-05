@@ -17,13 +17,13 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Du code-barres lu à la proposition à confirmer.
+ * From the barcode read to the proposal to confirm.
  *
- * <p>La résolution EAN → titre est <b>simulée</b> : c'est la seule étape de la
- * chaîne qui sortirait sur le réseau, et un test qui interrogerait vraiment
- * Google Books mesurerait la disponibilité d'un tiers, pas le comportement de
- * ce code. Le décodage, lui, est bien réel — les images sont dessinées puis
- * relues.
+ * <p>The EAN → title resolution is <b>simulated</b>: it is the only step of the
+ * chain that would go out on the network, and a test that really queried
+ * Google Books would measure the availability of a third party, not the behaviour of
+ * this code. The decoding, for its part, is real — the images are drawn then
+ * read back.
  */
 class BarcodeRecognizerTest {
 
@@ -32,12 +32,12 @@ class BarcodeRecognizerTest {
     private static final String EAN_T7 = "9782505078180";
     private static final String EAN_T2 = "9782820343819";
 
-    /** Ce qu'une base bibliographique rend : un titre libre, pas un tome structuré. */
+    /** What a bibliographic database returns: a free title, not a structured volume. */
     private static BarcodeWorkLookup lookup(Map<String, String> titresParCode) {
         return (ean, entityTypeCode) -> Optional.ofNullable(titresParCode.get(ean));
     }
 
-    // ============================================ La chaîne complète
+    // ============================================ The complete chain
 
     @Test
     void a_barcode_on_a_photo_becomes_a_proposal_with_an_exact_identifier() {
@@ -51,8 +51,8 @@ class BarcodeRecognizerTest {
         RecognizedItem item = propositions.get(0);
         assertThat(item.seriesTitleRaw()).isEqualTo("Naruto");
         assertThat(item.volumeNumber()).isEqualTo(9);
-        // Le point qui distingue cette source des deux autres : ce n'est pas une
-        // lecture probable, c'est un identifiant qui correspond ou ne correspond pas.
+        // The point that sets this source apart from the other two: it is not a
+        // probable reading, it is an identifier that matches or does not match.
         assertThat(item.hasExactIdentifier()).isTrue();
         assertThat(item.ean()).isEqualTo(EAN_T9);
         assertThat(item.sources()).containsExactly(RecognitionSource.EAN);
@@ -61,8 +61,8 @@ class BarcodeRecognizerTest {
 
     @Test
     void the_title_is_read_by_the_SAME_rules_as_a_listing_title() {
-        // « Naruto, Vol. 9 » et « Naruto tome 9 » posent le même problème de
-        // lecture. Une seconde extraction écrite ici aurait fini par diverger.
+        // "Naruto, Vol. 9" and "Naruto tome 9" pose the same reading
+        // problem. A second extraction written here would have ended up diverging.
         BarcodeRecognizer recognizer = new BarcodeRecognizer(lookup(Map.of(
                 EAN_T9, "Naruto tome 9",
                 EAN_T4, "One Piece, Vol. 4")));
@@ -82,7 +82,7 @@ class BarcodeRecognizerTest {
         List<RecognizedItem> propositions =
                 recognizer.recognize(List.of(photoAvec(EAN_T9, 3)), RecognitionContext.forManga());
 
-        // L'écran doit pouvoir dire « vu sur la photo 4 », comme pour la vision.
+        // The screen must be able to say "seen on photo 4", as for vision.
         assertThat(propositions.get(0).sourceImages()).containsExactly(3);
     }
 
@@ -97,12 +97,12 @@ class BarcodeRecognizerTest {
         assertThat(propositions.get(0).sourceImages()).containsExactly(0, 1);
     }
 
-    // ============================================ Se taire plutôt que broder
+    // ============================================ Stay silent rather than embroider
 
     @Test
     void a_code_no_database_knows_produces_nothing() {
-        // Pas de ligne « EAN 9782505011118 » à l'écran : elle n'apprendrait
-        // rien, et donnerait l'illusion d'un tome identifié.
+        // No "EAN 9782505011118" line on screen: it would teach
+        // nothing, and would give the illusion of an identified volume.
         BarcodeRecognizer recognizer = new BarcodeRecognizer(lookup(Map.of()));
 
         assertThat(recognizer.recognize(List.of(photoAvec(EAN_T9, 0)), RecognitionContext.forManga()))
@@ -122,8 +122,8 @@ class BarcodeRecognizerTest {
 
     @Test
     void a_title_describing_several_volumes_keeps_the_series_without_a_number() {
-        // « Naruto tomes 1 à 3 » désigne un coffret, pas un tome. Choisir un
-        // numéro au hasard parmi trois serait pire que n'en donner aucun.
+        // "Naruto tomes 1 à 3" designates a box set, not a volume. Picking a
+        // number at random among three would be worse than giving none.
         BarcodeRecognizer recognizer =
                 new BarcodeRecognizer(lookup(Map.of(EAN_T9, "Naruto tomes 1 à 3")));
 
@@ -138,8 +138,8 @@ class BarcodeRecognizerTest {
 
     @Test
     void a_photo_without_any_barcode_costs_no_lookup_at_all() {
-        // Le décodage est local et gratuit ; l'identification ne l'est pas. Une
-        // photo sans code ne doit déclencher aucun aller-retour.
+        // Decoding is local and free; identification is not. A
+        // photo with no code must trigger no round trip.
         int[] appels = {0};
         BarcodeWorkLookup compteur = (ean, code) -> {
             appels[0]++;
@@ -166,7 +166,7 @@ class BarcodeRecognizerTest {
         assertThat(recognizer.recognize(List.of(photoAvec(EAN_T9, 0)), null)).hasSize(1);
     }
 
-    // ============================================ Fabriques
+    // ============================================ Factories
 
     private static RecognitionImage photoAvec(String ean, int index) {
         try {
@@ -205,13 +205,13 @@ class BarcodeRecognizerTest {
         }
     }
 
-    // ============================================ Menees de front
+    // ============================================ Run side by side
 
     @Test
     void several_codes_are_identified_in_parallel_not_queued() {
-        // Mesure sur cette instance : 1,4 a 5,5 s par identification, et les
-        // echecs ne sont pas mis en cache. Douze codes en file sur une route
-        // SYNCHRONE, c'est une minute d'attente derriere un clic.
+        // Measured on this instance: 1.4 to 5.5 s per identification, and
+        // failures are not cached. Twelve codes queued on a SYNCHRONOUS
+        // route is a minute of waiting behind a click.
         java.util.concurrent.atomic.AtomicInteger simultanees =
                 new java.util.concurrent.atomic.AtomicInteger();
         java.util.concurrent.atomic.AtomicInteger maximum =
@@ -235,18 +235,18 @@ class BarcodeRecognizerTest {
                 RecognitionContext.forManga());
         long dureeMs = (System.nanoTime() - debut) / 1_000_000;
 
-        assertThat(maximum.get()).as("plusieurs identifications de front").isGreaterThan(1);
-        assertThat(dureeMs).as("quatre fois 120 ms en file feraient 480 ms").isLessThan(400);
+        assertThat(maximum.get()).as("several identifications at the same time").isGreaterThan(1);
+        assertThat(dureeMs).as("four times 120 ms in a queue would make 480 ms").isLessThan(400);
     }
 
     @Test
     void the_order_follows_the_photos_not_the_order_answers_come_back() {
-        // L'ordre suit celui des photos, donc celui que l'ecran affiche. Le
-        // rendre au gre des reponses ferait danser la liste d'une analyse a
-        // l'autre pour les memes photos.
+        // The order follows that of the photos, so the one the screen shows. Returning it
+        // in the order of the responses would make the list dance from one analysis
+        // to the next for the same photos.
         BarcodeWorkLookup irregulier = (ean, code) -> {
             try {
-                // Le PREMIER code repond en dernier.
+                // The FIRST code answers last.
                 Thread.sleep(EAN_T9.equals(ean) ? 150 : 10);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -263,7 +263,7 @@ class BarcodeRecognizerTest {
 
     @Test
     void a_single_code_needs_no_thread_pool() {
-        // Le cas le plus courant ne doit pas payer la mise en place d'un pool.
+        // The most common case must not pay for setting up a pool.
         BarcodeRecognizer recognizer = new BarcodeRecognizer(lookup(Map.of(EAN_T9, "Naruto, Vol. 9")));
 
         assertThat(recognizer.recognize(List.of(photoAvec(EAN_T9, 0)), RecognitionContext.forManga()))
@@ -272,8 +272,8 @@ class BarcodeRecognizerTest {
 
     @Test
     void at_most_twelve_codes_are_identified() {
-        // Chaque code coute un aller-retour vers une base externe, gratuite et
-        // partagee avec le scanner de la page « Scanner » et le client iOS.
+        // Each code costs a round trip to an external database, free and
+        // shared with the scanner of the "Scanner" page and the iOS client.
         assertThat(BarcodeRecognizer.MAX_CODES).isEqualTo(12);
     }
 }

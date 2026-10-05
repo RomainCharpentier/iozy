@@ -1,46 +1,45 @@
 /**
- * <b>D'où l'on vient — et ce qu'on refuse de croire sur parole.</b>
+ * <b>Where we come from — and what we refuse to take on trust.</b>
  *
- * <p>Six écrans lisent cette origine pour afficher leur lien de retour. Elle
- * voyage dans `location.state`, c'est-à-dire un sac libre : une version
- * antérieure de l'application a pu le remplir autrement, et un lien forgé peut
- * y mettre n'importe quoi. Deux règles en découlent, et aucune ne se voit
- * quand elle tombe :
+ * <p>Six screens read this origin to display their back link. It travels in
+ * `location.state`, that is a free bag: an earlier version of the application
+ * may have filled it differently, and a forged link can put anything in it.
+ * Two rules follow from it, and neither can be seen when it fails:
  * <ul>
- *   <li>un état qui n'a pas la bonne forme ne donne <b>pas</b> de retour — le
- *       lien disparaît, l'écran reste entier ;</li>
- *   <li>la destination est une route <b>interne</b>. Sans ce refus, un état
- *       forgé transformerait le bouton « Retour » en redirection vers
- *       l'extérieur.</li>
+ *   <li>a state that does not have the right shape gives <b>no</b> back link
+ *       — the link disappears, the screen stays whole;</li>
+ *   <li>the destination is an <b>internal</b> route. Without this refusal, a
+ *       forged state would turn the "Retour" button into a redirect to the
+ *       outside.</li>
  * </ul>
  */
 import { describe, expect, it } from 'vitest'
 import { retourDepuis } from './retour'
 
 describe('retourDepuis', () => {
-  it('rend l’origine quand elle est complète', () => {
+  it('returns the origin when it is complete', () => {
     expect(retourDepuis({ retour: { to: '/add', libelle: 'Recherche' } }))
       .toEqual({ to: '/add', libelle: 'Recherche' })
   })
 
-  it('ne rend rien quand il n’y a pas d’origine', () => {
-    // Le cas NORMAL : page rechargée, lien reçu, arrivée directe. L'écran
-    // affiche alors son parent naturel, il ne se casse pas.
+  it('returns nothing when there is no origin', () => {
+    // The NORMAL case: page reloaded, received link, direct arrival. The
+    // screen then shows its natural parent, it does not break.
     expect(retourDepuis(null)).toBeNull()
     expect(retourDepuis(undefined)).toBeNull()
     expect(retourDepuis({})).toBeNull()
     expect(retourDepuis('/add')).toBeNull()
   })
 
-  it('refuse une origine à moitié écrite', () => {
+  it('refuses a half-written origin', () => {
     expect(retourDepuis({ retour: { to: '/add' } })).toBeNull()
     expect(retourDepuis({ retour: { libelle: 'Recherche' } })).toBeNull()
     expect(retourDepuis({ retour: { to: 42, libelle: 'Recherche' } })).toBeNull()
   })
 
-  it('refuse tout ce qui sortirait de l’application', () => {
-    // Un « Retour » qui emmène ailleurs qu'ici serait exactement le contraire
-    // de ce qu'il annonce.
+  it('refuses everything that would leave the application', () => {
+    // A "Retour" that takes you somewhere other than here would be exactly
+    // the opposite of what it announces.
     expect(retourDepuis({ retour: { to: 'https://example.com', libelle: 'Ailleurs' } })).toBeNull()
     expect(retourDepuis({ retour: { to: '//example.com', libelle: 'Ailleurs' } })).toBeNull()
     expect(retourDepuis({ retour: { to: 'javascript:alert(1)', libelle: 'Ailleurs' } })).toBeNull()

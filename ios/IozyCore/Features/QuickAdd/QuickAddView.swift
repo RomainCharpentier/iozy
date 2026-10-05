@@ -1,67 +1,67 @@
 import SwiftUI
 import SwiftData
 
-/// Parcours 1 ("le collectionneur pressé", étape 5 de la conception) :
-/// interface minimaliste, un seul CTA, pensée pour être utilisée en
-/// magasin en moins de 5 secondes.
+/// Journey 1 ("the collector in a hurry", step 5 of the design):
+/// minimal interface, a single CTA, made to be used
+/// in a store in less than 5 seconds.
 ///
-/// Intègre la recherche de métadonnées (module Metadata Enrichment,
-/// Jikan pour les mangas / BGG pour les jeux de société / IGDB pour les
-/// jeux vidéo) : taper un titre déclenche une recherche, un candidat
-/// choisi pré-remplit le titre et transmet ses attributs à l'ajout rapide
-/// sans ressaisie.
+/// Includes the metadata search (Metadata Enrichment module,
+/// Jikan for mangas / BGG for board games / IGDB for
+/// video games): typing a title triggers a search, a chosen candidate
+/// pre-fills the title and passes its attributes to the quick add
+/// with no retyping.
 struct QuickAddView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \EntityTypeRecord.label) private var entityTypes: [EntityTypeRecord]
     @State private var selectedTypeId: UUID?
     @State private var title: String = ""
     @State private var condition: String = "NEW"
-    // Réservés au Manga (voir QuickAddService côté backend) : le titre
-    // identifie la SÉRIE, volumeNumber+edition identifient le TOME précis
-    // qu'on ajoute réellement à l'étagère - deux champs distincts pour ne pas
-    // mélanger "je possède Naruto" (faux, personne ne possède "la série" en
-    // un bloc) et "je possède le tome 12 de Naruto, édition Kana" (ce qu'on
-    // possède vraiment).
+    // Reserved for Manga (see QuickAddService on the backend side): the title
+    // identifies the SERIES, volumeNumber+edition identify the exact VOLUME
+    // that is really added to the shelf - two distinct fields to avoid
+    // mixing "I own Naruto" (false, nobody owns "the series" in
+    // one block) and "I own volume 12 of Naruto, Kana edition" (what one
+    // really owns).
     @State private var volumeNumberText: String = ""
     @State private var edition: String = ""
-    // File d'attente de tomes saisis manuellement (voir queueManualVolume) -
-    // permet d'en ajouter PLUSIEURS avant de valider (ex: les tomes 4 et 5
-    // d'une "Black Edition" tous les deux introuvables dans la recherche
-    // automatique, vérifié manuellement sur "Death Note", voir historique) :
-    // sans ça, chaque tome manquant demandait de revalider tout le
-    // formulaire séparément. volumeNumberText/edition ci-dessus restent la
-    // saisie EN COURS, pas encore mise en file - un tome tapé puis validé
-    // directement (sans "+") reste géré tel quel par submit(), comme avant.
+    // Queue of volumes typed manually (see queueManualVolume) -
+    // lets us add SEVERAL before confirming (e.g. volumes 4 and 5
+    // of a "Black Edition" both missing from the automatic search,
+    // checked manually on "Death Note", see history):
+    // without it, each missing volume required confirming the whole
+    // form separately. volumeNumberText/edition above stay the
+    // entry IN PROGRESS, not yet queued - a volume typed then confirmed
+    // directly (without "+") is still handled as is by submit(), as before.
     @State private var manualVolumes: [ManualVolumeEntry] = []
-    // Sélection visuelle des tomes possédés par jaquette (voir VolumeSelectionGrid,
-    // façon Mangacollec) - déclenchée après sélection d'un candidat Manga
-    // (voir triggerVolumeSearch). volumeNumberText/edition ci-dessus restent
-    // disponibles en repli manuel (tome introuvable dans la recherche) et se
-    // combinent avec cette sélection au moment de l'ajout (voir submit).
+    // Visual selection of owned volumes by cover art (see VolumeSelectionGrid,
+    // like Mangacollec) - triggered after a Manga candidate is selected
+    // (see triggerVolumeSearch). volumeNumberText/edition above stay
+    // available as a manual fallback (volume not found by the search) and
+    // combine with this selection when adding (see submit).
     @State private var volumeCandidates: [VolumeCandidateDTO] = []
-    // Quota Google Books dépassé sur toutes les clés configurées lors de la
-    // dernière recherche (voir VolumesResponseDTO) - distingue ce cas d'une
-    // série qui n'a réellement aucune édition française.
+    // Google Books quota exceeded on all configured keys during the
+    // last search (see VolumesResponseDTO) - tells this case apart from a
+    // series that really has no French edition.
     @State private var volumesQuotaExceeded = false
     @State private var isSearchingVolumes = false
     @State private var selectedVolumeIds: Set<String> = []
     @State private var showManualVolumeFields = false
     @State private var volumeSearchTask: Task<Void, Never>?
-    // Débounce du déclenchement AUTOMATIQUE de la recherche de tomes après
-    // sélection d'un candidat (voir selectCandidate) - évite de payer les
-    // requêtes Google Books pour chaque candidat survolé/tapé rapidement
-    // avant de s'arrêter sur le bon. N'affecte jamais un déclenchement
-    // volontaire (boutons "Actualiser"/"Chercher plus d'éditions"), toujours immédiat.
+    // Debounce of the AUTOMATIC trigger of the volume search after
+    // a candidate is selected (see selectCandidate) - avoids paying for the
+    // Google Books requests for each candidate hovered/tapped quickly
+    // before stopping on the right one. Never affects a
+    // voluntary trigger ("Actualiser"/"Chercher plus d'éditions" buttons), always immediate.
     @State private var volumeSearchDebounceTask: Task<Void, Never>?
-    // Titre/auteur de la dernière recherche de tomes déclenchée - réutilisés
-    // par le bouton "Actualiser" (voir triggerVolumeSearch) sans re-choisir le
-    // candidat. Résultat stocké durablement côté backend : sans ce bouton, un
-    // résultat une fois trouvé ne serait plus jamais rafraîchi automatiquement.
+    // Title/author of the last volume search triggered - reused
+    // by the "Actualiser" button (see triggerVolumeSearch) without choosing the
+    // candidate again. Result stored durably on the backend side: without this button, a
+    // result once found would never be refreshed automatically.
     @State private var lastVolumeSearchTitle: String?
     @State private var lastVolumeSearchAuthor: String?
-    // Déjà connus du candidat sélectionné (voir selectCandidate) - permettent
-    // d'écarter un spin-off/side-story connu (voir RelatedSeriesService côté
-    // backend), y compris sur "Actualiser"/"Chercher plus d'éditions".
+    // Already known from the selected candidate (see selectCandidate) - let us
+    // discard a known spin-off/side-story (see RelatedSeriesService on the
+    // backend side), including on "Actualiser"/"Chercher plus d'éditions".
     @State private var lastVolumeSearchMalId: String?
     @State private var lastVolumeSearchOriginalTitle: String?
     @State private var lastVolumeSearchTitleRomaji: String?
@@ -72,87 +72,87 @@ struct QuickAddView: View {
 
     @State private var candidates: [MetadataCandidateDTO] = []
     @State private var selectedCandidateAttributes: [String: String] = [:]
-    // Titre depuis lequel `selectedCandidateAttributes` a été rempli - si le
-    // titre est retouché manuellement après avoir choisi un candidat, il est
-    // considéré périmé (même règle que côté web). Sert aussi à savoir si le
-    // titre courant est "vérifié" pour le blocage de soumission ci-dessous.
+    // Title from which `selectedCandidateAttributes` was filled - if the
+    // title is edited manually after choosing a candidate, it is
+    // considered stale (same rule as on the web side). Also used to know if the
+    // current title is "verified" for the submit block below.
     @State private var verifiedTitle: String?
     @State private var searchTask: Task<Void, Never>?
-    // Retour visuel pendant/après la recherche de métadonnées (Jikan/BGG/
-    // IGDB) - sans ça, une recherche qui ne trouve rien (fournisseur en
-    // panne, pas de correspondance...) est invisible et donne l'impression
-    // qu'aucune recherche n'a lieu, contrairement au scan code-barres qui
-    // affiche toujours un résultat explicite.
+    // Visual feedback during/after the metadata search (Jikan/BGG/
+    // IGDB) - without it, a search that finds nothing (provider
+    // down, no match...) is invisible and gives the impression
+    // that no search takes place, unlike the barcode scan which
+    // always shows an explicit result.
     @State private var isSearching = false
     @State private var searchCompletedWithNoResults = false
     @State private var searchFailed = false
-    // Recherche best-effort d'un titre d'édition française après sélection
-    // d'un candidat Jikan/MyAnimeList - voir selectCandidate.
+    // Best-effort search of a French edition title after selecting
+    // a Jikan/MyAnimeList candidate - see selectCandidate.
     @State private var isTranslatingTitle = false
     @State private var frenchTitleTask: Task<Void, Never>?
-    // Titres français déjà résolus pour la LISTE de suggestions (pas
-    // seulement celle qu'on finira par choisir) - voir triggerSearch, qui
-    // lance cette résolution dès que les candidats arrivent, et
-    // selectCandidate, qui réutilise le résultat sans refaire l'appel.
-    // Clé = MetadataCandidateDTO.id ("source-externalId").
+    // French titles already resolved for the LIST of suggestions (not
+    // only the one we will end up choosing) - see triggerSearch, which
+    // starts this resolution as soon as the candidates arrive, and
+    // selectCandidate, which reuses the result without calling again.
+    // Key = MetadataCandidateDTO.id ("source-externalId").
     @State private var frenchTitlesById: [String: String] = [:]
     @State private var frenchTitlesListTask: Task<Void, Never>?
-    // Réglage utilisateur (voir Réglages > Titre des mangas, TitleLanguagePreference.swift) -
-    // si "Français" n'est pas activé dans la composition, aucune recherche de
-    // titre français n'est jamais déclenchée (ni pour la liste ni à la
-    // sélection) : zéro appel externe en plus. Simple @State (pas @AppStorage,
-    // TitleComposition n'étant pas un type primitif) rechargé à chaque
-    // apparition de l'onglet (voir .onAppear plus bas) pour refléter un
-    // changement fait entre-temps dans l'onglet Réglages.
+    // User setting (see Réglages > Titre des mangas, TitleLanguagePreference.swift) -
+    // if "Français" is not enabled in the composition, no search for a
+    // French title is ever triggered (neither for the list nor at
+    // selection): zero extra external calls. Simple @State (not @AppStorage,
+    // TitleComposition not being a primitive type) reloaded each time
+    // the tab appears (see .onAppear below) to reflect a
+    // change made in the meantime in the Réglages tab.
     @State private var titleComposition: TitleComposition = TitleCompositionStore.load()
 
-    /// Type sélectionné, ou le premier de la liste chargée par défaut - les
-    /// types ne sont plus codés en dur, la liste peut être vide un court
-    /// instant au tout premier lancement (avant la première synchronisation).
+    /// Selected type, or the first of the loaded list by default - types
+    /// are no longer hard-coded, the list can be empty for a short
+    /// moment on the very first launch (before the first synchronization).
     private var selectedType: EntityTypeRecord? {
         guard let selectedTypeId else { return entityTypes.first }
         return entityTypes.first { $0.id == selectedTypeId } ?? entityTypes.first
     }
 
-    /// Un type avec fournisseur (Manga/Jeu vidéo/Jeu de société) exige
-    /// d'avoir choisi une suggestion (recherche ou code-barres) avant de
-    /// valider - un type personnalisé (jamais de fournisseur) reste en
-    /// saisie libre, sinon il deviendrait définitivement impossible d'y
-    /// ajouter quoi que ce soit.
+    /// A type with a provider (Manga/Video game/Board game) requires
+    /// choosing a suggestion (search or barcode) before
+    /// confirming - a custom type (never has a provider) stays in
+    /// free entry, otherwise it would become permanently impossible to add
+    /// anything to it.
     private var requiresMatch: Bool { selectedType?.hasMetadataProvider ?? false }
     private var hasVerifiedMatch: Bool { verifiedTitle != nil && verifiedTitle == title }
-    /// `selectedCandidateAttributes` sans la jaquette (voir CoverImage.attributeKey) -
-    /// celle-ci reste envoyée au backend mais n'a rien à faire dans cette
-    /// liste texte "attribut : valeur".
+    /// `selectedCandidateAttributes` without the cover art (see CoverImage.attributeKey) -
+    /// it is still sent to the backend but has no place in this
+    /// "attribute: value" text list.
     private var displayedCandidateAttributes: [String: String] {
         selectedCandidateAttributes.filter { $0.key != CoverImage.attributeKey }
     }
     private var blockedByMissingMatch: Bool {
         requiresMatch && !title.trimmingCharacters(in: .whitespaces).isEmpty && !hasVerifiedMatch
     }
-    /// Reflète exactement ce que submit() va soumettre - couvertures cochées
-    /// + file de tomes manuels + saisie manuelle EN COURS si non vide, pour
-    /// que le libellé du bouton ("Ajouter N tomes") ne mente jamais sur ce
-    /// qui va réellement être ajouté.
+    /// Reflects exactly what submit() will submit - ticked covers
+    /// + queue of manual volumes + manual entry IN PROGRESS if not empty, so
+    /// that the label of the button ("Ajouter N tomes") never lies about
+    /// what will really be added.
     private var totalVolumesToAdd: Int {
         selectedVolumeIds.count + manualVolumes.count
             + (volumeNumberText.trimmingCharacters(in: .whitespaces).isEmpty ? 0 : 1)
     }
 
-    /// Un tome manuel déjà mis en file d'attente (voir queueManualVolume) -
-    /// Identifiable pour ForEach/suppression individuelle.
+    /// A manual volume already put in the queue (see queueManualVolume) -
+    /// Identifiable for ForEach/individual deletion.
     private struct ManualVolumeEntry: Identifiable {
         let id = UUID()
         let volumeNumber: Int
         let edition: String
     }
 
-    /// Ajoute la saisie manuelle EN COURS à la file d'attente plutôt que de
-    /// l'ajouter tout de suite - permet d'enchaîner plusieurs tomes manuels
-    /// (ex: T4 puis T5 d'une même édition) avant de valider le formulaire une
-    /// seule fois. Le numéro de tome est vidé pour le suivant, mais l'édition
-    /// reste : des tomes manuels consécutifs partagent presque toujours la
-    /// même édition.
+    /// Adds the manual entry IN PROGRESS to the queue instead of
+    /// adding it right away - lets us chain several manual volumes
+    /// (e.g. V4 then V5 of the same edition) before confirming the form
+    /// only once. The volume number is cleared for the next one, but the edition
+    /// stays: consecutive manual volumes almost always share the
+    /// same edition.
     private func queueManualVolume() {
         let trimmed = volumeNumberText.trimmingCharacters(in: .whitespaces)
         guard let parsed = Int(trimmed), parsed > 0 else { return }
@@ -189,12 +189,12 @@ struct QuickAddView: View {
                             .textInputAutocapitalization(.words)
                             .onChange(of: title) { _, newValue in
                                 if newValue != verifiedTitle {
-                                    selectedCandidateAttributes = [:]  // le titre a été retouché manuellement
+                                    selectedCandidateAttributes = [:]  // the title was edited manually
                                     frenchTitleTask?.cancel()
                                     isTranslatingTitle = false
-                                    // La sélection de tomes/jaquettes a été résolue pour
-                                    // l'ancien titre - plus aucune garantie qu'elle
-                                    // corresponde encore à ce qui est saisi.
+                                    // The selection of volumes/cover arts was resolved for
+                                    // the old title - no guarantee anymore that it
+                                    // still matches what is typed.
                                     volumeSearchTask?.cancel()
                                     volumeSearchDebounceTask?.cancel()
                                     volumeCandidates = []
@@ -377,9 +377,9 @@ struct QuickAddView: View {
                                 selectCandidate(candidate)
                             } label: {
                                 HStack(spacing: 10) {
-                                    // Jaquette réelle si la source en fournit une - aide à
-                                    // distinguer visuellement des titres identiques/proches
-                                    // avant même de lire le sous-titre.
+                                    // Real cover art if the source provides one - helps
+                                    // to visually tell apart identical/close titles
+                                    // even before reading the subtitle.
                                     if let imageUrlString = candidate.imageUrl, let imageURL = URL(string: imageUrlString) {
                                         AsyncImage(url: imageURL) { phase in
                                             if let image = phase.image {
@@ -462,15 +462,15 @@ struct QuickAddView: View {
         }
     }
 
-    /// Recherche débouncée (500ms, minimum 3 caractères) pour ne pas spammer
-    /// Jikan/MyAnimeList/BGG/IGDB à chaque frappe - même réglage que web
-    /// (QuickAddPage.tsx) pour limiter les recherches intermédiaires tapées
-    /// "en passant" avant que le mot ne soit terminé (ex: taper "naruto" sans
-    /// s'arrêter ne devrait déclencher qu'une seule requête). `searchTask?.cancel()`
-    /// + le `guard !Task.isCancelled` après le sleep empêchent déjà l'appel
-    /// réseau lui-même de partir pour une recherche devenue obsolète - le
-    /// cache backend (voir MetadataSearchService) absorbe le reste des cas
-    /// résiduels.
+    /// Debounced search (500ms, minimum 3 characters) to not spam
+    /// Jikan/MyAnimeList/BGG/IGDB on each keystroke - same setting as web
+    /// (QuickAddPage.tsx) to limit the intermediate searches typed
+    /// "in passing" before the word is finished (e.g. typing "naruto" without
+    /// stopping should only trigger one request). `searchTask?.cancel()`
+    /// + the `guard !Task.isCancelled` after the sleep already stop the
+    /// network call itself from leaving for a search that became obsolete - the
+    /// backend cache (see MetadataSearchService) absorbs the remaining
+    /// residual cases.
     private func triggerSearch() {
         searchTask?.cancel()
         frenchTitlesListTask?.cancel()
@@ -512,15 +512,15 @@ struct QuickAddView: View {
         }
     }
 
-    /// Résout un titre français pour chaque suggestion Jikan/MyAnimeList
-    /// affichée (pas seulement celle qu'on finira par choisir - voir
-    /// selectCandidate, qui réutilise ces résultats sans refaire l'appel).
-    /// Capé aux 6 premières suggestions pour contenir le nombre d'appels
-    /// externes (jusqu'à ~5 requêtes Open Library en cascade par candidat -
-    /// voir OpenLibraryFrenchTitleProvider côté backend, cache 24h derrière) ;
-    /// au-delà, le titre français est cherché à la sélection comme avant. La
-    /// liste s'affiche immédiatement en anglais/romaji et se met à jour
-    /// progressivement candidat par candidat, sans bloquer l'affichage initial.
+    /// Resolves a French title for each Jikan/MyAnimeList suggestion
+    /// displayed (not only the one we will end up choosing - see
+    /// selectCandidate, which reuses these results without calling again).
+    /// Capped to the first 6 suggestions to limit the number of external
+    /// calls (up to ~5 Open Library requests in cascade per candidate -
+    /// see OpenLibraryFrenchTitleProvider on the backend side, 24h cache behind);
+    /// beyond that, the French title is searched at selection as before. The
+    /// list is shown immediately in English/romaji and updates
+    /// progressively candidate by candidate, without blocking the initial display.
     private func resolveFrenchTitlesForList(_ results: [MetadataCandidateDTO], entityTypeId: UUID) {
         guard TitleCompositionStore.isFrenchEnabled(titleComposition) else { return }
         frenchTitlesListTask = Task {
@@ -541,10 +541,10 @@ struct QuickAddView: View {
         }
     }
 
-    /// Tente un vrai lookup ISBN via Open Library (couvre le type MANGA
-    /// uniquement, par son code bien connu - voir OpenLibraryBarcodeProvider
-    /// côté backend). En cas d'échec ou de type non couvert, se rabat sur
-    /// le code brut comme avant.
+    /// Tries a real ISBN lookup via Open Library (covers the MANGA type
+    /// only, by its well-known code - see OpenLibraryBarcodeProvider
+    /// on the backend side). On failure or for an uncovered type, falls back to
+    /// the raw code as before.
     private func handleScannedBarcode(_ code: String) {
         guard let type = selectedType, type.code == "MANGA" else {
             title = code
@@ -559,12 +559,12 @@ struct QuickAddView: View {
         }
     }
 
-    /// ex: "Manga · 1999 · MYANIMELIST" - un même titre peut désigner plusieurs
-    /// œuvres distinctes (ex: le manga "Naruto" et un one-shot pilote également
-    /// titré "Naruto"), mediaType/startYear lèvent l'ambiguïté sans avoir à
-    /// choisir puis vérifier. Absents pour les sources qui ne les fournissent
-    /// pas (BGG/IGDB) - le séparateur n'est mis qu'entre les parties présentes.
-    /// Miroir de candidateSubtitle côté web (QuickAddPage.tsx).
+    /// e.g. "Manga · 1999 · MYANIMELIST" - the same title can mean several
+    /// distinct works (e.g. the manga "Naruto" and a pilot one-shot also
+    /// titled "Naruto"), mediaType/startYear remove the ambiguity without having to
+    /// choose then check. Missing for sources that do not provide them
+    /// (BGG/IGDB) - the separator is only put between the parts present.
+    /// Mirror of candidateSubtitle on the web side (QuickAddPage.tsx).
     private func candidateSubtitle(_ candidate: MetadataCandidateDTO) -> String {
         [candidate.attributes["mediaType"]?.stringValue, candidate.attributes["startYear"]?.stringValue, candidate.source]
             .compactMap { $0 }
@@ -572,9 +572,9 @@ struct QuickAddView: View {
             .joined(separator: " · ")
     }
 
-    /// Valeur brute d'un candidat pour une langue donnée, ou nil si la source
-    /// ne la fournit pas pour ce candidat précis (ex: pas de titre anglais
-    /// distinct, ou recherche française pas encore résolue/infructueuse).
+    /// Raw value of a candidate for a given language, or nil if the source
+    /// does not provide it for this exact candidate (e.g. no distinct English
+    /// title, or French search not yet resolved/unsuccessful).
     private func languageValue(_ candidate: MetadataCandidateDTO, _ language: TitleLanguage, frenchTitle: String?) -> String? {
         switch language {
         case .french:
@@ -586,10 +586,10 @@ struct QuickAddView: View {
         }
     }
 
-    /// Valeurs disponibles pour ce candidat, dans l'ordre de la composition,
-    /// limitées aux langues activées - `candidate.title` en dernier repli si
-    /// aucune des langues activées n'a de valeur (ne devrait arriver que si
-    /// tout a été désactivé, romaji y compris, ce que SettingsView empêche déjà).
+    /// Values available for this candidate, in the order of the composition,
+    /// limited to the enabled languages - `candidate.title` as a last fallback if
+    /// none of the enabled languages has a value (should only happen if
+    /// everything was disabled, romaji included, which SettingsView already prevents).
     private func availableValuesInOrder(_ candidate: MetadataCandidateDTO, frenchTitle: String?) -> [String] {
         let values = titleComposition
             .filter(\.enabled)
@@ -598,21 +598,21 @@ struct QuickAddView: View {
         return values.isEmpty ? [candidate.title] : values
     }
 
-    /// Titre "principal" résolu selon la composition (voir Réglages > Titre
-    /// des mangas) - jamais le titre réellement saisi/sauvegardé tant qu'on
-    /// n'a pas cliqué (voir selectCandidate) : ceci ne sert qu'à décider QUOI
-    /// proposer/appliquer. `frenchTitle` est le résultat déjà résolu (ou non)
-    /// de la recherche best-effort - ignoré si "Français" n'est pas activé.
-    /// Miroir de resolvePrimaryTitle côté web (lib/titleLanguage.ts).
+    /// "Main" title resolved according to the composition (see Réglages > Titre
+    /// des mangas) - never the title really typed/saved until we
+    /// have clicked (see selectCandidate): this only decides WHAT to
+    /// suggest/apply. `frenchTitle` is the result, already resolved (or not),
+    /// of the best-effort search - ignored if "Français" is not enabled.
+    /// Mirror of resolvePrimaryTitle on the web side (lib/titleLanguage.ts).
     private func resolveTitle(for candidate: MetadataCandidateDTO, frenchTitle: String?) -> String {
         availableValuesInOrder(candidate, frenchTitle: frenchTitle)[0]
     }
 
-    /// ex: "L'Attaque des Titans (Shingeki no Kyojin)" - la première langue
-    /// active disponible devient le titre principal, les suivantes (actives
-    /// et disponibles) suivent entre parenthèses dans l'ordre choisi dans
-    /// Réglages. Jamais intégré au titre réellement saisi/sauvegardé (voir
-    /// selectCandidate). Miroir de candidateDisplayTitle côté web (QuickAddPage.tsx).
+    /// e.g. "L'Attaque des Titans (Shingeki no Kyojin)" - the first available
+    /// active language becomes the main title, the following ones (active
+    /// and available) come between parentheses in the order chosen in
+    /// Réglages. Never merged into the title really typed/saved (see
+    /// selectCandidate). Mirror of candidateDisplayTitle on the web side (QuickAddPage.tsx).
     private func candidateDisplayTitle(_ candidate: MetadataCandidateDTO, _ frenchTitle: String?) -> String {
         let values = availableValuesInOrder(candidate, frenchTitle: frenchTitle)
         let mainTitle = values[0]
@@ -621,18 +621,18 @@ struct QuickAddView: View {
         return secondary.isEmpty ? mainTitle : "\(mainTitle) (\(secondary.joined(separator: ", ")))"
     }
 
-    /// Cherche les tomes réels (avec jaquette) des éditions françaises de
-    /// cette série (voir VolumeSelectionGrid) - best-effort, une liste vide
-    /// laisse simplement les champs manuels comme unique moyen d'ajouter un
-    /// tome. Résultat stocké durablement côté backend : sans forceRefresh/
-    /// deepSearch, un appel répété pour la même série ne relance jamais
-    /// Google Books, il sert la réponse déjà stockée. deepSearch (bouton
-    /// "Chercher plus d'éditions") FUSIONNE avec le résultat déjà connu, il
-    /// ne le remplace pas - la sélection en cours est donc toujours
-    /// conservée, comme forceRefresh. malId/originalTitle (déjà connus du
-    /// candidat sélectionné) permettent d'écarter un spin-off/side-story
-    /// connu côté backend - best-effort. titleRomaji est essayé en repli
-    /// d'originalTitle pour cette même détection (voir fetchFrenchTitle).
+    /// Searches the real volumes (with cover art) of the French editions of
+    /// this series (see VolumeSelectionGrid) - best-effort, an empty list
+    /// simply leaves the manual fields as the only way to add a
+    /// volume. Result stored durably on the backend side: without forceRefresh/
+    /// deepSearch, a repeated call for the same series never runs
+    /// Google Books again, it serves the answer already stored. deepSearch ("Chercher plus
+    /// d'éditions" button) MERGES with the result already known, it
+    /// does not replace it - so the current selection is always
+    /// kept, like forceRefresh. malId/originalTitle (already known from the
+    /// selected candidate) let us discard a spin-off/side-story
+    /// known on the backend side - best-effort. titleRomaji is tried as a fallback
+    /// for originalTitle for this same detection (see fetchFrenchTitle).
     private func triggerVolumeSearch(seriesTitle: String, author: String?, forceRefresh: Bool = false, deepSearch: Bool = false, malId: String? = nil, originalTitle: String? = nil, titleRomaji: String? = nil) {
         guard let typeId = selectedType?.id else { return }
         lastVolumeSearchTitle = seriesTitle
@@ -642,10 +642,10 @@ struct QuickAddView: View {
         lastVolumeSearchTitleRomaji = titleRomaji
         volumeSearchTask?.cancel()
         isSearchingVolumes = true
-        // Un rafraîchissement manuel ou une recherche approfondie gardent la
-        // sélection en cours (l'utilisateur ne fait que vérifier/compléter) -
-        // une nouvelle série (recherche initiale) repart en revanche d'une
-        // sélection vide.
+        // A manual refresh or a deep search keep the current
+        // selection (the user is only checking/completing) -
+        // a new series (initial search) on the other hand starts from an
+        // empty selection.
         if !forceRefresh && !deepSearch {
             volumeCandidates = []
             selectedVolumeIds = []
@@ -668,31 +668,31 @@ struct QuickAddView: View {
     private func selectCandidate(_ candidate: MetadataCandidateDTO) {
         frenchTitleTask?.cancel()
         isTranslatingTitle = false
-        // Annule une recherche de tomes encore en attente pour un candidat
-        // précédent (voir le débounce plus bas) - un nouveau choix la rend obsolète.
+        // Cancels a volume search still pending for a previous
+        // candidate (see the debounce below) - a new choice makes it obsolete.
         volumeSearchDebounceTask?.cancel()
 
-        // Titre déjà résolu selon la préférence (voir Réglages > Titre des
-        // mangas) : en .romaji/.english, c'est définitif (candidate.title est
-        // déjà l'anglais, ou originalTitle en .romaji). En .french, réutilise
-        // un titre français déjà résolu pour la liste (voir resolveFrenchTitlesForList)
-        // si disponible.
+        // Title already resolved according to the preference (see Réglages > Titre des
+        // mangas): in .romaji/.english, it is final (candidate.title is
+        // already the English, or originalTitle in .romaji). In .french, reuses
+        // a French title already resolved for the list (see resolveFrenchTitlesForList)
+        // if available.
         let resolvedTitle = resolveTitle(for: candidate, frenchTitle: frenchTitlesById[candidate.id])
         title = resolvedTitle
         selectedCandidateAttributes = candidate.attributes.mapValues { $0.stringValue }
-        // La jaquette voyage à part sur MetadataCandidateDTO (imageUrl) plutôt
-        // que dans `attributes` - on la glisse sous une clé dédiée pour
-        // qu'elle soit persistée avec le reste des attributs pré-remplis,
-        // sans polluer la section "Attributs pré-remplis" affichée ci-dessus
-        // (voir filtre équivalent dans le body, section correspondante).
+        // The cover art travels separately on MetadataCandidateDTO (imageUrl) rather than
+        // in `attributes` - we slip it under a dedicated key so
+        // it is persisted with the rest of the pre-filled attributes,
+        // without polluting the "Attributs pré-remplis" section shown above
+        // (see the equivalent filter in the body, matching section).
         if let imageUrl = candidate.imageUrl {
             selectedCandidateAttributes[CoverImage.attributeKey] = imageUrl
         }
-        // Pré-remplit l'édition depuis l'éditeur renvoyé par le candidat (ex:
-        // Google Books/Open Library sur un scan ISBN renvoient l'édition
-        // exacte scannée) - laissé vide pour Jikan/MyAnimeList/BGG/IGDB qui
-        // ne connaissent pas d'éditeur français. Simple pré-remplissage,
-        // jamais écrasé après coup : rien n'empêche de le corriger.
+        // Pre-fills the edition from the publisher returned by the candidate (e.g.
+        // Google Books/Open Library on an ISBN scan return the exact
+        // edition scanned) - left empty for Jikan/MyAnimeList/BGG/IGDB which
+        // do not know a French publisher. Simple pre-fill,
+        // never overwritten afterwards: nothing prevents correcting it.
         if let publisher = candidate.attributes["publisher"]?.stringValue {
             edition = publisher
         }
@@ -703,26 +703,26 @@ struct QuickAddView: View {
         searchFailed = false
 
         let author = candidate.attributes["mangaka"]?.stringValue
-        // malId + candidate.title (titre AVANT résolution française) permettent
-        // d'écarter un spin-off/side-story connu côté backend (voir
-        // RelatedSeriesService) - best-effort, sans effet si malId est absent.
+        // malId + candidate.title (title BEFORE French resolution) let us
+        // discard a spin-off/side-story known on the backend side (see
+        // RelatedSeriesService) - best-effort, no effect if malId is absent.
         let malId = candidate.attributes["malId"]?.stringValue
-        // Second candidat pour cette même détection de spin-off (voir
-        // RelatedSeriesService côté backend) - un spin-off peut être indexé
-        // côté MyAnimeList sous le titre romaji plutôt que candidate.title
-        // (ex: "Attack on Titan"/"Shingeki no Kyojin", vérifié manuellement).
+        // Second candidate for this same spin-off detection (see
+        // RelatedSeriesService on the backend side) - a spin-off can be indexed
+        // on the MyAnimeList side under the romaji title rather than candidate.title
+        // (e.g. "Attack on Titan"/"Shingeki no Kyojin", checked manually).
         let titleRomaji = candidate.attributes["titleRomaji"]?.stringValue
-        // Recherche avec le titre déjà résolu - correct dans la majorité des
-        // cas (beaucoup de titres de mangas restent identiques en VF, ex:
-        // "Death Note", "One Piece"). Si le titre français arrive plus tard
-        // (voir plus bas) et diffère, la recherche est refaite avec le bon
-        // titre : le cas où "L'Attaque des Titans" doit remplacer "Attack on
-        // Titan" pour trouver l'édition française sur Google Books.
+        // Search with the title already resolved - correct in most
+        // cases (many manga titles stay identical in French, e.g.
+        // "Death Note", "One Piece"). If the French title arrives later
+        // (see below) and differs, the search is done again with the right
+        // title: the case where "L'Attaque des Titans" must replace "Attack on
+        // Titan" to find the French edition on Google Books.
         //
-        // Débounced (pas immédiat) : sans délai, comparer rapidement plusieurs
-        // candidats avant de choisir déclenchait les requêtes Google Books
-        // pour CHAQUE candidat survolé, jamais retenu ou non - annulé si un
-        // autre candidat est choisi entre-temps (voir plus haut).
+        // Debounced (not immediate): without a delay, quickly comparing several
+        // candidates before choosing triggered the Google Books requests
+        // for EACH candidate hovered, whether kept or not - cancelled if another
+        // candidate is chosen in the meantime (see above).
         if selectedType?.code == "MANGA" {
             volumeSearchDebounceTask = Task {
                 try? await Task.sleep(nanoseconds: 600_000_000)
@@ -733,28 +733,28 @@ struct QuickAddView: View {
             }
         }
 
-        // Rien de plus à faire si "Français" n'est pas activé (aucun appel
-        // externe dans ce cas), ni si le titre français est déjà connu
-        // (appliqué ci-dessus).
+        // Nothing more to do if "Français" is not enabled (no external
+        // call in that case), nor if the French title is already known
+        // (applied above).
         guard TitleCompositionStore.isFrenchEnabled(titleComposition), frenchTitlesById[candidate.id] == nil else {
             return
         }
 
-        // Sinon (candidat au-delà des 6 premiers de la liste, ou résolution
-        // pas encore arrivée), même recherche best-effort (Open Library, puis
-        // Google Books en repli) déclenchée à la sélection - uniquement pour
-        // les candidats Jikan/MyAnimeList : ce sont les seuls dont le titre
-        // est romaji/anglais (jamais français). Un candidat Google Books/Open
-        // Library (scan ISBN) a déjà renvoyé l'édition exacte scannée - pas
-        // la peine de le retraduire.
+        // Otherwise (candidate beyond the first 6 of the list, or resolution
+        // not yet arrived), same best-effort search (Open Library, then
+        // Google Books as a fallback) triggered at selection - only for
+        // Jikan/MyAnimeList candidates: they are the only ones whose title
+        // is romaji/English (never French). A Google Books/Open
+        // Library candidate (ISBN scan) already returned the exact edition scanned - no
+        // need to translate it again.
         guard candidate.source == "JIKAN" || candidate.source == "MYANIMELIST", let typeId = selectedType?.id else {
             return
         }
-        // `candidate.title` (déjà l'anglais si disponible), jamais le romaji
-        // `originalTitle` : vérifié manuellement que combiner l'auteur avec
-        // le romaji complet ne matche jamais une édition française, alors
-        // qu'un mot anglais distinctif (ex: "Titan") le retrouve souvent -
-        // voir OpenLibraryFrenchTitleProvider côté backend.
+        // `candidate.title` (already English if available), never the romaji
+        // `originalTitle`: checked manually that combining the author with
+        // the full romaji never matches a French edition, whereas
+        // a distinctive English word (e.g. "Titan") often finds it -
+        // see OpenLibraryFrenchTitleProvider on the backend side.
         let searchTerm = candidate.title
         isTranslatingTitle = true
         frenchTitleTask = Task {
@@ -778,8 +778,8 @@ struct QuickAddView: View {
         }
     }
 
-    /// Un tome à ajouter - soit une couverture cochée dans la grille (voir
-    /// VolumeSelectionGrid), soit le tome saisi manuellement en repli.
+    /// A volume to add - either a cover ticked in the grid (see
+    /// VolumeSelectionGrid), or the volume typed manually as a fallback.
     private struct VolumeToAdd {
         let volumeNumber: Int?
         let edition: String?
@@ -793,10 +793,10 @@ struct QuickAddView: View {
         let submittedTitle = title
         let attributes = selectedCandidateAttributes
 
-        // Chaque couverture cochée dans la grille devient un ajout, plus la
-        // file de tomes manuels déjà mise en attente (voir queueManualVolume),
-        // plus éventuellement la saisie manuelle EN COURS si non vide -
-        // jamais l'un OU l'autre, tout se combine.
+        // Each cover ticked in the grid becomes an add, plus the
+        // queue of manual volumes already put on hold (see queueManualVolume),
+        // plus possibly the manual entry IN PROGRESS if not empty -
+        // never one OR the other, everything combines.
         var items: [VolumeToAdd] = volumeCandidates
             .filter { selectedVolumeIds.contains($0.id) }
             .map { VolumeToAdd(volumeNumber: $0.volumeNumber, edition: $0.edition, volumeImageUrl: $0.imageUrl) }
@@ -809,7 +809,7 @@ struct QuickAddView: View {
             items.append(VolumeToAdd(volumeNumber: manualVolumeNumber, edition: trimmedEdition.isEmpty ? nil : trimmedEdition, volumeImageUrl: nil))
         }
         if items.isEmpty {
-            items.append(VolumeToAdd(volumeNumber: nil, edition: nil, volumeImageUrl: nil)) // pas de tome précisé (jeu vidéo/jeu de société, ou manga sans tome)
+            items.append(VolumeToAdd(volumeNumber: nil, edition: nil, volumeImageUrl: nil)) // no volume given (video game/board game, or manga without volume)
         }
 
         Task {
@@ -818,11 +818,11 @@ struct QuickAddView: View {
                 var alreadyOwnedCount = 0
                 var matchedExistingEntity = false
                 var lastEntityId: UUID?
-                // Séquentiel, jamais en parallèle (pas de TaskGroup) : le
-                // premier appel crée l'Entity-série si elle n'existe pas
-                // encore côté backend (aucune contrainte unique en base sur
-                // entity_type_id+title) - des appels concurrents créeraient
-                // potentiellement plusieurs fiches en double pour la même série.
+                // Sequential, never in parallel (no TaskGroup): the
+                // first call creates the series Entity if it does not exist
+                // yet on the backend side (no unique constraint in the database on
+                // entity_type_id+title) - concurrent calls would
+                // potentially create several duplicate pages for the same series.
                 for item in items {
                     let result = try await APIClient.shared.quickAdd(
                         entityTypeId: typeId, title: submittedTitle, condition: condition, attributes: attributes,
@@ -837,9 +837,9 @@ struct QuickAddView: View {
                 }
 
                 await MainActor.run {
-                    // On n'insère un nouvel EntityRecord dans le cache local que si
-                    // le backend a vraiment créé une nouvelle Entity - sinon on
-                    // dupliquerait localement ce qui ne l'est pas côté serveur.
+                    // We only insert a new EntityRecord in the local cache if
+                    // the backend really created a new Entity - otherwise we
+                    // would duplicate locally what is not duplicated on the server side.
                     if !matchedExistingEntity, let lastEntityId {
                         let record = EntityRecord(
                             id: lastEntityId,

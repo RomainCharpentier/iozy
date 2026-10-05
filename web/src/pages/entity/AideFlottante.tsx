@@ -8,20 +8,20 @@ export interface QuestionProposee {
 }
 
 /**
- * Le bouton « Aide » flottant de la maquette, et le panneau qu'il ouvre.
+ * The floating "Aide" button of the mockup, and the panel it opens.
  *
- * <h2>Flottant plutôt que dans le flux</h2>
- * L'assistant a déjà déménagé deux fois - une section propre, puis une
- * pastille dans une barre. La maquette le sort carrément du flux : la fiche
- * peut être longue (soixante-douze tomes), et une aide qui ne sert
- * qu'occasionnellement ne doit ni pousser le contenu vers le bas, ni obliger
- * à remonter pour la trouver. Elle reste à portée quel que soit l'endroit où
- * on a défilé.
+ * <h2>Floating rather than in the flow</h2>
+ * The assistant has already moved twice - its own section, then a
+ * pill in a bar. The mockup takes it out of the flow completely: the detail page
+ * can be long (seventy-two volumes), and a help that is only
+ * needed sometimes must not push the content down, nor force the user
+ * to scroll back up to find it. It stays within reach wherever
+ * the user has scrolled.
  *
- * <h2>Ce qui reste vrai</h2>
- * Des questions FIXES à réponse CALCULÉE sur les données déjà chargées -
- * jamais de saisie libre, jamais d'appel à un modèle de langage (voir
- * AssistantSection pour ce qui est répondable et ce qui ne l'est pas).
+ * <h2>What stays true</h2>
+ * FIXED questions with a COMPUTED answer on the data already loaded -
+ * never free text input, never a call to a language model (see
+ * AssistantSection for what can be answered and what cannot).
  */
 export function AideFlottante({
   titreSerie,
@@ -34,30 +34,30 @@ export function AideFlottante({
   questions: QuestionProposee[]
   question: QuestionAssistant | null
   onQuestion: (question: QuestionAssistant | null) => void
-  /** La réponse rendue par la page (voir ReponseAssistant) - le panneau ne
-   *  sait pas répondre, il ne fait qu'ouvrir la question. */
+  /** The answer rendered by the page (see ReponseAssistant) - the panel does not
+   *  know how to answer, it only opens the question. */
   reponse: React.ReactNode
 }) {
   const [ouvert, setOuvert] = useState(false)
   const declencheurRef = useRef<HTMLButtonElement>(null)
   const panneauRef = useRef<HTMLDivElement>(null)
 
-  // À l'ouverture, le focus entre DANS le panneau.
+  // When it opens, the focus moves INTO the panel.
   //
-  // Sans ça, il restait sur le bouton « Aide » - et comme le panneau est rendu
-  // AVANT son déclencheur dans le DOM (colonne ancrée en bas, le bouton en
-  // dernier), Tab emmenait au clavier vers le reste de la page : le panneau
-  // qu'on vient d'ouvrir n'était atteignable qu'en revenant en arrière par
-  // Maj+Tab. Mesuré : premier élément focalisable du panneau en position 27 de
-  // l'ordre de tabulation, déclencheur en 30.
+  // Without this, it stayed on the "Aide" button - and since the panel is rendered
+  // BEFORE its trigger in the DOM (column anchored at the bottom, the button
+  // last), Tab took the keyboard to the rest of the page: the panel
+  // that was just opened could only be reached by going back with
+  // Shift+Tab. Measured: first focusable element of the panel at position 27 of
+  // the tab order, trigger at 30.
   //
-  // Le piège à focus de `useModalA11y` ne conviendrait pas ici : ce panneau
-  // n'est PAS modal (pas d'`aria-modal`, pas de voile, la page reste utilisable
-  // derrière) et enfermer le clavier dans une surface non modale serait un
-  // défaut de plus, pas un de moins. Seul le focus initial manquait. La
-  // convention du repère de focus, elle, est bien celle de la maison
-  // (`data-modal-initial-focus`, voir useModalA11y) : la première question,
-  // jamais le bouton « Fermer » qui la précède visuellement.
+  // The focus trap of `useModalA11y` would not fit here: this panel
+  // is NOT modal (no `aria-modal`, no overlay, the page stays usable
+  // behind it) and locking the keyboard in a non-modal surface would be
+  // one more defect, not one less. Only the initial focus was missing. The
+  // convention for the focus marker is the house one
+  // (`data-modal-initial-focus`, see useModalA11y): the first question,
+  // never the "Fermer" button that comes before it visually.
   useEffect(() => {
     if (!ouvert) return
     const panneau = panneauRef.current
@@ -68,9 +68,9 @@ export function AideFlottante({
     cible?.focus()
   }, [ouvert])
 
-  // Échap ferme d'abord la réponse ouverte, puis le panneau - c'est l'ordre
-  // de la maquette, et celui qu'on attend : la première pression ne doit pas
-  // tout refermer quand on vient juste d'ouvrir une réponse.
+  // Escape closes the open answer first, then the panel - this is the order
+  // of the mockup, and the one people expect: the first press must not
+  // close everything when an answer was just opened.
   useEffect(() => {
     if (!ouvert) return
     function auClavier(evenement: KeyboardEvent) {
@@ -92,9 +92,9 @@ export function AideFlottante({
   }
 
   return (
-    // `bottom` généreux en dessous du point de bascule : la barre du pouce
-    // (TabBar, fixed) occupe déjà le bas de l'écran, et le bouton se
-    // poserait dessus.
+    // A generous `bottom` below the breakpoint: the thumb bar
+    // (TabBar, fixed) already takes the bottom of the screen, and the button
+    // would sit on top of it.
     <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-2.5 md:right-7 md:bottom-7">
       {ouvert && (
         <div
@@ -135,9 +135,9 @@ export function AideFlottante({
             ))}
           </div>
 
-          {/* La réponse peut être longue (une liste de plages de tomes) : elle
-              défile DANS le panneau plutôt que de le faire grandir au-delà de
-              l'écran, puisqu'il est ancré en bas. */}
+          {/* The answer can be long (a list of volume ranges): it
+              scrolls INSIDE the panel rather than making it grow beyond
+              the screen, since it is anchored at the bottom. */}
           {question && <div className="max-h-[46vh] overflow-y-auto">{reponse}</div>}
         </div>
       )}

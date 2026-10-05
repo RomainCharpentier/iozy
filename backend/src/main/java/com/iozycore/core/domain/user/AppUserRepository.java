@@ -8,31 +8,31 @@ public interface AppUserRepository {
 
     AppUser save(AppUser user);
 
-    /** L'adresse est normalisée par l'appelant (voir {@link AppUser#normaliserEmail}). */
+    /** The address is normalized by the caller (see {@link AppUser#normaliserEmail}). */
     Optional<AppUser> findByEmail(String email);
 
     /**
-     * Le compte qui porte ce pseudo, à la casse près - ce qui rend l'unicité
-     * VÉRIFIABLE avant d'écrire, plutôt qu'à travers une violation d'index
-     * dont l'utilisateur ne comprendrait rien.
+     * The account that carries this pseudo, ignoring case - which makes uniqueness
+     * CHECKABLE before writing, rather than through an index violation
+     * that the user would not understand at all.
      */
     Optional<AppUser> findByPseudo(String pseudo);
 
     Optional<AppUser> findById(UUID id);
 
-    /** Vrai tant qu'aucun compte n'existe : c'est ce qui ouvre la création du premier. */
+    /** True as long as no account exists: this is what opens the creation of the first one. */
     boolean isEmpty();
 
     /**
-     * Tous les comptes, du plus ancien au plus récent - l'ordre dans lequel une
-     * instance s'est peuplée, et le seul qui ait un sens ici.
+     * All accounts, from the oldest to the newest - the order in which an
+     * instance filled up, and the only one that makes sense here.
      * <p>
-     * Réservé à l'administration de l'instance (voir {@code GestionDesComptes}) :
-     * un compte ordinaire n'a aucune raison de savoir qui d'autre existe.
+     * Reserved to the administration of the instance (see {@code GestionDesComptes}):
+     * an ordinary account has no reason to know who else exists.
      */
     List<AppUser> lister();
 
-    /** Retire le compte lui-même. Ses DONNÉES se suppriment ailleurs, et avant
-     *  (voir {@code SuppressionDeCompte}) : ce port ne connaît que la table des comptes. */
+    /** Removes the account itself. Its DATA is deleted elsewhere, and before
+     *  (see {@code SuppressionDeCompte}): this port only knows the accounts table. */
     void supprimer(UUID id);
 }

@@ -18,13 +18,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * « L'édition que je collectionne » pour une série (voir
- * com.iozycore.core.domain.followededition, et le badge SUIVIE de la maquette
- * « Fiche série - multi-éditions »).
+ * "The edition I collect" for a series (see
+ * com.iozycore.core.domain.followededition, and the FOLLOWED badge of the mockup
+ * "Series page - multi-editions").
  */
 @RestController
 @RequestMapping("/api/followed-editions")
-@Tag(name = "Followed editions", description = "L'édition d'une série que l'utilisateur collectionne")
+@Tag(name = "Followed editions", description = "The edition of a series that the user collects")
 public class FollowedEditionController {
 
     private final FollowedEditionRepository followedEditionRepository;
@@ -40,12 +40,12 @@ public class FollowedEditionController {
     }
 
     /**
-     * PUT et non POST : suivre une édition est IDEMPOTENT - il n'y en a
-     * qu'une par série, et redemander la même ne doit rien créer de nouveau.
-     * L'upsert passe par {@code suivreALaPlace}, qui garde la même ligne
-     * plutôt que d'enchaîner un DELETE et un INSERT (voir FollowedEdition).
+     * PUT and not POST: following an edition is IDEMPOTENT - there is only
+     * one per series, and asking for the same one again must not create anything new.
+     * The upsert goes through {@code suivreALaPlace}, which keeps the same row
+     * instead of chaining a DELETE and an INSERT (see FollowedEdition).
      */
-    @Operation(summary = "Suivre une édition d'une série (remplace celle déjà suivie, s'il y en a une)")
+    @Operation(summary = "Follow an edition of a series (replaces the one already followed, if any)")
     @PutMapping
     public FollowedEditionResponse follow(@RequestBody FollowEditionRequest request) {
         entityRepository.findById(request.entityId())
@@ -55,13 +55,13 @@ public class FollowedEditionController {
                 .map(existante -> existante.suivreALaPlace(request.editionName()))
                 .orElseGet(() -> FollowedEdition.create(request.entityId(), request.editionName()));
         FollowedEditionResponse reponse = FollowedEditionResponse.from(followedEditionRepository.save(aEnregistrer));
-        // Suivre une édition, c'est suivre la série (l'état Suivi du cœur) : c'est
-        // ce qui la fait entrer au calendrier des sorties.
+        // Following an edition means following the series (the Followed state of the core): this is
+        // what makes it enter the release calendar.
         workFollowing.follow(request.entityId());
         return reponse;
     }
 
-    @Operation(summary = "Ne plus suivre d'édition pour cette série")
+    @Operation(summary = "Stop following an edition for this series")
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unfollow(@RequestParam UUID entityId) {
@@ -69,15 +69,15 @@ public class FollowedEditionController {
     }
 
     /**
-     * Renvoie une LISTE et non un objet ou un 404 : « aucune édition suivie »
-     * est un état parfaitement normal (une série à édition unique n'a rien à
-     * choisir), et le client n'a pas à distinguer ce cas d'une panne. Une
-     * liste vide se lit sans traitement d'erreur, là où un 404 obligerait
-     * chaque appelant à le neutraliser - piège déjà rencontré avec
-     * {@code findEdition}, dont tous les appels portent un {@code retry:false}
-     * pour cette seule raison.
+     * Returns a LIST and not an object or a 404: "no followed edition"
+     * is a perfectly normal state (a series with a single edition has nothing to
+     * choose), and the client must not have to tell this case from a failure. An
+     * empty list is read without error handling, where a 404 would force
+     * every caller to neutralise it - a trap already met with
+     * {@code findEdition}, whose calls all carry a {@code retry:false}
+     * for this reason only.
      */
-    @Operation(summary = "L'édition suivie d'une série (liste vide si aucune)")
+    @Operation(summary = "The followed edition of a series (empty list if none)")
     @GetMapping
     public List<FollowedEditionResponse> byEntity(@RequestParam UUID entityId) {
         return followedEditionRepository.findByEntityId(entityId).stream()

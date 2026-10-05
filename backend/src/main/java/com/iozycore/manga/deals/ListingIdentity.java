@@ -5,31 +5,31 @@ import java.util.Locale;
 import com.iozycore.core.listing.ListingPlatform;
 
 /**
- * Reconnaître qu'on regarde <b>deux fois la même annonce</b>.
+ * Recognising that we are looking at <b>the same listing twice</b>.
  *
- * <h2>À quoi ça sert exactement</h2>
- * Une annonce analysée trois fois ne fait pas trois vendeurs. Sans identité,
- * elle gonflerait l'échantillon et ferait passer une référence à HIGH sur une
- * seule offre - le contraire de ce qu'un échantillon veut dire. C'est aussi ce
- * qui permet d'exclure l'annonce en cours d'évaluation de sa propre référence.
+ * <h2>What it is exactly for</h2>
+ * A listing analysed three times does not make three sellers. Without identity,
+ * it would inflate the sample and push a reference to HIGH on a
+ * single offer - the opposite of what a sample means. It is also what
+ * allows us to exclude the listing being assessed from its own reference.
  *
- * <h2>Par ordre de préférence</h2>
+ * <h2>In order of preference</h2>
  * <ol>
- *   <li>L'<b>identifiant de la source</b> quand elle en donne un. Sur Vinted il
- *       est lu dans la page et ne dépend pas du slug : deux liens vers la même
- *       annonce, avec ou sans titre dans l'URL, donnent le même identifiant.</li>
- *   <li>Sinon l'<b>URL normalisée</b> - hôte en minuscules, sans {@code www.},
- *       sans paramètres de suivi, sans ancre ni barre finale. Faible mais
- *       honnête : si la source réécrit ses URL, la déduplication rate, et rater
- *       une déduplication vaut mieux que fusionner deux annonces distinctes.</li>
- *   <li>Sinon <b>rien</b>. Une saisie manuelle n'a pas d'annonce derrière elle ;
- *       chaque relevé compte alors pour un comparable, ce qui est le sens même
- *       d'un relevé saisi à la main.</li>
+ *   <li>The <b>identifier of the source</b> when it gives one. On Vinted it
+ *       is read in the page and does not depend on the slug: two links to the same
+ *       listing, with or without a title in the URL, give the same identifier.</li>
+ *   <li>Otherwise the <b>normalised URL</b> - host in lower case, without {@code www.},
+ *       without tracking parameters, anchor or final slash. Weak but
+ *       honest: if the source rewrites its URLs, deduplication fails, and missing
+ *       a deduplication is better than merging two distinct listings.</li>
+ *   <li>Otherwise <b>nothing</b>. A manual entry has no listing behind it;
+ *       each observation then counts as one comparable, which is the very meaning
+ *       of an observation typed by hand.</li>
  * </ol>
  *
- * <h2>Domaine pur</h2>
- * Une fonction de chaînes. Aucun accès réseau : cette classe ne visite jamais
- * l'URL qu'elle normalise.
+ * <h2>Pure domain</h2>
+ * A function on strings. No network access: this class never visits
+ * the URL it normalises.
  */
 public final class ListingIdentity {
 
@@ -37,11 +37,11 @@ public final class ListingIdentity {
     }
 
     /**
-     * @param platform   la source, qui préfixe l'identifiant pour qu'un « 12345 »
-     *                   Vinted ne croise jamais un « 12345 » d'ailleurs
-     * @param externalId identifiant chez la source, ou {@code null}
-     * @param url        lien de l'annonce, ou {@code null}
-     * @return l'identité, ou {@code null} quand aucune déduplication n'est possible
+     * @param platform   the source, which prefixes the identifier so that a Vinted "12345"
+     *                   never meets a "12345" from elsewhere
+     * @param externalId identifier at the source, or {@code null}
+     * @param url        link of the listing, or {@code null}
+     * @return the identity, or {@code null} when no deduplication is possible
      */
     public static String of(ListingPlatform platform, String externalId, String url) {
         String source = platform == null ? ListingPlatform.OTHER.name() : platform.name();
@@ -53,13 +53,13 @@ public final class ListingIdentity {
     }
 
     /**
-     * Réduit une URL à ce qui désigne l'annonce.
+     * Reduces a URL to what designates the listing.
      * <p>
-     * Les paramètres de requête sont retirés en entier plutôt que filtrés un à
-     * un : sur les places de marché visées ils portent du suivi
-     * (<i>referrer</i>, campagne, position dans une liste), jamais l'identité de
-     * l'annonce, laquelle vit dans le chemin. Retirer trop peu ferait passer
-     * deux liens vers la même annonce pour deux annonces.
+     * The query parameters are removed entirely rather than filtered one by
+     * one: on the target marketplaces they carry tracking
+     * (<i>referrer</i>, campaign, position in a list), never the identity of
+     * the listing, which lives in the path. Removing too little would make
+     * two links to the same listing pass for two listings.
      */
     static String normaliserUrl(String url) {
         if (url == null || url.isBlank()) {
@@ -81,8 +81,8 @@ public final class ListingIdentity {
             }
             return chemin.isEmpty() ? hote : hote + chemin;
         } catch (IllegalArgumentException e) {
-            // Une URL inexploitable ne vaut pas mieux qu'une absence d'URL : on
-            // ne dédoublonne pas plutôt que de dédoublonner de travers.
+            // A URL that cannot be used is worth no more than no URL: we
+            // do not deduplicate rather than deduplicate wrongly.
             return null;
         }
     }

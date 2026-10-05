@@ -1,16 +1,16 @@
 import { X } from 'lucide-react'
 
 /**
- * La liste canonique du lot : **ce qui part réellement à l'analyse**.
+ * The canonical list of the batch: **what really goes to the analysis**.
  *
- * Elle est affichée en tête de la section, avant les propositions et avant le
- * formulaire, parce que c'est elle la vérité. Les deux autres blocs ne sont que
- * des façons de l'alimenter — il n'existe pas deux lots parallèles.
+ * It is displayed at the top of the section, before the proposals and before the
+ * form, because it is the truth. The two other blocks are only
+ * ways to feed it — there are not two parallel batches.
  *
- * <h2>Une fois dans le lot, un tome est un tome</h2>
- * Un élément venu de la détection et un élément saisi à la main sont
- * strictement la même chose ici : même ligne, même bouton de retrait. La
- * provenance a servi à décider, elle n'a plus à structurer la liste finale.
+ * <h2>Once in the batch, a volume is a volume</h2>
+ * An item coming from the detection and an item entered by hand are
+ * strictly the same thing here: same row, same remove button. The
+ * origin served to decide, it no longer has to structure the final list.
  */
 
 export interface LotItem {
@@ -27,11 +27,11 @@ export function LotContentList({
 }: {
   items: LotItem[]
   /**
-   * La ligne du formulaire, complète mais pas encore « ajoutée ».
+   * The form row, complete but not yet "added".
    *
-   * Elle compte dans l'analyse (le « + » n'est plus obligatoire), donc elle
-   * doit se voir ici — sinon le décompte mentirait. Marquée « en cours de
-   * saisie » pour lever l'ambiguïté avec les éléments déjà posés.
+   * It counts in the analysis (the "+" is no longer required), so
+   * it must be seen here - otherwise the count would lie. Marked "being
+   * entered" to remove the ambiguity with the items already placed.
    */
   ligneEnCours: LotItem | null
   onRemove: (index: number) => void
@@ -73,8 +73,8 @@ export function LotContentList({
             {ligneEnCours.includedVolumes.length} tome
             {ligneEnCours.includedVolumes.length > 1 ? 's' : ''}
           </span>
-          {/* Le pointillé ne suffit pas : la couleur et la forme seules
-              n'expliquent rien à qui ne les distingue pas. */}
+          {/* The dotted line is not enough: colour and shape alone
+              explain nothing to someone who cannot tell them apart. */}
           <span className="shrink-0 text-xs text-textDim">en cours de saisie</span>
         </li>
       )}

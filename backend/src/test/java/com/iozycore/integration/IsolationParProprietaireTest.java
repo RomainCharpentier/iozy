@@ -47,39 +47,39 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>Chacun chez soi.</b>
+ * <b>Everyone in their own place.</b>
  *
- * <p>C'est le test qui donne son sens à toute l'authentification : une porte
- * qui laisse entrer plusieurs personnes dans la même pièce ne protège rien. Et
- * la fuite qu'il traque ne ressemble à rien - aucune erreur, aucun écran cassé,
- * juste la collection de quelqu'un d'autre affichée comme la sienne.
+ * <p>This is the test that gives its meaning to all of the authentication: a door
+ * that lets several people into the same room protects nothing. And
+ * the leak it hunts looks like nothing - no error, no broken screen,
+ * just the collection of someone else shown as one's own.
  *
- * <h2>Ce qui est privé, et ce qui ne l'est pas</h2>
- * Chaque agrégat privé est vérifié <b>séparément</b>, parce que le
- * cloisonnement se pose colonne par colonne : en oublier un ne casse rien
- * ailleurs. Le <b>catalogue</b>, lui, est délibérément partagé - une œuvre est
- * la même pour tout le monde - et ce test l'affirme aussi, sans quoi une
- * lecture trop stricte passerait pour une amélioration.
+ * <h2>What is private, and what is not</h2>
+ * Each private aggregate is checked <b>separately</b>, because the
+ * partitioning is set column by column: forgetting one breaks nothing
+ * elsewhere. The <b>catalogue</b>, on the other hand, is deliberately shared - a work is
+ * the same for everyone - and this test states it too, otherwise a
+ * reading that is too strict would pass for an improvement.
  *
- * <h2>Deux comptes, deux sessions</h2>
- * On ne simule pas le cloisonnement : on pose une vraie session, comme le fait
- * le filtre de sécurité, et on lit avec les mêmes dépôts que l'application.
+ * <h2>Two accounts, two sessions</h2>
+ * We do not simulate the partitioning: we set a real session, as the security
+ * filter does, and we read with the same repositories as the application.
  *
- * <h2>Et un troisième cas : la visite, qui n'est personne</h2>
- * Une <b>visite</b> ne nomme aucun propriétaire. Elle doit donc voir le
- * catalogue - partagé, et c'est tout l'intérêt - et <b>aucune</b> possession,
- * envie ou note de qui que ce soit. C'est la frontière que ce fichier borde,
- * vue depuis l'extérieur des comptes.
+ * <h2>And a third case: the visit, which is nobody</h2>
+ * A <b>visit</b> does not name any owner. So it must see the
+ * catalogue - shared, and that is the whole point - and <b>no</b> ownership,
+ * wish or rating of anyone. This is the border this file guards,
+ * seen from outside the accounts.
  */
-// Hors transaction, contrairement à tous les autres tests d'intégration.
-// Hibernate lit le propriétaire à l'OUVERTURE d'une session : dans une
-// transaction unique, changer de compte en cours de route ne change rien,
-// et le test se croirait cloisonné alors qu'il ne l'est pas. Chaque appel
-// ouvre donc sa propre session, comme deux requêtes de deux personnes.
+// Outside a transaction, unlike all the other integration tests.
+// Hibernate reads the owner when a session is OPENED: in a
+// single transaction, changing account on the way changes nothing,
+// and the test would think it is partitioned when it is not. Each call
+// therefore opens its own session, like two requests from two people.
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class IsolationParProprietaireTest extends PostgresIntegrationTest {
 
-    /** Le premier compte : celui qui a repris la collection d'origine. */
+    /** The first account: the one that took over the original collection. */
     private static final UUID ALICE = DefaultOwner.ID;
     private static final UUID BOB = UUID.randomUUID();
 
@@ -95,7 +95,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
     @Autowired private ShareSettingsRepository partages;
     @Autowired private PublicShareController partagePublic;
 
-    /** Ce que ce test a créé, à effacer : rien ne sera annulé pour lui. */
+    /** What this test created, to be erased: nothing will be rolled back for it. */
     private final List<UUID> oeuvresCreees = new ArrayList<>();
 
     @AfterEach
@@ -113,7 +113,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         SecurityContextHolder.clearContext();
     }
 
-    /** Ouvre une session, comme le filtre de sécurité le fait sur une vraie requête. */
+    /** Opens a session, as the security filter does on a real request. */
     private void connecte(UUID compte) {
         AppUserDetailsService.Principal principal =
                 new AppUserDetailsService.Principal(compte, compte + "@example.com", "{noop}x", "Compte", false);
@@ -122,7 +122,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
     }
 
 
-    /** Une œuvre au catalogue - partagée, donc créée une fois pour les deux. */
+    /** A work in the catalogue - shared, so created once for both. */
     private Entity oeuvre(String titre) {
         Entity oeuvre = catalogue.save(Entity.create(EntityTypeFixtures.MANGA.id(), titre + " " + UUID.randomUUID()));
         oeuvresCreees.add(oeuvre.id());
@@ -140,8 +140,8 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         connecte(BOB);
         assertThat(ownerships.findByEntityId(serie.id())).isEmpty();
         assertThat(ownerships.findAll()).noneMatch(o -> o.id().equals(possession.id()));
-        // Même en connaissant l'identifiant exact : c'est le cas qui compte, une
-        // fuite se fait rarement par la liste complète.
+        // Even knowing the exact identifier: this is the case that matters, a
+        // leak rarely happens through the complete list.
         assertThat(ownerships.findById(possession.id())).isEmpty();
 
         connecte(ALICE);
@@ -156,10 +156,10 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         Ownership chezAlice = ownerships.save(
                 Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
 
-        // Une session de visite ne nomme AUCUN propriétaire : elle retombe donc
-        // sur « personne », à qui rien n'appartient. C'est exactement ce qu'on
-        // veut lui montrer - les œuvres, qui sont partagées, et pas ce que
-        // quelqu'un en possède.
+        // A visit session names NO owner: so it falls back
+        // to "nobody", who owns nothing. This is exactly what we
+        // want to show it - the works, which are shared, and not what
+        // someone owns.
         visite();
 
         assertThat(catalogue.findById(serie.id())).isPresent();
@@ -167,7 +167,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         assertThat(ownerships.findAll()).isEmpty();
     }
 
-    /** Ouvre une session de VISITE, comme {@code /api/auth/visite} le fait. */
+    /** Opens a VISIT session, as {@code /api/auth/visite} does. */
     private void visite() {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(new Invite(), null, Visite.AUTORITES));
@@ -227,8 +227,8 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
 
         connecte(BOB);
         assertThat(editionsSuivies.findByEntityId(serie.id())).isEmpty();
-        // Et Bob peut suivre une AUTRE édition de la même série sans se heurter
-        // à la contrainte d'unicité, qui porte sur (série, propriétaire).
+        // And Bob can follow ANOTHER edition of the same series without hitting
+        // the uniqueness constraint, which is on (series, owner).
         editionsSuivies.save(FollowedEdition.create(serie.id(), "Hachette"));
         assertThat(editionsSuivies.findByEntityId(serie.id()))
                 .hasValueSatisfying(suivie -> assertThat(suivie.editionName()).isEqualTo("Hachette"));
@@ -240,9 +240,9 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
 
     @Test
     void le_catalogue_lui_reste_partage() {
-        // L'inverse du reste, et c'est délibéré : une œuvre est la même pour
-        // tout le monde. Sans cette vérification, un cloisonnement trop large
-        // passerait pour une amélioration.
+        // The opposite of the rest, and this is deliberate: a work is the same for
+        // everyone. Without this check, a partitioning that is too wide would
+        // pass for an improvement.
         connecte(ALICE);
         Entity serie = oeuvre("Monster");
 
@@ -259,8 +259,8 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         connecte(BOB);
         assertThat(ownerships.findByEntityId(serie.id())).isEmpty();
 
-        // Le mécanisme du lien de partage : explicite, borné, et rétabli en
-        // sortant du bloc.
+        // The mechanism of the share link: explicit, limited, and restored when
+        // leaving the block.
         List<Ownership> vueDAlice = AuNomDe.executer(ALICE, () -> ownerships.findByEntityId(serie.id()));
         assertThat(vueDAlice).hasSize(1);
 
@@ -269,9 +269,9 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
 
     @Test
     void un_lien_de_partage_montre_la_collection_de_SON_proprietaire() {
-        // Le seul chemin où une lecture traverse la frontière, et donc le seul
-        // qui puisse la percer : le destinataire n'a aucune session, et ce
-        // qu'il doit voir appartient à quelqu'un d'autre.
+        // The only path where a read crosses the border, and so the only one
+        // that can break it: the recipient has no session, and what
+        // they must see belongs to someone else.
         Entity serieDAlice = oeuvre("Akira");
         Entity serieDeBob = oeuvre("Dorohedoro");
 
@@ -282,7 +282,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         ownerships.save(Ownership.acquire(serieDeBob.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
         ShareSettings lienDeBob = partages.save(ShareSettings.withNewToken(BOB));
 
-        // Plus personne : exactement la situation du destinataire du lien.
+        // Nobody anymore: exactly the situation of the link recipient.
         SecurityContextHolder.clearContext();
         var espace = partagePublic.shared(lienDeBob.token());
 
@@ -295,14 +295,14 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // Effacer : la moitié qui compte le plus
+    // Erase: the half that matters most
     // ------------------------------------------------------------------
     //
-    // Une lecture qui traverse la frontière montre ce qu'elle ne devrait pas ;
-    // une ÉCRITURE qui la traverse DÉTRUIT ce qui appartient à un autre, et
-    // sans laisser de trace. Chaque suppression est donc essayée depuis le
-    // mauvais compte, en connaissant les identifiants exacts - le cas où un
-    // filtre oublié se voit le moins et coûte le plus.
+    // A read that crosses the border shows what it should not;
+    // a WRITE that crosses it DESTROYS what belongs to someone else, and
+    // without leaving a trace. Each deletion is therefore tried from the
+    // wrong account, knowing the exact identifiers - the case where a
+    // forgotten filter is the least visible and costs the most.
 
     @Test
     void personne_ne_supprime_la_possession_d_un_autre() {
@@ -383,7 +383,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         connecte(BOB);
         assertThat(oeuvresSuivies.findByEntityId(serie.id())).isEmpty();
         assertThat(oeuvresSuivies.findAll()).noneMatch(w -> w.entityId().equals(serie.id()));
-        // Bob « ne suit plus » sans effet sur Alice : le retrait passe par une lecture cloisonnée.
+        // Bob "no longer follows" with no effect on Alice: the removal goes through a partitioned read.
         oeuvresSuivies.deleteByEntityId(serie.id());
 
         connecte(ALICE);

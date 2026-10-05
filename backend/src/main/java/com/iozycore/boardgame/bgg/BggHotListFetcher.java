@@ -18,12 +18,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Récupère la liste des jeux de société "tendance" du moment sur BGG
- * (endpoint /hot). BGG n'expose aucun endpoint de recherche/parcours par
- * catégorie ou mécanique dans son API publique (vérifié - ni dans la doc,
- * ni via les forums communautaires BGG eux-mêmes) : la liste "hot" est le
- * seul point de départ raisonnable pour des suggestions de découverte,
- * ensuite affinées par recoupement de catégories via BggThingFetcher.
+ * Fetches the list of "trending" board games right now on BGG
+ * (/hot endpoint). BGG exposes no endpoint to search or browse by
+ * category or mechanic in its public API (checked - neither in the docs,
+ * nor in the BGG community forums themselves): the "hot" list is the
+ * only reasonable starting point for discovery suggestions,
+ * then refined by cross-checking categories through BggThingFetcher.
  */
 @Component
 public class BggHotListFetcher {
@@ -48,13 +48,13 @@ public class BggHotListFetcher {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("BGG a répondu {} pour /hot", response.statusCode());
+                log.warn("BGG answered {} for /hot", response.statusCode());
                 return List.of();
             }
 
             return parse(response.body());
         } catch (Exception e) {
-            log.warn("Échec de l'appel BGG /hot : {}", e.getMessage());
+            log.warn("BGG /hot call failed: {}", e.getMessage());
             return List.of();
         }
     }
@@ -79,7 +79,7 @@ public class BggHotListFetcher {
             }
             return result;
         } catch (Exception e) {
-            log.warn("Réponse BGG /hot illisible : {}", e.getMessage());
+            log.warn("Unreadable BGG /hot response: {}", e.getMessage());
             return List.of();
         }
     }

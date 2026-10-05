@@ -17,23 +17,23 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Un moteur de reconnaissance faux, et un fetcher qui ne va nulle part.
+ * A fake recognition engine, and a fetcher that goes nowhere.
  *
- * <h2>Zéro appel réseau, zéro appel IA</h2>
- * Aucun test de ce dépôt n'appelle Gemini ni aucun modèle distant, et aucun ne
- * télécharge d'image. Le moteur réel ({@code GeminiVisionRecognitionProvider})
- * est de toute façon inerte sans clé d'API - mais on ne s'en remet pas à ça :
- * ce faux est {@code @Primary}, il passe donc devant lui quoi qu'il arrive.
+ * <h2>Zero network call, zero AI call</h2>
+ * No test of this repository calls Gemini or any remote model, and none
+ * downloads an image. The real engine ({@code GeminiVisionRecognitionProvider})
+ * is inert anyway without an API key - but we do not rely on that:
+ * this fake is {@code @Primary}, so it goes in front of it whatever happens.
  *
- * <h2>Le comportement se pilote par l'URL demandée</h2>
- * Plutôt que de reconfigurer un bean entre deux tests - ce qui créerait un état
- * partagé - chaque scénario se déclenche par ce que le test demande. La même
- * instance sert tous les cas.
+ * <h2>The behaviour is driven by the requested URL</h2>
+ * Rather than reconfiguring a bean between two tests - which would create a
+ * shared state - each scenario is triggered by what the test asks. The same
+ * instance serves all the cases.
  */
 @TestConfiguration
 public class FakeRecognitionProvider {
 
-    /** L'hôte que le faux fetcher accepte de « joindre » - il ne joint rien en réalité. */
+    /** The host that the fake fetcher agrees to "reach" - it reaches nothing in reality. */
     public static final String HOTE_PHOTOS = "photos-de-test.invalid";
 
     public static final String DECLENCHE_PANNE = "moteur-en-panne";
@@ -45,12 +45,12 @@ public class FakeRecognitionProvider {
     public static final String DECLENCHE_QUOTA = "quota-epuise";
 
     /**
-     * Combien de fois un moteur de vision a réellement été sollicité.
+     * How many times a vision engine was really called.
      * <p>
-     * Statique et partagé : c'est ce qui permet d'affirmer, depuis un test
-     * HTTP, qu'analyser du texte n'a déclenché <b>aucun</b> appel de moteur -
-     * l'invariant central de la V2, et celui qui coûte de l'argent quand il
-     * est violé.
+     * Static and shared: this is what allows to state, from an HTTP
+     * test, that analysing text triggered <b>no</b> engine call -
+     * the central invariant of V2, and the one that costs money when it
+     * is broken.
      */
     private static final java.util.concurrent.atomic.AtomicInteger APPELS =
             new java.util.concurrent.atomic.AtomicInteger();
@@ -64,8 +64,8 @@ public class FakeRecognitionProvider {
     }
 
     /**
-     * Remplace le vrai fetcher : il rend une image factice par URL portant
-     * l'hôte de test, et rien pour les autres. Aucune socket n'est ouverte.
+     * Replaces the real fetcher: it returns a fake image for each URL carrying
+     * the test host, and nothing for the others. No socket is opened.
      */
     @Bean
     @Primary
@@ -89,13 +89,13 @@ public class FakeRecognitionProvider {
     }
 
     /**
-     * Ce qui pilote la réponse du faux moteur.
+     * What drives the answer of the fake engine.
      *
-     * <p>Une photo <b>récupérée</b> d'une annonce porte son URL, et le mot-clé y
-     * est écrit. Une photo <b>envoyée</b> par l'utilisateur n'a pas d'adresse -
-     * c'est justement le point de cette porte - donc le mot-clé est alors lu
-     * dans ses octets. Sans ce repli, le faux moteur lèverait un NPE sur tout
-     * envoi direct : une supposition de test qui ne tient plus.
+     * <p>A photo <b>fetched</b> from a listing carries its URL, and the keyword
+     * is written in it. A photo <b>sent</b> by the user has no address -
+     * this is precisely the point of this door - so the keyword is then read
+     * in its bytes. Without this fallback, the fake engine would throw an NPE on any
+     * direct upload: a test assumption that no longer holds.
      */
     private static String declencheurDe(RecognitionImage image) {
         return image.sourceUrl() != null
@@ -136,7 +136,7 @@ public class FakeRecognitionProvider {
                             item("Platinum End", 1, "Standard", RecognitionConfidence.HIGH, Set.of(0))), 3);
                 }
                 if (declencheur.contains(DECLENCHE_DOUBLON)) {
-                    // Le même tome vu sur trois photos - doit ressortir une fois.
+                    // The same volume seen on three photos - must come out once.
                     return RecognitionResult.recognized(List.of(
                             item("Platinum End", 4, "Standard", RecognitionConfidence.MEDIUM, Set.of(0)),
                             item("Platinum End", 4, "Standard", RecognitionConfidence.HIGH, Set.of(1)),
@@ -158,8 +158,8 @@ public class FakeRecognitionProvider {
 
             private RecognizedItem item(String titre, Integer tome, String edition,
                                          RecognitionConfidence confiance, Set<Integer> photos) {
-                // Un cadre par élément, sur la première photo où il est vu :
-                // l'écran de vérification doit pouvoir le dessiner.
+                // One frame per item, on the first photo where it is seen:
+                // the check screen must be able to draw it.
                 int photo = photos.isEmpty() ? 0 : photos.iterator().next();
                 return RecognizedItem.fromVision(titre, tome, edition, null, confiance,
                         List.of("lecture de test"), photos,

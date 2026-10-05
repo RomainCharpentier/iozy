@@ -46,11 +46,11 @@ public class PurchaseAnalysisEngine {
      * @param siblingEditions    every other known edition of the same series (used to warn "a Perfect
      *                           edition exists for this work") - excludes {@code matchedEdition} itself
      * @param observations       market price observations recorded for {@code matchedEdition}, empty if none
-     * @param alreadyOwnedVolumes "Analyse d'un lot" (brainstorm) - volume numbers of this same series/edition
+     * @param alreadyOwnedVolumes "Lot analysis" (brainstorm) - volume numbers of this same series/edition
      *                            already owned (active ownerships), resolved via
      *                            {@link MangaSeries#knownEntityId()} by {@link PurchaseAnalysisService} -
      *                            empty when the series isn't matched to an existing catalog Entity, never guessed
-     * @param aiEstimate          Phase 2 (assistance IA) - see {@link MarketPriceCalculator#computePerVolume(MangaEdition, List, AiPriceEstimate)}
+     * @param aiEstimate          Phase 2 (AI assistance) - see {@link MarketPriceCalculator#computePerVolume(MangaEdition, List, AiPriceEstimate)}
      */
     public record ItemContext(ListingItem item, MangaEdition matchedEdition, List<MangaEdition> siblingEditions,
                                List<MarketPriceObservation> observations, Set<Integer> alreadyOwnedVolumes,
@@ -78,24 +78,24 @@ public class PurchaseAnalysisEngine {
     }
 
     /**
-     * @param wishlistedCount elements du lot deja presents dans les envies - compte etabli par la couche
-     *                        application, qui seule connait la wishlist (le moteur reste un domaine pur)
+     * @param wishlistedCount items of the lot already in the wishes - count established by the application
+     *                        layer, which alone knows the wishlist (the engine stays a pure domain)
      */
     /**
-     * @param currentListingIdentity identité de l'annonce évaluée (voir {@link ListingIdentity}).
-     *                               Les relevés issus de CETTE annonce sont écartés de sa propre
-     *                               référence : une offre déjà analysée une fois se comparerait
-     *                               sinon à son propre prix, et se dirait « au prix du marché ».
-     *                               {@code null} quand l'annonce n'a pas d'identité.
+     * @param currentListingIdentity identity of the listing assessed (see {@link ListingIdentity}).
+     *                               The observations coming from THIS listing are dropped from its own
+     *                               reference: an offer already analysed once would otherwise be compared
+     *                               to its own price, and say "at market price".
+     *                               {@code null} when the listing has no identity.
      */
     public PurchaseAnalysis analyze(Listing listing, List<ItemContext> itemContexts,
                                      CollectorPreferences preferences, int wishlistedCount,
                                      String currentListingIdentity) {
         List<ItemAnalysis> itemAnalyses = new ArrayList<>();
         List<Warning> listingWarnings = new ArrayList<>();
-        // Lue une fois pour toute l'analyse : la fraicheur des comparables doit
-        // se juger a la meme date d'un bout a l'autre. Les regles qui s'en
-        // servent restent testables sans horloge, la date leur etant passee.
+        // Read once for the whole analysis: the freshness of the comparables must
+        // be judged at the same date from start to end. The rules that use it
+        // stay testable without a clock, since the date is passed to them.
         LocalDate today = LocalDate.now();
 
         BigDecimal totalNewValue = BigDecimal.ZERO;
@@ -123,11 +123,11 @@ public class PurchaseAnalysisEngine {
 
             List<Warning> editionWarnings = new ArrayList<>();
             if (edition == null) {
-                // Deux situations très différentes derrière une même absence de
-                // fiche : un nom d'édition a été donné mais reste inconnu du
-                // catalogue (on peut le créer), ou l'utilisateur a déclaré ne
-                // pas savoir (il n'y a rien à créer, il faut regarder l'annonce).
-                // Le même message pour les deux donnerait un conseil inapplicable.
+                // Two very different situations behind the same missing
+                // page: an edition name was given but is still unknown to the
+                // catalogue (we can create it), or the user said they do not
+                // know (there is nothing to create, they must look at the listing).
+                // The same message for both would give advice that cannot be applied.
                 editionWarnings.add(item.editionIsUnknown()
                         ? new Warning(WarningSeverity.CAUTION,
                                 "L'édition de \"" + item.series().title() + "\" n'est pas précisée - "
@@ -170,8 +170,8 @@ public class PurchaseAnalysisEngine {
                     costToCompleteFullyKnown = false;
                 }
             } else {
-                // Édition non précisée : le premier avertissement l'a déjà dit,
-                // le répéter sous une autre forme ne renseigne personne.
+                // Edition not specified: the first warning already said it,
+                // repeating it in another form informs nobody.
                 if (!item.editionIsUnknown()) {
                     editionWarnings.add(new Warning(WarningSeverity.CAUTION,
                             "Le nombre total de tomes de \"" + item.editionNameRaw() + "\" est inconnu - la complétude ne peut pas être calculée.",
@@ -192,9 +192,9 @@ public class PurchaseAnalysisEngine {
             if (perVolumeMarketPrice.basis() == PriceBasis.OBSERVED_MARKET) {
                 itemFairValue = perVolumeMarketPrice.observedMedian().multiply(BigDecimal.valueOf(includedCount));
             } else if (perVolumeMarketPrice.basis() == PriceBasis.AI_ESTIMATED) {
-                // Déjà une estimation de prix de revente pour CET état précis (voir le prompt de
-                // GeminiMarketPriceAdvisor) - contrairement au cas théorique ci-dessous, pas de décote
-                // générique à réappliquer, ce serait compter la dépréciation deux fois.
+                // Already a resale price estimate for THIS precise condition (see the prompt of
+                // GeminiMarketPriceAdvisor) - unlike the theoretical case below, no generic
+                // discount to apply again, that would count the depreciation twice.
                 itemFairValue = perVolumeMarketPrice.aiEstimatedPrice().multiply(BigDecimal.valueOf(includedCount));
             } else if (itemNewValue != null) {
                 BigDecimal discount = effectiveCondition.genericDiscountVsRetail();
@@ -236,11 +236,11 @@ public class PurchaseAnalysisEngine {
 
             DuplicateAnalysis duplicates = duplicateDetector.detect(
                     item.includedVolumes(), ctx.alreadyOwnedVolumes(), itemCostShare, perVolumeMarketPrice);
-            // Les doublons ne produisent plus d'avertissement en prose : la même
-            // information part déjà, structurée et chiffrée, dans
-            // ItemAnalysis.duplicates - le seul client la rendait puis filtrait
-            // ce doublon-ci en cherchant "already owned" dans le texte, un
-            // filtre que la traduction de ce lot aurait cassé en silence.
+            // Duplicates no longer produce a warning in prose: the same
+            // information already goes out, structured and with numbers, in
+            // ItemAnalysis.duplicates - the only client rendered it and then filtered
+            // this duplicate out by searching for "already owned" in the text, a
+            // filter that the translation of this batch would have broken silently.
             if (duplicates.usefulVolumeCount() > 0) {
                 if (duplicates.maxWorthwhilePrice() != null) {
                     totalMaxWorthwhile = totalMaxWorthwhile.add(duplicates.maxWorthwhilePrice());
@@ -271,11 +271,11 @@ public class PurchaseAnalysisEngine {
 
         NegotiationRecommendation negotiation = negotiationEngine.recommend(listing.askingPrice(), finalFairValue);
 
-        // La reference marche se calcule AVANT le verdict : le facteur
-        // REAL_MARKET_ALIGNMENT a besoin de savoir si un releve structurellement
-        // COMPARABLE existe, pas seulement s'il existe un releve. Sans ca, il
-        // annoncait "prix reellement releve, confiance haute" sous un bloc Prix
-        // disant "aucun sur un lot comparable" (voir scoreRealMarketAlignment).
+        // The market reference is computed BEFORE the verdict: the factor
+        // REAL_MARKET_ALIGNMENT needs to know whether a structurally
+        // COMPARABLE observation exists, not only whether an observation exists. Without that, it
+        // said "price really observed, high confidence" under a Price block
+        // saying "none on a comparable lot" (see scoreRealMarketAlignment).
         MarketReference reference = referenceDeLot(itemContexts, today, currentListingIdentity);
 
         VerdictScorer.Input verdictInput = new VerdictScorer.Input(
@@ -288,16 +288,16 @@ public class PurchaseAnalysisEngine {
 
         BigDecimal finalMaxWorthwhile = maxWorthwhileFullyKnown ? totalMaxWorthwhile : null;
 
-        // Les trois dimensions, calculees separement puis presentees ensemble
-        // (voir ListingAssessment) : ce que le lot apporte, ou se situe son prix,
-        // et ce qu'il faut verifier. Elles ne se compensent pas entre elles.
-        // Ce que le lot apporte se juge sur le COUT D'ACQUISITION (c'est ce qu'on
-        // paie) ; le prix se juge sur le PRIX DE L'ANNONCE (c'est ce que valent
-        // les comparables, hors frais). Les deux bases ne s'echangent pas.
+        // The three dimensions, computed separately then presented together
+        // (see ListingAssessment): what the lot brings, where its price stands,
+        // and what must be checked. They do not make up for each other.
+        // What the lot brings is judged on the ACQUISITION COST (it is what we
+        // pay); the price is judged on the LISTING PRICE (it is what the
+        // comparables are worth, without fees). The two bases are not swapped.
         CollectionFit fit = CollectionFit.fromItemBreakdown(itemAnalyses, wishlistedCount, totalRealCost);
-        // La vigilance "prix tres bas" ne se declenche que sur une reference
-        // exploitable : accuser une annonce sur la foi d'un repere qu'on refuse
-        // par ailleurs d'utiliser serait deux poids, deux mesures.
+        // The "very low price" vigilance only triggers on a usable
+        // reference: accusing a listing on the strength of a benchmark that we refuse
+        // to use elsewhere would be double standards.
         ListingTrustAssessment trust = ListingTrustAssessment.assess(
                 listing.description(), listing.photoUrls().size(), listing.askingPrice(),
                 reference.isUsable() ? reference.price() : null);
@@ -310,18 +310,18 @@ public class PurchaseAnalysisEngine {
     }
 
     /**
-     * La reference marche du LOT, construite serie par serie a partir des seuls
-     * relevés structurellement comparables.
+     * The market reference of the LOT, built series by series from the only
+     * observations that are structurally comparable.
      * <p>
-     * Trois refus assumes ici. Un : les relevés d'une autre forme de lot ne
-     * comptent pas - un tome seul ne dit rien du prix d'une intégrale
-     * ({@link MarketComparableSelector}). Deux : une estimation IA ou un prix
-     * neuf catalogue ne deviennent jamais « le marché » - ils restent utiles
-     * pour le cout de completion, la negociation et le verdict global, mais
-     * les afficher comme reference donnerait a une supposition l'autorite d'un
-     * constat. Trois : une seule serie sans reference suffit a rendre le lot
-     * entier indisponible, car sommer ce qu'on connait en ignorant le reste
-     * produirait une reference trop basse, donc un lot faussement « trop cher ».
+     * Three accepted refusals here. One: the observations of another lot shape do not
+     * count - a single volume says nothing about the price of a complete set
+     * ({@link MarketComparableSelector}). Two: an AI estimate or a catalogue
+     * new price never become "the market" - they stay useful
+     * for the cost to complete, the negotiation and the overall verdict, but
+     * showing them as a reference would give a guess the authority of a
+     * finding. Three: a single series without a reference is enough to make the whole
+     * lot unavailable, because adding up what we know while ignoring the rest
+     * would produce a reference that is too low, so a lot that is falsely "too expensive".
      */
     private MarketReference referenceDeLot(List<ItemContext> contexts, LocalDate today, String currentListing) {
         List<MarketReference> parSerie = new ArrayList<>();

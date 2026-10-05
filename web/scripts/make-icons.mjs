@@ -4,51 +4,51 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Fabrique la marque d'IozyCore : favicon.svg + apple-touch-icon.png.
+ * Makes the IozyCore brand: favicon.svg + apple-touch-icon.png.
  *
- * ## Pourquoi un script plutôt que deux fichiers écrits à la main
- * Les deux icônes doivent montrer exactement le même dessin. Écrites
- * séparément, elles divergent au premier ajustement - et personne ne le voit,
- * parce qu'on ne regarde jamais les deux en même temps. Ici la géométrie est
- * déclarée UNE fois (voir DESSIN) et sert de source aux deux sorties : le SVG
- * la transcrit, le PNG la rastérise.
+ * ## Why a script rather than two hand-written files
+ * The two icons must show exactly the same drawing. Written separately, they
+ * drift apart at the first adjustment - and nobody sees it, because we never
+ * look at both at the same time. Here the geometry is declared ONCE (see
+ * DESSIN) and is the source of both outputs: the SVG transcribes it, the PNG
+ * rasterizes it.
  *
- * ## Le dessin
- * Trois tranches debout sur une étagère, la troisième penchée. Pas un
- * monogramme : « IozyCore » en 16 pixels est illisible, et la silhouette d'une
- * étagère dit ce que fait l'application là où deux lettres ne disent rien. La
- * tranche penchée n'est pas décorative - c'est elle qui distingue la marque
- * d'un diagramme en bâtons.
+ * ## The drawing
+ * Three slices standing on a shelf, the third one leaning. Not a monogram:
+ * "IozyCore" at 16 pixels is unreadable, and the silhouette of a shelf says
+ * what the application does where two letters say nothing. The leaning slice
+ * is not decorative - it is what tells the brand apart from a bar chart.
  *
- * ## Zéro dépendance
- * Même parti pris que check-contrast.mjs : `zlib` suffit à écrire un PNG
- * (signature, IHDR, IDAT, IEND), et un rendu 4x4 par pixel donne l'anticrénelage.
+ * ## Zero dependency
+ * Same choice as check-contrast.mjs: `zlib` is enough to write a PNG
+ * (signature, IHDR, IDAT, IEND), and a 4x4 render per pixel gives the
+ * anti-aliasing.
  *
- * Usage : `npm run icons`
+ * Usage: `npm run icons`
  */
 
-// ============================================ Le dessin, en unités de 32
+// ============================================ The drawing, in units of 32
 
-const ACCENT_CLAIR = [0xbc, 0x58, 0x3b] //  #bc583b, --color-accent du thème clair
+const ACCENT_CLAIR = [0xbc, 0x58, 0x3b] //  #bc583b, --color-accent of the light theme
 const ENCRE_CLAIRE = [0xff, 0xff, 0xff] //  #ffffff, --color-accentInk
-const ACCENT_SOMBRE = '#d9694a' //          --color-accent du thème sombre
-const ENCRE_SOMBRE = '#16120f' //           --color-accentInk du thème sombre
+const ACCENT_SOMBRE = '#d9694a' //          --color-accent of the dark theme
+const ENCRE_SOMBRE = '#16120f' //           --color-accentInk of the dark theme
 
 const DESSIN = {
   cote: 32,
   tuile: { x: 0, y: 0, w: 32, h: 32, r: 7.5 },
-  // Trois tranches + l'étagère. `angle` en degrés, pivot au coin bas-droit.
+  // Three slices + the shelf. `angle` in degrees, pivot at the bottom-right corner.
   //
-  // Ces nombres sont dictés par le 16x16, pas par le grand format. Un premier
-  // dessin, plus fin et plus élégant à 180px, laissait entre les tranches des
-  // écarts d'une unité - un demi-pixel une fois réduit. Résultat mesuré à
-  // 16px : « ---##########--- », un pâté uniforme. D'où la règle appliquée
-  // ici : écart de 4 unités = 2 pixels pleins à la taille d'un onglet, et
-  // tranches épaisses de 5,33 plutôt que fines.
+  // These numbers are dictated by the 16x16 size, not by the large format. A
+  // first drawing, thinner and more elegant at 180px, left gaps of one unit
+  // between the slices - half a pixel once reduced. Result measured at 16px:
+  // "---##########---", a uniform blob. Hence the rule applied here: a gap of
+  // 4 units = 2 full pixels at the size of a tab, and thick slices of 5.33
+  // rather than thin ones.
   //
-  // L'étagère déborde des tranches extrêmes (3 -> 29 contre 4 -> 27,6) : c'est
-  // ce débord qui la fait lire comme une étagère et non comme l'axe d'un
-  // diagramme en bâtons.
+  // The shelf extends past the outer slices (3 -> 29 against 4 -> 27.6): this
+  // overhang is what makes it read as a shelf and not as the axis of a bar
+  // chart.
   formes: [
     { x: 4.0, y: 10.5, w: 5.33, h: 14.5, r: 1.5 },
     { x: 13.33, y: 7.2, w: 5.33, h: 17.8, r: 1.5 },
@@ -57,17 +57,17 @@ const DESSIN = {
   ],
 }
 
-// ============================================ Géométrie
+// ============================================ Geometry
 
-/** Le point est-il dans le rectangle à coins arrondis (éventuellement incliné) ? */
+/** Is the point inside the rounded-corner rectangle (possibly tilted)? */
 function dansForme(px, py, f) {
   let x = px
   let y = py
   if (f.angle) {
-    // Pivot : coin bas-droit, celui sur lequel une tranche penchée s'appuie.
+    // Pivot: bottom-right corner, the one a leaning slice rests on.
     const cx = f.x + f.w
     const cy = f.y + f.h
-    const a = (-f.angle * Math.PI) / 180 // rotation inverse : on ramène le point
+    const a = (-f.angle * Math.PI) / 180 // inverse rotation: we bring the point back
     const dx = px - cx
     const dy = py - cy
     x = cx + dx * Math.cos(a) - dy * Math.sin(a)
@@ -80,16 +80,16 @@ function dansForme(px, py, f) {
   return gx * gx + gy * gy <= r * r
 }
 
-// ============================================ Sortie SVG
+// ============================================ SVG output
 
 function svg() {
   const rect = (f) => {
     const t = f.angle ? ` transform="rotate(${f.angle} ${f.x + f.w} ${f.y + f.h})"` : ''
     return `    <rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="${f.r}" fill="var(--encre)"${t}/>`
   }
-  // width/height explicites en plus du viewBox : sans eux, un SVG sans
-  // dimensions se voit attribuer une taille arbitraire par le consommateur
-  // (300x150 par défaut en HTML). Le favicon s'en moque, pas tout le reste.
+  // Explicit width/height in addition to the viewBox: without them, an SVG
+  // with no dimensions gets an arbitrary size from the consumer (300x150 by
+  // default in HTML). The favicon does not care, everything else does.
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="IozyCore">
   <!-- Généré par web/scripts/make-icons.mjs - ne pas modifier à la main. -->
   <style>
@@ -106,7 +106,7 @@ ${DESSIN.formes.map(rect).join('\n')}
 `
 }
 
-// ============================================ Sortie PNG
+// ============================================ PNG output
 
 const TABLE_CRC = (() => {
   const t = new Uint32Array(256)
@@ -133,31 +133,32 @@ function bloc(type, donnees) {
   return Buffer.concat([entete, donnees, somme])
 }
 
-/** Rendu 4x4 par pixel : sans ça les coins arrondis crénellent à 180px. */
+/** 4x4 render per pixel: without it the rounded corners look jagged at 180px. */
 const SOUS_ECHANTILLON = 4
 
 /**
- * Part de la largeur qu'occupe le dessin dans une icône « maskable ».
+ * Share of the width that the drawing takes in a "maskable" icon.
  *
- * Un lanceur Android découpe l'icône à la forme qu'il veut - cercle, goutte,
- * carré arrondi - en ne garantissant que le disque central de 80 % de côté.
- * Le dessin est donc réduit dans cette zone sûre, et le fond, lui, remplit
- * TOUT le carré : c'est la seule façon qu'une découpe circulaire ne laisse pas
- * apparaître un coin transparent. La même icône servie en `any` aurait
- * l'inverse du défaut - une tuile flottant au milieu de rien.
+ * An Android launcher cuts the icon to whatever shape it wants - circle,
+ * drop, rounded square - guaranteeing only the central disc of 80% of the
+ * side. The drawing is therefore reduced inside this safe zone, and the
+ * background fills the WHOLE square: this is the only way a circular cut does
+ * not show a transparent corner. The same icon served as `any` would have the
+ * opposite flaw - a tile floating in the middle of nothing.
  */
 const ZONE_SURE = 0.62
 
 function png(taille, { masquable = false } = {}) {
   const octets = Buffer.alloc(taille * (taille * 4 + 1))
   const echelle = DESSIN.cote / taille
-  // En masquable, le dessin est ramené au centre : un point du canevas se
-  // projette dans l'espace du dessin en s'éloignant du centre d'autant.
+  // When maskable, the drawing is brought back to the center: a canvas point
+  // is projected into the drawing space by moving away from the center by the
+  // same factor.
   const projeter = (v) =>
     masquable ? ((v / taille - 0.5) * DESSIN.cote) / ZONE_SURE + DESSIN.cote / 2 : v * echelle
   for (let py = 0; py < taille; py++) {
     const debutLigne = py * (taille * 4 + 1)
-    octets[debutLigne] = 0 // filtre « None »
+    octets[debutLigne] = 0 // filter "None"
     for (let px = 0; px < taille; px++) {
       let dansTuile = 0
       let dansEncre = 0
@@ -165,7 +166,7 @@ function png(taille, { masquable = false } = {}) {
         for (let sx = 0; sx < SOUS_ECHANTILLON; sx++) {
           const x = projeter(px + (sx + 0.5) / SOUS_ECHANTILLON)
           const y = projeter(py + (sy + 0.5) / SOUS_ECHANTILLON)
-          // Fond plein bord à bord en masquable : c'est le lanceur qui découpe.
+          // Background full edge to edge when maskable: the launcher does the cutting.
           if (masquable || dansForme(x, y, DESSIN.tuile)) dansTuile++
           if (DESSIN.formes.some((f) => dansForme(x, y, f))) dansEncre++
         }
@@ -173,11 +174,11 @@ function png(taille, { masquable = false } = {}) {
       const total = SOUS_ECHANTILLON * SOUS_ECHANTILLON
       const aTuile = dansTuile / total
       const aEncre = dansEncre / total
-      // L'encre est posée SUR la tuile : elle ne dépasse jamais ses arrondis.
+      // The ink is placed ON the tile: it never goes past its rounded corners.
       const encre = Math.min(aEncre, aTuile)
       const i = debutLigne + 1 + px * 4
       for (let c = 0; c < 3; c++) {
-        // Composition classique sur fond transparent, prémultipliée puis rendue.
+        // Classic compositing on a transparent background, premultiplied then rendered.
         const couleur = aTuile > 0 ? (ACCENT_CLAIR[c] * (aTuile - encre) + ENCRE_CLAIRE[c] * encre) / aTuile : 0
         octets[i + c] = Math.round(couleur)
       }
@@ -188,7 +189,7 @@ function png(taille, { masquable = false } = {}) {
   const ihdr = Buffer.alloc(13)
   ihdr.writeUInt32BE(taille, 0)
   ihdr.writeUInt32BE(taille, 4)
-  ihdr[8] = 8 // 8 bits par canal
+  ihdr[8] = 8 // 8 bits per channel
   ihdr[9] = 6 // RGBA
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -198,36 +199,37 @@ function png(taille, { masquable = false } = {}) {
   ])
 }
 
-// ============================================ Le manifeste
+// ============================================ The manifest
 
 /**
- * Le manifeste sort d'ICI, avec les icônes qu'il déclare.
+ * The manifest comes from HERE, with the icons it declares.
  *
- * Une icône promise et absente ne rend pas l'app moins jolie : elle la rend
- * **non installable**, sans message d'erreur nulle part - le navigateur retire
- * simplement l'invite. Les deux fichiers doivent donc naître du même geste,
- * exactement comme le SVG et le PNG plus haut naissent de la même géométrie.
+ * A promised and missing icon does not make the app less pretty: it makes it
+ * **not installable**, with no error message anywhere - the browser simply
+ * removes the prompt. The two files must therefore be born from the same
+ * gesture, exactly like the SVG and the PNG above are born from the same
+ * geometry.
  *
- * `background_color` et `theme_color` reprennent le fond du thème sombre
- * (`--color-background`, voir index.css) : c'est le thème par défaut de l'app,
- * et ces deux couleurs habillent l'écran de démarrage et la barre système
- * AVANT que la moindre ligne de CSS ne soit chargée.
+ * `background_color` and `theme_color` reuse the dark theme background
+ * (`--color-background`, see index.css): it is the default theme of the app,
+ * and these two colors dress the startup screen and the system bar BEFORE a
+ * single line of CSS is loaded.
  */
 const FOND_SOMBRE = '#16120f'
 
 function manifeste(icones) {
   return {
     name: 'IozyCore',
-    // Ce qui tient sous une icône d'écran d'accueil, où l'espace est compté.
+    // What fits under a home screen icon, where space is limited.
     short_name: 'IozyCore',
     description: 'Ta collection, ce qu’il te manque, et ce que vaut une annonce.',
     lang: 'fr',
     dir: 'ltr',
     start_url: '/',
     scope: '/',
-    // « standalone » et non « fullscreen » : l'app garde la barre d'état du
-    // téléphone (heure, batterie, réseau) - on l'ouvre en brocante, on a
-    // besoin de savoir l'heure qu'il est.
+    // "standalone" and not "fullscreen": the app keeps the phone status bar
+    // (time, battery, network) - it is opened at a flea market, where we need
+    // to know what time it is.
     display: 'standalone',
     orientation: 'portrait',
     background_color: FOND_SOMBRE,
@@ -236,19 +238,19 @@ function manifeste(icones) {
   }
 }
 
-// ============================================ Écriture
+// ============================================ Writing
 
 const racine = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
 mkdirSync(racine, { recursive: true })
 writeFileSync(join(racine, 'favicon.svg'), svg())
-// 180 : la taille demandée par iOS pour l'écran d'accueil, et largement assez
-// pour servir aussi de repli raster aux navigateurs sans favicon SVG.
+// 180: the size requested by iOS for the home screen, and more than enough
+// to also serve as a raster fallback for browsers without SVG favicons.
 writeFileSync(join(racine, 'apple-touch-icon.png'), png(180))
 
 /**
- * 192 et 512 sont les deux tailles qu'un navigateur exige pour proposer
- * l'installation ; la 512 masquable est celle que les lanceurs Android
- * découpent. Trois fichiers, un seul dessin.
+ * 192 and 512 are the two sizes a browser requires to offer the
+ * installation; the maskable 512 is the one that Android launchers cut.
+ * Three files, one single drawing.
  */
 const ICONES = [
   { fichier: 'icon-192.png', taille: 192, purpose: 'any' },
@@ -278,5 +280,5 @@ writeFileSync(
 
 console.log(
   ['favicon.svg', 'apple-touch-icon.png (180)', ...ICONES.map((i) => `${i.fichier} (${i.taille})`), 'manifest.webmanifest']
-    .join(', ') + ' écrits dans public/',
+    .join(', ') + ' written to public/',
 )

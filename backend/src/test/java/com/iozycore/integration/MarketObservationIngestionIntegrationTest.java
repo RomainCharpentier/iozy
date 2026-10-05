@@ -26,15 +26,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.manga.deals.ReferenceGap;
 
 /**
- * <b>L'usage normal d'IozyCore doit nourrir les prix relevés - sans jamais
- * fabriquer d'échantillon.</b>
+ * <b>The normal use of IozyCore must feed the observed prices - without ever
+ * making up a sample.</b>
  *
- * <h2>Ce qui est vérifié ici, et pas ailleurs</h2>
- * Les règles d'indépendance se testent en domaine pur. Ce qui demande une vraie
- * base, c'est le <b>déclenchement</b> : quelle analyse crée un relevé, laquelle
- * n'en crée pas, et ce que la ligne contient réellement une fois relue depuis
- * PostgreSQL - notamment que le prix enregistré est celui de l'annonce et non
- * le coût d'acquisition.
+ * <h2>What is checked here, and not elsewhere</h2>
+ * The independence rules are tested in the pure domain. What needs a real
+ * database is the <b>trigger</b>: which analysis creates an observation, which one
+ * does not, and what the row really contains once read again from
+ * PostgreSQL - in particular that the recorded price is the listing price and not
+ * the acquisition cost.
  */
 class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest {
 
@@ -91,9 +91,9 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         PurchaseAnalysis analyse = analyser(edition, "10", new BigDecimal("2.83"), new BigDecimal("1.20"),
                 "https://www.vinted.fr/items/222", "222", INTEGRALE);
 
-        // Le cout d'acquisition vaut bien 14,03 : c'est ce que l'acheteur paie.
+        // The acquisition cost is indeed 14.03: this is what the buyer pays.
         assertThat(analyse.totalRealCost()).isEqualByComparingTo("14.03");
-        // Mais le marche, lui, ne connait que le prix affiche.
+        // But the market only knows the displayed price.
         MarketPriceObservation releve = service.observationsOfEdition(edition.id()).get(0);
         assertThat(releve.observedPrice()).isEqualByComparingTo("10");
         assertThat(releve.observedPrice()).isNotEqualByComparingTo("14.03");
@@ -110,7 +110,7 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         analyser(edition, "70", null, null, url, "333", INTEGRALE);
         analyser(edition, "70", null, null, url, "333", INTEGRALE);
 
-        // Rien de neuf ne s'est produit sur le marche : une ligne suffit.
+        // Nothing new happened on the market: one row is enough.
         assertThat(service.observationsOfEdition(edition.id())).hasSize(1);
     }
 
@@ -123,12 +123,12 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         analyser(edition, "60", null, null, url, "444", INTEGRALE);
 
         List<MarketPriceObservation> releves = service.observationsOfEdition(edition.id());
-        // Une baisse de prix dit quelque chose du marche : on la garde.
+        // A price drop says something about the market: we keep it.
         assertThat(releves).hasSize(2);
         assertThat(releves).extracting(MarketPriceObservation::observedPrice)
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(new BigDecimal("70"), new BigDecimal("60"));
-        // Mais les deux portent la MEME identite : un seul vendeur.
+        // But both carry the SAME identity: one single seller.
         assertThat(releves).extracting(MarketPriceObservation::listingIdentity)
                 .containsOnly("VINTED:444");
     }
@@ -150,13 +150,13 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         MangaEdition edition = uneEdition(14);
         String url = "https://www.vinted.fr/items/666-platinum-end";
 
-        // Premiere analyse : le prix entre dans les releves.
+        // First analysis: the price enters the observations.
         analyser(edition, "80", null, null, url, "666", INTEGRALE);
         assertThat(service.observationsOfEdition(edition.id())).hasSize(1);
 
-        // Seconde analyse de la MEME annonce : son propre releve doit etre
-        // ecarte, faute de quoi la reference vaudrait 80 et l'annonce se dirait
-        // exactement "au prix du marche".
+        // Second analysis of the SAME listing: its own observation must be
+        // discarded, otherwise the reference would be 80 and the listing would say it is
+        // exactly "at market price".
         PurchaseAnalysis seconde = analyser(edition, "80", null, null, url, "666", INTEGRALE);
 
         assertThat(seconde.assessment().referencePrice()).isNull();
@@ -173,7 +173,7 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         MangaEdition edition = uneEdition(14);
         long avant = service.observationsOfEdition(edition.id()).size();
 
-        // "Lot manga divers" : aucune edition connue derriere.
+        // "Lot manga divers": no known edition behind it.
         service.analyze(new AnalyzeListingCommand(ListingPlatform.VINTED,
                 "https://www.vinted.fr/items/777", "Lot manga divers", null, new BigDecimal("40"),
                 null, null, null, Condition.GOOD, false,
@@ -181,7 +181,7 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
                         "Standard", Set.of(1, 2, 3), null)),
                 List.of(), "777"));
 
-        // Mieux vaut aucune reference qu'une reference mal rattachee.
+        // Better no reference than a badly attached reference.
         assertThat(service.observationsOfEdition(edition.id())).hasSize((int) avant);
     }
 
@@ -197,16 +197,16 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
                         new AnalyzeListingItemCommand(seconde.seriesTitle(), "Standard", INTEGRALE, null)),
                 List.of(), "888"));
 
-        // Les 120 EUR couvrent l'ensemble. Les repartir au prorata fabriquerait
-        // un prix que personne n'a jamais demande.
+        // The 120 EUR cover the whole set. Splitting them pro rata would make up
+        // a price that nobody ever asked for.
         assertThat(service.observationsOfEdition(premiere.id())).isEmpty();
         assertThat(service.observationsOfEdition(seconde.id())).isEmpty();
     }
 
     @Test
     void une_edition_sans_nombre_de_tomes_connu_produit_quand_meme_un_releve_de_lot_partiel() {
-        // La composition du LOT est connue (3 tomes) meme si le total de
-        // l'edition ne l'est pas : la forme reste determinable.
+        // The composition of the LOT is known (3 volumes) even if the total of
+        // the edition is not: the shape can still be determined.
         MangaEdition edition = uneEdition(null);
 
         analyser(edition, "24", null, null, "https://www.vinted.fr/items/999", "999", Set.of(1, 2, 3));
@@ -219,10 +219,10 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
 
     @Test
     void un_prix_estime_par_l_ia_ou_un_prix_neuf_catalogue_ne_deviennent_jamais_un_releve() {
-        // L'edition porte un prix neuf catalogue (6,99 le tome) ; aucun provider
-        // IA n'est configure en test, donc l'estimation est absente. Dans les
-        // deux cas, seul le prix DEMANDE de l'annonce est releve - et une
-        // analyse sans annonce exploitable n'en cree aucun.
+        // The edition has a new catalogue price (6.99 per volume); no AI provider
+        // is configured in the test, so the estimate is absent. In both
+        // cases, only the ASKED price of the listing is observed - and an
+        // analysis without a usable listing creates none.
         MangaEdition edition = uneEdition(14);
         assertThat(edition.retailPriceNewPerVolume()).isEqualByComparingTo("6.99");
 
@@ -230,7 +230,7 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
 
         List<MarketPriceObservation> releves = service.observationsOfEdition(edition.id());
         assertThat(releves).hasSize(1);
-        // 14 x 6,99 = 97,86 : le prix catalogue n'a rien ecrit ici.
+        // 14 x 6.99 = 97.86: the catalogue price wrote nothing here.
         assertThat(releves.get(0).observedPrice()).isEqualByComparingTo("70");
         assertThat(releves).allSatisfy(releve ->
                 assertThat(releve.origin()).isEqualTo(MarketObservationOrigin.LISTING_ANALYSIS));
@@ -249,8 +249,8 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
     void une_annonce_saisie_a_la_main_ne_produit_aucun_releve_automatique() {
         MangaEdition edition = uneEdition(14);
 
-        // Aucune URL, aucun identifiant externe : c'est le cas NORMAL, aucun
-        // fournisseur public n'existant pour Vinted/Leboncoin/Rakuten.
+        // No URL, no external identifier: this is the NORMAL case, since no
+        // public provider exists for Vinted/Leboncoin/Rakuten.
         analyser(edition, "80", null, null, null, null, INTEGRALE);
 
         assertThat(service.observationsOfEdition(edition.id())).isEmpty();
@@ -260,11 +260,11 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
     void une_annonce_sans_identite_analysee_deux_fois_ne_se_certifie_pas_son_propre_prix() {
         MangaEdition edition = uneEdition(14);
 
-        // Le pendant de une_annonce_reanalysee_ne_se_compare_pas_a_son_propre_prix_releve,
-        // sur le chemin qui n'a PAS d'identite. Sans le garde, la seconde analyse
-        // rendait un sampleSize de 1 et une reference egale au prix demande - donc
-        // une annonce declaree "au prix du marche" sur la foi d'elle-meme (constate
-        // en direct le 2026-08-28 : sampleSize 2, reference 33 EUR, FAIR_PRICE).
+        // The counterpart of une_annonce_reanalysee_ne_se_compare_pas_a_son_propre_prix_releve,
+        // on the path that does NOT have an identity. Without the guard, the second analysis
+        // returned a sampleSize of 1 and a reference equal to the asked price - so
+        // a listing declared "at market price" on the word of itself (seen
+        // live on 2026-08-28: sampleSize 2, reference 33 EUR, FAIR_PRICE).
         analyser(edition, "80", null, null, null, null, INTEGRALE);
         PurchaseAnalysis seconde = analyser(edition, "80", null, null, null, null, INTEGRALE);
 
@@ -289,8 +289,8 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         assertThat(releves).extracting(MarketPriceObservation::origin)
                 .containsExactlyInAnyOrder(MarketObservationOrigin.MANUAL_ENTRY,
                         MarketObservationOrigin.LISTING_ANALYSIS);
-        // Une saisie manuelle n'a pas d'annonce derriere elle, et ne se voit pas
-        // imposer d'URL.
+        // A manual entry has no listing behind it, and is not
+        // forced to give a URL.
         MarketPriceObservation relu = releves.stream()
                 .filter(o -> o.id().equals(manuel.id())).findFirst().orElseThrow();
         assertThat(relu.listingIdentity()).isNull();
@@ -308,8 +308,8 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
 
         service.deleteAnalysis(analyse.id());
 
-        // Un prix vu reste un prix vu : c'est une donnee de reference, pas un
-        // sous-objet de l'analyse (meme regle que les editions).
+        // A price seen stays a price seen: it is reference data, not a
+        // sub-object of the analysis (same rule as the editions).
         assertThat(service.observationsOfEdition(edition.id())).hasSize(1);
     }
 }

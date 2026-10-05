@@ -11,10 +11,10 @@ function formatMonth(month: string): string {
   return `${label} ${year.slice(2)}`
 }
 
-/** "Évolution de ma collection" (Statistiques) - nombre de tomes/exemplaires
- * ajoutés par mois, en barres CSS pures (pas de librairie de graphes, à
- * l'échelle d'une collection personnelle ça n'apporterait rien). Comptages
- * uniquement - aucun champ de prix d'achat n'existe sur Ownership. */
+/** "Évolution de ma collection" (Statistiques) - number of volumes/copies
+ * added per month, in pure CSS bars (no chart library, at the
+ * scale of a personal collection it would bring nothing). Counts
+ * only - no purchase price field exists on Ownership. */
 export function CollectionTimelineSection() {
   const timelineQuery = useQuery({ queryKey: queryKeys.insights.timeline, queryFn: getTimeline })
 

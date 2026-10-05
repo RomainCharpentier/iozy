@@ -64,13 +64,13 @@ public class GeminiMarketPriceAdvisor implements AiMarketPriceAdvisor {
             HttpResponse<String> response = GeminiRequests.send(httpClient, objectMapper, apiKey, model,
                     PROMPT_TEMPLATE.formatted(seriesTitle, editionName, condition.name()));
             if (response.statusCode() != 200) {
-                log.warn("Gemini ({}) a répondu {} pour l'édition '{}' / '{}' : {}", GeminiRequests.effectiveModel(model),
+                log.warn("Gemini ({}) answered {} for edition '{}' / '{}': {}", GeminiRequests.effectiveModel(model),
                         response.statusCode(), seriesTitle, editionName, GeminiRequests.snippet(response.body()));
                 return Optional.empty();
             }
             return parseEstimate(response.body());
         } catch (Exception e) {
-            log.warn("Échec de l'appel à Gemini pour '{}' / '{}' : {}", seriesTitle, editionName, e.getMessage());
+            log.warn("Call to Gemini failed for '{}' / '{}': {}", seriesTitle, editionName, e.getMessage());
             return Optional.empty();
         }
     }
@@ -89,11 +89,11 @@ public class GeminiMarketPriceAdvisor implements AiMarketPriceAdvisor {
                 ? null : json.path("rationale").asText(null);
 
         if (priceNode.isNull() || priceNode.isMissingNode() || !priceNode.isNumber()) {
-            // Jamais deviner : pas de prix exploitable annonce par le modele -> pas de chiffre, et
-            // surtout pas un 0 EUR. Mais c'est une REPONSE, pas une absence de reponse : l'invite
-            // demande explicitement ce « je ne sais pas ». La rendre vide la confondait avec une
-            // panne (quota, reseau, cle absente), donc l'empechait d'etre memorisee - et la meme
-            // question repartait chez le fournisseur a chaque analyse.
+            // Never guess: no usable price announced by the model -> no number, and
+            // above all not a 0 EUR. But this is an ANSWER, not an absence of answer: the prompt
+            // explicitly asks for this "I do not know". Returning empty confused it with an
+            // outage (quota, network, missing key), so it could not be remembered - and the same
+            // question went to the provider again at each analysis.
             return Optional.of(new AiPriceEstimate(null, confidence, rationale));
         }
 

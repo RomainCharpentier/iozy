@@ -22,20 +22,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP de {@code /api/tier-lists} - onze routes, sept mutations,
- * deux niveaux de paramètres de chemin.
+ * The HTTP contract of {@code /api/tier-lists} - eleven routes, seven mutations,
+ * two levels of path parameters.
  *
- * <h2>Pourquoi cette surface</h2>
- * C'est la plus grosse concentration de mutations non couvertes de
- * l'application, et elle orchestre trois agrégats : la liste, ses éléments, et
- * le classement général rattaché aux œuvres. Elle a aussi déjà été corrigée une
- * fois pour une raison de fond - <i>« découpler le classement de la
- * possession »</i> - ce qui la rend d'autant plus utile à figer.
+ * <h2>Why this surface</h2>
+ * It is the biggest concentration of uncovered mutations in
+ * the application, and it orchestrates three aggregates: the list, its items, and
+ * the general ranking attached to the works. It has also already been fixed once
+ * for a deep reason - <i>"decouple the ranking from
+ * ownership"</i> - which makes it all the more useful to freeze.
  *
- * <h2>L'invariant produit</h2>
- * <b>Classer n'est pas posséder.</b> Une œuvre du catalogue, jamais acquise,
- * doit pouvoir être classée. Un test l'affirme explicitement, en vérifiant
- * qu'aucune possession n'apparaît au passage.
+ * <h2>The product invariant</h2>
+ * <b>Ranking is not owning.</b> A catalogue work, never acquired,
+ * must be able to be ranked. A test states it explicitly, by checking
+ * that no ownership appears on the way.
  */
 class TierListHttpContractTest extends HttpContractTestBase {
 
@@ -58,13 +58,13 @@ class TierListHttpContractTest extends HttpContractTestBase {
                 "Mes préférés " + UUID.randomUUID(), EntityTypeFixtures.MANGA.id(), null, null));
     }
 
-    /** Une œuvre au catalogue, sans aucune possession. */
+    /** A catalogue work, without any ownership. */
     private Entity uneOeuvreNonPossedee() {
         return catalogEntityResolver.resolveOrCreate(EntityTypeFixtures.MANGA.id(),
                 "Nausicaä " + UUID.randomUUID(), Map.of()).entity();
     }
 
-    // ========================================================= Création
+    // ========================================================= Creation
 
     @Test
     void creates_a_tier_list_for_one_universe() throws Exception {
@@ -74,16 +74,16 @@ class TierListHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.name").value("Shônen"))
                 .andExpect(jsonPath("$.entityTypeId").value(MANGA))
-                // Rangs non précisés : la liste reçoit l'échelle complète plutôt
-                // qu'aucun rang, sans quoi rien ne serait classable.
+                // Ranks not specified: the list receives the complete scale rather
+                // than no rank, otherwise nothing could be ranked.
                 .andExpect(jsonPath("$.activeRanks").isNotEmpty());
     }
 
     @Test
     void creates_a_cross_universe_tier_list_when_no_entity_type_is_given() throws Exception {
-        // entityTypeId absent = liste transverse « toutes catégories ». C'est un
-        // contrat, pas un oubli de validation : le tester évite qu'un futur
-        // contrôle de présence le casse.
+        // entityTypeId missing = cross-type list "all categories". It is a
+        // contract, not a validation oversight: testing it prevents a future
+        // presence check from breaking it.
         mockMvc.perform(post("/api/tier-lists").contentType("application/json")
                         .content("{\"name\":\"Tout confondu\"}"))
                 .andExpect(status().isCreated())
@@ -92,14 +92,14 @@ class TierListHttpContractTest extends HttpContractTestBase {
 
     @Test
     void rejects_an_unknown_universe_with_400_rather_than_a_misleading_conflict() throws Exception {
-        // Découvert par cette passe : le contrôle d'existence du type ne
-        // validait rien (findAllByType rend une liste vide), la contrainte de
-        // clé étrangère tranchait à sa place, et le client recevait 409
-        // « Cette donnée entre en conflit avec une donnée existante » - alors
-        // que la donnée est absente, pas conflictuelle.
-        // Seul le status est affirmé : une ResponseStatusException porte son
-        // corps JSON via la redirection d'erreur du conteneur, que MockMvc ne
-        // rejoue pas. Le probe live confirme le corps réel côté serveur.
+        // Found by this pass: the existence check of the type did not
+        // validate anything (findAllByType returns an empty list), the foreign key
+        // constraint decided in its place, and the client received 409
+        // "Cette donnée entre en conflit avec une donnée existante" - while
+        // the data is absent, not conflicting.
+        // Only the status is stated: a ResponseStatusException carries its
+        // JSON body through the error redirection of the container, which MockMvc does not
+        // replay. The live probe confirms the real body on the server side.
         mockMvc.perform(post("/api/tier-lists").contentType("application/json")
                         .content("{\"name\":\"x\",\"entityTypeId\":\"" + ABSENT + "\"}"))
                 .andExpect(status().isBadRequest());
@@ -114,7 +114,7 @@ class TierListHttpContractTest extends HttpContractTestBase {
         }
     }
 
-    // ==================================================== Lecture / listing
+    // ==================================================== Read / listing
 
     @Test
     void lists_tier_lists_and_filters_them_by_universe() throws Exception {
@@ -124,8 +124,8 @@ class TierListHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='" + liste.id() + "')]").exists());
 
-        // Sans filtre, la route rend tout : c'est ce dont se sert l'écran
-        // « toutes mes listes ».
+        // Without filter, the route returns everything: this is what the
+        // "all my lists" screen uses.
         mockMvc.perform(get("/api/tier-lists")).andExpect(status().isOk());
     }
 
@@ -142,8 +142,8 @@ class TierListHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(get("/api/tier-lists/general")).andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/tier-lists/general").param("entityTypeId", MALFORME))
                 .andExpect(status().isBadRequest());
-        // Un univers inconnu rend un board vide, pas une erreur : l'écran doit
-        // pouvoir s'ouvrir avant qu'une seule œuvre existe.
+        // An unknown universe returns an empty board, not an error: the screen must
+        // be able to open before a single work exists.
         mockMvc.perform(get("/api/tier-lists/general").param("entityTypeId", ABSENT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ranked").exists());
@@ -159,7 +159,7 @@ class TierListHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.customRanks").isArray());
     }
 
-    // ================================================ Classement général
+    // ================================================ General ranking
 
     @Test
     void ranks_an_entity_in_the_general_board_without_owning_it() throws Exception {
@@ -171,8 +171,8 @@ class TierListHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.rank").value("S"))
                 .andExpect(jsonPath("$.entityId").value(oeuvre.id().toString()));
 
-        // Classer n'est pas posséder : l'assertion qui compte. Sans elle, le
-        // test passerait aussi si le classement fabriquait une possession.
+        // Ranking is not owning: the assertion that matters. Without it, the
+        // test would also pass if the ranking made up an ownership.
         org.assertj.core.api.Assertions.assertThat(ownershipRepository.findByEntityId(oeuvre.id())).isEmpty();
 
         mockMvc.perform(get("/api/tier-lists/entities/{id}/summary", oeuvre.id()))
@@ -198,7 +198,7 @@ class TierListHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isBadRequest());
     }
 
-    // ============================================ Mise à jour / suppression
+    // ============================================ Update / deletion
 
     @Test
     void renames_a_tier_list_and_leaves_untouched_what_the_body_omits() throws Exception {
@@ -208,14 +208,14 @@ class TierListHttpContractTest extends HttpContractTestBase {
                         .content("{\"name\":\"Mes intouchables\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Mes intouchables"))
-                // L'univers n'est pas dans le corps : il ne doit pas disparaître.
+                // The universe is not in the body: it must not disappear.
                 .andExpect(jsonPath("$.entityTypeId").value(EntityTypeFixtures.MANGA.id().toString()));
     }
 
     @Test
     void returns_404_when_updating_or_deleting_items_of_an_absent_tier_list() throws Exception {
-        // Quatre routes distinctes passent par le même requireTierList : un cas
-        // chacune suffit à prouver le câblage, sans quadrupler l'assertion.
+        // Four distinct routes go through the same requireTierList: one case
+        // each is enough to prove the wiring, without quadrupling the assertion.
         mockMvc.perform(patch("/api/tier-lists/{id}", ABSENT).contentType("application/json")
                 .content("{\"name\":\"x\"}")).andExpect(status().isNotFound());
         mockMvc.perform(post("/api/tier-lists/{id}/items", ABSENT).contentType("application/json")
@@ -230,12 +230,12 @@ class TierListHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(delete("/api/tier-lists/{id}", liste.id())).andExpect(status().isNoContent());
         mockMvc.perform(get("/api/tier-lists/{id}", liste.id())).andExpect(status().isNotFound());
-        // Contrat existant : rejouer la suppression ne devient pas une erreur.
+        // Existing contract: replaying the deletion does not become an error.
         mockMvc.perform(delete("/api/tier-lists/{id}", liste.id())).andExpect(status().isNoContent());
         mockMvc.perform(delete("/api/tier-lists/{id}", ABSENT)).andExpect(status().isNoContent());
     }
 
-    // ==================================================== Éléments d'une liste
+    // ==================================================== Items of a list
 
     @Test
     void adds_items_ranks_one_then_removes_it() throws Exception {
@@ -244,11 +244,11 @@ class TierListHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(post("/api/tier-lists/{id}/items", liste.id()).contentType("application/json")
                         .content("{\"entityIds\":[\"" + oeuvre.id() + "\"]}"))
-                // 201 : ajouter des éléments crée des ressources, et la route
-                // le déclare (@ResponseStatus(CREATED)). Figé tel quel.
+                // 201: adding items creates resources, and the route
+                // declares it (@ResponseStatus(CREATED)). Frozen as it is.
                 .andExpect(status().isCreated())
-                // Ajoutée mais pas encore classée : elle doit apparaître dans
-                // « à classer », pas se perdre.
+                // Added but not ranked yet: it must appear in
+                // "to rank", not get lost.
                 .andExpect(jsonPath("$.unranked[?(@.entityId=='" + oeuvre.id() + "')]").exists());
 
         mockMvc.perform(put("/api/tier-lists/{id}/items/{e}", liste.id(), oeuvre.id())
@@ -279,8 +279,8 @@ class TierListHttpContractTest extends HttpContractTestBase {
 
     @Test
     void ranking_an_item_that_belongs_to_an_owned_series_works_the_same_way() throws Exception {
-        // Le pendant du test « classer n'est pas posséder » : posséder n'empêche
-        // pas non plus de classer. Les deux dimensions sont indépendantes.
+        // The counterpart of the test "ranking is not owning": owning does not
+        // prevent ranking either. The two dimensions are independent.
         TierList liste = uneListe();
         QuickAddService.QuickAddResult possedee = quickAddService.addNewEntityWithOwnership(
                 EntityTypeFixtures.MANGA.id(), "Monster " + UUID.randomUUID(),

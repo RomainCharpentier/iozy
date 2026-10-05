@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Une série en cours, telle que chacune des trois bases de mangas l'écrit. */
+/** An ongoing series, as each of the three manga databases writes it. */
 class SeriesStatusTest {
 
     @Test

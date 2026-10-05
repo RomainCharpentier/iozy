@@ -1,8 +1,8 @@
-// Miroir 1:1 des DTOs/records Java du module Purchase Analysis (voir
-// backend/src/main/java/com/iozycore/purchaseanalysis/**) - même convention
-// que types/api.ts : champs en camelCase, LocalDate en "YYYY-MM-DD", Instant
-// en chaîne ISO brute. Fichier séparé de types/api.ts pour garder ce dernier
-// à zéro-touche (voir le plan de la fonctionnalité).
+// 1:1 mirror of the Java DTOs/records of the Purchase Analysis module (see
+// backend/src/main/java/com/iozycore/purchaseanalysis/**) - same convention
+// as types/api.ts: fields in camelCase, LocalDate as "YYYY-MM-DD", Instant
+// as a raw ISO string. File separate from types/api.ts to keep the latter
+// at zero-touch (see the plan of the feature).
 
 export type Condition = 'MINT_SEALED' | 'LIKE_NEW' | 'VERY_GOOD' | 'GOOD' | 'ACCEPTABLE' | 'VISIBLE_DEFECTS'
 
@@ -66,7 +66,7 @@ export type WarningSeverity = 'INFO' | 'CAUTION' | 'CRITICAL'
 
 export type WeightLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
-// --- Requêtes ---
+// --- Requests ---
 
 export interface ListingItemRequest {
   seriesTitle: string
@@ -79,27 +79,27 @@ export interface AnalyzeListingRequest {
   platform: ListingPlatform
   url?: string
   rawTitle: string
-  /** Texte de l'annonce - alimente les points de vigilance. Absent, ils se taisent. */
+  /** Text of the listing - feeds the watch points. Absent, they stay silent. */
   description?: string
   askingPrice: number
   shippingFee?: number
-  /** Sans elle, le serveur suppose UNKNOWN - jamais un tarif ferme. */
+  /** Without it, the server assumes UNKNOWN - never a firm rate. */
   shippingKind?: ShippingEstimateKind
   buyerProtectionFee?: number
   condition: Condition
   conditionAppliesToContainer: boolean
   items: ListingItemRequest[]
   photoUrls?: string[]
-  /** Identifiant rendu par la lecture du lien. Ne change rien au calcul : il permet
-   * de reconnaître deux analyses de la même annonce, pour qu'une offre ne se compare
-   * pas à elle-même et ne compte pas pour plusieurs vendeurs. */
+  /** Identifier returned by the reading of the link. Changes nothing in the calculation: it lets
+   * us recognize two analyses of the same listing, so that an offer is not compared
+   * with itself and does not count for several sellers. */
   externalListingId?: string
 }
 
 export interface CreateMangaEditionRequest {
-  /** Voir migration "Série -> Édition par ID" - à fournir dès que l'appelant connaît
-   * la Série avec certitude (ex: fiche Série), lié directement plutôt que retrouvé
-   * par correspondance de titre. */
+  /** See migration "Série -> Édition par ID" - to be provided as soon as the caller knows
+   * the Series with certainty (e.g. Series detail page), linked directly rather than found
+   * by title matching. */
   entityId?: string
   seriesTitle: string
   editionName: string
@@ -133,11 +133,11 @@ export interface RecordMarketObservationRequest {
   note?: string
 }
 
-// --- Réponses (miroir des records de domaine, exposés tels quels) ---
+// --- Responses (mirror of the domain records, exposed as they are) ---
 
 export interface MangaEditionDto {
   id: string
-  /** Lien vers la Série catalogue (Entity) quand elle est connue - nullable, jamais deviné (modèle Série -> Édition -> Tome). */
+  /** Link to the catalog Series (Entity) when it is known - nullable, never guessed (Series -> Edition -> Volume model). */
   entityId: string | null
   seriesTitle: string
   editionName: string
@@ -159,9 +159,9 @@ export interface VolumeRangeDto {
 }
 
 /**
- * D'où vient un prix relevé. Ni une hiérarchie de fiabilité ni un niveau de
- * confiance - les deux origines valent autant, ce sont des prix vus. Sert à
- * savoir ce qu'on regarde quand un chiffre surprend.
+ * Where an observed price comes from. Neither a reliability hierarchy nor a
+ * confidence level - both origins are worth the same, they are seen prices.
+ * Used to know what we are looking at when a figure is surprising.
  */
 export type MarketObservationOrigin = 'MANUAL_ENTRY' | 'LISTING_ANALYSIS'
 
@@ -176,17 +176,17 @@ export interface MarketPriceObservationDto {
   note: string | null
   createdAt: string
   origin: MarketObservationOrigin
-  /** Tomes réellement concernés - fait autorité sur `scope`, un lot pouvant être discontinu. */
+  /** Volumes really concerned - prevails over `scope`, since a batch can be non-contiguous. */
   volumeCount: number | null
-  /** Identité de l'annonce d'origine ; null pour une saisie manuelle. Plusieurs relevés
-   * de même identité suivent UNE offre dans le temps, pas plusieurs vendeurs. */
+  /** Identity of the original listing; null for a manual entry. Several observations
+   * with the same identity follow ONE offer over time, not several sellers. */
   listingIdentity: string | null
   sourceUrl: string | null
 }
 
-/** Le profil qui pondère chaque verdict d'analyse. Cinq préférences ont été
- *  retirées au Lot 84 : aucune ligne du moteur ne les lisait. Ce qui reste est
- *  exactement ce qu'il lit. */
+/** The profile that weights each analysis verdict. Five preferences were
+ *  removed in Batch 84: no line of the engine read them. What remains is
+ *  exactly what it reads. */
 export interface CollectorPreferencesDto {
   editionTierRanking: EditionTier[]
   avoidOutdatedEditionWhenBetterExistsOrAnnounced: boolean
@@ -228,9 +228,9 @@ export interface CollectionStatusDto {
   totalVolumes: number | null
   missingCount: number | null
   missingVolumeNumbers: number[]
-  /** Parmi missingVolumeNumbers, les tomes déjà catalogués (un Variant existe, juste sans
-   * Ownership) plutôt que purement virtuels (aucun Variant, modèle Tome != Ownership) - vide
-   * si l'appelant n'a pas fourni cataloguedVolumes à GET /purchase-analysis/completeness. */
+  /** Among missingVolumeNumbers, the volumes already cataloged (a Variant exists, just without
+   * Ownership) rather than purely virtual (no Variant, Volume != Ownership model) - empty
+   * if the caller did not provide cataloguedVolumes to GET /purchase-analysis/completeness. */
   cataloguedMissingVolumeNumbers: number[]
   estimatedCostToComplete: number | null
   costToCompleteBasis: PriceBasis | null
@@ -244,7 +244,7 @@ export interface MarketPriceDto {
   theoreticalEstimate: number | null
   basis: PriceBasis
   confidence: ConfidenceLevel
-  /** Phase 2 (assistance IA) - non null seulement quand basis === 'AI_ESTIMATED'. */
+  /** Phase 2 (AI assistance) - non null only when basis === 'AI_ESTIMATED'. */
   aiEstimatedPrice: number | null
 }
 
@@ -254,10 +254,10 @@ export interface WarningDto {
   confidence: ConfidenceLevel
 }
 
-/** "Analyse d'un lot" (brainstorm) - doublons entre ce ListingItem et les
- * tomes déjà possédés (voir DuplicateDetector côté backend). Purement
- * consultatif : n'affecte jamais negotiation/verdict, dont le calcul reste
- * exactement celui vérifié contre les exemples du cahier des charges. */
+/** "Analyse d'un lot" (brainstorm) - duplicates between this ListingItem and the
+ * volumes already owned (see DuplicateDetector on the backend side). Purely
+ * advisory: never affects negotiation/verdict, whose calculation stays
+ * exactly the one verified against the examples of the specification. */
 export interface DuplicateAnalysisDto {
   duplicateVolumeNumbers: number[]
   usefulVolumeCount: number
@@ -306,11 +306,11 @@ export interface PurchaseAnalysisDto {
   factorBreakdown: Partial<Record<VerdictFactor, FactorScoreDto>>
   warnings: WarningDto[]
   overallConfidence: ConfidenceLevel
-  /** "Analyse d'un lot" - jusqu'à quel prix ce lot reste intéressant une fois les doublons
-   * exclus - somme des DuplicateAnalysisDto.maxWorthwhilePrice de chaque série. Null tant
-   * qu'au moins une série avec des tomes utiles n'a pas de prix/tome connu. */
+  /** "Analyse d'un lot" - up to what price this batch stays interesting once the duplicates
+   * are excluded - sum of the DuplicateAnalysisDto.maxWorthwhilePrice of each series. Null as long
+   * as at least one series with useful volumes has no known price/volume. */
   totalMaxWorthwhilePrice: number | null
-  /** Les trois dimensions de l\'annonce - voir ListingAssessmentDto. */
+  /** The three dimensions of the listing - see ListingAssessmentDto. */
   assessment: ListingAssessmentDto
 }
 
@@ -324,9 +324,9 @@ export interface PurchaseAnalysisSummaryDto {
   seriesTitles: string[]
 }
 
-/** Phase 2 (assistance IA) - brouillon d'une édition inconnue à faire
- * relire, jamais enregistré automatiquement (voir AiEditionAdvisor côté
- * backend). Absente (204) quand aucun fournisseur IA n'est configuré. */
+/** Phase 2 (AI assistance) - draft of an unknown edition to be
+ * reviewed, never saved automatically (see AiEditionAdvisor on the
+ * backend side). Absent (204) when no AI provider is configured. */
 export interface EditionSuggestionDto {
   tier: EditionTier | null
   publisher: string | null
@@ -339,9 +339,9 @@ export interface EditionSuggestionDto {
   rationale: string | null
 }
 
-/** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
- * édition nommée est connue mais incomplète (voir
- * PurchaseAnalysisService.findNearCompleteSuggestions côté backend). */
+/** "Suggestions d'achats" (Mon profil) - series already in the collection for which a
+ * named edition is known but incomplete (see
+ * PurchaseAnalysisService.findNearCompleteSuggestions on the backend side). */
 export interface NearCompleteSuggestionDto {
   entityId: string
   seriesTitle: string
@@ -350,34 +350,34 @@ export interface NearCompleteSuggestionDto {
   totalVolumes: number
   missingCount: number
   missingVolumeNumbers: number[]
-  /** Parmi missingVolumeNumbers, les tomes déjà catalogués (un Variant existe, juste sans
-   * Ownership) plutôt que purement virtuels (aucun Variant, modèle Tome != Ownership). */
+  /** Among missingVolumeNumbers, the volumes already cataloged (a Variant exists, just without
+   * Ownership) rather than purely virtual (no Variant, Volume != Ownership model). */
   cataloguedMissingVolumeNumbers: number[]
   estimatedCostToComplete: number | null
   costToCompleteBasis: PriceBasis | null
 }
 
-// --- Lecture d'une annonce depuis son lien (voir ListingMetadataController) ---
+// --- Reading a listing from its link (see ListingMetadataController) ---
 
 /**
- * Issue d'une tentative de lecture d'annonce. Volontairement plus riche qu'un
- * booléen : l'utilisateur n'a pas la même chose à faire selon les cas, et un
- * message unique serait inutile dans les cinq.
+ * Outcome of an attempt to read a listing. Deliberately richer than a
+ * boolean: the user does not have the same thing to do depending on the case,
+ * and a single message would be useless in all five.
  *
- * - `SUCCESS` / `PARTIAL` : des données ont été lues (partiellement pour le
- *   second). Dans les deux cas on pré-remplit ce qui a été trouvé.
- * - `UNSUPPORTED_SOURCE` : plateforme pas encore prise en charge. L'URL est
- *   conservée, la saisie manuelle continue.
- * - `SOURCE_BLOCKS_AUTOMATION` : plateforme RECONNUE, mais qui refuse la
- *   lecture automatique (protection anti-robot). À ne pas confondre avec les
- *   deux voisins : ce n'est ni « pas encore » (rien n'est en attente de
- *   développement) ni « réessaie » (un nouvel essai échouera pareil). La
- *   saisie manuelle n'est pas un repli temporaire, c'est le parcours pour
- *   cette source.
- * - `LISTING_NOT_FOUND` : l'annonce n'existe plus.
- * - `UNAVAILABLE` : la source n'a rien livré d'exploitable.
- * - `INVALID_URL` : lien inexploitable (le formulaire l'attrape en local avant
- *   même d'appeler le serveur).
+ * - `SUCCESS` / `PARTIAL`: data was read (partially for the second one). In
+ *   both cases we prefill what was found.
+ * - `UNSUPPORTED_SOURCE`: platform not supported yet. The URL is kept,
+ *   manual entry continues.
+ * - `SOURCE_BLOCKS_AUTOMATION`: platform RECOGNIZED, but which refuses
+ *   automatic reading (anti-robot protection). Not to be confused with the
+ *   two neighbors: it is neither "not yet" (nothing is waiting for
+ *   development) nor "try again" (a new attempt will fail the same way).
+ *   Manual entry is not a temporary fallback, it is the path for this
+ *   source.
+ * - `LISTING_NOT_FOUND`: the listing no longer exists.
+ * - `UNAVAILABLE`: the source delivered nothing usable.
+ * - `INVALID_URL`: unusable link (the form catches it locally even before
+ *   calling the server).
  */
 export type ListingResolutionStatus =
   | 'SUCCESS'
@@ -388,20 +388,20 @@ export type ListingResolutionStatus =
   | 'LISTING_NOT_FOUND'
   | 'UNAVAILABLE'
 
-/** Les champs qu'une source peut rendre - `retrievedFields` dit lesquels ont RÉELLEMENT été lus. */
+/** The fields that a source can return - `retrievedFields` says which ones were REALLY read. */
 /**
- * Ce que vaut le montant de livraison retenu pour l'annonce.
+ * What the shipping amount kept for the listing is worth.
  *
- * `FROM` = « à partir de » : plusieurs modes existent et la source affiche le
- * moins cher. Le total qui en découle est alors un MINIMUM, pas un coût
- * facturé - et l'écran doit le dire.
+ * `FROM` = "à partir de" (starting from): several modes exist and the source
+ * displays the cheapest. The resulting total is then a MINIMUM, not a billed
+ * cost - and the screen must say so.
  *
- * `ESTIMATED` = un montant utilisable mais non garanti, typiquement saisi par
- * l'utilisateur. Il compte dans le coût, et l'écran ne doit surtout pas parler
- * de livraison « non communiquée » : elle vient d'être communiquée.
+ * `ESTIMATED` = a usable but not guaranteed amount, typically entered by the
+ * user. It counts in the cost, and the screen must absolutely not speak of
+ * shipping "not communicated": it has just been communicated.
  *
- * `UNKNOWN` = aucun montant. Le total est alors INCOMPLET : c'est un sous-total,
- * pas un coût d'acquisition.
+ * `UNKNOWN` = no amount. The total is then INCOMPLETE: it is a subtotal,
+ * not an acquisition cost.
  */
 export type ShippingEstimateKind = 'FREE' | 'EXACT' | 'FROM' | 'ESTIMATED' | 'UNKNOWN'
 
@@ -422,22 +422,22 @@ export interface ListingPreviewDto {
   description: string | null
   price: number | null
   currency: string | null
-  /** Frais de port annoncés - prix « à partir de » quand plusieurs modes de
-   * livraison existent, et 0 quand elle est offerte. null = illisible. */
+  /** Announced shipping fee - "à partir de" price when several delivery modes
+   * exist, and 0 when it is free. null = unreadable. */
   shippingFee: number | null
-  /** Ce que ce montant vaut : offert, ferme, simple plancher, ou illisible. */
+  /** What this amount is worth: free, firm, simple floor, or unreadable. */
   shippingKind: ShippingEstimateKind
-  /** Protection acheteur réellement facturée (après remise éventuelle). */
+  /** Buyer protection really billed (after a possible discount). */
   buyerProtectionFee: number | null
   imageUrls: string[]
   retrievedAt: string | null
-  /** Ce qui a été trouvé. Un champ absent d'ici n'est jamais deviné. */
+  /** What was found. A field absent from here is never guessed. */
   retrievedFields: ListingField[]
 }
 
-// --- Évaluation d'une annonce : trois dimensions, puis une synthèse ---
+// --- Assessment of a listing: three dimensions, then a synthesis ---
 
-/** Ce que le lot apporte à CETTE collection. */
+/** What the batch brings to THIS collection. */
 export type CollectionInterest =
   | 'NOTHING_NEW'
   | 'MOSTLY_DUPLICATES'
@@ -451,14 +451,14 @@ export interface CollectionFitDto {
   missingItemCount: number
   wishlistedItemCount: number
   usefulItemCount: number
-  /** null quand le coût n'est pas calculable. */
+  /** null when the cost cannot be computed. */
   pricePerItem: number | null
-  /** null quand rien n'est utile - on n'affiche alors pas « 0 € le tome utile ». */
+  /** null when nothing is useful - we then do not display "0 € le tome utile". */
   pricePerUsefulItem: number | null
   interest: CollectionInterest
 }
 
-/** Où se situe le prix. `REFERENCE_UNAVAILABLE` = on ne juge pas, faute de référence fiable. */
+/** Where the price stands. `REFERENCE_UNAVAILABLE` = we do not judge, for lack of a reliable reference. */
 export type PricePosition =
   | 'VERY_GOOD_PRICE'
   | 'GOOD_PRICE'
@@ -474,7 +474,7 @@ export type TrustSignal =
   | 'OFF_PLATFORM_PAYMENT_MENTION'
   | 'PRICE_FAR_BELOW_REFERENCE'
 
-/** Paliers nommés, jamais une note sur 100 : IozyCore ne mesure pas une probabilité de fraude. */
+/** Named levels, never a score out of 100: IozyCore does not measure a probability of fraud. */
 export type TrustLevel =
   | 'NO_OBVIOUS_SIGNAL'
   | 'A_FEW_THINGS_TO_CHECK'
@@ -496,27 +496,29 @@ export type AssessmentHeadline =
   | 'CONTENT_TO_CONFIRM'
 
 /**
- * Les trois dimensions gardées distinctes, plus la synthèse.
+ * The three dimensions kept distinct, plus the synthesis.
  *
- * Elles ne se compensent pas : un lot bradé mais entièrement en doublon reste
- * un mauvais achat à bon prix, et l'écran doit pouvoir le dire.
+ * They do not compensate each other: a batch sold off cheaply but entirely
+ * made of duplicates is still a bad purchase at a good price, and the screen
+ * must be able to say so.
  */
 /**
- * Ce que vaut la référence marché, l'absence comprise. Seuls HIGH et MEDIUM
- * autorisent un positionnement prix : LOW dit « on a quelque chose, mais pas de
- * quoi trancher », UNAVAILABLE qu'il n'y a rien.
+ * What the market reference is worth, absence included. Only HIGH and MEDIUM
+ * allow a price positioning: LOW says "we have something, but not enough to
+ * decide", UNAVAILABLE that there is nothing.
  */
 export type MarketReferenceConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNAVAILABLE'
 
 /**
- * D'où vient la référence. Une seule source en produit une : les prix relevés
- * dans IozyCore. Ni l'estimation IA ni le prix neuf catalogue ne deviennent
- * « le marché » - ils restent utiles ailleurs (coût pour compléter, négociation,
- * verdict global). `NOT_RECORDED` : analyse antérieure à cet enregistrement.
+ * Where the reference comes from. Only one source produces one: the prices
+ * observed in IozyCore. Neither the AI estimate nor the new catalog price
+ * becomes "the market" - they stay useful elsewhere (cost to complete,
+ * negotiation, global verdict). `NOT_RECORDED`: analysis that predates this
+ * recording.
  */
 export type MarketReferenceSource = 'OBSERVED_COMPARABLES' | 'NONE' | 'NOT_RECORDED'
 
-/** Ce qui manque pour qu'une référence existe - sert à dire quoi faire, pas seulement qu'on ne sait pas. */
+/** What is missing for a reference to exist - used to say what to do, not only that we do not know. */
 export type ReferenceGap =
   | 'NONE'
   | 'EDITION_NOT_IN_CATALOGUE'
@@ -530,22 +532,22 @@ export type ReferenceGap =
 export interface ListingAssessmentDto {
   collectionFit: CollectionFitDto
   pricePosition: PricePosition
-  /** null dès que la référence n'est pas exploitable - un chiffre affiché est un chiffre auquel on croit. */
+  /** null as soon as the reference is not usable - a displayed figure is a figure that one believes. */
   referencePrice: number | null
   referenceConfidence: MarketReferenceConfidence
-  /** Écart signé à la référence, en pourcentage. */
+  /** Signed gap to the reference, as a percentage. */
   deviationPercent: number | null
-  /** Annonces comparables retenues derrière `referencePrice` ; 0 quand il n'y en a pas. */
+  /** Comparable listings kept behind `referencePrice`; 0 when there are none. */
   referenceSampleSize: number
   referenceSource: MarketReferenceSource
   referenceGap: ReferenceGap
-  /** Écart haut/bas rapporté à la médiane. `null` sous deux comparables, ou
-   *  pour une analyse antérieure au Lot 88. */
+  /** High/low gap relative to the median. `null` under two comparables, or
+   *  for an analysis that predates Batch 88. */
   referenceSpreadPercent: number | null
-  /** Le plus récent des relevés retenus - la fraîcheur de la référence. */
+  /** The most recent of the kept observations - the freshness of the reference. */
   referenceMostRecentObservation: string | null
-  /** Relevés EXAMINÉS avant filtrage : dire « 3 existent, 0 comparable »
-   *  plutôt que « aucune donnée ». 0 pour une analyse antérieure au Lot 88. */
+  /** Observations EXAMINED before filtering: to say "3 exist, 0 comparable"
+   *  rather than "no data". 0 for an analysis that predates Batch 88. */
   referenceExaminedCount: number
   trust: ListingTrustAssessmentDto
   headline: AssessmentHeadline

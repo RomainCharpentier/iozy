@@ -1,38 +1,37 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * <b>Du clic à la base : créer un univers, y ajouter une œuvre, la retrouver.</b>
+ * <b>From the click to the database: create a universe, add a work to it, find it again.</b>
  *
- * <p>C'est le parcours fondateur — sans lui, il n'y a pas de collection. Et
- * c'est celui qu'aucun test unitaire ne peut couvrir : chacun des quatre
- * écrans traversés est juste tout seul, ce qui se casse ici, c'est le
- * <b>passage</b> de l'un à l'autre — un formulaire branché sur la mauvaise
- * route, un cache qu'on oublie d'invalider, et l'écran suivant reste sur
- * l'état d'avant sans que rien ne le signale.
+ * <p>This is the founding journey — without it, there is no collection. And
+ * it is the one that no unit test can cover: each of the four screens crossed
+ * is fine on its own, what breaks here is the <b>passage</b> from one to the
+ * other — a form wired to the wrong route, a cache that we forget to
+ * invalidate, and the next screen stays on the previous state without
+ * anything signaling it.
  *
- * <h2>Pourquoi un type créé pour l'occasion</h2>
- * Les trois univers livrés (manga, jeu vidéo, jeu de société) exigent une
- * correspondance chez un fournisseur externe. La pile de test n'a
- * volontairement AUCUNE clé d'API : un test qui dépend de Jikan échoue le jour
- * où Jikan tousse, pour une raison qui n'a rien à voir avec l'application. Un
- * type créé à la main n'a pas de fournisseur, et ouvre donc la saisie libre -
- * ce qui exerce en prime l'éditeur de types.
+ * <h2>Why a type created for the occasion</h2>
+ * The three delivered universes (manga, video game, board game) require a
+ * match at an external provider. The test stack deliberately has NO API key:
+ * a test that depends on Jikan fails the day Jikan coughs, for a reason that
+ * has nothing to do with the application. A hand-made type has no provider,
+ * and therefore opens free entry - which also exercises the type editor.
  *
- * <h2>Un seul test, et c'est délibéré</h2>
- * Découper « ajouter » et « ne pas dupliquer » en deux tests demanderait au
- * second de retrouver ce que le premier a créé - or Playwright redémarre son
- * worker après un échec, et les constantes du module sont alors recalculées.
- * Le second test cherchait un univers au nom légèrement différent de celui
- * créé par le premier (constaté). Un parcours qui se lit d'un bout à l'autre
- * n'a pas ce problème.
+ * <h2>A single test, and it is deliberate</h2>
+ * Splitting "add" and "do not duplicate" into two tests would require the
+ * second one to find what the first one created - yet Playwright restarts its
+ * worker after a failure, and the module constants are then recomputed. The
+ * second test was looking for a universe with a slightly different name from
+ * the one created by the first (observed). A journey that reads from one end
+ * to the other does not have this problem.
  */
 
-test('créer un univers, y ajouter une œuvre, et la retrouver plutôt que la dupliquer', async ({ page }) => {
-  // Un nom par exécution : deux lancements ne doivent pas se gêner.
+test('create a universe, add a work to it, and find it again rather than duplicate it', async ({ page }) => {
+  // One name per run: two launches must not get in each other's way.
   const univers = `Vinyle ${Date.now()}`
   const oeuvre = 'Discovery'
 
-  // --- 1. Un univers à soi (Paramètres ▸ Administration ▸ Types)
+  // --- 1. A universe of one's own (Paramètres ▸ Administration ▸ Types)
   await page.goto('/types/new')
   await page.getByLabel('Label').fill(univers)
   await page.getByRole('button', { name: 'Créer', exact: true }).click()
@@ -40,50 +39,50 @@ test('créer un univers, y ajouter une œuvre, et la retrouver plutôt que la du
   await expect(page).toHaveURL(/\/types$/)
   await expect(page.getByText(univers)).toBeVisible()
 
-  // --- 2. L'ajouter depuis Rechercher
+  // --- 2. Add it from Rechercher
   await page.goto('/add')
 
-  // Les trois façons d'ajouter à sa collection sont réunies ici : taper un
-  // titre, scanner, importer. L'import BGG a vécu sous Administration jusqu'au
-  // 2026-08-29 - il n'a jamais rien eu d'administratif.
+  // The three ways to add to one's collection are gathered here: type a
+  // title, scan, import. The BGG import lived under Administration until
+  // 2026-08-29 - it never had anything administrative about it.
   await expect(page.getByRole('link', { name: 'Scanner' })).toHaveAttribute('href', '/scan')
   await expect(page.getByRole('link', { name: 'Importer depuis BGG' })).toHaveAttribute('href', '/import-bgg')
 
   await page.getByRole('button', { name: univers }).click()
   await page.getByLabel(/Titre|Un titre/).fill(oeuvre)
 
-  // Sur un type sans fournisseur, ce bouton est le SEUL chemin d'ajout.
+  // On a type with no provider, this button is the ONLY way to add.
   await page.getByRole('button', { name: `Ajouter « ${oeuvre} »` }).click()
 
-  // --- 3. L'aperçu dit ce qu'il est : une œuvre pas encore possédée
+  // --- 3. The preview says what it is: a work not yet owned
   await expect(page.getByText("Cette œuvre n'est pas encore dans ta collection.")).toBeVisible()
   await page.getByRole('button', { name: 'Ajouter à ma collection' }).click()
 
-  // --- 4. On arrive sur SA fiche, pas sur une page générique
+  // --- 4. We arrive on ITS detail page, not on a generic page
   await expect(page).toHaveURL(/\/entity\/[0-9a-f-]{36}$/)
   await expect(page.getByRole('heading', { name: oeuvre })).toBeVisible()
 
-  // --- 5. Ma collection la montre, avec son rail et ses compteurs
+  // --- 5. Ma collection shows it, with its rail and its counters
   //
-  //     Le décompte lu ici est celui du RAIL de cet univers, pas le total de
-  //     la collection : ce test partage sa pile avec les autres parcours, qui
-  //     y sèment leurs propres séries. La première version affirmait « 1 titre
-  //     suivi » et ne tenait que tant que ce fichier passait en premier - elle
-  //     est tombée le jour où un parcours au nom alphabétiquement antérieur
-  //     est arrivé. Un test dont la vérité dépend de l'ordre des fichiers ne
-  //     vérifie pas ce qu'il croit.
-  //     Et depuis le lot « Suivre » (e4dd418), le décompte de la vue « Tout »
-  //     dit « N titres » tout court - « suivis » est devenu un filtre à part.
+  //     The count read here is that of the RAIL of this universe, not the
+  //     total of the collection: this test shares its stack with the other
+  //     journeys, which sow their own series in it. The first version stated
+  //     "1 titre suivi" and held only as long as this file ran first - it
+  //     fell the day a journey with an alphabetically earlier name arrived. A
+  //     test whose truth depends on the order of the files does not check
+  //     what it thinks it checks.
+  //     And since the "Suivre" batch (e4dd418), the count of the "Tout" view
+  //     says "N titres" plainly - "suivis" became a separate filter.
   await page.goto('/')
   await expect(page.getByText(/\d+ titres?( ·|$)/)).toBeVisible()
   await expect(page.getByRole('heading', { name: univers })).toBeVisible()
   await expect(page.getByRole('button', { name: new RegExp(`^${univers} 1 Tout voir$`) })).toBeVisible()
-  // La tuile porte le titre ET son état : « Possédé » plutôt qu'un décompte de
-  // tomes, parce que pour un type sans notion de tome, l'œuvre EST l'objet
-  // collectionnable.
+  // The tile carries the title AND its state: "Possédé" rather than a count
+  // of volumes, because for a type with no notion of volume, the work IS the
+  // collectible object.
   await expect(page.getByRole('button', { name: `${oeuvre} Possédé` })).toBeVisible()
 
-  // --- 6. La rechercher à nouveau la RETROUVE, au lieu de proposer un doublon
+  // --- 6. Searching for it again FINDS it, instead of offering a duplicate
   await page.goto('/add')
   await page.getByRole('button', { name: univers }).click()
   await page.getByLabel(/Titre|Un titre/).fill(oeuvre)
@@ -92,11 +91,11 @@ test('créer un univers, y ajouter une œuvre, et la retrouver plutôt que la du
   const ajouterQuandMeme = page.getByRole('button', { name: `Ajouter « ${oeuvre} »` })
   await expect(dejaLa).toBeVisible()
 
-  // Le bouton d'ajout reste là - et c'est voulu : sur un type sans
-  // fournisseur, il est le seul chemin, et deux œuvres peuvent porter des
-  // titres proches. Ce qui protège du doublon, c'est l'ORDRE : ce qu'on
-  // possède déjà se montre AVANT de proposer de créer. Le premier jet de ce
-  // test affirmait l'inverse (bouton absent) et il avait tort.
+  // The add button stays there - and this is intended: on a type with no
+  // provider, it is the only way, and two works can have similar titles. What
+  // protects from the duplicate is the ORDER: what we already own is shown
+  // BEFORE offering to create. The first draft of this test claimed the
+  // opposite (button absent) and it was wrong.
   await expect(ajouterQuandMeme).toBeVisible()
   const positionDeja = (await dejaLa.boundingBox())?.y ?? 0
   const positionBouton = (await ajouterQuandMeme.boundingBox())?.y ?? 0

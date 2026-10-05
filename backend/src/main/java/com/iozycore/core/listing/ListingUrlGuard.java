@@ -8,50 +8,50 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Décide si une URL fournie par l'utilisateur peut être récupérée par le
- * serveur, et le refuse dans le doute.
+ * Decides whether a URL supplied by the user can be fetched by the
+ * server, and refuses it when in doubt.
  * <p>
- * Le point sensible : c'est le <b>backend</b> qui va chercher une URL <b>saisie
- * par quelqu'un d'autre</b>. Sans garde-fou, ce serait un proxy ouvert vers
- * tout ce que le serveur peut atteindre et que l'extérieur ne peut pas :
- * {@code localhost}, le réseau Docker, la base de données, ou l'endpoint de
- * métadonnées d'un hébergeur cloud (169.254.169.254) qui délivre des
- * identifiants. C'est la faille SSRF, et elle se referme ici, en un seul
- * endroit, pour tous les providers.
+ * The sensitive point: it is the <b>backend</b> that fetches a URL <b>typed
+ * by someone else</b>. Without a guard, it would be an open proxy to
+ * everything the server can reach and the outside cannot:
+ * {@code localhost}, the Docker network, the database, or the metadata
+ * endpoint of a cloud host (169.254.169.254) that hands out
+ * credentials. This is the SSRF hole, and it closes here, in a single
+ * place, for all providers.
  * <p>
- * La règle est une <b>liste blanche</b>, pas une liste noire : seuls les hôtes
- * qu'un provider déclare explicitement sont joignables. Un domaine inconnu
- * n'est pas « probablement sûr », il est refusé - et le parcours manuel prend
- * le relais. Chaque provider apporte ses propres hôtes ; aucun n'hérite de
- * ceux d'un autre.
+ * The rule is a <b>whitelist</b>, not a blacklist: only the hosts
+ * that a provider explicitly declares are reachable. An unknown domain
+ * is not "probably safe", it is refused - and the manual flow takes
+ * over. Each provider brings its own hosts; none inherits
+ * those of another.
  * <p>
- * Les vérifications s'appliquent <b>à chaque saut</b> : les redirections sont
- * suivies à la main par {@link ListingHttpFetcher} et repassent toutes par
- * ici, sinon un hôte autorisé pourrait rediriger vers une adresse interne et
- * contourner tout le reste.
+ * The checks apply <b>at each hop</b>: the redirects are
+ * followed by hand by {@link ListingHttpFetcher} and all go through
+ * here again, otherwise an allowed host could redirect to an internal address and
+ * bypass everything else.
  */
 public final class ListingUrlGuard {
 
-    /** Seul HTTPS : ni {@code file://}, ni {@code ftp://}, ni {@code gopher://}, et pas de HTTP en clair. */
+    /** HTTPS only: no {@code file://}, no {@code ftp://}, no {@code gopher://}, and no plain HTTP. */
     private static final String REQUIRED_SCHEME = "https";
 
     private ListingUrlGuard() {
     }
 
-    /** Pourquoi une URL a été refusée - jamais un simple booléen, le client doit pouvoir l'expliquer. */
+    /** Why a URL was refused - never a simple boolean, the client must be able to explain it. */
     public enum Rejection {
-        /** Ni une URL absolue, ni HTTPS, ni un hôte exploitable. */
+        /** Neither an absolute URL, nor HTTPS, nor a usable host. */
         MALFORMED,
-        /** Bien formée, mais l'hôte n'est déclaré par aucun provider. */
+        /** Well formed, but the host is not declared by any provider. */
         HOST_NOT_ALLOWED,
-        /** L'hôte résout vers une adresse que seul le serveur peut atteindre - refus catégorique. */
+        /** The host resolves to an address that only the server can reach - categorical refusal. */
         PRIVATE_ADDRESS
     }
 
     /**
-     * Rend l'URI normalisée si elle est joignable, ou la raison du refus.
+     * Returns the normalized URI if it is reachable, or the reason for the refusal.
      *
-     * @param allowedHosts hôtes exacts (déjà en minuscules) déclarés par le provider concerné
+     * @param allowedHosts exact hosts (already in lower case) declared by the provider concerned
      */
     public static Result check(String rawUrl, Set<String> allowedHosts) {
         URI uri;
@@ -70,10 +70,10 @@ public final class ListingUrlGuard {
         if (!allowedHosts.contains(host)) {
             return Result.rejected(Rejection.HOST_NOT_ALLOWED);
         }
-        // Un hôte peut figurer sur la liste blanche ET pointer vers une adresse
-        // interne (DNS détourné, entrée /etc/hosts, rebinding). La liste blanche
-        // dit « ce nom est légitime », la résolution dit « et il ne mène pas
-        // chez nous » - il faut les deux.
+        // A host can be on the whitelist AND point to an internal
+        // address (hijacked DNS, /etc/hosts entry, rebinding). The whitelist
+        // says "this name is legitimate", the resolution says "and it does not lead
+        // to our place" - both are needed.
         if (resolvesToPrivateAddress(host)) {
             return Result.rejected(Rejection.PRIVATE_ADDRESS);
         }
@@ -81,10 +81,10 @@ public final class ListingUrlGuard {
     }
 
     /**
-     * Vrai dès qu'une des adresses de cet hôte est locale, privée, de lien-local
-     * (ce qui couvre 169.254.169.254, l'endpoint de métadonnées des principaux
-     * hébergeurs cloud) ou multicast. Un hôte qui ne résout pas est traité comme
-     * suspect plutôt que comme inoffensif.
+     * True as soon as one of the addresses of this host is local, private, link-local
+     * (which covers 169.254.169.254, the metadata endpoint of the main
+     * cloud hosts) or multicast. A host that does not resolve is treated as
+     * suspect rather than harmless.
      */
     private static boolean resolvesToPrivateAddress(String host) {
         try {
@@ -100,7 +100,7 @@ public final class ListingUrlGuard {
         }
     }
 
-    /** URI validée, ou refus motivé. */
+    /** Validated URI, or reasoned refusal. */
     public record Result(URI uri, Rejection rejection) {
         static Result allowed(URI uri) {
             return new Result(uri, null);

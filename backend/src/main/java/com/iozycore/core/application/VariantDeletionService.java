@@ -13,27 +13,27 @@ import java.util.UUID;
 import java.util.List;
 
 /**
- * Suppression explicite d'un Tome (Variant) - action utilisateur (voir "Supprimer ce
- * tome"), jamais déclenchée automatiquement. Modèle catalogue cible Série -> Édition ->
- * Tome (étape 4) : un Tome catalogué existe indépendamment de sa possession, donc
- * supprimer sa dernière Ownership active (voir OwnershipDeletionService) ne le
- * supprime JAMAIS - seule cette action explicite le fait, et seulement si plus aucune
- * Ownership ni Experience ne le référence encore (même patron que
- * EntityDeletionService : le domaine Entity ne connaît pas les repositories des
- * autres agrégats, donc la règle est orchestrée ici).
+ * Explicit deletion of a Volume (Variant) - user action (see "Delete this
+ * volume"), never triggered automatically. Target catalog model Series -> Edition ->
+ * Volume (step 4): a cataloged Volume exists independently of its ownership, so
+ * deleting its last active Ownership (see OwnershipDeletionService) NEVER
+ * deletes it - only this explicit action does, and only if no
+ * Ownership or Experience references it anymore (same pattern as
+ * EntityDeletionService: the Entity domain does not know the repositories of the
+ * other aggregates, so the rule is orchestrated here).
  * <p>
- * Contrairement à EntityDeletionService (bloqué par n'importe quelle Ownership, même
- * vendue/perdue), cette garde ne regarde QUE les Ownership/Experience qui référencent
- * CE Variant précis - un autre tome de la même série peut très bien rester possédé.
+ * Unlike EntityDeletionService (blocked by any Ownership, even
+ * sold/lost), this guard ONLY looks at the Ownerships/Experiences that reference
+ * THIS specific Variant - another volume of the same series can very well stay owned.
  * <p>
- * Étape 5 ("pas de tome -> pas d'édition -> pas de série") : une fois le Tome retiré,
- * cascade vers le haut - son Édition catalogue disparaît à son tour si elle n'a plus
- * aucun Tome, puis la Série elle-même si elle n'a plus aucun Tome du tout (pas
- * seulement plus aucune Édition : un Tome sans édition renseignée compte aussi comme
- * un Tome catalogué réel, voir QuickAddService). Les deux cascades sont silencieuses
- * quand quelque chose d'autre retient encore la donnée (observation de marché sur
- * l'Édition, Ownership générique sans Variant sur la Série...) - ce n'est jamais une
- * erreur pour cet appel, seulement une cascade qui s'arrête là où elle doit.
+ * Step 5 ("no volume -> no edition -> no series"): once the Volume is removed,
+ * cascade upwards - its catalog Edition disappears in turn if it has no
+ * Volume left, then the Series itself if it has no Volume at all (not
+ * only no Edition: a Volume without a given edition also counts as
+ * a real cataloged Volume, see QuickAddService). Both cascades are silent
+ * when something else still holds the data (market observation on
+ * the Edition, generic Ownership without Variant on the Series...) - it is never an
+ * error for this call, only a cascade that stops where it must.
  */
 @Service
 public class VariantDeletionService {
@@ -41,7 +41,7 @@ public class VariantDeletionService {
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
     private final ExperienceRepository experienceRepository;
-    /** Ce que chaque univers fait apres la suppression d'un tome - le menage des editions orphelines, cote manga (Lot 133). */
+    /** What each universe does after the deletion of a volume - the cleanup of orphan editions, on the manga side (Batch 133). */
     private final List<VariantDeletionHook> hooks;
     private final EntityDeletionService entityDeletionService;
 
@@ -79,8 +79,8 @@ public class VariantDeletionService {
         entity.removeVariant(variantId);
         entityRepository.save(entity);
 
-        // Ce que chaque univers fait apres coup - le manga y efface l'edition
-        // de reference devenue orpheline (voir VariantDeletionHook, Lot 133).
+        // What each universe does afterwards - manga deletes the reference
+        // edition that became orphan (see VariantDeletionHook, Batch 133).
         for (VariantDeletionHook hook : hooks) {
             hook.apresSuppression(entity, tomeSupprime, variantId);
         }
@@ -88,12 +88,12 @@ public class VariantDeletionService {
     }
 
     /**
-     * "Pas de tome -> pas de série" : une Série vidée de tous ses Tomes catalogués (pas
-     * seulement de ses Tomes rattachés à une Édition - un Tome sans édition renseignée
-     * compte tout autant) devient à son tour candidate à la suppression. Réutilise
-     * EntityDeletionService plutôt que de dupliquer sa garde : si elle bloque encore
-     * (Ownership générique sans Variant, Édition ayant survécu ci-dessus...), la Série
-     * survit simplement - ce n'est pas une erreur pour cet appel.
+     * "No volume -> no series": a Series emptied of all its cataloged Volumes (not
+     * only of its Volumes attached to an Edition - a Volume without a given edition
+     * counts just as much) becomes in turn a candidate for deletion. Reuses
+     * EntityDeletionService rather than duplicating its guard: if it still blocks
+     * (generic Ownership without Variant, Edition that survived above...), the Series
+     * simply survives - it is not an error for this call.
      */
     private void cascadeDeleteEmptySeries(Entity entity) {
         if (!entity.variants().isEmpty()) {
@@ -102,7 +102,7 @@ public class VariantDeletionService {
         try {
             entityDeletionService.delete(entity.id());
         } catch (EntityDeletionNotAllowedException e) {
-            // Encore retenue par autre chose - voir javadoc ci-dessus.
+            // Still held by something else - see javadoc above.
         }
     }
 }

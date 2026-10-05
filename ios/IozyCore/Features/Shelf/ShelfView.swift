@@ -1,11 +1,11 @@
 import SwiftUI
 import SwiftData
 
-/// Parcours 4 ("feuilleter ses étagères", étape 5) : mode "vitrine",
-/// grille de couvertures, navigation libre sans filtre actif par défaut.
-/// Direction visuelle validée : grille de couvertures en dégradé façon
-/// Letterboxd/Spotify, fond sombre, accent vif - plutôt que des dos de
-/// livres façon étagère physique (première direction essayée, écartée).
+/// Journey 4 ("browse your shelves", step 5): "showcase" mode,
+/// grid of covers, free navigation with no active filter by default.
+/// Validated visual direction: grid of gradient covers like
+/// Letterboxd/Spotify, dark background, bright accent - instead of book
+/// spines like a physical shelf (first direction tried, dropped).
 struct ShelfView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \EntityRecord.title) private var entities: [EntityRecord]
@@ -30,9 +30,9 @@ struct ShelfView: View {
         return result
     }
 
-    /// Généralisé en un compte par type plutôt que le bucket fixe
-    /// "Mangas/Jeux" d'origine (n'avait de sens qu'avec exactement 3 types
-    /// codés en dur) - un type sans aucune Entity n'apparaît pas.
+    /// Generalized into one count per type instead of the original fixed
+    /// "Mangas/Jeux" bucket (only made sense with exactly 3 hard-coded
+    /// types) - a type with no Entity at all does not appear.
     private var countsByType: [(type: EntityTypeRecord, count: Int)] {
         entityTypes.compactMap { type in
             let count = entities.filter { $0.entityTypeId == type.id }.count
@@ -156,14 +156,14 @@ struct ShelfView: View {
         .padding(.bottom, 20)
     }
 
-    /// Après un import BGG réussi côté serveur, recharge tous les jeux de
-    /// société pour découvrir les nouveaux (et les insérer dans le cache
-    /// local) - la réponse de l'import ne contient que des compteurs, pas
-    /// le détail des Entity créées.
+    /// After a successful BGG import on the server side, reloads all the board
+    /// games to discover the new ones (and insert them into the local
+    /// cache) - the import response only contains counters, not
+    /// the detail of the Entities created.
     private func insertNewlyImportedBoardGames() {
-        // Résolu par code bien connu plutôt qu'un uuid figé (voir
-        // resolveTypeId côté backend) - l'import BGG reste intrinsèquement
-        // lié au type "jeu de société", quel que soit son id réel.
+        // Resolved by a well-known code rather than a fixed uuid (see
+        // resolveTypeId on the backend side) - the BGG import stays intrinsically
+        // tied to the "board game" type, whatever its real id.
         guard let boardGameTypeId = entityTypes.first(where: { $0.code == "BOARD_GAME" })?.id else {
             return
         }
@@ -182,11 +182,11 @@ struct ShelfView: View {
     }
 }
 
-/// Import en masse de la collection BGG d'un utilisateur (jeux marqués
-/// "possédés"). Peut prendre plusieurs secondes côté serveur (BGG répond
-/// parfois 202 le temps de préparer l'export, géré avec retry côté
-/// backend) - d'où l'indicateur de progression explicite plutôt qu'un
-/// simple bouton qui semblerait ne rien faire.
+/// Bulk import of the BGG collection of a user (games marked
+/// "owned"). Can take several seconds on the server side (BGG sometimes
+/// answers 202 while it prepares the export, handled with a retry on the
+/// backend side) - hence the explicit progress indicator instead of a
+/// simple button that would seem to do nothing.
 private struct BggImportSheet: View {
     let onImported: () -> Void
 

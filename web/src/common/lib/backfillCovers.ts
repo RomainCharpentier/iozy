@@ -3,8 +3,8 @@ import type { EntityResponse, VariantDto, VolumeCandidateDto } from '@/common/ty
 import { editionDe, numeroDe } from './attributsTome'
 import { indicesDe } from './indicesOeuvre'
 
-/** Un Variant "manga" reconnaissable (porte un volumeNumber structuré) sans
- * jaquette propre - seuls ceux-là sont éligibles au repêchage (voir
+/** A recognizable "manga" Variant (carries a structured volumeNumber) without
+ * its own cover - only these are eligible for the backfill (see
  * "Retrouver les jaquettes manquantes", Ma collection). */
 export function variantsMissingCover(entity: EntityResponse): VariantDto[] {
   return entity.variants.filter(
@@ -12,17 +12,17 @@ export function variantsMissingCover(entity: EntityResponse): VariantDto[] {
   )
 }
 
-/** Meilleure correspondance dans les résultats de recherche de tomes
- * (GET /metadata/volumes, voir VolumeSelectionGrid côté Ajout rapide - même
- * source, jamais un nouvel algorithme de correspondance) pour un Variant
- * donné : même volumeNumber, puis même édition si le Variant en a une
- * renseignée (insensible à la casse), sinon la première correspondance
- * avec une jaquette réelle. Jamais de correspondance inventée : un
- * volumeNumber absent du résultat de recherche reste sans jaquette. */
+/** Best match in the volume search results
+ * (GET /metadata/volumes, see VolumeSelectionGrid on the Ajout rapide side -
+ * same source, never a new matching algorithm) for a given Variant: same
+ * volumeNumber, then same edition if the Variant has one filled in
+ * (case-insensitive), otherwise the first match with a real cover. Never an
+ * invented match: a volumeNumber that is absent from the search result stays
+ * without a cover. */
 export function findBestCoverMatch(
   candidates: VolumeCandidateDto[],
-  /** Seuls les attributs sont lus - un tome qu'on vient de créer n'a pas
-   *  encore d'objet complet à offrir, et n'a pas à en fabriquer un faux. */
+  /** Only the attributes are read - a volume that was just created does not
+   *  have a full object to offer yet, and does not have to build a fake one. */
   variant: Pick<VariantDto, 'attributes'>,
 ): VolumeCandidateDto | undefined {
   const volumeNumber = numeroDe(variant)
@@ -31,8 +31,8 @@ export function findBestCoverMatch(
   const sameVolume = candidates.filter((c) => c.volumeNumber === volumeNumber && c.imageUrl)
   if (sameVolume.length === 0) return undefined
 
-  // Casse abaissée ICI et nulle part ailleurs : on compare à l'édition telle
-  // que l'annonce un fournisseur externe, où « Kana » et « KANA » sont la même.
+  // Case lowered HERE and nowhere else: we compare with the edition as an
+  // external provider announces it, where "Kana" and "KANA" are the same.
   const edition = editionDe(variant).toLowerCase()
   if (edition) {
     const editionMatch = sameVolume.find((c) => c.edition.trim().toLowerCase() === edition)
@@ -42,32 +42,32 @@ export function findBestCoverMatch(
 }
 
 
-/** Ce qu'une passe de rattrapage a donné pour UNE série. */
+/** What a backfill pass gave for ONE series. */
 export interface ResultatRattrapage {
   trouvees: number
-  /** Le fournisseur n'a rien DIT : quota dépassé, ou source muette (503,
-   * délai dépassé). Distinct de "il a répondu, il n'a pas cette jaquette". */
+  /** The provider said NOTHING: quota exceeded, or silent source (503,
+   * timeout). Different from "it answered, it does not have this cover". */
   fournisseurMuet: boolean
 }
 
 /**
- * Retrouve les jaquettes manquantes d'UNE série.
+ * Finds the missing covers of ONE series.
  *
- * <h2>Une seule implémentation, deux appelants</h2>
- * Ma collection la déroule sur toute la bibliothèque ; la fiche l'appelle pour
- * la série qu'on regarde, quand on en a besoin - typiquement après un ajout
- * d'un clic, ou après une panne chez le fournisseur. La logique d'appariement,
- * la seconde tentative et la lecture de l'échec vivaient dans la boucle de Ma
- * collection : deux copies auraient fini par diverger.
+ * <h2>One single implementation, two callers</h2>
+ * Ma collection runs it over the whole library; the detail page calls it for
+ * the series being viewed, when needed - typically after a one-click add, or
+ * after a failure at the provider. The matching logic, the second attempt and
+ * the reading of the failure lived in the loop of Ma collection: two copies
+ * would have ended up diverging.
  *
- * <p><b>Deux recherches au plus, et seulement si la première ne suffit pas</b> :
- * la seconde force le rafraîchissement du cache, ce qui coûte un vrai appel au
- * fournisseur. La faire d'emblée gaspillerait le quota sur les séries que le
- * cache servait déjà.
+ * <p><b>At most two searches, and only if the first is not enough</b>:
+ * the second forces the cache to refresh, which costs a real call to the
+ * provider. Doing it right away would waste the quota on the series that the
+ * cache already served.
  *
- * <p>Best-effort par nature : une série en échec reste simplement sans
- * jaquette. Un fournisseur muet, lui, remonte - c'est la seule information qui
- * change ce que l'utilisateur doit faire (réessayer plus tard).
+ * <p>Best-effort by nature: a series that fails simply stays without a cover.
+ * A silent provider, however, is reported - it is the only information that
+ * changes what the user has to do (try again later).
  */
 export async function rattraperJaquettes(
   entity: EntityResponse,
@@ -98,7 +98,7 @@ export async function rattraperJaquettes(
     }
     return { trouvees, fournisseurMuet: false }
   } catch {
-    // Une série en échec ne doit jamais faire échouer l'appelant.
+    // A series that fails must never make the caller fail.
     return { trouvees: 0, fournisseurMuet: false }
   }
 }

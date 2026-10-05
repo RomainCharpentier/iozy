@@ -8,51 +8,50 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * L'édition nommée dans le titre d'une annonce — « Naruto <b>Perfect
- * Edition</b> tomes 1 à 3 ».
+ * The edition named in the title of a listing — "Naruto <b>Perfect
+ * Edition</b> tomes 1 à 3".
  *
- * <h2>Ce que son absence coûtait, et ce n'était pas seulement l'édition</h2>
- * Le parser ne lisait pas l'édition : elle restait donc collée au titre. « Naruto
- * Perfect Edition » ressortait comme une <b>série nommée « Naruto Perfect
- * Edition »</b>, que le catalogue ne connaît évidemment pas — là où « Naruto »
- * seul retrouvait sa fiche et ses éditions.
+ * <h2>What its absence cost, and it was not only the edition</h2>
+ * The parser did not read the edition: it stayed stuck to the title. "Naruto
+ * Perfect Edition" came out as a <b>series named "Naruto Perfect
+ * Edition"</b>, which the catalogue obviously does not know — where "Naruto"
+ * alone found its work page and its editions.
  *
- * <p>Mentionner l'édition, ce que les vendeurs font constamment, faisait donc
- * <b>perdre la série</b>. Le manque d'une information en détruisait une autre.
+ * <p>Mentioning the edition, which sellers do all the time, therefore made us
+ * <b>lose the series</b>. Missing one piece of information destroyed another.
  *
- * <h2>Une liste, et pourquoi elle est inévitable</h2>
- * La première version pariait sur le mot « édition » pour qualifier son voisin,
- * sans liste à tenir. Elle lisait « Death Note edition » comme une édition
- * <b>« Note »</b> : rien dans la phrase ne dit lequel des deux mots est le nom
- * de l'œuvre et lequel celui du tirage.
+ * <h2>A list, and why it cannot be avoided</h2>
+ * The first version bet on the word "édition" to qualify its neighbour,
+ * with no list to maintain. It read "Death Note edition" as an edition
+ * <b>"Note"</b>: nothing in the phrase says which of the two words is the name
+ * of the work and which is the name of the printing.
  *
- * <p>Le qualifiant doit donc être <b>reconnu</b> — sauf à une position : quand
- * il <b>suit</b> le mot « édition ». Là il n'y a plus d'ambiguïté, car personne
- * n'écrit le nom de l'œuvre après ce mot ; « édition Hokage » se lit tout seul,
- * et n'importe quel qualifiant y est accepté.
+ * <p>The qualifier must therefore be <b>recognised</b> — except at one position: when
+ * it <b>follows</b> the word "édition". There is no ambiguity there, because nobody
+ * writes the name of the work after this word; "édition Hokage" reads by itself,
+ * and any qualifier is accepted there.
  *
- * <h2>Manquer une édition, jamais en inventer</h2>
- * « Dragon Ball Star Edition » n'est pas reconnu : « Star » n'est pas dans la
- * liste. C'est un manque assumé — l'élément reste « édition à confirmer »,
- * exactement comme avant, et l'utilisateur tranche. L'erreur inverse serait
- * bien plus coûteuse : un indice inventé fait chercher au catalogue une édition
- * qui n'existe pas, et fait passer pour douteux un élément parfaitement
- * identifié.
+ * <h2>Miss an edition, never make one up</h2>
+ * "Dragon Ball Star Edition" is not recognised: "Star" is not in the
+ * list. This is an accepted gap — the item stays "edition to confirm",
+ * exactly as before, and the user decides. The opposite error would be
+ * much more costly: a made-up hint makes the catalogue look for an edition
+ * that does not exist, and makes a perfectly identified item look doubtful.
  *
- * <h2>Ce qui n'est délibérément pas une édition</h2>
- * « Coffret » décrit un emballage, « neuf » et « TBE » un état, « lot » une
- * vente. Ces mots sont retirés du titre par {@code MOTS_COMMERCIAUX} et n'ont
- * rien à faire dans un indice d'édition.
+ * <h2>What is deliberately not an edition</h2>
+ * "Coffret" describes a packaging, "neuf" and "TBE" a condition, "lot" a
+ * sale. These words are removed from the title by {@code MOTS_COMMERCIAUX} and have
+ * no place in an edition hint.
  */
 public final class EditionMention {
 
     /**
-     * Les qualifiants d'édition du manga francophone.
+     * The edition qualifiers of French-language manga.
      *
-     * <p>Chaque entrée est un mot qui cesse d'appartenir aux titres d'œuvres :
-     * la liste est donc courte et se justifie mot à mot. « Black » n'y est pas
-     * — <i>Black Butler</i>, <i>Black Clover</i>, <i>Black Lagoon</i> sont des
-     * séries. « Star » non plus, pour la même raison.
+     * <p>Each entry is a word that no longer belongs to work titles:
+     * the list is therefore short and can be justified word by word. "Black" is not in it
+     * — <i>Black Butler</i>, <i>Black Clover</i>, <i>Black Lagoon</i> are
+     * series. Neither is "Star", for the same reason.
      */
     private static final Set<String> QUALIFIANTS = Set.of(
             "perfect", "deluxe", "luxe", "prestige", "collector", "integrale",
@@ -60,54 +59,54 @@ public final class EditionMention {
             "simple", "anniversaire", "ultimate", "kanzenban", "bunko", "shinsoban");
 
     /**
-     * Les rangs qu'un vendeur écrit seuls, sans le mot « édition ».
+     * The ranks that a seller writes alone, without the word "édition".
      *
-     * <p><b>« Intégrale » n'y est pas</b>, et l'absence est instructive. Ce mot
-     * porte déjà un sens dans ce code : {@code MENTION_INTEGRALE} en fait un
-     * signal de <i>complétude</i> — « le lot contient toute la série » — pas un
-     * nom de tirage. L'y ajouter a été essayé et rejeté par les tests : sur
-     * « Platinum End intégrale tomes 1 à 14 », le texte proposait quatorze tomes
-     * en édition « Intégrale » pendant que les photos en voyaient douze en
-     * « Standard », et la consolidation - qui refuse à juste titre de fondre
-     * deux éditions différentes - rendait <b>vingt-six</b> tomes pour un lot de
-     * quatorze.
+     * <p><b>"Intégrale" is not in it</b>, and the absence is instructive. This word
+     * already carries a meaning in this code: {@code MENTION_INTEGRALE} makes it a
+     * <i>completeness</i> signal — "the lot contains the whole series" — not a
+     * name of a printing. Adding it here was tried and rejected by the tests: on
+     * "Platinum End intégrale tomes 1 à 14", the text proposed fourteen volumes
+     * in the "Intégrale" edition while the photos saw twelve in
+     * "Standard", and the consolidation - which rightly refuses to merge
+     * two different editions - returned <b>twenty-six</b> volumes for a lot of
+     * fourteen.
      *
-     * <p>Il reste accepté dans {@link #QUALIFIANTS}, c'est-à-dire uniquement
-     * accolé au mot « édition » : « édition intégrale » nomme bien un tirage,
-     * là où « intégrale » seul décrit un ensemble.
+     * <p>It stays accepted in {@link #QUALIFIANTS}, that is, only
+     * next to the word "édition": "édition intégrale" does name a printing,
+     * where "intégrale" alone describes a whole set.
      */
     private static final Set<String> RANGS_SEULS = Set.of(
             "perfect", "deluxe", "prestige", "collector", "kanzenban", "bunko");
 
     /**
-     * Les drapeaux, et pourquoi ils ne sont pas optionnels.
+     * The flags, and why they are not optional.
      *
-     * <p>{@code \b} en Java s'appuie sur {@code \w}, qui vaut par défaut
-     * {@code [a-zA-Z0-9_]} : <b>« é » n'y est pas un caractère de mot</b>. Une
-     * limite de mot posée devant « édition » ne se déclenche donc jamais, et
-     * tous les motifs français échouaient en silence — « Naruto édition
-     * Hokage » ne rendait rien du tout. {@code UNICODE_CHARACTER_CLASS} range
-     * les lettres accentuées du bon côté.
+     * <p>{@code \b} in Java relies on {@code \w}, which by default is
+     * {@code [a-zA-Z0-9_]}: <b>"é" is not a word character there</b>. A word
+     * boundary placed before "édition" therefore never triggers, and
+     * all the French patterns failed silently — "Naruto édition
+     * Hokage" returned nothing at all. {@code UNICODE_CHARACTER_CLASS} puts
+     * the accented letters on the right side.
      */
     private static final int DRAPEAUX =
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS;
 
     /**
-     * « … édition Hokage » : un mot <b>suit</b> « édition ».
+     * "… édition Hokage": a word <b>follows</b> "édition".
      *
-     * <p>C'est la seule position où un qualifiant inconnu est accepté, et elle
-     * est sûre par construction : personne n'écrit le nom de l'œuvre après le
-     * mot « édition ». L'ambiguïté qui a fait abandonner la première version
-     * était l'autre position — « Death Note edition », où rien ne dit lequel des
-     * deux mots précédents est l'œuvre.
+     * <p>This is the only position where an unknown qualifier is accepted, and it
+     * is safe by construction: nobody writes the name of the work after the
+     * word "édition". The ambiguity that made us drop the first version
+     * was the other position — "Death Note edition", where nothing says which of
+     * the two previous words is the work.
      *
-     * <p>L'accent n'est pas exigé : les vendeurs écrivent « edition Hokage »
-     * aussi souvent que « édition Hokage », et la construction est la même.
+     * <p>The accent is not required: sellers write "edition Hokage"
+     * as often as "édition Hokage", and the construction is the same.
      */
     private static final Pattern EDITION_PUIS_MOT =
             Pattern.compile("\\b[ée]ditions?\\s+([\\p{L}0-9'’-]{2,})\\b", DRAPEAUX);
 
-    /** « … Perfect Edition », « … édition collector » - le qualifiant doit être reconnu. */
+    /** "… Perfect Edition", "… édition collector" - the qualifier must be recognised. */
     private static final Pattern QUALIFIANT_ET_EDITION =
             Pattern.compile("\\b([\\p{L}0-9'’-]{2,})\\s+[ée]ditions?\\b", DRAPEAUX);
 
@@ -118,11 +117,11 @@ public final class EditionMention {
             "\\b(perfect|deluxe|prestige|collector|kanzenban|bunko)\\b", DRAPEAUX);
 
     /**
-     * Ce qu'un titre dit de son édition, et ce qu'il en reste sans elle.
+     * What a title says about its edition, and what is left of it without that.
      *
-     * @param hint  le libellé lu, mis en forme (« Perfect Edition ») — {@code null}
-     *              si le titre n'en nomme aucune de reconnaissable
-     * @param reste le titre privé de cette mention, prêt pour la recherche de série
+     * @param hint  the label read, formatted ("Perfect Edition") — {@code null}
+     *              if the title names no recognisable edition
+     * @param reste the title without this mention, ready for the series search
      */
     public record Lecture(String hint, String reste) {
 
@@ -139,24 +138,24 @@ public final class EditionMention {
     }
 
     /**
-     * @param titre le titre de l'annonce, <b>déjà privé de ses expressions de
-     *              tomes</b> — sans quoi « tomes 1 à 3 edition » pourrait passer
-     *              pour une édition nommée « 3 »
+     * @param titre the title of the listing, <b>already without its volume
+     *              expressions</b> — otherwise "tomes 1 à 3 edition" could pass
+     *              for an edition named "3"
      */
     public static Lecture lire(String titre) {
         if (titre == null || titre.isBlank()) {
             return Lecture.aucune(titre);
         }
 
-        // 1. « édition Hokage » : le seul cas où un mot inconnu est accepté,
-        //    parce que la construction française ne laisse aucun doute sur
-        //    lequel des deux mots qualifie l'autre.
+        // 1. "édition Hokage": the only case where an unknown word is accepted,
+        //    because the French construction leaves no doubt about
+        //    which of the two words qualifies the other.
         Matcher francaise = EDITION_PUIS_MOT.matcher(titre);
         if (francaise.find() && !estCreux(francaise.group(1))) {
             return retenir(titre, francaise, francaise.group(1));
         }
 
-        // 2. Un qualifiant RECONNU, avant ou après le mot « edition ».
+        // 2. A RECOGNISED qualifier, before or after the word "edition".
         for (Pattern motif : List.of(QUALIFIANT_ET_EDITION, EDITION_ET_QUALIFIANT)) {
             Matcher m = motif.matcher(titre);
             while (m.find()) {
@@ -166,7 +165,7 @@ public final class EditionMention {
             }
         }
 
-        // 3. Un rang employé seul : « Naruto Perfect tomes 1 à 3 ».
+        // 3. A rank used alone: "Naruto Perfect tomes 1 à 3".
         Matcher rang = RANG_SEUL.matcher(titre);
         if (rang.find()) {
             return new Lecture(capitaliser(rang.group(1)), retirer(titre, rang.start(), rang.end()));
@@ -184,23 +183,23 @@ public final class EditionMention {
     }
 
     /**
-     * Les mots qui suivent « édition » sans la qualifier.
+     * The words that follow "édition" without qualifying it.
      *
-     * <p>Deux familles, et toutes deux sont nécessaires depuis que l'accent
-     * n'est plus exigé :
+     * <p>Two families, and both are needed since the accent
+     * is no longer required:
      * <ul>
-     *   <li>les <b>mots vides</b> — « édition de collection » proposerait
-     *       sinon une édition « De Edition » ;</li>
-     *   <li>les <b>états et mentions de vente</b> — « Naruto Perfect Edition
-     *       neuf » proposerait une édition « Neuf Edition », alors que « neuf »
-     *       décrit l'exemplaire et que « Perfect » est le vrai qualifiant.</li>
+     *   <li>the <b>stop words</b> — "édition de collection" would otherwise
+     *       propose an edition "De Edition";</li>
+     *   <li>the <b>conditions and sale mentions</b> — "Naruto Perfect Edition
+     *       neuf" would otherwise propose an edition "Neuf Edition", while "neuf"
+     *       describes the copy and "Perfect" is the real qualifier.</li>
      * </ul>
      */
     private static final Set<String> QUALIFIANTS_CREUX = Set.of(
             "belle", "beau", "bel", "cette", "cet", "ce", "une", "un", "la", "le", "les",
             "des", "de", "du", "en", "et", "son", "sa", "leur", "grande", "grand",
             "petite", "petit", "bonne", "bon", "super", "tres", "avec", "sans", "pour",
-            // etats et mentions de vente
+            // conditions and sale mentions
             "neuf", "tbe", "be", "occasion", "complet", "complete", "complets", "completes",
             "lot", "coffret", "tome", "tomes", "volume", "volumes", "manga", "mangas",
             "livre", "livres", "serie", "series", "prix", "port", "envoi", "vends", "vendu");
@@ -213,16 +212,16 @@ public final class EditionMention {
         return mot != null && QUALIFIANTS.contains(sansAccents(mot));
     }
 
-    /** « Intégrale » et « integrale » désignent la même chose ; la liste n'a pas à les porter deux fois. */
+    /** "Intégrale" and "integrale" mean the same thing; the list does not have to carry them twice. */
     private static String sansAccents(String mot) {
         return Normalizer.normalize(mot.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "");
     }
 
     /**
-     * Rendu tel qu'on l'écrirait, pas tel qu'il a été tapé : le libellé finit
-     * dans le lot puis dans l'analyse enregistrée, et « PERFECT edition » y
-     * ferait tache à côté des éditions du catalogue.
+     * Rendered as one would write it, not as it was typed: the label ends up
+     * in the lot and then in the saved analysis, and "PERFECT edition" would
+     * look bad there next to the catalogue editions.
      */
     private static String capitaliser(String mot) {
         String propre = mot.trim();
@@ -232,7 +231,7 @@ public final class EditionMention {
         return Character.toUpperCase(propre.charAt(0)) + propre.substring(1).toLowerCase(Locale.ROOT);
     }
 
-    /** Vrai si ce libellé est un rang employé seul - exposé pour les tests. */
+    /** True if this label is a rank used alone - exposed for the tests. */
     static boolean estUnRangConnu(String mot) {
         return mot != null && RANGS_SEULS.contains(sansAccents(mot));
     }

@@ -19,13 +19,13 @@ public class RelationshipController {
     }
 
     /**
-     * Corrige le TYPE d'une relation existante - la seule correction qui ait un
-     * sens ici. Changer une extrémité ne corrige pas une relation, c'est en
-     * décrire une autre : on supprime alors celle-ci et on en crée une bonne.
+     * Fixes the TYPE of an existing relationship - the only fix that makes
+     * sense here. Changing an end does not fix a relationship, it
+     * describes another one: we then delete this one and create a right one.
      * <p>
-     * Le type est d'autant plus corrigeable qu'il se choisit parmi des
-     * présélections ou en texte libre au moment de la création, sans que la
-     * fiche ne le réaffiche ensuite - une erreur y passait inaperçue.
+     * The type is all the more fixable as it is chosen among
+     * presets or in free text at creation time, without the
+     * detail page showing it again afterwards - a mistake went unnoticed there.
      */
     public record UpdateRelationshipRequest(String relationshipType) {
     }
@@ -38,16 +38,16 @@ public class RelationshipController {
         this.entityRepository = entityRepository;
     }
 
-    @Operation(summary = "Créer une relation typée entre deux Entity (ex: ADAPTED_INTO, PART_OF_SERIES)")
+    @Operation(summary = "Create a typed relationship between two Entities (e.g. ADAPTED_INTO, PART_OF_SERIES)")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Relationship create(@RequestBody CreateRelationshipRequest request) {
         Relationship relationship = new Relationship(
                 UUID.randomUUID(), request.sourceEntityId(), request.targetEntityId(), request.relationshipType());
-        // Les deux extrémités doivent exister : sinon seule la contrainte de clé
-        // étrangère de Postgres protégeait la table, et remontait en 500 avec la
-        // requête SQL et le nom de la contrainte (Lot 28). Même contrôle partout
-        // où un corps de requête désigne une Entity par son identifiant.
+        // Both ends must exist: otherwise only the foreign key constraint
+        // of Postgres protected the table, and came up as a 500 with the
+        // SQL query and the name of the constraint (Batch 28). Same check everywhere
+        // a request body designates an Entity by its id.
         requireEntity(relationship.sourceEntityId());
         requireEntity(relationship.targetEntityId());
         return relationshipRepository.save(relationship);
@@ -59,16 +59,16 @@ public class RelationshipController {
         }
     }
 
-    @Operation(summary = "Corriger le type d'une relation existante (ex: ADAPTED_INTO saisi à la place de SPIN_OFF)")
+    @Operation(summary = "Fix the type of an existing relationship (e.g. ADAPTED_INTO typed instead of SPIN_OFF)")
     @PatchMapping("/{id}")
     public Relationship update(@PathVariable UUID id, @RequestBody UpdateRelationshipRequest request) {
         Relationship existing = relationshipRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Relation introuvable : " + id));
         try {
-            // Les extrémités sont reprises telles quelles : seul le type change.
-            // La validation (type non vide) vit dans le constructeur compact de
-            // Relationship - on traduit juste son refus en 400.
+            // The ends are taken as they are: only the type changes.
+            // The validation (non-empty type) lives in the compact constructor of
+            // Relationship - we only translate its refusal into a 400.
             return relationshipRepository.save(new Relationship(
                     existing.id(), existing.sourceEntityId(), existing.targetEntityId(), request.relationshipType()));
         } catch (IllegalArgumentException e) {
@@ -76,20 +76,20 @@ public class RelationshipController {
         }
     }
 
-    @Operation(summary = "Supprimer une relation créée par erreur - idempotent, ne touche à aucune des deux œuvres")
+    @Operation(summary = "Delete a relationship created by mistake - idempotent, touches neither of the two works")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
         relationshipRepository.deleteById(id);
     }
 
-    @Operation(summary = "Lister les relations où l'Entity est source")
+    @Operation(summary = "List the relationships where the Entity is the source")
     @GetMapping("/from/{entityId}")
     public List<Relationship> fromEntity(@PathVariable UUID entityId) {
         return relationshipRepository.findBySourceEntityId(entityId);
     }
 
-    @Operation(summary = "Lister les relations où l'Entity est cible")
+    @Operation(summary = "List the relationships where the Entity is the target")
     @GetMapping("/to/{entityId}")
     public List<Relationship> toEntity(@PathVariable UUID entityId) {
         return relationshipRepository.findByTargetEntityId(entityId);

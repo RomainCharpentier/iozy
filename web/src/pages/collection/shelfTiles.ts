@@ -26,24 +26,24 @@ function formatTomeCount(count: number): string {
 }
 
 /**
- * La progression calculée PAR LE SERVEUR, indexée par œuvre.
+ * The progress computed BY THE SERVER, indexed by work.
  *
- * <h2>Lire, plutôt que recalculer</h2>
- * Cet écran dérivait sa propre progression d'un référentiel d'éditions et d'un
- * `singleNamedEdition` maison. Le serveur expose exactement la même chose
- * (`GET /insights/progress`), avec une règle de plus : un tome catalogué SANS
- * édition précisée rejoint l'unique édition nommée de la série. Recalculer de
- * son côté a déjà produit deux divergences documentées - une série annoncée
- * 2/72 ici et 3/72 là (lot 31), puis une analyse d'achat conseillant de
- * racheter un tome déjà possédé (lot 49). La règle vit désormais à un seul
- * endroit, et cet écran la consomme.
+ * <h2>Read, rather than recompute</h2>
+ * This screen used to derive its own progress from an editions reference and a
+ * home-made `singleNamedEdition`. The server exposes exactly the same thing
+ * (`GET /insights/progress`), with one more rule: a cataloged volume WITHOUT a
+ * specified edition joins the single named edition of the series. Recomputing on
+ * its own side has already produced two documented divergences - a series announced
+ * 2/72 here and 3/72 there (batch 31), then a purchase analysis advising to
+ * buy again a volume already owned (batch 49). The rule now lives in a single
+ * place, and this screen consumes it.
  */
 export function indexerProgression(progressions: CollectionProgressDto[]): Map<string, CollectionProgressDto> {
   return new Map(progressions.map((progression) => [progression.entityId, progression]))
 }
 
-/** L'édition qui représente une œuvre dans une liste - celle que le serveur a
- *  retenue. `null` pour une œuvre sans tome (jeu vidéo, jeu de société). */
+/** The edition that represents a work in a list - the one the server
+ *  kept. `null` for a work without volumes (video game, board game). */
 function editionRepresentative(
   entity: EntityResponse,
   progression: Map<string, CollectionProgressDto>,
@@ -51,26 +51,26 @@ function editionRepresentative(
   return progression.get(entity.id)?.dominantEdition ?? null
 }
 
-/** "Plus que 2 tomes" - seul signal implémenté pour l'instant (voir "un seul
- * signal par carte" + la maquette, qui cite cet exemple mot pour mot).
- * Réutilise exactement le même calcul que Suggestions d'achats (séries
- * presque complètes) plutôt qu'une nouvelle règle inventée ici. D'autres
- * signaux potentiels (envie/tier/sortie) restent BLOCKED_BY_DATA - voir
- * docs/DESIGN_MIGRATION_V1.2.md - ajoutés plus tard avec un vrai ordre de
- * priorité entre eux, jamais empilés. */
+/** "Plus que 2 tomes" - the only signal implemented for now (see "one single
+ * signal per card" + the mockup, which quotes this example word for word).
+ * Reuses exactly the same computation as Purchase suggestions (almost
+ * complete series) rather than a new rule invented here. Other potential
+ * signals (wish/tier/release) stay BLOCKED_BY_DATA - see
+ * docs/DESIGN_MIGRATION_V1.2.md - added later with a real order of
+ * priority between them, never stacked. */
 function nearCompletionSignal(missing: number): string | undefined {
   return missing > 0 && missing <= 3 ? `Plus que ${formatTomeCount(missing)}` : undefined
 }
 
 /**
- * La carte d'une SÉRIE en vue groupée.
+ * The card of a SERIES in the grouped view.
  *
- * `envie` décrit ce que le groupe contient de voulu. Sans elle, une série
- * qu'on veut sans en posséder un seul tome s'annonçait « 0 tome » : un
- * décompte de possession posé sur une carte qui n'est là que parce qu'on la
- * veut. Et sous le filtre « Envies », c'est le nombre de tomes voulus qui est
- * LE signal pertinent - il prend alors le pas sur « Plus que 2 tomes », pour
- * respecter la règle d'un seul signal par carte, jamais empilé.
+ * `envie` describes what the group contains that is wished. Without it, a series
+ * that is wanted without owning a single volume of it announced "0 tome": an
+ * ownership count placed on a card that is only there because it is
+ * wanted. And under the "Envies" filter, the number of wished volumes is
+ * THE relevant signal - it then takes priority over "Plus que 2 tomes", to
+ * respect the rule of one single signal per card, never stacked.
  */
 export function buildShelfTile(
   entity: EntityResponse,
@@ -85,8 +85,8 @@ export function buildShelfTile(
     envie.tomesVoulus > 0 ? `${envie.tomesVoulus} tome${envie.tomesVoulus > 1 ? 's' : ''} voulu${envie.tomesVoulus > 1 ? 's' : ''}` : undefined
 
   if (entity.variants.length === 0) {
-    // Un type sans tome : l'œuvre EST l'objet, elle est donc possédée ou
-    // voulue - le décompte de tomes ne veut rien dire ici.
+    // A type without volumes: the work IS the object, it is therefore owned or
+    // wished - the volume count means nothing here.
     return {
       key: entity.id,
       title: entity.title,
@@ -95,8 +95,8 @@ export function buildShelfTile(
       entityId: entity.id,
     }
   }
-  // Le décompte vient du serveur : il inclut les tomes sans édition précisée
-  // rattachés à cette édition, que le calcul local d'ici oubliait.
+  // The count comes from the server: it includes the volumes without a specified edition
+  // attached to this edition, which the local computation here forgot.
   const editionAffichee = editionRepresentative(entity, progression)
   const ownedCount = editionAffichee ? editionAffichee.ownedVolumeNumbers.length : 0
   const total = editionAffichee?.totalVolumes ?? null
@@ -106,8 +106,8 @@ export function buildShelfTile(
   return {
     key: entity.id,
     title: entity.title,
-    // Le décompte d'abord : sur un rayon à trois colonnes, le sous-titre est
-    // coupé, et c'est « 4/43 tomes » qu'il faut lire, pas le nom de l'éditeur.
+    // The count first: on a shelf with three columns, the subtitle is
+    // cut, and it is "4/43 tomes" that must be read, not the publisher name.
     subtitle: edition ? `${countPart} · ${edition}` : countPart,
     imageUrl: coverImageUrlFrom(entity.attributes),
     entityId: entity.id,
@@ -120,10 +120,10 @@ export function buildShelfTile(
   }
 }
 
-/** null = complétude inconnue (pas de tome, éditions mélangées, ou édition
- * sans fiche de référence renseignée) - jamais devinée, voir isSeriesOngoing
- * pour le même principe. Interne : seul `matchesCompletionFilter` ci-dessous
- * s'en sert. */
+/** null = unknown completeness (no volume, mixed editions, or edition
+ * without a filled reference sheet) - never guessed, see isSeriesOngoing
+ * for the same principle. Internal: only `matchesCompletionFilter` below
+ * uses it. */
 function isComplete(entity: EntityResponse, progression: Map<string, CollectionProgressDto>): boolean | null {
   const editionAffichee = editionRepresentative(entity, progression)
   if (!editionAffichee || editionAffichee.totalVolumes === null) return null
@@ -132,9 +132,9 @@ function isComplete(entity: EntityResponse, progression: Map<string, CollectionP
 
 export type CompletionFilter = 'ALL' | 'INCOMPLETE' | 'COMPLETE'
 
-/** Une entité sans complétude connue (isComplete === null) ne correspond à
- * AUCUN filtre d'état sauf "Toutes" - jamais classée par défaut d'un côté
- * ou de l'autre faute de donnée réelle. */
+/** An entity without known completeness (isComplete === null) matches
+ * NO state filter except "Toutes" - never classified by default on one side
+ * or the other for lack of real data. */
 export function matchesCompletionFilter(
   entity: EntityResponse,
   filter: CompletionFilter,
@@ -146,7 +146,7 @@ export function matchesCompletionFilter(
   return filter === 'COMPLETE' ? complete : !complete
 }
 
-/** Combien de TITRES chaque type compte dans cette collection - ce qui décide de l'ordre des rails. */
+/** How many TITLES each type counts in this collection - what decides the order of the rails. */
 export function compterLesTitresParType(entities: EntityResponse[]): Map<string, number> {
   const titres = new Map<string, number>()
   for (const entity of entities) {
@@ -156,20 +156,20 @@ export function compterLesTitresParType(entities: EntityResponse[]): Map<string,
 }
 
 /**
- * L'ordre des rails : le type le plus fourni d'abord, puis par libellé.
+ * The order of the rails: the type with the most titles first, then by label.
  *
- * <h2>Pourquoi les données, et pas une liste de codes</h2>
- * L'ordre était écrit dans le code - manga, jeu vidéo, jeu de société, puis
- * le reste - c'est-à-dire l'univers de départ en premier, quoi qu'on
- * collectionne. Ma collection appartient au cœur (lot 136) : ce qu'on
- * collectionne le plus passe en premier, et une catégorie créée demain se
- * range comme les autres. À égalité, le libellé - un ordre qu'on peut
- * prévoir, jamais celui d'arrivée du serveur.
+ * <h2>Why the data, and not a list of codes</h2>
+ * The order was written in the code - manga, video game, board game, then
+ * the rest - that is the starting universe first, whatever one
+ * collects. My collection belongs to the core (batch 136): what one
+ * collects the most comes first, and a category created tomorrow is
+ * placed like the others. On a tie, the label - an order that can be
+ * predicted, never the order in which the server returns them.
  *
- * <p>Compté en TITRES, et partagé par les DEUX vues : grouper puis dégrouper
- * ne doit pas changer l'ordre dans lequel les univers défilent, alors que
- * trois séries de vingt tomes pèsent plus lourd que dix jeux une fois
- * dégroupées.
+ * <p>Counted in TITLES, and shared by BOTH views: grouping then ungrouping
+ * must not change the order in which the universes scroll, while
+ * three series of twenty volumes weigh more than ten games once
+ * ungrouped.
  */
 export function ordonnerLesTypes(entityTypes: EntityTypeDto[], titresParType: Map<string, number>): EntityTypeDto[] {
   return [...entityTypes].sort(
@@ -178,10 +178,10 @@ export function ordonnerLesTypes(entityTypes: EntityTypeDto[], titresParType: Ma
   )
 }
 
-/** Regroupe les œuvres retenues par type, SANS les types à 0 titre (jamais un
- *  rail vide qui n'aurait rien à faire défiler), dans l'ordre de
- *  `ordonnerLesTypes` - compté sur `titresParType` quand l'appelant le donne
- *  (toute la collection, avant filtre), sur les œuvres reçues sinon. */
+/** Groups the kept works by type, WITHOUT the types with 0 titles (never an
+ *  empty rail that would have nothing to scroll), in the order of
+ *  `ordonnerLesTypes` - counted on `titresParType` when the caller gives it
+ *  (the whole collection, before the filter), on the received works otherwise. */
 export function groupByEntityType(
   entities: EntityResponse[],
   entityTypes: EntityTypeDto[],
@@ -204,25 +204,25 @@ export function groupByEntityType(
 }
 
 // ---------------------------------------------------------------------------
-// Trois filtres, deux vues (étude produit du 2026-08-27, §5 et §6)
+// Three filters, two views (product study of 2026-08-27, sections 5 and 6)
 // ---------------------------------------------------------------------------
 
 /**
- * L'état personnel d'une œuvre, résumé pour le filtrage.
+ * The personal state of a work, summarized for filtering.
  *
- * Une œuvre n'est ici qu'un GROUPE : ce sont les éléments qu'elle contient qui
- * portent l'état. « Possédée » veut dire « au moins un élément possédé », et
- * « voulue » « au moins un élément dans les envies » - jamais un état propre à
- * l'œuvre, qui n'en a pas.
+ * A work is here only a GROUP: it is the items it contains that
+ * carry the state. "Possédée" means "at least one owned item", and
+ * "voulue" "at least one item in the wishes" - never a state of its own to
+ * the work, which has none.
  *
- * <p>Pour un type sans variante (jeu vidéo, jeu de société), l'œuvre EST
- * l'élément collectionnable : la possession est rattachée à l'Entity, et
- * l'envie aussi (voir lib/typeDeCollection).
+ * <p>For a type without variants (video game, board game), the work IS
+ * the collectible item: ownership is attached to the Entity, and
+ * the wish too (see lib/typeDeCollection).
  */
 interface EtatOeuvre {
   possede: boolean
   voulu: boolean
-  /** Suivie : le troisième état, celui qui met l'œuvre au calendrier des sorties. */
+  /** Followed: the third state, the one that puts the work on the release calendar. */
   suivi: boolean
 }
 
@@ -252,20 +252,20 @@ export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection): 
 }
 
 /**
- * Un ÉLÉMENT, tel que la vue DÉGROUPÉE l'affiche : l'objet individuel, sorti
- * du groupe qui ne servait qu'à le ranger. Un tome pour un manga, l'œuvre
- * elle-même pour un type qui se possède d'une seule pièce.
+ * An ITEM, as the UNGROUPED view shows it: the individual object, taken out
+ * of the group that only served to store it. A volume for a manga, the work
+ * itself for a type that is owned as a single piece.
  *
- * `etat` est ce qui distingue deux tuiles d'un même groupe sous le filtre
- * « Tout » - sans lui, un élément voulu et un élément possédé se
- * ressembleraient trait pour trait.
+ * `etat` is what tells apart two tiles of the same group under the
+ * "Tout" filter - without it, a wished item and an owned item would
+ * look exactly alike.
  */
 export interface TuileElement extends ShelfTile {
   etat: 'possede' | 'voulu' | 'suivi'
-  /** Le type porte le format de jaquette (2/3 pour un manga, carré pour un
-   *  jeu de société) : sans lui, la grille plate mélangerait les cadres. */
+  /** The type carries the cover format (2/3 for a manga, square for a
+   *  board game): without it, the flat grid would mix the frames. */
   entityTypeId: string
-  /** Date de l'acquisition ou de l'envie - ce sur quoi porte le tri « récent ». */
+  /** Date of the acquisition or of the wish - what the "recent" sort is based on. */
   depuis: string
 }
 
@@ -277,16 +277,16 @@ function libelleDeLElement(variant: VariantDto): string {
 }
 
 /**
- * Aplatit les œuvres retenues en tuiles d'ÉLÉMENTS.
+ * Flattens the kept works into ITEM tiles.
  *
- * Une œuvre sans variante (jeu vidéo, jeu de société) donne une seule tuile,
- * elle-même : c'est déjà l'objet individuel de son type, il n'y a rien à
- * aplatir. Une œuvre à variantes en donne une par variante retenue - des
- * tomes pour un manga, et le libellé de la variante pour tout autre type.
+ * A work without variants (video game, board game) gives a single tile,
+ * itself: it is already the individual object of its type, there is nothing to
+ * flatten. A work with variants gives one per kept variant - volumes
+ * for a manga, and the variant label for any other type.
  *
- * <p>Les tuiles ne portent PAS leur type : c'est la section qui l'annonce
- * (voir GrilleElements), et le répéter sur chacune des soixante-douze tuiles
- * d'une même section n'apprendrait rien.
+ * <p>Tiles do NOT carry their type: the section announces it
+ * (see GrilleElements), and repeating it on each of the seventy-two tiles
+ * of the same section would teach nothing.
  */
 export function aplatirEnElements(
   entities: EntityResponse[],
@@ -296,9 +296,9 @@ export function aplatirEnElements(
     owned: Set<string>
     tomesVoulus: Set<string>
     oeuvresVoulues: Set<string>
-    /** Les œuvres suivies : une œuvre d'une pièce suivie sans être possédée est une tuile « Suivie ». */
+    /** The followed works: a one-piece work that is followed without being owned is a "Suivie" tile. */
     oeuvresSuivies?: Set<string>
-    /** Depuis quand cet élément est possédé, ou voulu - selon ce qu'il est. */
+    /** Since when this item is owned, or wished - depending on what it is. */
     depuisTome: (variantId: string) => string
     depuisOeuvre: (entityId: string) => string
   },
@@ -338,8 +338,8 @@ export function aplatirEnElements(
         title: entity.title,
         subtitle: sousTitre,
         imageUrl: coverImageUrlFrom(variant.attributes) ?? coverImageUrlFrom(entity.attributes),
-        // Sans jaquette propre au tome, le dégradé de repli serait le même
-        // pour toute la série : le sous-titre le fait varier tome par tome.
+        // Without a cover of its own for the volume, the fallback gradient would be the same
+        // for the whole series: the subtitle makes it vary volume by volume.
         gradientKey: `${entity.title} ${sousTitre}`,
         entityId: entity.id,
         entityTypeId: entity.entityTypeId,
@@ -359,8 +359,8 @@ function retenu(etat: 'possede' | 'voulu' | 'suivi', filtre: FiltreCollection): 
   return true
 }
 
-/** Les possessions de CETTE œuvre - `isOwned` sans tome parcourt la liste
- *  entière, autant ne lui donner que ce qui la concerne. */
+/** The ownerships of THIS work - `isOwned` without a volume goes through the whole list,
+ *  so give it only what concerns it. */
 function ownershipsDe(entity: EntityResponse, ownerships: OwnershipResponse[]): OwnershipResponse[] {
   return ownerships.filter((o) => o.entityId === entity.id)
 }

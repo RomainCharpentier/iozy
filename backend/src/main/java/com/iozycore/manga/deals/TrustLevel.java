@@ -1,25 +1,25 @@
 package com.iozycore.manga.deals;
 
 /**
- * Ce qu'on peut honnêtement dire de la vigilance à avoir sur une annonce.
+ * What we can honestly say about the vigilance needed on a listing.
  * <p>
- * Quatre paliers nommés, et surtout <b>pas de note sur 100</b>. Un
- * « confiance : 94/100 » suggérerait une probabilité mesurée ; or IozyCore ne
- * dispose ni de l'historique du vendeur, ni des transactions, ni d'aucune base
- * de signalements. Ce qu'il voit, c'est un texte, un prix et des photos. Mettre
- * un chiffre là-dessus habillerait une intuition en mesure.
+ * Four named levels, and above all <b>no score out of 100</b>. A
+ * "trust: 94/100" would suggest a measured probability; but IozyCore has
+ * neither the seller's history, nor the transactions, nor any database
+ * of reports. What it sees is a text, a price and photos. Putting
+ * a number on that would dress an intuition up as a measurement.
  */
 public enum TrustLevel {
 
-    /** Rien d'inhabituel dans ce que l'annonce montre. */
+    /** Nothing unusual in what the listing shows. */
     NO_OBVIOUS_SIGNAL,
 
-    /** Quelques détails à regarder, sans gravité particulière. */
+    /** A few details to look at, nothing particularly serious. */
     A_FEW_THINGS_TO_CHECK,
 
-    /** Assez d'éléments pour prendre le temps de vérifier avant d'acheter. */
+    /** Enough elements to take the time to check before buying. */
     EXAMINE_CAREFULLY,
 
-    /** Un signal fort au moins : à ne pas traiter à la légère. */
+    /** At least one strong signal: not to be taken lightly. */
     CONCERNING
 }

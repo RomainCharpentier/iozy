@@ -10,11 +10,11 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Orchestre l'éditeur de types dynamique : création (code unique),
- * modification (label/schema, jamais le code - même invariant que
- * {@code Entity.entityTypeId()}, voir Entity.java), suppression bloquée
- * tant que des Entity utilisent encore le type (même esprit que
- * {@link EntityDeletionService} pour les Entity elles-mêmes).
+ * Orchestrates the dynamic type editor: creation (unique code),
+ * update (label/schema, never the code - same invariant as
+ * {@code Entity.entityTypeId()}, see Entity.java), deletion blocked
+ * while Entity objects still use the type (same spirit as
+ * {@link EntityDeletionService} for the Entity objects themselves).
  */
 @Service
 public class EntityTypeService {
@@ -27,7 +27,7 @@ public class EntityTypeService {
         this.entityRepository = entityRepository;
     }
 
-    /** Variante avec identité visuelle - voir EntityType.colorKey/iconKey. */
+    /** Variant with visual identity - see EntityType.colorKey/iconKey. */
     public EntityType create(String code, String label, Set<String> allowedExperienceTypes,
                               Set<String> customFieldKeys, String colorKey, String iconKey, String aspectKey) {
         EntityType candidate = EntityType.create(code, label, allowedExperienceTypes, customFieldKeys, colorKey,
@@ -55,9 +55,9 @@ public class EntityTypeService {
                               Set<String> customFieldKeys) {
         EntityType existing = entityTypeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("EntityType introuvable : " + id));
-        // Sans clés visuelles fournies, celles déjà enregistrées survivent (voir
-        // EntityType.withUpdatedFields à 3 arguments) - un appelant qui ignore
-        // cette notion ne doit pas l'effacer par omission.
+        // Without visual keys provided, the ones already saved are kept (see
+        // EntityType.withUpdatedFields with 3 arguments) - a caller that ignores
+        // this notion must not erase it by omission.
         return entityTypeRepository.save(existing.withUpdatedFields(label, allowedExperienceTypes, customFieldKeys));
     }
 

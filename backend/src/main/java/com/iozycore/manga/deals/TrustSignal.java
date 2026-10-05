@@ -1,41 +1,41 @@
 package com.iozycore.manga.deals;
 
 /**
- * Un point à vérifier avant d'acheter — <b>jamais un verdict de fraude</b>.
+ * A point to check before buying — <b>never a fraud verdict</b>.
  * <p>
- * La distinction n'est pas cosmétique. IozyCore ne voit d'une annonce que son
- * texte, son prix et ses photos : rien là-dedans ne permet d'établir une
- * intention. Un prix très bas peut être une vraie occasion, une description
- * courte peut venir d'un vendeur pressé. Ces signaux servent donc à diriger le
- * regard, pas à conclure - et surtout, ils n'entrent pas dans l'évaluation du
- * prix, qui reste une question séparée.
+ * The distinction is not cosmetic. IozyCore only sees the text, the price and
+ * the photos of a listing: nothing in there allows us to establish an
+ * intention. A very low price can be a real bargain, a short description
+ * can come from a seller in a hurry. These signals therefore serve to direct
+ * the eye, not to conclude - and above all, they do not enter the assessment of the
+ * price, which stays a separate question.
  * <p>
- * Codes structurés plutôt que phrases : le français vit côté présentation, ce
- * qui permet de tester les règles sans dépendre d'un libellé.
+ * Structured codes rather than sentences: French lives on the presentation side, which
+ * allows the rules to be tested without depending on a label.
  */
 public enum TrustSignal {
 
-    /** Aucune photo : impossible de juger l'état réel de ce qui est vendu. */
+    /** No photo: impossible to judge the real condition of what is sold. */
     NO_PHOTO(TrustSignalSeverity.HIGH),
 
-    /** Une ou deux photos seulement pour un lot : on ne voit pas tout ce qu'on achète. */
+    /** One or two photos only for a lot: we do not see everything we buy. */
     VERY_FEW_PHOTOS(TrustSignalSeverity.MEDIUM),
 
-    /** Description absente ou réduite à quelques mots. */
+    /** Description missing or reduced to a few words. */
     SHORT_DESCRIPTION(TrustSignalSeverity.LOW),
 
     /**
-     * Le texte propose de payer ou de discuter hors de la plateforme. C'est le
-     * seul signal réellement fort ici : sortir de la plateforme, c'est perdre
-     * la protection acheteur, et c'est le mode opératoire classique de l'arnaque.
+     * The text offers to pay or talk outside the platform. This is the
+     * only really strong signal here: leaving the platform means losing
+     * buyer protection, and it is the classic way scams work.
      */
     OFF_PLATFORM_PAYMENT_MENTION(TrustSignalSeverity.HIGH),
 
     /**
-     * Prix très inférieur à la référence. <b>Signal de vigilance, pas preuve de
-     * fraude</b> : une excellente affaire existe réellement. Il figure ici pour
-     * appeler la prudence, et ne dégrade jamais l'évaluation du prix - qui, elle,
-     * en fait au contraire un bon point.
+     * Price far below the reference. <b>A vigilance signal, not a proof of
+     * fraud</b>: an excellent deal really exists. It is here to
+     * call for caution, and never lowers the price assessment - which, on the contrary,
+     * counts it as a good point.
      */
     PRICE_FAR_BELOW_REFERENCE(TrustSignalSeverity.MEDIUM);
 

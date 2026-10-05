@@ -1,20 +1,20 @@
 /**
- * <b>Le seul endroit de l'app qui peut ÉCRASER des données de l'utilisateur.</b>
+ * <b>The only place in the app that can OVERWRITE user data.</b>
  *
- * « Recharger depuis la source » redemande à un fournisseur ce qu'il sait
- * d'une œuvre déjà en collection, puis réécrit ses attributs. Deux erreurs y
- * seraient invisibles et irrattrapables :
+ * "Recharger depuis la source" asks a provider again what it knows
+ * about a work already in the collection, then rewrites its attributes. Two mistakes there
+ * would be invisible and unrecoverable:
  * <ul>
- *   <li><b>se tromper d'œuvre</b> : un « à peu près » sur le titre recopierait
- *       tranquillement les informations d'un spin-off sur la série mère ;</li>
- *   <li><b>écraser ce que l'utilisateur a choisi</b> : sa remarque, et surtout
- *       la jaquette qu'il a posée à la main - la seule donnée d'origine externe
- *       qu'il édite couramment.</li>
+ *   <li><b>picking the wrong work</b>: an "approximately" match on the title would quietly copy
+ *       the information of a spin-off onto the parent series;</li>
+ *   <li><b>overwriting what the user chose</b>: their remark, and above all
+ *       the cover they set by hand - the only piece of external-origin data
+ *       they commonly edit.</li>
  * </ul>
  *
- * <p>Et une troisième, plus discrète : réécrire une valeur identique. Le
- * décompte rendu à l'écran doit pouvoir dire « tout est déjà à jour » sans
- * mentir.
+ * <p>And a third, more discreet one: rewriting an identical value. The
+ * count shown on screen must be able to say "everything is already up to date" without
+ * lying.
  */
 import { describe, expect, it } from 'vitest'
 import { attributsARecharger, candidatCorrespondant } from './rechargerSource'
@@ -24,8 +24,8 @@ function candidat(title: string, attributes: Record<string, unknown> = {}, image
   return { source: 'JIKAN', externalId: String(attributes.malId ?? title), title, imageUrl, attributes }
 }
 
-describe('reconnaître l’œuvre parmi les candidats', () => {
-  it('se fie d’abord à l’identifiant du fournisseur', () => {
+describe('recognize the work among the candidates', () => {
+  it('trusts the provider id first', () => {
     const candidats = [candidat('Naruto Gaiden', { malId: '99' }), candidat('Naruto', { malId: '11' })]
 
     const trouve = candidatCorrespondant(candidats, { title: 'Un titre saisi à la main', attributes: { malId: '11' } })
@@ -33,14 +33,14 @@ describe('reconnaître l’œuvre parmi les candidats', () => {
     expect(trouve?.title).toBe('Naruto')
   })
 
-  it('reconnaît l’identifiant porté par l’externalId du candidat', () => {
+  it('recognizes the id carried by the externalId of the candidate', () => {
     const candidats = [candidat('Naruto', {}, null)]
 
     expect(candidatCorrespondant(candidats, { title: 'Autre chose', attributes: { malId: 'Naruto' } })?.title)
       .toBe('Naruto')
   })
 
-  it('à défaut d’identifiant, accepte le titre exact aux accents et à la casse près', () => {
+  it('without an id, accepts the exact title ignoring accents and case', () => {
     const candidats = [candidat('Bleach'), candidat("L'Attaque des Titans"), candidat('Ōoku')]
 
     expect(candidatCorrespondant(candidats, { title: "l'attaque des titans", attributes: {} })?.title)
@@ -48,82 +48,82 @@ describe('reconnaître l’œuvre parmi les candidats', () => {
     expect(candidatCorrespondant(candidats, { title: 'Ooku', attributes: {} })?.title).toBe('Ōoku')
   })
 
-  it('ne va pas jusqu’à ignorer la ponctuation', () => {
-    // La tolérance s'arrête aux accents, à la casse et aux espaces : plus
-    // large, elle finirait par rapprocher deux titres réellement différents.
+  it('does not go as far as ignoring punctuation', () => {
+    // The tolerance stops at accents, case and spaces: any
+    // wider, it would end up matching two really different titles.
     const candidats = [candidat("L'Attaque des Titans")]
 
     expect(candidatCorrespondant(candidats, { title: 'l attaque des titans', attributes: {} })).toBeNull()
   })
 
-  it('refuse un « à peu près » plutôt que de recopier un dérivé', () => {
-    // « Naruto Shippuden » n'est pas « Naruto » : mieux vaut ne rien recharger
-    // que de remplir une fiche avec les informations d'une autre série.
+  it('refuses an "approximately" match rather than copying a derivative', () => {
+    // "Naruto Shippuden" is not "Naruto": better to reload nothing
+    // than to fill a detail page with the information of another series.
     const candidats = [candidat('Naruto Shippuden'), candidat('Naruto Gaiden')]
 
     expect(candidatCorrespondant(candidats, { title: 'Naruto', attributes: {} })).toBeNull()
   })
 
-  it('ne trouve rien dans une liste vide, sans lever', () => {
+  it('finds nothing in an empty list, without throwing', () => {
     expect(candidatCorrespondant([], { title: 'Naruto', attributes: { malId: '11' } })).toBeNull()
   })
 })
 
-describe('décider ce qu’il faut écrire', () => {
+describe('decide what must be written', () => {
   const oeuvre = {
     title: 'Naruto',
     attributes: { mangaka: 'Masashi Kishimoto', totalVolumes: 70, note: 'offert par Paul' },
   }
 
-  it('n’écrit que ce qui change vraiment', () => {
+  it('only writes what really changes', () => {
     const source = candidat('Naruto', { mangaka: 'Masashi Kishimoto', totalVolumes: 72, seriesStatus: 'Finished' })
 
     expect(attributsARecharger(source, oeuvre)).toEqual({ totalVolumes: 72, seriesStatus: 'Finished' })
   })
 
-  it('n’écrit rien du tout quand la source ne sait rien de neuf', () => {
+  it('writes nothing at all when the source knows nothing new', () => {
     const source = candidat('Naruto', { mangaka: 'Masashi Kishimoto', totalVolumes: 70 })
 
     expect(attributsARecharger(source, oeuvre)).toEqual({})
   })
 
-  it('ne touche jamais à un champ saisi à la main - même si la source le contredit', () => {
+  it('never touches a field entered by hand - even if the source contradicts it', () => {
     const source = candidat('Naruto', { mangaka: 'Kishimoto', totalVolumes: 72 })
     const saisie = { ...oeuvre, champsSaisis: ['mangaka'] }
 
     expect(attributsARecharger(source, saisie)).toEqual({ totalVolumes: 72 })
   })
 
-  it('ne touche jamais à la remarque de l’utilisateur', () => {
-    // Elle ne vient d'aucune source ; le sac d'attributs mélange les deux.
+  it('never touches the remark of the user', () => {
+    // It comes from no source; the attribute bag mixes both.
     const source = candidat('Naruto', { note: 'Manga shonen des années 2000' })
 
     expect(attributsARecharger(source, oeuvre)).not.toHaveProperty('note')
   })
 
-  it('ignore une valeur vide de la source plutôt que d’effacer la nôtre', () => {
+  it('ignores an empty value of the source rather than erasing ours', () => {
     const source = candidat('Naruto', { mangaka: '', totalVolumes: null, seriesStatus: undefined })
 
     expect(attributsARecharger(source, oeuvre)).toEqual({})
   })
 })
 
-describe('la jaquette, cas à part', () => {
-  it('ne défait pas une jaquette choisie à la main', () => {
+describe('the cover, a special case', () => {
+  it('does not undo a cover chosen by hand', () => {
     const source = candidat('Naruto', {}, 'https://source/naruto.jpg')
     const avecJaquette = { title: 'Naruto', attributes: { coverImageUrl: 'https://choisie/par/moi.jpg' } }
 
     expect(attributsARecharger(source, avecJaquette)).toEqual({})
   })
 
-  it('la pose quand elle manque - c’est tout l’intérêt du bouton', () => {
+  it('sets it when it is missing - this is the whole point of the button', () => {
     const source = candidat('Naruto', {}, 'https://source/naruto.jpg')
 
     expect(attributsARecharger(source, { title: 'Naruto', attributes: {} }))
       .toEqual({ coverImageUrl: 'https://source/naruto.jpg' })
   })
 
-  it('ignore la jaquette portée par les attributs de la source, jamais recopiée telle quelle', () => {
+  it('ignores the cover carried by the attributes of the source, never copied as is', () => {
     const source = candidat('Naruto', { coverImageUrl: 'https://source/attribut.jpg' }, null)
 
     expect(attributsARecharger(source, { title: 'Naruto', attributes: {} })).toEqual({})

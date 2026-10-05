@@ -7,16 +7,16 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/** Le calendrier des sorties tel que le client le lit (lot 146). */
+/** The release calendar as the client reads it (batch 146). */
 public final class ReleaseCalendarDtos {
 
     private ReleaseCalendarDtos() {
     }
 
     /**
-     * @param from    premier jour de la période demandée
-     * @param to      dernier jour, inclus
-     * @param entries les sorties, dans l'ordre du calendrier - vide n'est pas une panne, c'est un mois calme
+     * @param from    first day of the requested period
+     * @param to      last day, included
+     * @param entries the releases, in calendar order - empty is not a failure, it is a quiet month
      */
     public record ReleaseCalendarResponse(LocalDate from, LocalDate to, List<ReleaseEntryResponse> entries) {
         public static ReleaseCalendarResponse from(ReleaseCalendar calendar) {
@@ -26,11 +26,11 @@ public final class ReleaseCalendarDtos {
     }
 
     /**
-     * @param date      « 2026-10-14 » au jour près, « 2026-10 » au mois près - jamais une année seule
-     * @param precision DAY ou MONTH, ce que la source sait réellement
-     * @param label     ce qui sort au sein de l'œuvre (« Tome 42 · Kana »), vide quand c'est l'œuvre elle-même
-     * @param relation  OWNED, MISSING ou WANTED - ce que cette sortie représente pour la collection
-     * @param source    d'où vient la date : GOOGLE_BOOKS, IGDB, ou MANUAL pour une date saisie sur la fiche
+     * @param date      "2026-10-14" to the day, "2026-10" to the month - never a year alone
+     * @param precision DAY or MONTH, what the source really knows
+     * @param label     what comes out within the work ("Tome 42 · Kana"), empty when it is the work itself
+     * @param relation  OWNED, MISSING or WANTED - what this release means for the collection
+     * @param source    where the date comes from: GOOGLE_BOOKS, IGDB, or MANUAL for a date typed on the detail page
      */
     public record ReleaseEntryResponse(String date, String precision, UUID entityId, String entityTitle,
                                         UUID entityTypeId, String label, Integer volumeNumber, String editionName,

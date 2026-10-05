@@ -7,15 +7,15 @@ function photo(nom: string, octets: number): File {
 
 const LIMITE = 3 * 1024 * 1024
 
-describe('ce qui part à la lecture', () => {
-  it('laisse passer tout ce qui tient dans les bornes, sans un mot', () => {
+describe('what goes out to the reading', () => {
+  it('lets through everything that fits in the limits, without a word', () => {
     const selection = retenirLesPhotos([photo('a.jpg', 1000), photo('b.jpg', LIMITE)])
 
     expect(selection.retenues.map((f) => f.name)).toEqual(['a.jpg', 'b.jpg'])
     expect(selection.message).toBeNull()
   })
 
-  it('écarte les photos trop lourdes et le dit, au singulier comme au pluriel', () => {
+  it('discards the photos that are too heavy and says so, in the singular and in the plural', () => {
     const une = retenirLesPhotos([photo('lourde.jpg', LIMITE + 1), photo('ok.jpg', 10)])
     expect(une.retenues.map((f) => f.name)).toEqual(['ok.jpg'])
     expect(une.message).toBe('1 photo de plus de 3 Mo a été écartée.')
@@ -25,7 +25,7 @@ describe('ce qui part à la lecture', () => {
     expect(deux.message).toBe('2 photos de plus de 3 Mo ont été écartées.')
   })
 
-  it('ne garde que les huit premières et le dit', () => {
+  it('only keeps the first eight and says so', () => {
     const neuf = Array.from({ length: 9 }, (_, i) => photo(`p${i}.jpg`, 10))
 
     const selection = retenirLesPhotos(neuf)
@@ -34,7 +34,7 @@ describe('ce qui part à la lecture', () => {
     expect(selection.message).toBe('seules les 8 premières sont analysées.')
   })
 
-  it('combine les deux raisons en une phrase', () => {
+  it('combines both reasons in one sentence', () => {
     const fichiers = [photo('lourde.jpg', LIMITE + 1), ...Array.from({ length: 9 }, (_, i) => photo(`p${i}.jpg`, 10))]
 
     expect(retenirLesPhotos(fichiers).message).toBe(
@@ -43,17 +43,17 @@ describe('ce qui part à la lecture', () => {
   })
 })
 
-describe('la réduction', () => {
-  it('rend la photo telle quelle quand le navigateur ne sait pas dessiner (ici jsdom)', async () => {
-    // Pas de createImageBitmap ni de canvas ici : la réduction doit
-    // s'effacer sans casser, et la règle de taille reprendre la main.
+describe('the shrinking', () => {
+  it('returns the photo as it is when the browser cannot draw (jsdom here)', async () => {
+    // No createImageBitmap or canvas here: the shrinking must step aside
+    // without breaking, and the size rule take over.
     const selection = await preparerLesPhotos([photo('lourde.jpg', LIMITE + 1), photo('ok.jpg', 10)])
 
     expect(selection.retenues.map((f) => f.name)).toEqual(['ok.jpg'])
     expect(selection.message).toBe('1 photo de plus de 3 Mo a été écartée.')
   })
 
-  it('ne dit rien et ne rend rien sans fichier', async () => {
+  it('says nothing and returns nothing without a file', async () => {
     expect(await preparerLesPhotos(null)).toEqual({ retenues: [], message: null })
     expect(await preparerLesPhotos([])).toEqual({ retenues: [], message: null })
   })

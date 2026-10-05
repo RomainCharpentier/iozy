@@ -29,26 +29,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP de {@code /api/purchase-analysis} - dix-huit routes, huit
+ * The HTTP contract of {@code /api/purchase-analysis} - eighteen routes, eight
  * mutations.
  *
- * <h2>Ce que ces tests ne font PAS</h2>
- * Ils ne rejouent pas le moteur. Les verdicts, les médianes, la comparabilité
- * marché, la sémantique de livraison et l'ingestion d'observations ont déjà
- * plus de cent cinquante tests de domaine et d'intégration. Cette surface avait
- * donc une <b>forte couverture fonctionnelle</b> et <b>aucune couverture
- * formelle de sa frontière HTTP</b> - deux couches différentes.
+ * <h2>What these tests do NOT do</h2>
+ * They do not replay the engine. The verdicts, the medians, the market comparability,
+ * the delivery semantics and the ingestion of observations already have
+ * more than a hundred and fifty domain and integration tests. This surface
+ * therefore had a <b>strong functional coverage</b> and <b>no formal
+ * coverage of its HTTP boundary</b> - two different layers.
  *
- * <h2>Ce qu'ils protègent</h2>
- * Le passage : routage, désérialisation, liaison, traduction des exceptions en
- * status, et surtout <b>l'absence d'effet partiel</b>. Un lot dont un seul
- * élément est invalide ne doit rien laisser en base.
+ * <h2>What they protect</h2>
+ * The passage: routing, deserialisation, binding, translation of exceptions into
+ * status codes, and above all <b>the absence of partial effect</b>. A batch with a single
+ * invalid item must leave nothing in the database.
  *
- * <h2>Pourquoi c'était nécessaire ici aussi</h2>
- * Deux défauts de production ont été trouvés en écrivant ces tests, tous deux
- * invisibles depuis un test de domaine : un {@code trim()} sur un titre nul,
- * atteignable par deux portes distinctes, et une clé étrangère laissée arbitre
- * du contrat pour une Série absente.
+ * <h2>Why it was necessary here too</h2>
+ * Two production defects were found while writing these tests, both
+ * invisible from a domain test: a {@code trim()} on a null title,
+ * reachable through two distinct doors, and a foreign key left as the judge
+ * of the contract for a missing Series.
  */
 class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
@@ -72,7 +72,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 tomes, new BigDecimal("8.50"), false, false, null));
     }
 
-    /** Le corps d'analyse le plus simple qui soit valide - une série, un lot de tomes. */
+    /** The simplest analysis body that is valid - one series, a batch of volumes. */
     private String analyseDe(String serie, String prix, int... tomes) {
         StringBuilder volumes = new StringBuilder();
         for (int t : tomes) {
@@ -84,7 +84,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 + "\"includedVolumes\":[" + volumes + "]}]}";
     }
 
-    // ══════════════════════════════════════ POST /analyze - le cœur
+    // ══════════════════════════════════════ POST /analyze - the core
 
     @Test
     void analyses_a_manual_listing_without_any_url_and_persists_it() throws Exception {
@@ -94,8 +94,8 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                         .content(analyseDe(edition.seriesTitle(), "70", 1, 2, 3)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
-                // L'invariant produit : l'analyse ne dépend pas de Vinted. Aucune
-                // URL n'est fournie ici, et le calcul aboutit quand même.
+                // The product invariant: the analysis does not depend on Vinted. No
+                // URL is provided here, and the computation succeeds anyway.
                 .andExpect(jsonPath("$.listing.url").doesNotExist())
                 .andExpect(jsonPath("$.listing.askingPrice").value(70))
                 .andExpect(jsonPath("$.verdict").isNotEmpty())
@@ -111,8 +111,8 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
     void carries_a_listing_snapshot_through_json_without_calling_vinted() throws Exception {
         MangaEdition edition = uneEdition(14);
 
-        // Le JSON qu'enverrait le formulaire après lecture d'une annonce. Aucun
-        // appel réseau : les valeurs sont posées directement.
+        // The JSON that the form would send after reading a listing. No
+        // network call: the values are set directly.
         mockMvc.perform(post(BASE + "/analyze").contentType("application/json")
                         .content("{\"platform\":\"VINTED\",\"url\":\"https://www.vinted.fr/items/123-lot\","
                                 + "\"externalListingId\":\"123\",\"rawTitle\":\"Lot Berserk\","
@@ -127,7 +127,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.listing.shippingKind").value("FROM"))
                 .andExpect(jsonPath("$.listing.buyerProtectionFee").value(2.95))
                 .andExpect(jsonPath("$.listing.photoUrls.length()").value(1))
-                // 45 + 2,95 + 3,78 : le coût d'acquisition, distinct du prix.
+                // 45 + 2.95 + 3.78: the acquisition cost, distinct from the price.
                 .andExpect(jsonPath("$.totalRealCost").value(51.73));
     }
 
@@ -135,8 +135,8 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
     void normalises_an_unknown_shipping_kind_carrying_an_amount_into_an_estimate() throws Exception {
         MangaEdition edition = uneEdition(14);
 
-        // La normalisation vit dans le domaine et y est testée ; ce qui se joue
-        // ici, c'est qu'une requête HTTP la traverse bien.
+        // The normalisation lives in the domain and is tested there; what is at stake
+        // here is that an HTTP request does go through it.
         mockMvc.perform(post(BASE + "/analyze").contentType("application/json")
                         .content("{\"platform\":\"VINTED\",\"rawTitle\":\"Lot\",\"askingPrice\":10,"
                                 + "\"shippingFee\":5.90,\"shippingKind\":\"UNKNOWN\","
@@ -150,9 +150,9 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
     @Test
     void rejects_an_analysis_whose_item_has_no_series_title_with_400_instead_of_crashing() throws Exception {
-        // Découvert par cette passe, et c'était un vrai 500 : SeriesMatcher
-        // appelait trim() sur le titre avant toute garde. Deux portes menaient
-        // au même défaut - celle-ci et la création d'édition.
+        // Found by this pass, and it was a real 500: SeriesMatcher
+        // called trim() on the title before any guard. Two doors led to
+        // the same defect - this one and the creation of an edition.
         mockMvc.perform(post(BASE + "/analyze").contentType("application/json")
                         .content("{\"platform\":\"VINTED\",\"rawTitle\":\"Lot\",\"askingPrice\":10,"
                                 + "\"condition\":\"VERY_GOOD\",\"conditionAppliesToContainer\":false,"
@@ -166,8 +166,8 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         MangaEdition edition = uneEdition(14);
         long avant = analysisRepository.findAll().size();
 
-        // L'atomicité est le vrai enjeu : un lot à moitié écrit laisserait une
-        // analyse dont le verdict ne correspond à rien de ce qui a été demandé.
+        // Atomicity is the real stake: a half-written batch would leave an
+        // analysis whose verdict matches nothing of what was asked.
         mockMvc.perform(post(BASE + "/analyze").contentType("application/json")
                         .content("{\"platform\":\"VINTED\",\"rawTitle\":\"Lot\",\"askingPrice\":40,"
                                 + "\"condition\":\"VERY_GOOD\",\"conditionAppliesToContainer\":false,"
@@ -192,7 +192,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                                 + "{\"seriesTitle\":\"" + seconde.seriesTitle() + "\","
                                 + "\"editionName\":\"Standard\",\"includedVolumes\":[1]}]}"))
                 .andExpect(status().isCreated())
-                // La collection est désérialisée et associée dans l'ordre reçu.
+                // The collection is deserialised and mapped in the order received.
                 .andExpect(jsonPath("$.itemBreakdown.length()").value(2))
                 .andExpect(jsonPath("$.itemBreakdown[0].item.series.title").value(premiere.seriesTitle()))
                 .andExpect(jsonPath("$.itemBreakdown[1].item.series.title").value(seconde.seriesTitle()));
@@ -205,7 +205,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
         for (String corps : new String[] {
                 "{}", "", "{pas du json",
-                // Lot vide, prix absent, prix négatif, prix non numérique.
+                // Empty batch, missing price, negative price, non-numeric price.
                 "{\"platform\":\"VINTED\",\"rawTitle\":\"x\",\"askingPrice\":10,\"condition\":\"VERY_GOOD\",\"items\":[]}",
                 analyseDe(serie, "null", 1),
                 analyseDe(serie, "-5", 1),
@@ -232,7 +232,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         }
     }
 
-    // ══════════════════════════ Ingestion d'observation, un cas fort
+    // ══════════════════════════ Observation ingestion, a strong case
 
     @Test
     void a_saved_analysis_records_the_asking_price_as_a_market_observation_never_the_total_cost()
@@ -250,9 +250,9 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isCreated());
 
         MarketPriceObservation releve = observationRepository.findByEditionId(edition.id()).get(0);
-        // LE point : le marché retient le prix de l'annonce, jamais le coût
-        // d'acquisition (45 + 2,95 + 3,78 = 51,73). Les frais sont ceux de
-        // l'acheteur, pas la valeur du produit.
+        // THE point: the market keeps the price of the listing, never the acquisition
+        // cost (45 + 2.95 + 3.78 = 51.73). The fees are those of
+        // the buyer, not the value of the product.
         assertThat(releve.observedPrice()).isEqualByComparingTo("45");
         assertThat(releve.observedPrice()).isNotEqualByComparingTo("51.73");
         assertThat(releve.listingIdentity()).isEqualTo("VINTED:999");
@@ -272,13 +272,13 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                                 + "\"editionName\":\"Standard\",\"includedVolumes\":[1]}]}"))
                 .andExpect(status().isCreated());
 
-        // Le prix couvre l'ensemble : le répartir fabriquerait un prix que
-        // personne n'a demandé. L'analyse vit, l'observation non.
+        // The price covers the whole set: splitting it would make up a price that
+        // nobody asked for. The analysis lives, the observation does not.
         assertThat(observationRepository.findByEditionId(premiere.id())).isEmpty();
         assertThat(observationRepository.findByEditionId(seconde.id())).isEmpty();
     }
 
-    // ═══════════════════════════════════════════ Historique : lire, supprimer
+    // ═══════════════════════════════════════════ History: read, delete
 
     @Test
     void lists_and_reads_back_a_saved_analysis_then_deletes_it_idempotently() throws Exception {
@@ -290,8 +290,8 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(get(BASE + "/history"))
                 .andExpect(status().isOk())
-                // La liste est une projection allégée : elle porte le verdict et
-                // le coût, pas le détail complet.
+                // The list is a light projection: it carries the verdict and
+                // the cost, not the full detail.
                 .andExpect(jsonPath("$[?(@.id=='" + id + "')].totalRealCost").exists())
                 .andExpect(jsonPath("$[?(@.id=='" + id + "')].verdict").exists());
 
@@ -302,7 +302,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(delete(BASE + "/history/{id}", id)).andExpect(status().isNoContent());
         mockMvc.perform(get(BASE + "/history/{id}", id)).andExpect(status().isNotFound());
-        // Idempotent, comme les autres suppressions de données utilisateur.
+        // Idempotent, like the other deletions of user data.
         mockMvc.perform(delete(BASE + "/history/{id}", id)).andExpect(status().isNoContent());
     }
 
@@ -310,11 +310,11 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
     void deleting_an_analysis_keeps_the_edition_and_the_prices_it_recorded() throws Exception {
         MangaEdition edition = uneEdition(14);
         String corps = mockMvc.perform(post(BASE + "/analyze").contentType("application/json")
-                        // L'annonce porte une identité : c'est ce qui autorise le relevé
-                        // automatique du prix demandé, donc ce que ce test a besoin d'avoir en
-                        // place avant de vérifier que la suppression ne l'emporte pas. Sans
-                        // identité, plus rien n'est relevé - une annonce sans provenance ne peut
-                        // être ni dédoublonnée ni exclue de sa propre référence.
+                        // The listing carries an identity: this is what allows the automatic
+                        // observation of the asked price, so what this test needs to have in
+                        // place before checking that the deletion does not take it away. Without
+                        // identity, nothing is observed anymore - a listing without provenance can
+                        // be neither deduplicated nor excluded from its own reference.
                         .content("{\"platform\":\"VINTED\",\"rawTitle\":\"Lot\",\"askingPrice\":60,"
                                 + "\"url\":\"https://www.vinted.fr/items/4242-lot\",\"externalListingId\":\"4242\","
                                 + "\"condition\":\"VERY_GOOD\",\"conditionAppliesToContainer\":false,"
@@ -327,8 +327,8 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(delete(BASE + "/history/{id}", id)).andExpect(status().isNoContent());
 
-        // Ce sont des données de référence, pas des sous-objets de l'analyse :
-        // les emporter appauvrirait toutes les analyses suivantes.
+        // These are reference data, not sub-objects of the analysis:
+        // taking them away would make all the following analyses poorer.
         assertThat(observationRepository.findByEditionId(edition.id())).isNotEmpty();
         assertThat(mangaEditionRepository.findById(edition.id())).isPresent();
     }
@@ -342,7 +342,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(delete(BASE + "/history/{id}", MALFORME)).andExpect(status().isBadRequest());
     }
 
-    // ═══════════════════════════════════════════════════ Éditions
+    // ═══════════════════════════════════════════════════ Editions
 
     @Test
     void creates_an_edition_and_finds_it_again_by_series_and_name() throws Exception {
@@ -374,16 +374,16 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
             throws Exception {
         long avant = mangaEditionRepository.findAll().size();
 
-        // Découvert par cette passe : seule la clé étrangère protégeait
-        // manga_edition.entity_id, et le client recevait « Cette donnée entre en
-        // conflit avec une donnée existante » - alors que la Série est ABSENTE.
+        // Found by this pass: only the foreign key protected
+        // manga_edition.entity_id, and the client received "Cette donnée entre en
+        // conflit avec une donnée existante" - while the Series is ABSENT.
         //
-        // 400 et non 404 : la ressource visée (POST /editions) existe, c'est la
-        // référence fournie dans le CORPS qui est invalide - même convention que
-        // /experiences, /wishlist et /relationships. Le
-        // message compte autant que le status : le client remplace celui de tout
-        // 404 par un repli générique, si bien qu'en 404 « Série introuvable »
-        // n'atteindrait jamais l'écran.
+        // 400 and not 404: the targeted resource (POST /editions) exists, it is the
+        // reference given in the BODY that is invalid - same convention as
+        // /experiences, /wishlist and /relationships. The
+        // message matters as much as the status: the client replaces the one of any
+        // 404 with a generic fallback, so that with a 404 "Série introuvable"
+        // would never reach the screen.
         mockMvc.perform(post(BASE + "/editions").contentType("application/json")
                         .content("{\"entityId\":\"" + ABSENT + "\",\"seriesTitle\":\"Une série\","
                                 + "\"editionName\":\"Standard\",\"editionTier\":\"STANDARD\","
@@ -391,7 +391,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("introuvable")));
 
-        // Et rien n'a été écrit au passage.
+        // And nothing was written on the way.
         assertThat(mangaEditionRepository.findAll()).hasSize((int) avant);
     }
 
@@ -416,15 +416,15 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(BASE + "/editions").contentType("application/json").content(corps))
                 .andExpect(status().isCreated());
 
-        // Un double clic sur « Enregistrer » : conflit réel, donc 409 légitime.
+        // A double click on "Enregistrer": real conflict, so a legitimate 409.
         mockMvc.perform(post(BASE + "/editions").contentType("application/json").content(corps))
                 .andExpect(status().isConflict());
     }
 
     @Test
     void rejects_an_edition_without_a_series_title_with_400_instead_of_crashing() throws Exception {
-        // La seconde porte du même défaut que l'analyse sans série : le trim()
-        // de SeriesMatcher s'exécutait avant toute garde.
+        // The second door of the same defect as the analysis without series: the trim()
+        // of SeriesMatcher ran before any guard.
         mockMvc.perform(post(BASE + "/editions").contentType("application/json")
                         .content("{\"editionName\":\"Standard\",\"editionTier\":\"STANDARD\","
                                 + "\"outOfPrint\":false,\"betterEditionAnnounced\":false}"))
@@ -441,7 +441,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.publisher").value("Glénat corrigé"))
                 .andExpect(jsonPath("$.outOfPrint").value(true))
-                // Champs absents du corps = inchangés.
+                // Fields missing from the body = unchanged.
                 .andExpect(jsonPath("$.totalVolumes").value(14))
                 .andExpect(jsonPath("$.tier").value("STANDARD"));
     }
@@ -463,14 +463,14 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         observationRepository.save(MarketPriceObservation.record_(referencee.id(), new VolumeRange(1, 5),
                 new BigDecimal("30"), ListingPlatform.VINTED, Condition.VERY_GOOD, LocalDate.now(), null));
 
-        // Un relevé documente cette édition : l'effacer emporterait la donnée
-        // de référence sans le dire.
+        // An observation documents this edition: erasing it would take away the
+        // reference data without saying so.
         mockMvc.perform(delete(BASE + "/editions/{id}", referencee.id()))
                 .andExpect(status().isConflict());
         assertThat(mangaEditionRepository.findById(referencee.id())).isPresent();
     }
 
-    // ════════════════════════════════════ Relevés de prix (manuels)
+    // ════════════════════════════════════ Price observations (manual)
 
     @Test
     void records_a_manual_price_observation_and_lists_it() throws Exception {
@@ -496,7 +496,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         UUID id = UUID.fromString(objectMapper.readTree(corps).get(0).get("id").asText());
         mockMvc.perform(delete(BASE + "/market-observations/{id}", id)).andExpect(status().isNoContent());
         assertThat(observationRepository.findByEditionId(edition.id())).isEmpty();
-        // La suppression d'un relevé ne touche pas l'édition qu'il documentait.
+        // The deletion of an observation does not touch the edition it documented.
         assertThat(mangaEditionRepository.findById(edition.id())).isPresent();
     }
 
@@ -507,11 +507,11 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
         for (String corps : new String[] {
                 "{}", "", "{pas du json",
-                base.formatted(edition.id(), "40", "VINTED", "null"),          // sans date
-                base.formatted(edition.id(), "null", "VINTED", "\"2026-08-01\""), // sans prix
-                base.formatted(edition.id(), "-5", "VINTED", "\"2026-08-01\""),   // prix négatif
-                base.formatted(ABSENT, "40", "VINTED", "\"2026-08-01\""),         // édition absente
-                base.formatted(edition.id(), "40", "MAGIC", "\"2026-08-01\"")}) { // plateforme inconnue
+                base.formatted(edition.id(), "40", "VINTED", "null"),          // without date
+                base.formatted(edition.id(), "null", "VINTED", "\"2026-08-01\""), // without price
+                base.formatted(edition.id(), "-5", "VINTED", "\"2026-08-01\""),   // negative price
+                base.formatted(ABSENT, "40", "VINTED", "\"2026-08-01\""),         // missing edition
+                base.formatted(edition.id(), "40", "MAGIC", "\"2026-08-01\"")}) { // unknown platform
             mockMvc.perform(post(BASE + "/market-observations").contentType("application/json").content(corps))
                     .andExpect(status().isBadRequest());
         }
@@ -530,7 +530,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.error").isNotEmpty());
     }
 
-    // ══════════════════════════════════════════ Lectures calculées
+    // ══════════════════════════════════════════ Computed reads
 
     @Test
     void computes_completeness_for_a_known_edition_and_stays_silent_for_an_unknown_one() throws Exception {
@@ -539,16 +539,16 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(get(BASE + "/completeness")
                         .param("seriesTitle", edition.seriesTitle())
                         .param("editionName", "Standard")
-                        // Le paramètre s'appelle « volumes » : un nom qui ne
-                        // correspond pas est simplement ignoré, et la complétude
-                        // porterait alors sur zéro tome possédé.
+                        // The parameter is called "volumes": a name that does not
+                        // match is simply ignored, and the completeness
+                        // would then be about zero owned volumes.
                         .param("volumes", "1,2,3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalVolumes").value(27))
                 .andExpect(jsonPath("$.missingCount").value(24));
 
-        // Une édition inconnue ne se devine pas : la complétude se tait plutôt
-        // que d'inventer un total.
+        // An unknown edition is not guessed: the completeness stays silent rather
+        // than making up a total.
         mockMvc.perform(get(BASE + "/completeness")
                         .param("seriesTitle", "Jamais vue " + UUID.randomUUID())
                         .param("editionName", "Standard"))
@@ -558,8 +558,8 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
     @Test
     void the_read_endpoints_reject_a_missing_required_parameter_with_400() throws Exception {
-        // Quatre routes exigent un paramètre : l'oubli est une requête invalide,
-        // pas une erreur serveur.
+        // Four routes require a parameter: forgetting it is an invalid request,
+        // not a server error.
         mockMvc.perform(get(BASE + "/completeness")).andExpect(status().isBadRequest());
         mockMvc.perform(get(BASE + "/editions")).andExpect(status().isBadRequest());
         mockMvc.perform(get(BASE + "/editions/search")).andExpect(status().isBadRequest());
@@ -577,8 +577,8 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
     @Test
     void the_near_complete_suggestions_endpoint_answers_on_an_empty_collection() throws Exception {
-        // Écran « Découvrir » : il doit s'ouvrir avant qu'une seule série soit
-        // presque complète.
+        // "Discover" screen: it must open before a single series is
+        // almost complete.
         mockMvc.perform(get(BASE + "/near-complete-suggestions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
@@ -586,15 +586,15 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
     @Test
     void the_ai_edition_suggestion_answers_without_any_provider_configured() throws Exception {
-        // Aucun fournisseur IA n'est câblé en test : la route doit répondre
-        // proprement plutôt que d'échouer, et surtout ne faire aucun appel
-        // réseau.
+        // No AI provider is wired in the test: the route must answer
+        // properly rather than fail, and above all make no network
+        // call.
         mockMvc.perform(get(BASE + "/editions/ai-suggestion")
                         .param("seriesTitle", "Berserk").param("editionName", "Standard"))
                 .andExpect(status().is2xxSuccessful());
     }
 
-    // ═══════════════════════════════════════════════════ Préférences
+    // ═══════════════════════════════════════════════════ Preferences
 
     @Test
     void reads_then_updates_collector_preferences() throws Exception {
@@ -604,10 +604,10 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.conditionImportance").isNotEmpty());
 
         mockMvc.perform(patch(BASE + "/preferences").contentType("application/json")
-                        // preferCompletedSeries n'existe plus (Lot 84) - laisse ici volontairement :
-                        // un corps qui porte encore un champ retire doit etre ACCEPTE, pas rejete,
-                        // sans quoi un client pas encore mis a jour casserait sur un reglage qui,
-                        // de toute facon, ne faisait rien.
+                        // preferCompletedSeries no longer exists (Batch 84) - left here on purpose:
+                        // a body that still carries a removed field must be ACCEPTED, not rejected,
+                        // otherwise a client not yet updated would break on a setting that,
+                        // anyway, did nothing.
                         .content("{\"preferCompletedSeries\":false,\"minimumDiscountVsRetailPercent\":15,"
                                 + "\"conditionImportance\":\"MEDIUM\","
                                 + "\"editionTierRanking\":[\"PERFECT\",\"STANDARD\"],\"factorWeights\":{}}"))
@@ -619,14 +619,14 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
 
     @Test
     void rejects_incomplete_or_invalid_preferences_with_400_and_never_500() throws Exception {
-        // Le 500 historique : editionTierRanking absent atteignait un .stream()
-        // sur null. Le champ est désormais exigé nommément.
+        // The historical 500: a missing editionTierRanking reached a .stream()
+        // on null. The field is now explicitly required.
         for (String corps : new String[] {
                 "{}", "", "{pas du json",
                 "{\"editionTierRanking\":[\"MAGIC\"],\"factorWeights\":{}}",
                 "{\"editionTierRanking\":[\"STANDARD\"],\"factorWeights\":{\"PAS_UN_FACTEUR\":3}}",
-                // Les trois champs sont exigés : cet endpoint REMPLACE le
-                // profil entier, il ne fusionne pas.
+                // The three fields are required: this endpoint REPLACES the
+                // whole profile, it does not merge.
                 "{\"editionTierRanking\":[\"STANDARD\"]}",
                 "{\"editionTierRanking\":[\"STANDARD\"],\"factorWeights\":{}}"}) {
             mockMvc.perform(patch(BASE + "/preferences").contentType("application/json").content(corps))

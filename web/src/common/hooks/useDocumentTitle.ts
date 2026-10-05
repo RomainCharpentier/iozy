@@ -3,62 +3,63 @@ import { useEffect } from 'react'
 const BASE = 'IozyCore'
 
 /**
- * Fait suivre au titre du document le titre de la page affichée.
+ * Makes the document title follow the title of the displayed page.
  *
- * <h2>Ce que son absence coûtait</h2>
- * Les dix-sept routes portaient toutes le titre « IozyCore », alors que
- * chacune affiche un `<h1>` distinct. Trois conséquences, dont une
- * d'accessibilité :
+ * <h2>What its absence cost</h2>
+ * The seventeen routes all carried the title "IozyCore", while each one
+ * displays a distinct `<h1>`. Three consequences, one of them about
+ * accessibility:
  * <ul>
- *   <li>l'historique du navigateur devenait illisible - dix entrées
- *       « IozyCore » ne permettent de revenir nulle part ;</li>
- *   <li>un onglet gardé ouvert ne disait pas sur quoi ;</li>
- *   <li><b>une navigation SPA n'annonce rien</b> à un lecteur d'écran : la
- *       page ne se recharge pas, il n'y a donc aucun événement à annoncer. La
- *       mise à jour du titre est le remède conventionnel.</li>
+ *   <li>the browser history became unreadable - ten "IozyCore" entries do
+ *       not let you go back anywhere;</li>
+ *   <li>a tab kept open did not say what it was on;</li>
+ *   <li><b>an SPA navigation announces nothing</b> to a screen reader: the
+ *       page does not reload, so there is no event to announce. Updating the
+ *       title is the conventional remedy.</li>
  * </ul>
  *
- * <h2>Pourquoi lire le `h1` plutôt que déclarer une liste</h2>
- * Une table « route → libellé » aurait dupliqué des textes déjà écrits dans
- * les pages, et ce dépôt s'est déjà fait mordre plusieurs fois par deux listes
- * qui divergent. Le `h1` <b>est</b> le titre de la page, au sens sémantique :
- * le lire évite d'en tenir un second.
+ * <h2>Why read the `h1` rather than declare a list</h2>
+ * A "route → label" table would have duplicated texts that are already
+ * written in the pages, and this repository has already been bitten several
+ * times by two lists that diverge. The `h1` <b>is</b> the title of the page,
+ * in the semantic sense: reading it avoids keeping a second one.
  *
- * <p>Bénéfice inattendu : les routes dynamiques suivent gratuitement. La fiche
- * d'une série affiche « Naruto · IozyCore » sans qu'aucune table n'ait à
- * connaître les œuvres du catalogue.
+ * <p>Unexpected benefit: the dynamic routes follow for free. The detail page
+ * of a series displays "Naruto · IozyCore" without any table having to know
+ * the works of the catalog.
  *
- * <h2>Le titre arrive parfois après le premier rendu</h2>
- * Une page qui attend ses données affiche un squelette sans `h1`. Un simple
- * `querySelector` au moment de la navigation le manquerait. Un
- * {@link MutationObserver} attend donc son apparition, se débranche dès qu'il
- * l'a trouvé, et abandonne après un délai plutôt que d'observer indéfiniment.
+ * <h2>The title sometimes arrives after the first render</h2>
+ * A page that waits for its data displays a skeleton without an `h1`. A simple
+ * `querySelector` at the time of navigation would miss it. A
+ * {@link MutationObserver} therefore waits for it to appear, disconnects as
+ * soon as it has found it, and gives up after a delay rather than observing
+ * indefinitely.
  */
 /**
- * @param cle ce qui, en changeant, peut changer le `h1` affiché. La route,
- *            évidemment - mais pas seulement : la porte d'authentification
- *            remplace tout l'écran <b>sans</b> changer d'URL, et le titre
- *            restait alors celui de l'écran de connexion (« IozyCore ») une
- *            fois la collection affichée. Une clé, pas un chemin.
+ * @param cle what, when it changes, can change the displayed `h1`. The route,
+ *            obviously - but not only: the authentication gate replaces the
+ *            whole screen <b>without</b> changing the URL, and the title then
+ *            stayed the one of the sign-in screen ("IozyCore") once the
+ *            collection was displayed. A key, not a path.
  */
 export function useDocumentTitleFromHeading(cle: string): void {
   useEffect(() => {
     const appliquer = (titre: string | null | undefined) => {
       const propre = (titre ?? '').replace(/\s+/g, ' ').trim()
-      // « IozyCore · IozyCore » : le titre d'un écran qui porte le nom de
-      // l'application ne se suffixe pas de lui-même.
+      // "IozyCore · IozyCore": the title of a screen that carries the name of
+      // the application does not get suffixed with itself.
       document.title = !propre || propre.toLowerCase() === BASE.toLowerCase() ? BASE : `${propre} · ${BASE}`
     }
 
-    // `main h1` d'abord, puis n'importe quel `h1` : la page de partage public
-    // vit hors du shell et n'a pas de `<main>`. Sans ce repli elle gardait le
-    // titre de base alors qu'elle affiche bien un titre.
+    // `main h1` first, then any `h1`: the public share page lives outside the
+    // shell and has no `<main>`. Without this fallback it kept the base title
+    // even though it does display a title.
     const lire = () =>
       (document.querySelector('main h1') ?? document.querySelector('h1'))?.textContent
 
-    // « … » est le titre d'attente d'une page dont le libellé arrive après
-    // (un rayon, un classement général) : ce n'est pas un titre, on attend le
-    // vrai - sinon l'onglet restait « … · IozyCore » (lot 148).
+    // "…" is the placeholder title of a page whose label arrives later
+    // (a shelf, a general ranking): it is not a title, we wait for the real
+    // one - otherwise the tab stayed "… · IozyCore" (batch 148).
     const utilisable = (titre: string | null | undefined) => !!titre && !/^[\s.…]*$/.test(titre)
 
     const immediat = lire()
@@ -67,11 +68,11 @@ export function useDocumentTitleFromHeading(cle: string): void {
       return
     }
 
-    // Pas encore de titre : la page charge. On repart de la base pour ne pas
-    // laisser celui de la page précédente, qui serait faux.
+    // No title yet: the page is loading. We start again from the base so as
+    // not to leave the one of the previous page, which would be wrong.
     appliquer(null)
 
-    // Même repli pour l'observation : sans `<main>`, on surveille le corps.
+    // Same fallback for the observation: without `<main>`, we watch the body.
     const cible = document.querySelector('main') ?? document.body
     if (!cible) return
 
@@ -82,13 +83,12 @@ export function useDocumentTitleFromHeading(cle: string): void {
         observateur.disconnect()
       }
     })
-    // `characterData` : React remplace le TEXTE d'un h1 déjà rendu (« … » puis
-    // « Manga ») sans toucher à ses nœuds - une observation limitée aux enfants
-    // ne le verrait jamais.
+    // `characterData`: React replaces the TEXT of an h1 that is already
+    // rendered ("…" then "Manga") without touching its nodes - an observation
+    // limited to the children would never see it.
     observateur.observe(cible, { childList: true, subtree: true, characterData: true })
 
-    // Une page qui n'a pas de h1 du tout ne doit pas laisser un observateur
-    // vivant derrière elle.
+    // A page that has no h1 at all must not leave a live observer behind it.
     const abandon = setTimeout(() => observateur.disconnect(), 5000)
 
     return () => {

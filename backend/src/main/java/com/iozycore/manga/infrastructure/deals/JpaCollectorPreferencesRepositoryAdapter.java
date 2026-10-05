@@ -22,8 +22,8 @@ public class JpaCollectorPreferencesRepositoryAdapter implements CollectorPrefer
 
     @Override
     public CollectorPreferences find() {
-        // La clé primaire EST le propriétaire : pas de @TenantId ici, la
-        // question « celles de qui ? » est déjà celle de la ligne à lire.
+        // The primary key IS the owner: no @TenantId here, the
+        // question "whose ones?" is already that of the row to read.
         return jpaRepository.findById(utilisateurCourant.proprietaire())
                 .map(this::toDomain)
                 .orElseGet(CollectorPreferences::defaults);

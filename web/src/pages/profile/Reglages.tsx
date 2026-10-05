@@ -10,46 +10,46 @@ import {
 } from '@/common/lib/titleLanguage'
 
 /**
- * Les réglages, rangés par <b>ce qu'ils concernent</b> - sur la page Profil,
- * en clair.
+ * The settings, sorted by <b>what they concern</b> - on the Profil page,
+ * in the open.
  *
- * <h2>Plus un écran, une section (lot 140)</h2>
- * Ils ont été l'écran « Paramètres », atteint depuis Profil par un lien : deux
- * écrans pour la même personne, et « ça doit être lisible direct ». Ce
- * composant rend les deux sections sous le partage, sur Profil même ; les
- * anciennes routes `/settings` y redirigent.
+ * <h2>No longer a screen, a section (batch 140)</h2>
+ * They used to be the "Paramètres" screen, reached from Profil by a link: two
+ * screens for the same person, and "ça doit être lisible direct". This
+ * component renders both sections under the sharing, on Profil itself; the
+ * old `/settings` routes redirect there.
  *
- * <h2>Deux sections, et la frontière est réelle</h2>
- * <b>Mon compte</b> te suit partout : il vit sur le serveur, et l'export en
- * fait partie - télécharger sa collection n'est pas de la configuration
- * technique, c'est la garantie de pouvoir partir. <b>Cet appareil</b> ne suit
- * rien : la langue des titres vit dans le {@code localStorage} de ce
- * navigateur, et changer de machine la perd. La section le dit, parce que
- * personne ne peut le deviner.
+ * <h2>Two sections, and the border is real</h2>
+ * <b>Mon compte</b> follows you everywhere: it lives on the server, and the export is
+ * part of it - downloading one's collection is not technical configuration,
+ * it is the guarantee of being able to leave. <b>Cet appareil</b> follows
+ * nothing: the language of the titles lives in the {@code localStorage} of this
+ * browser, and changing machine loses it. The section says so, because
+ * nobody can guess it.
  *
- * <p>Le thème clair ou sombre a vécu ici aussi, jusqu'au lot 138 : il se
- * change depuis l'en-tête, d'un clic sur le soleil ou la lune (voir
- * BoutonTheme). Un réglage qu'on change selon la lumière de la pièce n'a pas à
- * se trouver à trois clics.
+ * <p>The light or dark theme lived here too, until batch 138: it is
+ * changed from the header, with one click on the sun or the moon (see
+ * BoutonTheme). A setting that one changes according to the light of the room does not have to
+ * be three clicks away.
  *
- * <p>Ce qui n'est ici NI l'un NI l'autre - les catégories de collection, les
- * éditions de référence, l'import, les comptes - concerne le <b>contenu</b> de
- * la collection ou l'<b>instance</b>, et vit dans Administration, un écran
- * SŒUR atteint depuis Profil. Pas depuis ici : il y a vécu jusqu'au
- * 2026-08-29, et régler son thème n'a rien à voir avec déclarer les catégories
- * de sa collection - l'un ne se trouve pas en cherchant l'autre.
+ * <p>What is here NEITHER one NOR the other - the collection categories, the
+ * reference editions, the import, the accounts - concerns the <b>content</b> of
+ * the collection or the <b>instance</b>, and lives in Administration, a
+ * SIBLING screen reached from Profil. Not from here: it lived here until
+ * 2026-08-29, and setting one's theme has nothing to do with declaring the categories
+ * of one's collection - one is not found by looking for the other.
  *
- * <h2>La langue des titres</h2>
- * Seule la recherche/ajout de manga (Jikan/MyAnimeList) est concernée, ni
- * Jikan ni MAL ne renvoyant de titre français nativement. Glisser-déposer
- * natif (HTML5 drag events, pas de librairie) : la première langue active
- * devient le titre sauvegardé, les suivantes actives suivent entre
- * parenthèses dans l'ordre choisi ici.
+ * <h2>The language of the titles</h2>
+ * Only the manga search/add (Jikan/MyAnimeList) is concerned, as neither
+ * Jikan nor MAL returns a French title natively. Native drag and drop
+ * (HTML5 drag events, no library): the first active language
+ * becomes the saved title, the following active ones follow in
+ * parentheses in the order chosen here.
  */
 export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivElement | null> }) {
-  // État local reflétant localStorage - setTitleComposition() persiste ET
-  // notifie les autres consommateurs (QuickAddPage) via un événement custom,
-  // voir lib/titleLanguage.ts.
+  // Local state reflecting localStorage - setTitleComposition() persists AND
+  // notifies the other consumers (QuickAddPage) through a custom event,
+  // see lib/titleLanguage.ts.
   const [composition, setComposition] = useState<TitleComposition>(getTitleComposition)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const { compte } = useAuth()
@@ -61,10 +61,10 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
   }
 
   function toggleEnabled(index: number) {
-    // Au moins une langue doit rester active - sinon plus aucun titre ne
-    // serait résolvable pour l'ajout rapide (voir garde-fou similaire dans
-    // resolvePrimaryTitle, qui retombe sur candidate.title en dernier
-    // recours, mais autant l'empêcher ici plutôt que de compter dessus).
+    // At least one language must stay active - otherwise no title would
+    // be resolvable anymore for the quick add (see similar safeguard in
+    // resolvePrimaryTitle, which falls back on candidate.title as a last
+    // resort, but better to prevent it here than to count on it).
     const next = composition.map((item, i) => (i === index ? { ...item, enabled: !item.enabled } : item))
     if (!next.some((item) => item.enabled)) return
     update(next)
@@ -95,16 +95,16 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
     }
   }
 
-  // Premier item ACTIF (pas forcément index 0, si l'utilisateur a désactivé
-  // celui du dessus) - c'est lui qui devient le titre sauvegardé, voir
-  // resolvePrimaryTitle. Sert juste au badge "principal" ci-dessous.
+  // First ACTIVE item (not necessarily index 0, if the user has disabled
+  // the one above) - it is the one that becomes the saved title, see
+  // resolvePrimaryTitle. Only serves for the "principal" badge below.
   const primaryIndex = composition.findIndex((item) => item.enabled)
 
   return (
     <div className="flex flex-col gap-5">
       {compte && (
-        // Nommée pour un lecteur d'écran (aria-labelledby) : sans nom
-        // accessible, une <section> n'est pas un repère qu'on peut viser.
+        // Named for a screen reader (aria-labelledby): without an accessible
+        // name, a <section> is not a landmark that can be targeted.
         <section aria-labelledby="section-mon-compte" className="flex flex-col gap-3">
           <h2 id="section-mon-compte" className="font-display text-lg font-semibold text-textPrimary">
             Mon compte
@@ -113,16 +113,16 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
           <div className="flex flex-col gap-3 rounded-xl bg-surface p-4">
             <div className="flex flex-col gap-0.5">
               <span className="font-medium text-textPrimary">{compte.pseudo}</span>
-              {/* Le pseudo ne peut plus être l'adresse (voir AppUser) : les deux
-                  lignes ne se répètent jamais. */}
+              {/* The username can no longer be the address (see AppUser): the two
+                  lines never repeat each other. */}
               <span className="text-xs text-textDim">{compte.email}</span>
             </div>
           </div>
 
-          {/* L'export vivait dans « Administration avancée », à côté des
-              catégories de collection. Ce n'est pas de la configuration :
-              c'est ce qui garantit qu'on peut partir avec ses données, et ça
-              appartient au compte qui les possède. */}
+          {/* The export lived in "Administration avancée", next to the
+              collection categories. It is not configuration:
+              it is what guarantees that one can leave with one's data, and it
+              belongs to the account that owns it. */}
           <div className="flex flex-col gap-2 rounded-xl bg-surface p-4">
             <span className="flex items-center gap-2 font-medium text-textPrimary">
               <Download size={16} className="shrink-0 text-accentText" />
@@ -153,9 +153,9 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
             </div>
           </div>
 
-          {/* Le retour du bloc précédent (Lot 115). Sans lui, « emporter »
-              était un aller simple : changer de NAS ou repartir d'une
-              sauvegarde n'était possible qu'en restaurant PostgreSQL entier. */}
+          {/* The way back of the previous block (batch 115). Without it, "emporter"
+              was a one-way trip: changing NAS or starting again from a
+              backup was only possible by restoring the whole PostgreSQL. */}
           <div className="flex flex-col gap-2 rounded-xl bg-surface p-4">
             <span className="flex items-center gap-2 font-medium text-textPrimary">
               <Upload size={16} className="shrink-0 text-accentText" />
@@ -177,18 +177,18 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
         </section>
       )}
 
-      {/* Ancré : « Langue des titres » du Catalogue arrive ici, pas en haut
-          d'un profil qu'il faudrait ensuite faire défiler. */}
+      {/* Anchored: "Langue des titres" of the Catalog arrives here, not at the top
+          of a profile that one would then have to scroll. */}
       <div ref={appareilRef} className="scroll-mt-4">
         <h2 id="section-cet-appareil" className="font-display text-lg font-semibold text-textPrimary">
           Cet appareil
         </h2>
       </div>
-      {/* Dit une fois : ce réglage vit dans le localStorage de ce navigateur,
-          pas sur le compte. Sans cette phrase, quelqu'un qui ouvre l'app sur
-          son téléphone croit à une perte de réglage. Le thème, lui aussi sur
-          cet appareil, se change depuis l'en-tête (lot 138) - et on le dit,
-          pour qui vient le chercher ici où il a vécu. */}
+      {/* Said once: this setting lives in the localStorage of this browser,
+          not on the account. Without this sentence, someone who opens the app on
+          their phone believes a setting was lost. The theme, also on
+          this device, is changed from the header (batch 138) - and we say so,
+          for whoever comes looking for it here where it used to live. */}
       <p className="-mt-3 text-sm text-textDim">
         Ce réglage reste sur cet appareil : il ne suit pas ton compte d'un navigateur à l'autre. Le thème clair ou
         sombre aussi, et il se change depuis l'en-tête, d'un clic sur le soleil ou la lune.
@@ -196,9 +196,9 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
 
       <section className="flex flex-col gap-2">
         <h3 className="font-display text-base font-semibold text-textPrimary">Titre des mangas</h3>
-        {/* Dit en trois phrases ce qu'un paragraphe de six lignes noyait sous
-            les noms des fournisseurs : ce que le réglage change, et comment on
-            le change. */}
+        {/* Says in three sentences what a six-line paragraph drowned under
+            the names of the providers: what the setting changes, and how it is
+            changed. */}
         <p className="text-sm text-textDim">
           La première langue cochée devient le titre enregistré ; les suivantes s'affichent entre parenthèses. Les
           flèches changent l'ordre. « Français » demande une recherche de plus aux sources, les deux autres non.
@@ -231,8 +231,8 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
                   principal
                 </span>
               )}
-              {/* Les flèches, parce que le glisser-déposer HTML n'existe pas au
-                  doigt : sur un téléphone, l'ordre était impossible à changer. */}
+              {/* The arrows, because HTML drag and drop does not exist with a
+                  finger: on a phone, the order was impossible to change. */}
               <span className="flex shrink-0 items-center">
                 <button
                   type="button"

@@ -15,10 +15,10 @@ public interface TagRepository {
     List<Tag> findAll();
 
     /**
-     * Retire le tag lui-même. Les œuvres qui le portaient le perdent par la
-     * clé étrangère ({@code ON DELETE CASCADE} sur {@code entity_tag}) : un
-     * tag supprimé ne laisse pas de rattachement orphelin, et aucune œuvre
-     * n'est touchée par ailleurs.
+     * Removes the tag itself. The works that carried it lose it through the
+     * foreign key ({@code ON DELETE CASCADE} on {@code entity_tag}): a
+     * deleted tag leaves no orphan link, and no work
+     * is touched otherwise.
      */
     void supprimer(UUID id);
 }

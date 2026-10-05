@@ -7,21 +7,21 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 
 /**
- * "Supprimer cette fiche" - seule action de cette page qui soit définitive et
- * irréversible (contrairement à "Marquer vendu"/"Marquer perdu", des
- * changements de statut réversibles) : repliée derrière une confirmation
- * explicite plutôt qu'un simple clic, volontairement en bas de page.
+ * "Supprimer cette fiche" - the only action of this page that is final and
+ * irreversible (unlike "Marquer vendu"/"Marquer perdu", which are reversible
+ * status changes): folded behind an explicit confirmation
+ * rather than a simple click, deliberately at the bottom of the page.
  * <p>
- * Bloquée côté backend tant qu'il existe encore une Ownership OU une
- * Experience rattachée à cette Entity, quel que soit leur statut (voir
- * EntityDeletionService - invariant "une donnée ne disparaît jamais
- * silencieusement") : comme un Ownership existe dès le premier ajout et
- * qu'il n'y a aucun moyen de le supprimer lui-même (seulement de changer son
- * statut), une fiche ayant déjà eu un exemplaire réel reste concrètement
- * indélébile - cette action ne sert en pratique qu'à retirer une fiche créée
- * par erreur puis restée sans aucun exemplaire ni expérience. L'erreur 409
- * renvoyée dans le cas bloqué est affichée telle quelle : elle explique déjà
- * pourquoi (nombre d'Ownership/Experience restants).
+ * Blocked on the backend side as long as an Ownership OR an
+ * Experience is still attached to this Entity, whatever their status (see
+ * EntityDeletionService - invariant "data never disappears
+ * silently"): since an Ownership exists from the first add and
+ * there is no way to delete it itself (only to change its
+ * status), a page that ever had a real copy stays practically
+ * undeletable - in practice this action only serves to remove a page created
+ * by mistake and left with no copy or experience. The 409 error
+ * returned in the blocked case is displayed as is: it already explains
+ * why (number of remaining Ownership/Experience).
  */
 export function DeleteEntitySection({ entityId, entityTitle }: { entityId: string; entityTitle: string }) {
   const navigate = useNavigate()

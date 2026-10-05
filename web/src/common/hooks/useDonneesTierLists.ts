@@ -17,22 +17,21 @@ export interface UniversTierList {
 }
 
 /**
- * Les Tier Lists de l'utilisateur : un classement général par univers, plus
- * ses listes personnelles.
+ * The Tier Lists of the user: one general ranking per universe, plus
+ * their personal lists.
  *
- * <h2>Trois écrans, un seul chargement</h2>
- * L'aperçu de Découvrir, l'écran Tier Lists et la carte du Profil posaient les
- * mêmes requêtes - une par type d'œuvre pour le board, une par type pour les
- * listes, une pour les listes transverses - recopiées à l'identique sur une
- * vingtaine de lignes.
+ * <h2>Three screens, one single load</h2>
+ * The Discover preview, the Tier Lists screen and the Profile card made the
+ * same requests - one per work type for the board, one per type for the
+ * lists, one for the cross-cutting lists - copied identically over about
+ * twenty lines.
  *
- * <h2>Le défaut que ça referme</h2>
- * La carte du Profil ne chargeait PAS les listes « toutes catégories »
- * (Lot 14) : elle prétend montrer « Mes Tier Lists » avec un lien « Tout
- * voir », mais un utilisateur n'ayant que des listes transverses y aurait vu
- * une carte vide, quand l'écran Tier Lists et Découvrir les affichaient tous
- * les deux. Latent aujourd'hui - aucune liste n'existe encore - et refermé
- * avant qu'il ne se voie.
+ * <h2>The flaw this closes</h2>
+ * The Profile card did NOT load the "all categories" lists (Batch 14): it
+ * claims to show "Mes Tier Lists" with a "Tout voir" link, but a user who
+ * only had cross-cutting lists would have seen an empty card there, while
+ * the Tier Lists screen and Discover both displayed them. Latent today - no
+ * list exists yet - and closed before it could be seen.
  */
 export function useDonneesTierLists() {
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
@@ -50,8 +49,8 @@ export function useDonneesTierLists() {
       queryFn: () => listTierLists(t.id),
     })),
   })
-  // Les listes « toutes catégories » n'appartiennent à aucun univers, et se
-  // demandent donc à part (voir Lot 14).
+  // The "all categories" lists do not belong to any universe, and are
+  // therefore requested separately (see Batch 14).
   const crossUniverseQuery = useQuery({
     queryKey: queryKeys.tierLists.custom(null),
     queryFn: () => listTierLists(null),
@@ -70,8 +69,8 @@ export function useDonneesTierLists() {
     entityTypes,
     univers,
     listesTransverses,
-    /** Toutes les listes perso, transverses comprises - c'est ce que l'écran
-     *  Tier Lists et Découvrir montrent, et ce que le Profil oubliait. */
+    /** All the personal lists, cross-cutting ones included - this is what the
+     *  Tier Lists screen and Discover show, and what the Profile forgot. */
     toutesLesListes: [...univers.flatMap((u) => u.listes), ...listesTransverses],
     chargement:
       entityTypesQuery.isLoading ||

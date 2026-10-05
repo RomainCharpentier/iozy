@@ -18,16 +18,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 /**
- * <b>Lire les tags est ouvert ; les poser ne l'est pas.</b>
+ * <b>Reading the tags is open; setting them is not.</b>
  *
- * <p>Un tag décrit une <b>œuvre</b>, et vit donc dans le catalogue partagé —
- * une œuvre est la même pour tout le monde, et son étiquette aussi. C'est
- * exactement ce qui rend l'écriture dangereuse : sans cette règle, n'importe
- * quel compte étiquetterait les œuvres de tous les autres, et rien à l'écran
- * ne le montrerait.
+ * <p>A tag describes a <b>work</b>, and so lives in the shared catalogue -
+ * a work is the same for everyone, and so is its label. This is
+ * exactly what makes writing dangerous: without this rule, any
+ * account would label the works of all the others, and nothing on the screen
+ * would show it.
  *
- * <p>La lecture, elle, doit rester ouverte : c'est elle qui alimente le filtre
- * de Ma collection, et la fermer viderait cet écran sans un mot.
+ * <p>Reading, for its part, must stay open: it is what feeds the filter
+ * of My collection, and closing it would empty this screen without a word.
  */
 class TagsAdministresHttpContractTest extends HttpContractTestBase {
 
@@ -40,7 +40,7 @@ class TagsAdministresHttpContractTest extends HttpContractTestBase {
 
     @Test
     void tout_compte_connecte_peut_LIRE_les_tags() throws Exception {
-        // L'identité par défaut de cette suite n'est pas administratrice.
+        // The default identity of this suite is not an administrator.
         mockMvc.perform(get("/api/tags")).andExpect(status().isOk());
     }
 
@@ -58,8 +58,8 @@ class TagsAdministresHttpContractTest extends HttpContractTestBase {
 
     @Test
     void un_compte_ordinaire_ne_peut_pas_etiqueter_une_oeuvre() throws Exception {
-        // Le geste le plus courant, et celui qui se verrait le moins : coller
-        // une étiquette sur l'œuvre de quelqu'un d'autre.
+        // The most common action, and the one that would be seen the least: sticking
+        // a label on the work of someone else.
         Tag tag = unTag();
 
         mockMvc.perform(post("/api/tags/entities/" + ABSENT + "/" + tag.id())).andExpect(status().isForbidden());
@@ -78,8 +78,8 @@ class TagsAdministresHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(delete("/api/tags/" + tag.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isNoContent());
-        // Et il ne revient pas : une suppression qui répond 204 sans effacer se
-        // lit comme une suppression réussie.
+        // And it does not come back: a deletion that answers 204 without erasing
+        // reads like a successful deletion.
         mockMvc.perform(delete("/api/tags/" + tag.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isNotFound());
     }

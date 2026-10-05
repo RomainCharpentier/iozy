@@ -1,4 +1,4 @@
-# --- Étape de build ---
+# --- Build step ---
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 COPY pom.xml .
@@ -6,29 +6,29 @@ RUN mvn -B dependency:go-offline
 COPY src ./src
 RUN mvn -B -DskipTests package
 
-# --- Étape d'exécution ---
+# --- Run step ---
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-# Quelle livraison tourne, gravé DANS l'image.
+# Which release is running, written INTO the image.
 #
-# Le numéro de version du pom (0.1.0-SNAPSHOT) ne bouge jamais : il ne distingue
-# pas deux déploiements, donc il ne répond pas à la seule question qu'on se pose
-# devant une mise à jour automatique - « laquelle est en ligne ? ». Le numéro de
-# livraison, lui, est un Majeure.Mineure.Patch déduit des messages de commit
-# (voir web/scripts/version.mjs) : il croît d'une livraison à l'autre, donc il
-# se COMPARE, il dit ce qui a changé, et il étiquette aussi bien l'image
-# publiée que le commit livré.
+# The version number of the pom (0.1.0-SNAPSHOT) never changes: it does not tell
+# two deployments apart, so it does not answer the one question we ask when an
+# automatic update happens - "which one is online?". The release number, on the
+# other hand, is a Major.Minor.Patch worked out from the commit messages
+# (see web/scripts/version.mjs): it grows with each release, so it can be
+# COMPARED, it says what changed, and it labels both the published image and
+# the released commit.
 #
-# `dev` par défaut : une image construite à la main sur un poste ne ment pas en
-# se faisant passer pour une livraison.
+# `dev` by default: an image built by hand on a workstation does not lie by
+# pretending to be a release.
 ARG VERSION=dev
 ENV IOZYCORE_VERSION=$VERSION
 RUN useradd --system --create-home iozycore
 USER iozycore
 COPY --from=build /build/target/*.jar app.jar
 
-# Volume pour les médias (photos/documents), monté sur le stockage du NAS
+# Volume for media (photos/documents), mounted on the NAS storage
 VOLUME ["/app/media"]
 
 EXPOSE 8080

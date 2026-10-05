@@ -21,28 +21,28 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Le fournisseur PRINCIPAL pour la recherche de mangas : AniList
- * (anilist.co), une base de donnees d'oeuvres - pas un site de lecture -
- * avec une API GraphQL publique, sans cle, 90 requetes par minute et par
- * adresse, sans quota journalier.
+ * The MAIN provider for manga search: AniList
+ * (anilist.co), a database of works - not a reading site -
+ * with a public GraphQL API, no key, 90 requests per minute per
+ * address, no daily quota.
  *
- * <h2>Pourquoi en premier</h2>
- * Ne le 2026-09-04 comme secours, quand Jikan repondait 504 et Google Books
- * 429 en meme temps ; passe en tete le meme jour, sur une regle donnee par
- * l'utilisateur : <b>mettre en avant la source qui a le plus d'appels
- * disponibles</b>, pour que les oeuvres de l'application viennent du meme
- * endroit et portent les memes donnees (Lot 119). Jikan est limite a 60
- * requetes par minute et bloque par intermittence, l'API MyAnimeList
- * officielle demande une cle, Google Books a un quota journalier ; AniList
- * n'a ni cle ni quota du jour. Les trois autres restent derriere (2, 3, 4) :
- * la deduplication par titre garde le premier candidat rencontre, donc le
- * sien quand il repond, le leur quand il se tait.
+ * <h2>Why first</h2>
+ * Born on 2026-09-04 as a backup, when Jikan answered 504 and Google Books
+ * 429 at the same time; moved to the front the same day, on a rule given by
+ * the user: <b>put forward the source that has the most calls
+ * available</b>, so that the works of the application come from the same
+ * place and carry the same data (Batch 119). Jikan is limited to 60
+ * requests per minute and blocks from time to time, the official MyAnimeList
+ * API asks for a key, Google Books has a daily quota; AniList
+ * has no key and no daily quota. The three others stay behind (2, 3, 4):
+ * the deduplication by title keeps the first candidate met, so
+ * its own when it answers, theirs when it is silent.
  *
- * <p>Il rend titre, annee, statut, nombre de tomes, auteur, jaquette et
- * l'identifiant MyAnimeList ({@code idMal}), sous les memes cles d'attributs
- * que Jikan : la resolution du titre francais et la recherche de tomes n'y
- * voient aucune difference. Il ne connait pas les titres francais : cette
- * partie reste a Open Library et Google Books, et les tomes a la BnF.
+ * <p>It returns title, year, status, number of volumes, author, cover and
+ * the MyAnimeList id ({@code idMal}), under the same attribute keys
+ * as Jikan: the French title resolution and the volume search see
+ * no difference. It does not know French titles: this
+ * part stays with Open Library and Google Books, and the volumes with the BnF.
  */
 @Component
 @Order(1)
@@ -87,17 +87,17 @@ public class AniListMetadataProvider implements MetadataProvider {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("AniList a répondu {} pour la requête '{}'", response.statusCode(), query);
+                log.warn("AniList answered {} for the query '{}'", response.statusCode(), query);
                 return List.of();
             }
             return parse(response.body());
         } catch (Exception e) {
-            log.warn("Échec de l'appel à AniList pour '{}' : {}", query, e.getMessage());
+            log.warn("AniList call failed for '{}': {}", query, e.getMessage());
             return List.of();
         }
     }
 
-    /** Paquet-prive pour les tests : une reponse deja en memoire, sans HTTP. */
+    /** Package-private for the tests: an answer already in memory, without HTTP. */
     List<MetadataCandidate> parse(String body) throws Exception {
         List<MetadataCandidate> candidates = new ArrayList<>();
         for (JsonNode media : objectMapper.readTree(body).path("data").path("Page").path("media")) {
@@ -109,9 +109,9 @@ public class AniListMetadataProvider implements MetadataProvider {
             if (id == null || title == null) {
                 continue;
             }
-            // Memes cles que Jikan (voir JikanMetadataProvider.parse) : tout
-            // ce qui lit un candidat - sous-titre de la liste, resolution du
-            // titre francais, recherche de tomes - les retrouve a leur place.
+            // Same keys as Jikan (see JikanMetadataProvider.parse): everything
+            // that reads a candidate - subtitle of the list, French title
+            // resolution, volume search - finds them in their place.
             Map<String, Object> attrs = new LinkedHashMap<>();
             attrs.put("mediaType", libelleFormat(media.path("format").asText(null)));
             attrs.put("titleRomaji", title);
@@ -147,9 +147,9 @@ public class AniListMetadataProvider implements MetadataProvider {
     }
 
     /**
-     * L'auteur au sens de Jikan (un seul nom) : qui fait l'histoire ET le
-     * dessin d'abord, puis l'histoire seule, puis le dessin - jamais le
-     * « createur original » d'un derive, qui n'a pas ecrit ce livre-la.
+     * The author in the sense of Jikan (a single name): who does the story AND the
+     * drawing first, then the story alone, then the drawing - never the
+     * "original creator" of a derived work, who did not write this book.
      */
     private static String mangaka(JsonNode edges) {
         String[] priorites = {"Story & Art", "Story", "Art", "Illustration"};
@@ -167,7 +167,7 @@ public class AniListMetadataProvider implements MetadataProvider {
         return null;
     }
 
-    /** Le vocabulaire de Jikan (« Manga », « Light Novel », « One-shot »), pour un sous-titre homogene dans la liste. */
+    /** The vocabulary of Jikan ("Manga", "Light Novel", "One-shot"), for a uniform subtitle in the list. */
     private static String libelleFormat(String format) {
         if (format == null) {
             return "Manga";
@@ -180,11 +180,11 @@ public class AniListMetadataProvider implements MetadataProvider {
     }
 
     /**
-     * AniList reprend parfois la stylisation de l'editeur, tout en capitales
-     * (« BORUTO: NARUTO NEXT GENERATIONS ») la ou MyAnimeList ecrit « Boruto:
-     * Naruto Next Generations ». Un titre SANS aucune minuscule est remis en
-     * casse de titre - les autres ne sont pas touches, une capitale isolee
-     * pouvant etre voulue (« JoJo »).
+     * AniList sometimes takes the styling of the publisher, all in capitals
+     * ("BORUTO: NARUTO NEXT GENERATIONS") where MyAnimeList writes "Boruto:
+     * Naruto Next Generations". A title WITHOUT any lowercase letter is put back in
+     * title case - the others are not touched, an isolated capital
+     * possibly being intended ("JoJo").
      */
     static String lisible(String titre) {
         if (titre == null || titre.chars().anyMatch(Character::isLowerCase)

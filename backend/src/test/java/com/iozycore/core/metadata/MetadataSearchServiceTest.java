@@ -24,8 +24,8 @@ class MetadataSearchServiceTest {
         Entity alreadyOwned = Entity.create(MANGA.id(), "Naruto");
         FakeEntityRepository repository = new FakeEntityRepository(List.of(alreadyOwned));
         FakeMetadataProvider provider = new FakeMetadataProvider(List.of(
-                candidate("Naruto"),          // déjà possédé (comparaison insensible à la casse)
-                candidate("Boruto")));         // pas encore possédé
+                candidate("Naruto"),          // already owned (case-insensitive comparison)
+                candidate("Boruto")));         // not yet owned
 
         MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), new CatalogSearchService(repository));
 
@@ -56,7 +56,7 @@ class MetadataSearchServiceTest {
         MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), new CatalogSearchService(repository));
 
         service.search(MANGA, "naruto");
-        service.search(MANGA, "NARUTO"); // même requête à la casse près - doit rester un cache hit
+        service.search(MANGA, "NARUTO"); // same query up to case - must remain a cache hit
 
         assertThat(provider.callCount).isEqualTo(1);
     }
@@ -68,20 +68,20 @@ class MetadataSearchServiceTest {
         MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), new CatalogSearchService(repository));
 
         List<MetadataCandidate> beforeOwning = service.search(MANGA, "naruto");
-        repository.entities.add(Entity.create(MANGA.id(), "Naruto")); // ajouté entre les deux appels
+        repository.entities.add(Entity.create(MANGA.id(), "Naruto")); // added between the two calls
         List<MetadataCandidate> afterOwning = service.search(MANGA, "naruto");
 
         assertThat(beforeOwning).extracting(MetadataCandidate::title).containsExactlyInAnyOrder("Naruto", "Boruto");
         assertThat(afterOwning).extracting(MetadataCandidate::title).containsExactly("Boruto");
-        assertThat(provider.callCount).isEqualTo(1); // le second appel reste un cache hit côté provider
+        assertThat(provider.callCount).isEqualTo(1); // the second call remains a cache hit on the provider side
     }
 
     @Test
     void keeps_an_already_owned_title_when_the_caller_asks_for_it() {
-        // Le filtre sert l'écran d'AJOUT. Recharger les informations d'une fiche
-        // pose la question inverse - « que sait la source sur CETTE œuvre ? » -
-        // et le filtre y garantissait zéro correspondance par construction :
-        // sur Naruto, la recherche rendait huit dérivés et jamais la série.
+        // The filter serves the ADD screen. Reloading the information of a detail page
+        // asks the opposite question - "what does the source know about THIS work?" -
+        // and the filter guaranteed zero matches by construction there:
+        // on Naruto, the search returned eight derivatives and never the series.
         FakeEntityRepository repository = new FakeEntityRepository(List.of(Entity.create(MANGA.id(), "Naruto")));
         FakeMetadataProvider provider = new FakeMetadataProvider(List.of(candidate("Naruto"), candidate("Boruto")));
         MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), new CatalogSearchService(repository));
@@ -93,10 +93,10 @@ class MetadataSearchServiceTest {
 
     @Test
     void deduplicates_candidates_with_the_same_title_across_providers_keeping_the_first_providers_result() {
-        // Cas réel observé (voir historique) : "Naruto", inchangé en
-        // français, ressort à la fois de Jikan/MyAnimeList et de
-        // GoogleBooksTitleSearchProvider - deux entrées identiques dans la
-        // liste sans intérêt pour l'utilisateur.
+        // Real case observed (see history): "Naruto", unchanged in
+        // French, comes out of both Jikan/MyAnimeList and
+        // GoogleBooksTitleSearchProvider - two identical entries in the
+        // list, of no interest to the user.
         FakeMetadataProvider richProvider = new FakeMetadataProvider(List.of(candidate("Naruto")));
         FakeMetadataProvider poorProvider = new FakeMetadataProvider(
                 List.of(new MetadataCandidate("GOOGLE_BOOKS", "gb1", "naruto", null, Map.of())));
@@ -104,8 +104,8 @@ class MetadataSearchServiceTest {
 
         List<MetadataCandidate> results = service.search(MANGA, "naruto");
 
-        assertThat(results).hasSize(1); // pas deux entrées "Naruto"
-        assertThat(results.get(0).source()).isEqualTo("FAKE"); // le premier provider de la liste gagne
+        assertThat(results).hasSize(1); // not two "Naruto" entries
+        assertThat(results.get(0).source()).isEqualTo("FAKE"); // the first provider in the list wins
     }
 
     @Test
@@ -127,20 +127,20 @@ class MetadataSearchServiceTest {
         StatefulBarcodeProvider provider = new StatefulBarcodeProvider(candidate("Naruto"));
         MetadataSearchService service = new MetadataSearchService(List.of(), List.of(provider), new CatalogSearchService(repository));
 
-        Optional<MetadataCandidate> firstAttempt = service.lookupByBarcode(MANGA, "9780000000000"); // panne réseau simulée
-        Optional<MetadataCandidate> secondAttempt = service.lookupByBarcode(MANGA, "9780000000000"); // ré-essai qui réussit
+        Optional<MetadataCandidate> firstAttempt = service.lookupByBarcode(MANGA, "9780000000000"); // simulated network failure
+        Optional<MetadataCandidate> secondAttempt = service.lookupByBarcode(MANGA, "9780000000000"); // retry that succeeds
 
         assertThat(firstAttempt).isEmpty();
         assertThat(secondAttempt).isPresent();
-        assertThat(provider.callCount).isEqualTo(2); // pas de cache hit après l'échec
+        assertThat(provider.callCount).isEqualTo(2); // no cache hit after the failure
     }
 
     @Test
     void caches_a_barcode_the_databases_answered_they_do_not_know() {
-        // Depuis que les photos d'un lot livrent une douzaine d'EAN d'un coup -
-        // et qu'une identification prend de 1,4 a 5,5 s - reinterroger a chaque
-        // analyse un code dont on SAIT qu'il est introuvable coute cher pour
-        // rien.
+        // Since the photos of a batch deliver a dozen EANs at once -
+        // and an identification takes 1.4 to 5.5 s - re-querying on every
+        // analysis a code known to be unfindable costs a lot for
+        // nothing.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         CountingAbsentBarcodeProvider provider = new CountingAbsentBarcodeProvider();
         MetadataSearchService service = new MetadataSearchService(List.of(), List.of(provider), new CatalogSearchService(repository));
@@ -148,14 +148,14 @@ class MetadataSearchServiceTest {
         assertThat(service.lookupByBarcode(MANGA, "9780000000000")).isEmpty();
         assertThat(service.lookupByBarcode(MANGA, "9780000000000")).isEmpty();
 
-        assertThat(provider.callCount).as("une absence constatee se memorise").isEqualTo(1);
+        assertThat(provider.callCount).as("an observed absence is remembered").isEqualTo(1);
     }
 
     @Test
     void a_provider_that_could_not_answer_is_asked_again() {
-        // Le pendant, et le plus important des deux : memoriser une PANNE
-        // rendrait l'echec en cache au lieu de retenter, et un incident d'une
-        // seconde se figerait pour une demi-heure.
+        // The counterpart, and the more important of the two: remembering an OUTAGE
+        // would cache the failure instead of retrying, and a one-second incident
+        // would freeze for half an hour.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         CountingUnavailableBarcodeProvider provider = new CountingUnavailableBarcodeProvider();
         MetadataSearchService service = new MetadataSearchService(List.of(), List.of(provider), new CatalogSearchService(repository));
@@ -163,14 +163,14 @@ class MetadataSearchServiceTest {
         service.lookupByBarcode(MANGA, "9780000000000");
         service.lookupByBarcode(MANGA, "9780000000000");
 
-        assertThat(provider.callCount).as("une panne ne se memorise jamais").isEqualTo(2);
+        assertThat(provider.callCount).as("an outage is never remembered").isEqualTo(2);
     }
 
     @Test
     void one_database_in_failure_is_enough_to_refuse_caching_the_absence() {
-        // « Google Books ne connait pas ce code » ne dit rien tant qu'Open
-        // Library n'a pas pu repondre : la conclusion demande que TOUTES les
-        // bases competentes se soient prononcees.
+        // "Google Books does not know this code" says nothing as long as Open
+        // Library could not answer: the conclusion requires ALL the
+        // competent databases to have spoken.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         CountingAbsentBarcodeProvider repond = new CountingAbsentBarcodeProvider();
         CountingUnavailableBarcodeProvider muet = new CountingUnavailableBarcodeProvider();
@@ -185,8 +185,8 @@ class MetadataSearchServiceTest {
 
     @Test
     void a_provider_that_cannot_tell_the_difference_is_treated_as_a_failure() {
-        // Le defaut de l'interface : sans lookupDetailed, un vide n'est jamais
-        // concluant. C'est le comportement prudent, et celui d'avant.
+        // The interface default: without lookupDetailed, an empty is never
+        // conclusive. This is the cautious behaviour, and the one from before.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         SilentBarcodeProvider muet = new SilentBarcodeProvider();
         MetadataSearchService service = new MetadataSearchService(List.of(), List.of(muet), new CatalogSearchService(repository));
@@ -205,8 +205,8 @@ class MetadataSearchServiceTest {
         return new MetadataCandidate("FAKE", externalId, title, null, Map.of());
     }
 
-    /** entities est volontairement mutable (copie défensive en constructeur compact) -
-     * certains tests simulent un ajout survenant entre deux recherches. */
+    /** entities is deliberately mutable (defensive copy in compact constructor) -
+     * some tests simulate an addition happening between two searches. */
     private record FakeEntityRepository(List<Entity> entities) implements EntityRepository {
         FakeEntityRepository {
             entities = new ArrayList<>(entities);
@@ -248,9 +248,9 @@ class MetadataSearchServiceTest {
         }
     }
 
-    /** callCount n'est pas un composant de record exprès : il doit rester
-     * mutable pour que les tests de cache puissent vérifier combien de fois
-     * le "provider" a réellement été appelé (donc pas servi par le cache). */
+    /** callCount is not a record component on purpose: it must stay
+     * mutable so that the cache tests can check how many times
+     * the "provider" was really called (so not served by the cache). */
     private static final class FakeMetadataProvider implements MetadataProvider {
         private final List<MetadataCandidate> results;
         int callCount = 0;
@@ -291,11 +291,11 @@ class MetadataSearchServiceTest {
         }
     }
 
-    /** Simule une panne réseau transitoire (empty) au premier appel, puis un
-     * vrai résultat ensuite - vérifie qu'un échec n'est jamais mis en cache. */
+    /** Simulates a transient network failure (empty) on the first call, then a
+     * real result afterwards - checks that a failure is never cached. */
     /**
-     * Ne rend qu'un Optional vide, sans jamais dire pourquoi - comme le faisaient
-     * tous les providers avant cette passe.
+     * Returns only an empty Optional, never saying why - as all
+     * providers did before this pass.
      */
     private static final class SilentBarcodeProvider implements BarcodeMetadataProvider {
         int callCount = 0;
@@ -312,7 +312,7 @@ class MetadataSearchServiceTest {
         }
     }
 
-    /** Repond, et ne connait pas le code : une absence CONSTATEE. */
+    /** Answers, and does not know the code: an OBSERVED absence. */
     private static final class CountingAbsentBarcodeProvider implements BarcodeMetadataProvider {
         int callCount = 0;
 
@@ -333,7 +333,7 @@ class MetadataSearchServiceTest {
         }
     }
 
-    /** N'a pas pu repondre : reseau, delai, quota. */
+    /** Could not answer: network, timeout, quota. */
     private static final class CountingUnavailableBarcodeProvider implements BarcodeMetadataProvider {
         int callCount = 0;
 

@@ -56,14 +56,14 @@ class JpaTierListItemRepositoryAdapter implements TierListItemRepository {
 
     @Override
     public void deleteByTierListIdAndEntityId(UUID tierListId, UUID entityId) {
-        // Lecture filtrée puis suppression : une suppression en masse
-        // (deleteBy…) ne passe pas par le cloisonnement par propriétaire.
+        // Filtered read then delete: a bulk delete
+        // (deleteBy...) does not go through the owner isolation.
         jpaRepository.findByTierListIdAndEntityId(tierListId, entityId).ifPresent(jpaRepository::delete);
     }
 
     @Override
     public void deleteByTierListId(UUID tierListId) {
-        // Idem : on efface ce que CE compte voit dans cette liste.
+        // Same: we delete what THIS account sees in this list.
         jpaRepository.deleteAll(jpaRepository.findByTierListId(tierListId));
     }
 

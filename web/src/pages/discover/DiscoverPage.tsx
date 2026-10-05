@@ -16,23 +16,23 @@ const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
   { id: 'sorties', label: 'Sorties', icon: CalendarDays },
 ]
 
-/** Sous 1100px (mobile ou desktop étroit) : 4 sous-onglets, un seul panneau
- * visible à la fois (role="tab"/aria-selected - le seul jeu d'onglets de
- * l'application). À partir de 1100px sur desktop : composition
- * éditoriale réelle - Tier Lists sur ~62%, Opportunités à côté (bordure de
- * séparation), Découvertes en pleine largeur dessous - plus d'onglets à ce
- * stade (voir DS v1.1, commentaire source "Plus d'onglets à ce stade").
- * Un seul markup : la bascule est purement CSS (`hidden`/`min-[1100px]:flex`,
- * même principe que TabBar/DesktopHeader avec NAV_BREAKPOINT_PX), jamais du
- * contenu dupliqué entre les deux mises en page.
+/** Under 1100px (mobile or narrow desktop): 4 sub-tabs, only one panel
+ * visible at a time (role="tab"/aria-selected - the only set of tabs of
+ * the application). From 1100px on desktop: real editorial
+ * composition - Tier Lists on ~62%, Opportunités next to it (separating
+ * border), Découvertes full width below - no more tabs at this
+ * stage (see DS v1.1, source comment "Plus d'onglets à ce stade").
+ * One single markup: the switch is purely CSS (`hidden`/`min-[1100px]:flex`,
+ * same principle as TabBar/DesktopHeader with NAV_BREAKPOINT_PX), never
+ * content duplicated between the two layouts.
  *
- * <p>L'écran du cœur (lot 142) : les Tier Lists valent pour tout univers, les
- * opportunités viennent de ce qui a une progression, les découvertes de
- * chaque univers qui sait en proposer. « Prochaines sorties » en était parti
- * faute de source - un panneau vide n'est pas une promesse, c'est une case -
- * et y revient au lot 146 avec des données : les tomes datés par Google
- * Books, les jeux datés par IGDB, les dates saisies sur les fiches. Quatrième
- * sous-onglet en mobile, pleine largeur sous les Découvertes en desktop. */
+ * <p>The core screen (batch 142): Tier Lists work for any universe, the
+ * opportunities come from what has a progress, the discoveries from
+ * each universe that knows how to offer some. "Prochaines sorties" left it
+ * for lack of a source - an empty panel is not a promise, it is a box -
+ * and comes back to it in batch 146 with data: volumes dated by Google
+ * Books, games dated by IGDB, dates entered on the detail pages. Fourth
+ * sub-tab on mobile, full width under the Découvertes on desktop. */
 export function DiscoverPage() {
   const [tab, setTab] = useState<DiscoverTab>('tiers')
 
@@ -40,15 +40,15 @@ export function DiscoverPage() {
     <div className="flex flex-col gap-5">
       <EnTeteSection niveau={1} titre="Découvrir" />
 
-      {/* La porte de l'analyse d'achat. Elle a été la quatrième destination
-          de la navigation (étude produit du 2026-08-27, §4) jusqu'au lot 137 :
-          c'est un parcours MANGA - un lot de tomes d'occasion confronté à la
-          collection - et la barre de navigation ne nomme plus aucun univers.
-          Il se rejoint d'ici, et depuis la fiche d'une série (« Évaluer une
-          annonce »). Une carte-lien comme le bilan annuel plus bas, pas un
-          quatrième panneau : la composition éditoriale n'en attend pas. En
-          tête, parce que c'est une ACTION - on arrive avec une annonce sous
-          les yeux - là où les panneaux se lisent. */}
+      {/* The gate of the purchase analysis. It was the fourth destination
+          of the navigation (product study of 2026-08-27, section 4) until batch 137:
+          it is a MANGA journey - a lot of second-hand volumes compared to the
+          collection - and the navigation bar no longer names any universe.
+          It is reached from here, and from the detail page of a series ("Évaluer une
+          annonce"). A link card like the yearly review further down, not a
+          fourth panel: the editorial composition does not expect one. At the
+          top, because it is an ACTION - one arrives with a listing in
+          front of the eyes - whereas the panels are read. */}
       <Link
         to="/purchase-analysis"
         state={{ retour: { to: '/discover', libelle: 'Découvrir' } }}
@@ -66,10 +66,10 @@ export function DiscoverPage() {
         <ChevronRight size={16} className="shrink-0 text-textDim" />
       </Link>
 
-      {/* Quatre onglets qui tiennent TOUS dans la largeur d'un téléphone : une
-          colonne chacun, l'icône au-dessus du libellé sous 640 px. La rangée
-          défilante d'avant coupait le quatrième hors écran (lot 146) - un
-          onglet qu'on ne voit pas n'existe pas. */}
+      {/* Four tabs that ALL fit in the width of a phone: one
+          column each, the icon above the label under 640 px. The scrolling
+          row from before cut the fourth one off screen (batch 146) - a
+          tab that cannot be seen does not exist. */}
       <div role="tablist" className="grid grid-cols-4 border-b border-surface2 min-[1100px]:hidden">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
@@ -113,15 +113,15 @@ export function DiscoverPage() {
         </section>
       </div>
 
-      {/* Le bilan annuel a quitté la liste de liens de Profil le 2026-08-29 :
-          c'est une LECTURE de la collection, comme les trois panneaux
-          ci-dessus, pas un réglage.
+      {/* The yearly review left the Profil link list on 2026-08-29:
+          it is a READING of the collection, like the three panels
+          above, not a setting.
 
-          Un LIEN et non un quatrième onglet : les trois panneaux composent une
-          mise en page éditoriale (1,65fr / 1fr, puis pleine largeur), et le
-          commentaire de cet écran dit « plus d'onglets à ce stade ». Le bilan
-          est d'ailleurs un écran entier, pas un panneau - il n'a rien à faire
-          dans une grille qui n'en attend pas. */}
+          A LINK and not a fourth tab: the three panels compose an editorial
+          layout (1.65fr / 1fr, then full width), and the
+          comment of this screen says "plus d'onglets à ce stade". The review
+          is also a whole screen, not a panel - it has no place
+          in a grid that does not expect one. */}
       <Link
         to="/recap"
         className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"

@@ -28,7 +28,7 @@ class BggThingFetcherTest {
         Set<String> result = fetcher.parse(SAMPLE_RESPONSE);
 
         assertThat(result).containsExactlyInAnyOrder("Economic", "Negotiation", "Trading");
-        assertThat(result).doesNotContain("Klaus Teuber"); // designer, pas une catégorie/mécanique
+        assertThat(result).doesNotContain("Klaus Teuber"); // designer, not a category/mechanic
     }
 
     @Test

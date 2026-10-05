@@ -15,16 +15,16 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Obtient et met en cache un access token IGDB via le flux OAuth2
- * client-credentials de Twitch (IGDB appartient à Twitch/Amazon). À la
- * différence du token BGG (statique, optionnel - voir BggAuthorization),
- * ce token expire (quelques dizaines de jours en pratique côté Twitch) et
- * doit être renouvelé : ce composant est donc stateful, avec état en
- * mémoire (application mono-utilisateur, pas besoin de cache distribué).
+ * Gets and caches an IGDB access token through the Twitch OAuth2
+ * client-credentials flow (IGDB belongs to Twitch/Amazon). Unlike
+ * the BGG token (static, optional - see BggAuthorization),
+ * this token expires (a few tens of days in practice on the Twitch side) and
+ * must be renewed: this component is therefore stateful, with in-memory
+ * state (single-user application, no need for a distributed cache).
  * <p>
- * IGDB n'a pas de mode dégradé : sans identifiants valides, aucun appel
- * IGDB ne peut aboutir (contrairement à BGG, fonctionnel sans token mais
- * non conforme à ses conditions).
+ * IGDB has no degraded mode: without valid credentials, no IGDB call
+ * can succeed (unlike BGG, which works without a token but is
+ * not compliant with its terms).
  */
 @Component
 public class IgdbTokenProvider {
@@ -32,8 +32,8 @@ public class IgdbTokenProvider {
     private static final Logger log = LoggerFactory.getLogger(IgdbTokenProvider.class);
     private static final String TOKEN_URL =
             "https://id.twitch.tv/oauth2/token?client_id=%s&client_secret=%s&grant_type=client_credentials";
-    // Marge de sécurité pour ne jamais remettre un token sur le point d'expirer
-    // à un appelant qui l'utiliserait juste après (latence réseau incluse).
+    // Safety margin to never hand over a token about to expire
+    // to a caller that would use it right after (network latency included).
     private static final long EXPIRY_SAFETY_MARGIN_SECONDS = 60;
 
     @Value("${igdb.client-id:}")
@@ -50,7 +50,7 @@ public class IgdbTokenProvider {
     private volatile String cachedToken;
     private volatile Instant cachedExpiresAt;
 
-    /** Renvoie un access token valide, en le renouvelant si absent/expiré. */
+    /** Returns a valid access token, renewing it if missing/expired. */
     synchronized String getAccessToken() throws IgdbUnavailableException {
         if (!isExpired(cachedExpiresAt, Instant.now())) {
             return cachedToken;
@@ -87,12 +87,12 @@ public class IgdbTokenProvider {
         } catch (IgdbUnavailableException e) {
             throw e;
         } catch (Exception e) {
-            log.warn("Échec de l'échange de token IGDB/Twitch : {}", e.getMessage());
+            log.warn("IGDB/Twitch token exchange failed: {}", e.getMessage());
             throw new IgdbUnavailableException("Échec de l'échange de token IGDB/Twitch", e);
         }
     }
 
-    /** Logique d'expiration isolée en méthode statique pure - testable sans appel réseau. */
+    /** Expiry logic isolated in a pure static method - testable without a network call. */
     static boolean isExpired(Instant expiresAt, Instant now) {
         return expiresAt == null || !now.isBefore(expiresAt.minusSeconds(EXPIRY_SAFETY_MARGIN_SECONDS));
     }

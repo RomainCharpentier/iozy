@@ -8,20 +8,20 @@ public interface RelationshipRepository {
 
     Relationship save(Relationship relationship);
 
-    /** Utilisé pour corriger le type d'une relation existante sans en changer les extrémités. */
+    /** Used to fix the type of an existing relationship without changing its ends. */
     Optional<Relationship> findById(UUID id);
 
     List<Relationship> findBySourceEntityId(UUID sourceEntityId);
 
     List<Relationship> findByTargetEntityId(UUID targetEntityId);
 
-    /** Utilisé par l'export complet de la collection (§19, docs/CONCEPTION.md - anti-enfermement). */
+    /** Used by the full export of the collection (§19, docs/CONCEPTION.md - anti lock-in). */
     List<Relationship> findAll();
 
     /**
-     * Retire une relation créée par erreur. Ne touche à aucune des deux œuvres
-     * liées - seul le lien disparaît. Idempotent, comme les autres suppressions
-     * de petites données utilisateur du projet.
+     * Removes a relationship created by mistake. Touches neither of the two linked
+     * works - only the link disappears. Idempotent, like the other deletions
+     * of small user data in the project.
      */
     void deleteById(UUID id);
 }

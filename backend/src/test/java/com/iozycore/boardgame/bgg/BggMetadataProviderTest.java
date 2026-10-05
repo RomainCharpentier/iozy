@@ -48,9 +48,9 @@ class BggMetadataProviderTest {
     }
 
     /**
-     * Constaté en cherchant « Carcassonne » dans l'application : BGG rendait 144
-     * lignes dans SON ordre - alphabétique - ouvertes par treize extensions
-     * amateurs, le jeu lui-même arrivant en quatorzième position.
+     * Seen when searching for "Carcassonne" in the app: BGG returned 144
+     * rows in ITS order - alphabetical - opened by thirteen fan-made
+     * expansions, with the game itself in fourteenth position.
      */
     @Test
     void the_exact_title_comes_first_even_when_bgg_lists_fan_expansions_before_it() {
@@ -64,10 +64,10 @@ class BggMetadataProviderTest {
         List<String> classes = BggMetadataProvider.classerParPertinence(deBgg, "Carcassonne")
                 .stream().map(MetadataCandidate::title).toList();
 
-        // Le titre exact, puis ceux qui COMMENCENT par la recherche. Au-delà,
-        // l'ordre de BGG est conservé : distinguer « New Carcassonne » d'une
-        // extension amateur demanderait de deviner ce qu'est une extension, et
-        // ce dépôt ne devine pas.
+        // The exact title, then those that START with the search. Beyond that,
+        // BGG's order is kept: telling "New Carcassonne" from a fan-made
+        // expansion would mean guessing what an expansion is, and
+        // this repo does not guess.
         assertThat(classes).startsWith("Carcassonne", "Carcassonne: Hunters and Gatherers");
     }
 
@@ -81,8 +81,8 @@ class BggMetadataProviderTest {
         assertThat(classes).startsWith("Baum fällt!");
     }
 
-    /** BGG ne limite pas ses réponses ; l'écran de recherche, si - même plafond
-     *  que le fournisseur manga. */
+    /** BGG does not limit its answers; the search screen does - same cap
+     *  as the manga provider. */
     @Test
     void only_the_first_results_are_kept() {
         List<MetadataCandidate> deBgg = java.util.stream.IntStream.range(0, 50)

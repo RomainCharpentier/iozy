@@ -19,11 +19,11 @@ struct IozyCoreApp: App {
     }
 }
 
-/// Navigation par onglets, un onglet par parcours utilisateur validé en
-/// conception (étape 5) : Étagères (accueil, mode "vitrine"), Recherche
-/// (parcours 3), Ajout rapide (parcours 1), Wishlist, Statistiques (UC6).
-/// Thème forcé en sombre (direction visuelle validée) plutôt que de suivre
-/// le réglage système - identité de marque assumée, pas un simple mode nuit.
+/// Tab navigation, one tab for each user journey validated during
+/// design (step 5): Shelves (home, "showcase" mode), Search
+/// (journey 3), Quick add (journey 1), Wishlist, Statistics (UC6).
+/// Theme forced to dark (validated visual direction) instead of following
+/// the system setting - a deliberate brand identity, not a simple night mode.
 struct RootTabView: View {
     init() {
         let appearance = UITabBarAppearance()

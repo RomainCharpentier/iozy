@@ -1,40 +1,40 @@
 import { get, post } from './client'
 
 /**
- * Entrer, sortir, savoir qui l'on est.
+ * Sign in, sign out, know who you are.
  *
- * <p>Aucun jeton n'est manipulé ici : la session vit dans un cookie que le
- * navigateur envoie tout seul et que le JavaScript ne peut pas lire (voir
- * SecurityConfig côté serveur). Ce module ne fait donc que poser des questions
- * au serveur - c'est lui qui sait.
+ * <p>No token is handled here: the session lives in a cookie that the
+ * browser sends by itself and that JavaScript cannot read (see
+ * SecurityConfig on the server side). So this module only asks questions
+ * to the server - it is the one that knows.
  */
 
-/** L'état d'une instance, pour savoir quoi proposer avant même de connaître quelqu'un. */
+/** The state of an instance, to know what to offer before even knowing anyone. */
 export interface EtatAuth {
-  /** Personne n'a encore de compte : c'est le tout premier démarrage. */
+  /** Nobody has an account yet: this is the very first start. */
   aucunCompte: boolean
-  /** Un compte de plus peut être créé (premier compte, ou code d'invitation configuré). */
+  /** One more account can be created (first account, or an invitation code is configured). */
   creationOuverte: boolean
 }
 
 export interface Compte {
-  /** Nul en visite : un visiteur n'est personne, il n'y a pas de compte à nommer. */
+  /** Null in a visit: a visitor is nobody, there is no account to name. */
   id: string | null
-  /** Nulle en visite : un visiteur n'a pas d'adresse. */
+  /** Null in a visit: a visitor has no address. */
   email: string | null
-  /** Unique sur l'instance, et le seul nom sous lequel on apparaît - jamais l'adresse. */
+  /** Unique on the instance, and the only name under which one appears - never the address. */
   pseudo: string
   /**
-   * Peut administrer l'INSTANCE - voir qui a un compte, en supprimer un.
-   * Aucun accès aux données de quiconque : l'isolation par propriétaire est
-   * entière (voir `api/admin`).
+   * Can administer the INSTANCE - see who has an account, delete one.
+   * No access to anyone's data: isolation by owner is
+   * complete (see `api/admin`).
    */
   admin: boolean
   /**
-   * Une VISITE, pas un compte. La session ne nomme alors aucun propriétaire :
-   * elle voit le catalogue - les œuvres, qui n'appartiennent à personne - et
-   * rien des possessions, notes ou envies de qui que ce soit. Toute écriture
-   * lui est refusée (403).
+   * A VISIT, not an account. The session then names no owner:
+   * it sees the catalog - the works, which belong to nobody - and
+   * nothing of anyone's ownerships, ratings or wishes. Every write
+   * is refused (403).
    */
   invite: boolean
 }
@@ -43,7 +43,7 @@ export function lireEtatAuth(): Promise<EtatAuth> {
   return get<EtatAuth>('/auth/etat')
 }
 
-/** Le compte connecté. Rejette en 401 quand il n'y en a pas - ce n'est pas une panne. */
+/** The signed-in account. Rejects with 401 when there is none - this is not a failure. */
 export function lireCompte(): Promise<Compte> {
   return get<Compte>('/auth/me')
 }
@@ -66,8 +66,8 @@ export function seDeconnecter(): Promise<void> {
 }
 
 /**
- * Consulter le catalogue sans compte. Toujours possible : il n'y a aucun
- * réglage à consulter, et rien à autoriser.
+ * Browse the catalog without an account. Always possible: there is no
+ * setting to check, and nothing to authorize.
  */
 export function entrerEnVisite(): Promise<Compte> {
   return post<Compte>('/auth/visite')

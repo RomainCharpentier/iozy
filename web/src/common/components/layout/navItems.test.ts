@@ -1,20 +1,20 @@
 /**
- * <b>Une seule liste, lue par deux barres — et l'invariant qui le prouve.</b>
+ * <b>A single list, read by two bars — and the invariant that proves it.</b>
  *
- * Les deux barres portaient chacune leur copie, « gardée manuellement
- * synchronisée » : c'est-à-dire garantie de diverger. Dix parcours ont ainsi
- * disparu du mobile sans que rien ne le signale.
+ * The two bars each carried their copy, "manually kept
+ * in sync": which is a guarantee to diverge. Ten flows thus
+ * disappeared from mobile without anything flagging it.
  *
- * <p>Le vrai risque restant n'est plus la copie, c'est le <b>surlignage</b> :
- * `activeWhen` est écrit à la main, route par route. Une route oubliée
- * n'allume rien (l'utilisateur ne sait plus où il est), une route trop large
- * en allume deux (il croit être ailleurs). Ce fichier vérifie donc, pour
- * chaque route réelle de l'app, qu'<b>exactement une</b> entrée s'allume.
+ * <p>The real remaining risk is no longer the copy, it is the <b>highlighting</b>:
+ * `activeWhen` is written by hand, route by route. A forgotten route
+ * lights nothing (the user no longer knows where they are), a route that is too wide
+ * lights two (they think they are elsewhere). This file therefore checks, for
+ * each real route of the app, that <b>exactly one</b> entry lights up.
  */
 import { describe, expect, it } from 'vitest'
 import { NAV_ITEMS } from './navItems'
 
-/** Les routes réelles, avec la destination qui doit s'allumer sur chacune. */
+/** The real routes, with the destination that must light up on each. */
 const ROUTES: [chemin: string, destination: string][] = [
   ['/', '/'],
   ['/entity/berserk', '/'],
@@ -27,8 +27,8 @@ const ROUTES: [chemin: string, destination: string][] = [
   ['/tier-lists/board-1', '/discover'],
   ['/suggestions', '/discover'],
   ['/releases', '/discover'],
-  // L'analyse d'une annonce a quitté la barre (lot 137) : elle s'ouvre depuis
-  // Découvrir, et c'est lui qui s'allume.
+  // The analysis of a listing left the bar (batch 137): it opens from
+  // Discover, and it is Discover that lights up.
   ['/purchase-analysis', '/discover'],
   ['/purchase-analysis/history', '/discover'],
 ]
@@ -37,41 +37,41 @@ function allumees(pathname: string): string[] {
   return NAV_ITEMS.filter((item) => item.activeWhen(pathname)).map((item) => item.to)
 }
 
-describe('le surlignage de la navigation', () => {
-  it.each(ROUTES)('%s allume %s, et rien d’autre', (chemin, destination) => {
+describe('the navigation highlighting', () => {
+  it.each(ROUTES)('%s lights %s, and nothing else', (chemin, destination) => {
     expect(allumees(chemin)).toEqual([destination])
   })
 
-  it('n’allume rien sur une route qui n’appartient à aucune destination', () => {
-    // Profil, Paramètres, Statistiques : atteints par raccourci, pas par la
-    // navigation. Y allumer une destination mentirait sur où l'on est.
+  it('lights nothing on a route that belongs to no destination', () => {
+    // Profile, Settings, Statistics: reached by shortcut, not by the
+    // navigation. Lighting a destination there would lie about where one is.
     expect(allumees('/profile')).toEqual([])
     expect(allumees('/settings')).toEqual([])
     expect(allumees('/stats')).toEqual([])
   })
 
-  it('ne laisse pas « / » allumer tout ce qui commence par un slash', () => {
-    // Le piège classique du préfixe : `startsWith('/')` est vrai partout.
+  it('does not let "/" light everything that starts with a slash', () => {
+    // The classic prefix trap: `startsWith('/')` is true everywhere.
     expect(allumees('/discover')).not.toContain('/')
   })
 })
 
-describe('la liste elle-même', () => {
-  it('porte trois destinations, toutes distinctes, et aucune ne nomme un univers', () => {
+describe('the list itself', () => {
+  it('carries three destinations, all distinct, and none names a universe', () => {
     expect(NAV_ITEMS).toHaveLength(3)
     expect(new Set(NAV_ITEMS.map((item) => item.to)).size).toBe(3)
     expect(NAV_ITEMS.map((item) => item.to)).not.toContain('/purchase-analysis')
   })
 
-  it('donne à chaque entrée un libellé court qui tient dans la barre du pouce', () => {
-    // Sur 375 px : « Ma collection » y devient « Collection ».
+  it('gives each entry a short label that fits in the thumb bar', () => {
+    // On 375 px: "Ma collection" becomes "Collection" there.
     for (const item of NAV_ITEMS) {
       expect(item.labelCourt.length).toBeLessThanOrEqual(item.label.length)
       expect(item.labelCourt.length).toBeLessThanOrEqual(12)
     }
   })
 
-  it('allume chaque entrée sur sa propre route', () => {
+  it('lights each entry on its own route', () => {
     for (const item of NAV_ITEMS) {
       expect(item.activeWhen(item.to)).toBe(true)
     }

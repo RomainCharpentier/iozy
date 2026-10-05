@@ -1,6 +1,6 @@
 /**
- * <b>Les prochaines sorties, en tête de Découvrir.</b> Trois lignes au plus,
- * datées, sur les trois mois à venir - et « Tout voir » vers le calendrier.
+ * <b>The next releases, at the top of Découvrir.</b> Three lines at most,
+ * dated, over the next three months - and "Tout voir" to the calendar.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
@@ -49,7 +49,7 @@ beforeEach(() => {
 })
 
 describe('DiscoverReleasesPreview', () => {
-  it('montre les trois premières sorties, datées, et mène au calendrier', async () => {
+  it('shows the first three releases, dated, and leads to the calendar', async () => {
     insights.getReleaseCalendar.mockResolvedValue({
       from: '',
       to: '',
@@ -68,7 +68,7 @@ describe('DiscoverReleasesPreview', () => {
     expect(to > from).toBe(true)
   })
 
-  it('dit quand rien n’est annoncé, et comment suivre une œuvre', async () => {
+  it('says when nothing is announced, and how to follow a work', async () => {
     insights.getReleaseCalendar.mockResolvedValue({ from: '', to: '', entries: [] })
     render(<DiscoverReleasesPreview />, { wrapper: enrobage })
 

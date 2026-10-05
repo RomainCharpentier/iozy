@@ -14,76 +14,76 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Socle des tests de <b>contrat HTTP</b> : la pile web réelle, pas une méthode
- * Java appelée directement.
+ * Base of the <b>HTTP contract</b> tests: the real web stack, not a Java
+ * method called directly.
  *
- * <h2>Ce que ce socle rend testable, et qui ne l'était pas</h2>
- * Le dépôt n'avait aucun test traversant la couche web. Les tests
- * d'intégration existants appellent les contrôleurs en Java
- * ({@code controller.delete(id)}), ce qui saute précisément l'endroit où les
- * défauts survivent : le routage, la désérialisation JSON, la conversion des
- * paramètres de chemin, et la traduction d'une exception métier en status HTTP.
- * Un {@code IllegalStateException} rendu en 500 au lieu de 409 est invisible
- * pour un appel direct, et parfaitement visible ici.
+ * <h2>What this base makes testable, and was not</h2>
+ * The repository had no test going through the web layer. The existing
+ * integration tests call the controllers in Java
+ * ({@code controller.delete(id)}), which skips precisely the place where
+ * defects survive: the routing, the JSON deserialisation, the conversion of
+ * path parameters, and the translation of a business exception into an HTTP status.
+ * An {@code IllegalStateException} returned as a 500 instead of a 409 is invisible
+ * for a direct call, and perfectly visible here.
  *
- * <h2>Même infrastructure que les tests d'intégration existants</h2>
+ * <h2>Same infrastructure as the existing integration tests</h2>
  * Testcontainers PostgreSQL, {@code @SpringBootTest}, {@code @Transactional} -
- * on ajoute seulement {@code @AutoConfigureMockMvc}. Pas de second framework
- * de test : le contexte est celui de l'application, donc l'{@code ObjectMapper}
- * et l'{@code ApiExceptionHandler} testés sont ceux qui tournent en production.
+ * we only add {@code @AutoConfigureMockMvc}. No second test framework:
+ * the context is the one of the application, so the {@code ObjectMapper}
+ * and the {@code ApiExceptionHandler} tested are the ones that run in production.
  *
  * <h2>Isolation</h2>
- * {@code @Transactional} sur le test enveloppe la requête MockMvc, qui s'exécute
- * dans le même thread : tout est annulé à la fin. La base reste déterministe
- * sans nettoyage manuel.
+ * {@code @Transactional} on the test wraps the MockMvc request, which runs
+ * in the same thread: everything is rolled back at the end. The database stays deterministic
+ * without manual cleaning.
  * <p>
- * Une réserve à connaître : une requête qui viole une contrainte de base marque
- * la transaction {@code rollback-only}. Un test qui provoque un 409 de ce type
- * ne doit donc plus interroger la base ensuite - il vérifie le status et le
- * corps, ce qui est justement l'objet de ces tests.
+ * One reservation to know: a request that violates a database constraint marks
+ * the transaction {@code rollback-only}. A test that causes a 409 of this kind
+ * must therefore no longer query the database afterwards - it checks the status and the
+ * body, which is precisely the purpose of these tests.
  */
 /**
- * <h2>Le conteneur et le contexte viennent de {@link PostgresIntegrationTest}</h2>
- * Ce socle déclarait autrefois son propre {@code PostgreSQLContainer}, partagé
- * entre ses seules classes. C'était déjà la bonne idée, mais appliquée à un
- * tiers de la suite : quatorze autres classes en démarraient chacune un.
- * Le conteneur, le {@code @DynamicPropertySource} et {@code @SpringBootTest}
- * remontent donc d'un cran, et ce socle n'ajoute plus que ce qui lui est
- * propre - {@code MockMvc}.
+ * <h2>The container and the context come from {@link PostgresIntegrationTest}</h2>
+ * This base used to declare its own {@code PostgreSQLContainer}, shared
+ * between its own classes only. It was already the right idea, but applied to a
+ * third of the suite: fourteen other classes each started one.
+ * The container, the {@code @DynamicPropertySource} and {@code @SpringBootTest}
+ * therefore go up one level, and this base only adds what is
+ * specific to it - {@code MockMvc}.
  */
 /**
- * <h2>Ces tests parlent au nom d'un compte connecté</h2>
- * Depuis que l'API est protégée (Lot 94), une requête anonyme reçoit 401 avant
- * d'atteindre le moindre contrôleur : les 86 endpoints couverts ici ne
- * testeraient plus que la page de refus. Chaque requête part donc authentifiée
- * et porte son jeton CSRF, posés <b>en un seul endroit</b> plutôt qu'ajoutés à
- * la main sur des centaines d'appels - une ligne oubliée quelque part se
- * lirait comme un défaut du contrôleur.
+ * <h2>These tests speak in the name of a connected account</h2>
+ * Since the API is protected (Batch 94), an anonymous request receives 401 before
+ * reaching any controller: the 86 endpoints covered here would
+ * only test the refusal page. Each request therefore goes out authenticated
+ * and carries its CSRF token, set <b>in one single place</b> rather than added by
+ * hand to hundreds of calls - a line forgotten somewhere would
+ * read as a defect of the controller.
  * <p>
- * Ce que ce socle NE fait pas : vérifier la porte elle-même. C'est l'objet de
- * {@code AuthHttpContractTest}, qui envoie ses requêtes en anonyme.
+ * What this base does NOT do: check the door itself. That is the purpose of
+ * {@code AuthHttpContractTest}, which sends its requests anonymously.
  */
 @AutoConfigureMockMvc
 @Import(RequetesAuthentifiees.class)
 public abstract class HttpContractTestBase extends PostgresIntegrationTest {
 
     /**
-     * Le compte au nom duquel ces tests écrivent. Il porte l'identifiant du
-     * propriétaire par défaut : les données créées par les migrations et par
-     * les tests d'intégration existants lui appartiennent donc, exactement
-     * comme le premier compte créé sur une instance reprend la collection
-     * déjà en base.
+     * The account in the name of which these tests write. It carries the identifier of the
+     * default owner: the data created by the migrations and by
+     * the existing integration tests therefore belong to it, exactly
+     * like the first account created on an instance takes over the collection
+     * already in the database.
      */
     protected static final AppUserDetailsService.Principal IDENTITE_DE_TEST =
             new AppUserDetailsService.Principal(DefaultOwner.ID, "test@iozycore.local", "{noop}sans-objet", "Test",
                     false);
 
     /**
-     * Le même compte, administrateur. Réservé aux tests de {@code /api/admin/**} :
-     * l'identité par défaut ci-dessus ne l'est PAS, sans quoi toute la suite
-     * HTTP franchirait sans le dire une porte qui n'est ouverte qu'à un compte
-     * sur beaucoup - et le refus opposé aux autres ne serait plus testé nulle
-     * part.
+     * The same account, administrator. Reserved for the tests of {@code /api/admin/**}:
+     * the default identity above is NOT one, otherwise the whole HTTP suite
+     * would silently go through a door that is only open to one account
+     * out of many - and the refusal given to the others would no longer be tested
+     * anywhere.
      */
     protected static final AppUserDetailsService.Principal IDENTITE_ADMIN =
             new AppUserDetailsService.Principal(DefaultOwner.ID, "test@iozycore.local", "{noop}sans-objet", "Test",
@@ -92,7 +92,7 @@ public abstract class HttpContractTestBase extends PostgresIntegrationTest {
     @Autowired
     protected MockMvc mockMvc;
 
-    /** Celui de l'application : les tests sérialisent comme le client réel. */
+    /** The one of the application: the tests serialise like the real client. */
     @Autowired
     protected ObjectMapper objectMapper;
 
@@ -100,14 +100,14 @@ public abstract class HttpContractTestBase extends PostgresIntegrationTest {
     private AppUserRepository comptes;
 
     /**
-     * Le compte au nom duquel ces tests parlent <b>existe</b> en base.
+     * The account in the name of which these tests speak <b>exists</b> in the database.
      *
-     * <p>Le principal ci-dessus est fabriqué, pas lu : aucune ligne ne se
-     * trouvait derrière lui, et rien ne s'en apercevait - jusqu'à ce que la
-     * chaîne de sécurité relise le compte à chaque requête pour fermer la
-     * session d'un compte supprimé (voir {@code SecurityConfig.SessionDUnCompteSupprime}).
-     * Un principal sans compte est précisément ce qu'elle refuse. La ligne
-     * est posée par test, et annulée avec lui.
+     * <p>The principal above is made up, not read: no row was
+     * behind it, and nothing noticed - until the
+     * security chain read the account again at each request to close the
+     * session of a deleted account (see {@code SecurityConfig.SessionDUnCompteSupprime}).
+     * A principal without an account is precisely what it refuses. The row
+     * is set per test, and rolled back with it.
      */
     @BeforeEach
     void leCompteDeTestExiste() {
@@ -117,10 +117,10 @@ public abstract class HttpContractTestBase extends PostgresIntegrationTest {
         }
     }
 
-    /** Un identifiant syntaxiquement valide qui ne désigne rien. */
+    /** A syntactically valid identifier that points to nothing. */
     protected static final String ABSENT = "00000000-0000-0000-0000-0000000000ff";
 
-    /** Un identifiant qui n'est pas un UUID - doit échouer à la conversion, jamais en 500. */
+    /** An identifier that is not a UUID - must fail at the conversion, never with a 500. */
     protected static final String MALFORME = "pas-un-uuid";
 
     protected String json(Object valeur) throws Exception {

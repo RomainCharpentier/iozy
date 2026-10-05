@@ -1,8 +1,8 @@
 /**
- * <b>Tout ce qui vient, mois par mois.</b> Ce qui se casse en silence : une
- * fenêtre qui déborde de l'année que le serveur accepte, un mois qui passe
- * devant un autre, une sortie « à préciser » qui grimpe avant les jours
- * connus, une ligne qui n'amène plus la grille au bon endroit.
+ * <b>Everything that is coming, month by month.</b> What breaks silently: a
+ * window that goes past the year the server accepts, a month that goes
+ * ahead of another, a release "à préciser" that climbs before the known
+ * days, a row that no longer brings the grid to the right place.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
@@ -43,7 +43,7 @@ const TYPES = new Map([['jeu', 'Jeu vidéo']])
 beforeEach(() => vi.clearAllMocks())
 
 describe('ListeAVenir', () => {
-  it('demande l’année à venir, la range mois par mois, et chaque ligne amène la grille sur son jour', async () => {
+  it('asks for the coming year, lays it out month by month, and each row brings the grid to its day', async () => {
     insights.getReleaseCalendar.mockResolvedValue({
       from: '',
       to: '',
@@ -58,7 +58,7 @@ describe('ListeAVenir', () => {
     const utilisateur = userEvent.setup()
 
     expect(await screen.findByRole('complementary', { name: 'À venir' })).toBeInTheDocument()
-    // D'aujourd'hui à la veille du même jour l'an prochain : jamais 366 jours.
+    // From today to the eve of the same day next year: never 366 days.
     const [from, to] = insights.getReleaseCalendar.mock.calls[0]
     const aujourdHui = new Date()
     expect(from).toBe(isoLocal(aujourdHui))
@@ -76,7 +76,7 @@ describe('ListeAVenir', () => {
     expect(onVoir).toHaveBeenCalledWith('2000-02', null)
   })
 
-  it('dit quand l’année qui vient est vide', async () => {
+  it('says when the coming year is empty', async () => {
     insights.getReleaseCalendar.mockResolvedValue({ from: '', to: '', entries: [] })
     render(<ListeAVenir libelleParType={TYPES} onVoir={vi.fn()} />, { wrapper: enrobage })
 

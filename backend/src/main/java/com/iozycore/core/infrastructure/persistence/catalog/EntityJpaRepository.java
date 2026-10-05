@@ -14,12 +14,12 @@ public interface EntityJpaRepository extends JpaRepository<EntityJpaEntity, UUID
     boolean existsByEntityTypeId(UUID entityTypeId);
 
     /**
-     * Le perimetre d'une recherche transversale (UC4) : type et tag, chacun
-     * optionnel (null pour ignorer ce filtre). Le TITRE ne se filtre plus
-     * ici - un LIKE sur LOWER(title) ne pliait ni les accents ni la
-     * ponctuation, et « pokemon » ne trouvait pas « Pokémon ». Il se filtre
-     * en memoire dans l'adaptateur (voir JpaEntityRepositoryAdapter.search),
-     * avec la meme regle que partout ailleurs (TexteRecherche).
+     * The scope of a cross-type search (UC4): type and tag, each
+     * optional (null to ignore this filter). The TITLE is no longer filtered
+     * here - a LIKE on LOWER(title) did not fold accents or
+     * punctuation, and "pokemon" did not find "Pokémon". It is filtered
+     * in memory in the adapter (see JpaEntityRepositoryAdapter.search),
+     * with the same rule as everywhere else (TexteRecherche).
      */
     @Query("SELECT e FROM EntityJpaEntity e WHERE "
             + "(:entityTypeId IS NULL OR e.entityTypeId = :entityTypeId) "

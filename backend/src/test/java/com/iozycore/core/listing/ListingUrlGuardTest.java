@@ -7,13 +7,13 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Le garde-fou SSRF : c'est le backend qui va chercher une URL saisie par
- * quelqu'un d'autre, donc c'est ici que se referme la porte vers tout ce que le
- * serveur peut atteindre et que l'extérieur ne peut pas.
+ * The SSRF guard: the backend fetches a URL entered by
+ * someone else, so this is where the door closes on everything the
+ * server can reach and the outside cannot.
  * <p>
- * Ces tests décrivent un refus, jamais un contournement. Ils vérifient
- * notamment le cas le plus vicieux : un hôte <b>présent sur la liste blanche</b>
- * qui résout vers une adresse interne - la liste blanche seule ne suffit pas.
+ * These tests describe a refusal, never a bypass. They notably check
+ * the nastiest case: a host <b>on the whitelist</b>
+ * that resolves to an internal address - the whitelist alone is not enough.
  */
 class ListingUrlGuardTest {
 
@@ -49,8 +49,8 @@ class ListingUrlGuardTest {
 
     @Test
     void refuse_un_hote_qui_imite_un_domaine_autorise() {
-        // Une liste blanche par MOTIF ("contient vinted") accepterait ces deux-là.
-        // C'est pourquoi elle est faite d'hôtes exacts.
+        // A whitelist by PATTERN ("contains vinted") would accept these two.
+        // This is why it is made of exact hosts.
         assertThat(ListingUrlGuard.check("https://www.vinted.fr.attaquant.invalid/x", HOTES_AUTORISES).rejection())
                 .isEqualTo(ListingUrlGuard.Rejection.HOST_NOT_ALLOWED);
         assertThat(ListingUrlGuard.check("https://attaquant.invalid/www.vinted.fr/x", HOTES_AUTORISES).rejection())
@@ -59,9 +59,9 @@ class ListingUrlGuardTest {
 
     @Test
     void refuse_localhost_et_les_adresses_privees_meme_inscrites_sur_la_liste_blanche() {
-        // Le scénario du DNS détourné : le nom est « légitime », l'adresse ne
-        // l'est pas. La liste blanche dit que le nom est attendu, la résolution
-        // dit qu'il ne mène pas chez nous - il faut les deux contrôles.
+        // The hijacked DNS scenario: the name is "legitimate", the address is
+        // not. The whitelist says the name is expected, the resolution
+        // says it does not lead to us - both checks are needed.
         assertThat(ListingUrlGuard.check("https://localhost/items/1", Set.of("localhost")).rejection())
                 .isEqualTo(ListingUrlGuard.Rejection.PRIVATE_ADDRESS);
         assertThat(ListingUrlGuard.check("https://127.0.0.1/items/1", Set.of("127.0.0.1")).rejection())
@@ -74,8 +74,8 @@ class ListingUrlGuardTest {
 
     @Test
     void refuse_l_endpoint_de_metadonnees_des_hebergeurs_cloud() {
-        // 169.254.169.254 délivre des identifiants d'instance sur les principaux
-        // hébergeurs : c'est LA cible classique d'une SSRF.
+        // 169.254.169.254 delivers instance credentials on the main
+        // hosting providers: it is THE classic target of an SSRF.
         assertThat(ListingUrlGuard.check("https://169.254.169.254/latest/meta-data/", Set.of("169.254.169.254"))
                 .rejection())
                 .isEqualTo(ListingUrlGuard.Rejection.PRIVATE_ADDRESS);

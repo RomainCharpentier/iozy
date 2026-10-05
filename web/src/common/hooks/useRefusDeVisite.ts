@@ -3,18 +3,19 @@ import { EVENEMENT_ECRITURE_REFUSEE, MESSAGE_LECTURE_SEULE } from '@/common/api/
 import { useToast } from '@/common/lib/toast'
 
 /**
- * Montre, en une phrase, pourquoi ce bouton n'a rien fait.
+ * Shows, in one sentence, why this button did nothing.
  *
- * <h2>Le filet, pas la porte</h2>
- * Les écrans d'écriture ne sont pas proposés à un visiteur (voir
- * lib/accesInvite), et les principaux gestes d'édition d'une fiche non plus.
- * Restent les petits : cocher un tome, suivre une édition, glisser une œuvre
- * dans un classement. Les masquer un par un, dans une quarantaine d'endroits,
- * revenait à parier qu'aucun ne serait oublié - et l'oubli se serait vu comme
- * un bouton mort, ou comme une erreur rouge qui ne dit rien.
+ * <h2>The safety net, not the door</h2>
+ * The write screens are not offered to a visitor (see lib/accesInvite), and
+ * neither are the main editing actions of a detail page. What remains are the
+ * small ones: ticking a volume, following an edition, dragging a work into a
+ * ranking. Hiding them one by one, in about forty places, amounted to betting
+ * that none would be forgotten - and the oversight would have shown up as a
+ * dead button, or as a red error that says nothing.
  *
- * <p>Ce hook n'est donc pas une protection - le serveur refuse, et lui seul
- * protège - c'est la RÉPONSE, posée à un seul endroit pour valoir partout.
+ * <p>This hook is therefore not a protection - the server refuses, and it
+ * alone protects - it is the ANSWER, set in one single place to apply
+ * everywhere.
  */
 export function useRefusDeVisite() {
   const toast = useToast()

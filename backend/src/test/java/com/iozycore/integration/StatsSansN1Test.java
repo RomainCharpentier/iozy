@@ -25,27 +25,27 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>Les trois lectures de {@code StatsService} ne doivent pas coûter plus cher
- * à mesure que la collection grandit.</b>
+ * <b>The three reads of {@code StatsService} must not cost more
+ * as the collection grows.</b>
  *
  * <ul>
- *   <li><b>La valeur</b> alimente le hero du Profil - le premier chiffre qu'on
- *       voit en arrivant - et l'écran Statistiques ;</li>
- *   <li><b>le résumé</b> est tout le reste de cet écran ;</li>
- *   <li><b>le bilan annuel</b> est saisonnier, mais se lit sur toute une année
- *       d'acquisitions.</li>
+ *   <li><b>The value</b> feeds the hero of the Profile - the first number that one
+ *       sees on arrival - and the Statistics screen;</li>
+ *   <li><b>the summary</b> is all the rest of this screen;</li>
+ *   <li><b>the yearly review</b> is seasonal, but is read over a whole year
+ *       of acquisitions.</li>
  * </ul>
  *
- * <p>Les trois sont de la même famille que le constat C1 : une boucle sur les
- * séries qui rouvre les mêmes tables à chaque tour. Les versions groupées
- * existent ({@code CollectionProgressService.computeAll()},
- * {@code EntityRepository.search}) - il s'agissait de les employer.
+ * <p>The three are of the same family as finding C1: a loop over the
+ * series that reopens the same tables at each turn. The grouped versions
+ * exist ({@code CollectionProgressService.computeAll()},
+ * {@code EntityRepository.search}) - the point was to use them.
  *
- * <p>Chaque test compare le <b>même appel</b> sur deux tailles de collection et
- * exige que le nombre de requêtes ne <b>croisse pas</b>. Pas de seuil absolu :
- * la base d'intégration est partagée, et un nombre exact se périmerait au
- * premier test voisin ajouté. Ce qui compte, et ce qui était violé, c'est la
- * pente.
+ * <p>Each test compares the <b>same call</b> on two collection sizes and
+ * requires that the number of queries does <b>not grow</b>. No absolute threshold:
+ * the integration database is shared, and an exact number would become outdated at the
+ * first neighbour test added. What matters, and what was violated, is the
+ * slope.
  */
 class StatsSansN1Test extends PostgresIntegrationTest {
 
@@ -71,9 +71,9 @@ class StatsSansN1Test extends PostgresIntegrationTest {
 
     @Test
     void le_resume_des_statistiques_ne_coute_pas_plus_cher_avec_plus_de_series() {
-        // Cette lecture-ci boucle sur les TYPES de collection, pas sur les
-        // séries : son coût suit le nombre de catégories qu'on a créées, une
-        // poignée, et pas la taille de la collection. Ce test le fixe.
+        // This read loops over the collection TYPES, not over the
+        // series: its cost follows the number of categories that were created, a
+        // handful, and not the size of the collection. This test fixes it.
         mesurerLaPente(stats::computeSummary);
     }
 
@@ -82,7 +82,7 @@ class StatsSansN1Test extends PostgresIntegrationTest {
         mesurerLaPente(() -> stats.computeYearlyRecap(java.time.LocalDate.now().getYear()));
     }
 
-    /** Le même appel, deux tailles de collection, et l'égalité exigée. */
+    /** The same call, two collection sizes, and the required equality. */
     private void mesurerLaPente(Runnable lecture) {
         Statistics statistiques = entityManager.getEntityManagerFactory()
                 .unwrap(SessionFactory.class).getStatistics();
@@ -91,18 +91,18 @@ class StatsSansN1Test extends PostgresIntegrationTest {
         poserDesSeries(5);
         long avec5Series = requetesPourUnAppel(statistiques, lecture);
 
-        poserDesSeries(6); // 11 de plus au total
+        poserDesSeries(6); // 11 more in total
         long avec11Series = requetesPourUnAppel(statistiques, lecture);
 
         assertThat(avec11Series)
-                .as("6 séries de plus ne doivent coûter aucune requête de plus")
+                .as("6 more series must not cost any more query")
                 .isEqualTo(avec5Series);
     }
 
     private long requetesPourUnAppel(Statistics statistiques, Runnable lecture) {
-        // Vider le contexte : les entités déjà chargées masqueraient une partie
-        // des lectures de la seconde mesure, et la pente paraîtrait plus plate
-        // qu'elle ne l'est.
+        // Clear the context: the entities already loaded would hide a part
+        // of the reads of the second measure, and the slope would look flatter
+        // than it is.
         entityManager.flush();
         entityManager.clear();
         long avant = statistiques.getPrepareStatementCount();
@@ -110,7 +110,7 @@ class StatsSansN1Test extends PostgresIntegrationTest {
         return statistiques.getPrepareStatementCount() - avant;
     }
 
-    /** Des séries valorisables : une édition avec un prix neuf, et des tomes possédés. */
+    /** Series that can be valued: an edition with a new price, and owned volumes. */
     private void poserDesSeries(int combien) {
         for (int index = 0; index < combien; index++) {
             String titre = "Série valeur " + UUID.randomUUID();

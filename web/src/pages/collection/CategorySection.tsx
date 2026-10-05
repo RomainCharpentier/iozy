@@ -6,23 +6,23 @@ import type { EntityTypeDto } from '@/common/types/api'
 import type { ShelfTile } from './shelfTiles'
 
 /**
- * Un rail montre au plus autant de tuiles - le reste est derrière « Tout voir ».
+ * A rail shows at most this many tiles - the rest is behind "Tout voir".
  *
- * <p>Mesuré sur 300 séries (lot 141) : un rail rendait ses 300 tuiles, et
- * dégroupé ses 3 000 tomes, dans un défilement horizontal que personne ne
- * parcourt jusqu'au bout - une seconde de rendu pour des tuiles que l'écran
- * ne montrera jamais. Le compte du rail, lui, dit toujours le total.
+ * <p>Measured on 300 series (batch 141): a rail rendered its 300 tiles, and
+ * ungrouped its 3,000 volumes, in a horizontal scroll that nobody
+ * goes through to the end - a second of rendering for tiles that the screen
+ * will never show. The count of the rail, for its part, always says the total.
  */
 export const TUILES_PAR_RAIL = 48
 
 /**
- * Une ligne par catégorie ayant au moins un titre possédé (voir la maquette
- * V1.2 - jamais de rail vide : ShelfPage filtre déjà les catégories à 0
- * avant d'atteindre ce composant). Halo teinté par univers en fond, scroll
- * horizontal des tuiles - remplace l'ancien filtre "Tout/Manga/Jeu vidéo/
- * Jeu de société" (voir docs/DESIGN_MIGRATION_V1.2.md Lot 3) : la
- * répartition par type est maintenant structurelle (une ligne = un type),
- * plus besoin de choisir un filtre pour la voir.
+ * One row per category that has at least one owned title (see mockup
+ * V1.2 - never an empty rail: ShelfPage already filters the categories at 0
+ * before reaching this component). Halo tinted by universe in the background, horizontal
+ * scroll of the tiles - replaces the old filter "Tout/Manga/Jeu vidéo/
+ * Jeu de société" (see docs/DESIGN_MIGRATION_V1.2.md Batch 3): the
+ * split by type is now structural (one row = one type),
+ * no need to choose a filter to see it.
  */
 export function CategorySection({ entityType, tiles }: { entityType: EntityTypeDto; tiles: ShelfTile[] }) {
   const navigate = useNavigate()

@@ -1,17 +1,17 @@
 package com.iozycore.manga.deals;
 
 /**
- * Où se situe le prix demandé par rapport à une référence marché.
+ * Where the asking price stands relative to a market reference.
  *
- * Catégories nommées plutôt qu'un score : « très bon prix » se discute et
- * s'explique (« 35 % sous une référence tirée de 7 relevés »), « 82/100 » ne
- * se discute pas. C'est aussi ce qui permet de dire honnêtement
- * REFERENCE_UNAVAILABLE quand il n'y a rien de solide à comparer, au lieu de
- * produire un chiffre rassurant tiré de deux observations douteuses.
+ * Named categories rather than a score: "very good price" can be discussed and
+ * explained ("35 % under a reference drawn from 7 observations"), "82/100" cannot be
+ * discussed. It is also what allows us to honestly say
+ * REFERENCE_UNAVAILABLE when there is nothing solid to compare, instead of
+ * producing a reassuring number drawn from two doubtful observations.
  *
- * Un prix TRÈS bas reste un très bon prix ici : la vigilance qu'il appelle est
- * une autre dimension (voir ListingTrustAssessment), et l'écraser sur celle-ci
- * ferait passer une vraie occasion pour un défaut.
+ * A VERY low price stays a very good price here: the vigilance it calls for is
+ * another dimension (see ListingTrustAssessment), and crushing it onto this one
+ * would make a real bargain look like a defect.
  */
 public enum PricePosition {
     VERY_GOOD_PRICE,
@@ -19,6 +19,6 @@ public enum PricePosition {
     FAIR_PRICE,
     RATHER_EXPENSIVE,
     TOO_EXPENSIVE,
-    /** Aucune référence assez fiable : on ne juge pas. */
+    /** No reference reliable enough: we do not judge. */
     REFERENCE_UNAVAILABLE
 }

@@ -17,7 +17,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Le titre francais d'un manga - tests extraits de MetadataSearchServiceTest au Lot 132. */
+/** The French title of a manga - tests taken out of MetadataSearchServiceTest in Batch 132. */
 class FrenchTitleServiceTest {
 
     private static final EntityType MANGA = new EntityType(UUID.randomUUID(), "MANGA", "Manga", Set.of(), Set.of());
@@ -30,7 +30,7 @@ class FrenchTitleServiceTest {
                 new FrenchTitleService(List.of(), List.of(frenchTitleProvider));
 
         Optional<String> first = service.findFrenchTitle(MANGA, "Shingeki no Kyojin", "Hajime Isayama");
-        // même requête à la casse près - doit rester un cache hit
+        // same query apart from the case - must stay a cache hit
         Optional<String> second = service.findFrenchTitle(MANGA, "shingeki no kyojin", "hajime isayama");
 
         assertThat(first).contains("L'Attaque des Titans");
@@ -64,15 +64,15 @@ class FrenchTitleServiceTest {
 
         assertThat(firstAttempt).isEmpty();
         assertThat(secondAttempt).contains("L'Attaque des Titans");
-        assertThat(provider.callCount).isEqualTo(2); // pas de cache hit après l'échec
+        assertThat(provider.callCount).isEqualTo(2); // no cache hit after the failure
     }
 
     @Test
     void prefers_a_series_matched_french_title_over_an_author_only_one_found_by_an_earlier_provider() {
-        // Cas réel (voir historique) : Open Library, essayé en premier, ne
-        // trouve "Vagabond" que par le nom de l'auteur (et remonte "Slam
-        // Dunk") ; l'ordre des fournisseurs ne doit pas faire gagner cette
-        // supposition sur une vraie correspondance de série du suivant.
+        // Real case (see history): Open Library, tried first, only
+        // finds "Vagabond" through the author's name (and returns "Slam
+        // Dunk"); the order of providers must not let this
+        // guess win over a real series match from the next one.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeFrenchTitleProvider guessing = new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.authorOnly("Slam Dunk")));
         FakeFrenchTitleProvider matching = new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.seriesMatched("Vagabond")));
@@ -85,10 +85,10 @@ class FrenchTitleServiceTest {
 
     @Test
     void drops_an_author_only_french_title_that_is_the_catalogued_title_of_another_work() {
-        // Le bug d'origine : "Vagabond" (Takehiko Inoue) se pré-remplissait
-        // en "Slam Dunk", son autre manga - catalogué tel quel sous un autre
-        // identifiant, donc jamais une traduction française de la série
-        // cherchée.
+        // The original bug: "Vagabond" (Takehiko Inoue) was pre-filled
+        // as "Slam Dunk", his other manga - catalogued as is under another
+        // identifier, so never a French translation of the series
+        // being searched.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeMetadataProvider catalogue = new FakeMetadataProvider(List.of(candidate("Slam Dunk", "51")));
         FakeFrenchTitleProvider frenchTitleProvider =
@@ -102,11 +102,11 @@ class FrenchTitleServiceTest {
 
     @Test
     void keeps_an_author_only_french_title_that_no_catalogued_work_bears_exactly() {
-        // "Zom 100" (Haro Aso) est publié en France sous "Bucket List of the
-        // Dead" : le catalogue ne connaît que "Zom 100: Bucket List of the
-        // Dead", un titre DIFFÉRENT - la vérification compare par égalité
-        // exacte, jamais par inclusion, sans quoi ce vrai titre français
-        // serait écarté à tort.
+        // "Zom 100" (Haro Aso) is published in France as "Bucket List of the
+        // Dead": the catalogue only knows "Zom 100: Bucket List of the
+        // Dead", a DIFFERENT title - the check compares by exact
+        // equality, never by inclusion, otherwise this real French title
+        // would be wrongly discarded.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeMetadataProvider catalogue =
                 new FakeMetadataProvider(List.of(candidate("Zom 100: Bucket List of the Dead", "122392")));
@@ -121,10 +121,10 @@ class FrenchTitleServiceTest {
 
     @Test
     void keeps_an_author_only_french_title_when_the_catalogued_work_is_the_queried_series_itself() {
-        // Une édition française qui garde le titre d'origine : le catalogue
-        // le connaît forcément, mais c'est la série cherchée elle-même, pas
-        // une autre œuvre - reconnue par son titre quand l'identifiant n'est
-        // pas fourni (ex: candidat issu d'un scan ISBN).
+        // A French edition that keeps the original title: the catalogue
+        // necessarily knows it, but it is the searched series itself, not
+        // another work - recognised by its title when the identifier is
+        // not provided (e.g. a candidate from an ISBN scan).
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeMetadataProvider catalogue = new FakeMetadataProvider(List.of(candidate("Vagabond", "656")));
         FakeFrenchTitleProvider frenchTitleProvider =
@@ -138,10 +138,10 @@ class FrenchTitleServiceTest {
 
     @Test
     void ignores_a_provider_that_searches_by_french_title_when_checking_an_author_only_title() {
-        // "Gloutons et Dragons" (titre français de "Delicious in Dungeon")
-        // est évidemment trouvé par le fournisseur qui cherche PAR titre
-        // français - s'en servir pour décider "c'est une autre œuvre"
-        // écarterait systématiquement les bonnes réponses.
+        // "Gloutons et Dragons" (French title of "Delicious in Dungeon")
+        // is obviously found by the provider that searches BY French
+        // title - using it to decide "this is another work"
+        // would systematically discard the good answers.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeFrenchTitleSearchProvider frenchCatalogue =
                 new FakeFrenchTitleSearchProvider(List.of(candidate("Gloutons et Dragons", "gb-1")));
@@ -156,9 +156,9 @@ class FrenchTitleServiceTest {
 
     @Test
     void drops_an_author_only_title_when_the_catalogue_cannot_be_reached_to_check_it() {
-        // Une supposition non corroborée vaut moins qu'un 404 : le client
-        // garde alors le titre original déjà affiché, plutôt que de se voir
-        // imposer le titre d'une autre série.
+        // An uncorroborated guess is worth less than a 404: the client
+        // then keeps the original title already displayed, rather than being
+        // forced to take the title of another series.
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeFrenchTitleProvider frenchTitleProvider =
                 new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.authorOnly("Slam Dunk")));
@@ -191,8 +191,8 @@ class FrenchTitleServiceTest {
         return new MetadataCandidate("FAKE", externalId, title, null, Map.of());
     }
 
-    /** entities est volontairement mutable (copie défensive en constructeur compact) -
-     * certains tests simulent un ajout survenant entre deux recherches. */
+    /** entities is deliberately mutable (defensive copy in the compact constructor) -
+     * some tests simulate an addition happening between two searches. */
     private record FakeEntityRepository(List<Entity> entities) implements EntityRepository {
         FakeEntityRepository {
             entities = new ArrayList<>(entities);
@@ -234,9 +234,9 @@ class FrenchTitleServiceTest {
         }
     }
 
-    /** callCount n'est pas un composant de record exprès : il doit rester
-     * mutable pour que les tests de cache puissent vérifier combien de fois
-     * le "provider" a réellement été appelé (donc pas servi par le cache). */
+    /** callCount is deliberately not a record component: it must stay
+     * mutable so that cache tests can check how many times
+     * the "provider" was really called (so not served by the cache). */
     private static final class FakeMetadataProvider implements MetadataProvider {
         private final List<MetadataCandidate> results;
         int callCount = 0;
@@ -257,8 +257,8 @@ class FrenchTitleServiceTest {
         }
     }
 
-    /** Cherche par titre FRANÇAIS (comme GoogleBooksTitleSearchProvider) -
-     * doit rester hors de la vérification d'un titre "auteur seul". */
+    /** Searches by FRENCH title (like GoogleBooksTitleSearchProvider) -
+     * must stay outside the check of an "author only" title. */
     private static final class FakeFrenchTitleSearchProvider implements MetadataProvider {
         private final List<MetadataCandidate> results;
 
@@ -282,7 +282,7 @@ class FrenchTitleServiceTest {
         }
     }
 
-    /** Catalogue injoignable (panne réseau/quota) - voir
+    /** Catalogue unreachable (network outage/quota) - see
      * drops_an_author_only_title_when_the_catalogue_cannot_be_reached_to_check_it. */
     private static final class FailingMetadataProvider implements MetadataProvider {
         @Override
@@ -316,7 +316,7 @@ class FrenchTitleServiceTest {
         }
     }
 
-    /** Idem pour la recherche de titre français. */
+    /** Same for the French title search. */
     private static final class StatefulFrenchTitleProvider implements FrenchTitleProvider {
         private final String result;
         int callCount = 0;

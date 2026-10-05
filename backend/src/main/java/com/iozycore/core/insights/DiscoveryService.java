@@ -6,14 +6,14 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * Découverte heuristique (« séries que je n'ai pas », recommandations) -
- * jamais un vrai moteur de recommandation IA (cohérent avec le principe
- * « l'IA est une aide, jamais une dépendance » posé dès la conception).
- * Chaque suggestion est justifiée par un signal concret et traçable, et ce
- * signal appartient à un univers : même auteur pour les mangas, catégories
- * communes pour les jeux de société, jeux similaires pour les jeux vidéo.
- * Depuis le Lot 133, le cœur ne connaît aucun de ces signaux : il aiguille
- * vers la {@link DiscoverySource} qui couvre le type demandé.
+ * Heuristic discovery ("series I do not have", recommendations) -
+ * never a real AI recommendation engine (consistent with the principle
+ * "AI is a help, never a dependency" set from the design).
+ * Each suggestion is justified by a concrete and traceable signal, and this
+ * signal belongs to a universe: same author for mangas, common categories
+ * for board games, similar games for video games.
+ * Since Batch 133, the core knows none of these signals: it routes
+ * to the {@link DiscoverySource} that covers the requested type.
  */
 @Service
 public class DiscoveryService {
@@ -27,10 +27,10 @@ public class DiscoveryService {
     }
 
     /**
-     * Les découvertes d'un type, par son code - résolu par le code, jamais par
-     * un identifiant en dur, pour survivre à l'édition du type. Un code
-     * inconnu, ou un type que personne ne couvre, est une demande qu'on ne
-     * sait pas servir.
+     * The discoveries of a type, by its code - resolved by the code, never by
+     * a hard-coded id, to survive the editing of the type. An unknown
+     * code, or a type that nobody covers, is a request we do not
+     * know how to serve.
      */
     public List<DiscoveryCandidate> discover(String entityTypeCode) {
         return entityTypeRepository.findByCode(entityTypeCode)

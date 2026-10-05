@@ -21,16 +21,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP de {@code /api/insights/releases} - le calendrier des
- * sorties (lot 146).
+ * The HTTP contract of {@code /api/insights/releases} - the release
+ * calendar (batch 146).
  *
- * <h2>Ce que ces tests figent</h2>
- * La forme d'une ligne, telle que le client la lit pour construire son mois ;
- * la relation, toujours écrite ; la période, bornée en 400 et non en 500 ; et
- * le drapeau {@code hasReleaseSource} des catégories, qui dit au client
- * lesquelles ont une source de dates. La date passe ici par la fiche
- * (attribut saisi), le seul chemin qui ne dépende d'aucun fournisseur ; les
- * sources de chaque univers ont leurs propres tests.
+ * <h2>What these tests freeze</h2>
+ * The shape of a row, as the client reads it to build its month;
+ * the relationship, always written; the period, bounded with a 400 and not a 500; and
+ * the {@code hasReleaseSource} flag of the categories, which tells the client
+ * which ones have a source of dates. The date goes through the detail page here
+ * (entered attribute), the only path that depends on no provider; the
+ * sources of each universe have their own tests.
  */
 class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
 
@@ -48,7 +48,7 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
         QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
                 EntityTypeFixtures.BOARD_GAME.id(), title, OwnershipCondition.NEW,
                 Map.of("releaseDate", "2026-10-14", "coverImageUrl", "https://img/ark-nova.jpg"));
-        // Possédée ne suffit plus : c'est SUIVIE qui met une œuvre au calendrier.
+        // Owned is no longer enough: it is FOLLOWED that puts a work on the calendar.
         followedWorkRepository.save(FollowedWork.follow(result.entityId(), LocalDate.now()));
 
         mockMvc.perform(get("/api/insights/releases").param("from", "2026-10-01").param("to", "2026-10-31"))
@@ -67,7 +67,7 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.entries[?(@.entityId == '" + result.entityId() + "')].coverImageUrl")
                         .value("https://img/ark-nova.jpg"));
 
-        // Le mois d'avant ne la montre pas : la période est la question, pas un filtre d'affichage.
+        // The previous month does not show it: the period is the question, not a display filter.
         mockMvc.perform(get("/api/insights/releases").param("from", "2026-09-01").param("to", "2026-09-30"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.entries[?(@.entityId == '" + result.entityId() + "')]").doesNotExist());
@@ -113,7 +113,7 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.code == 'MANGA')].hasReleaseSource").value(true))
                 .andExpect(jsonPath("$[?(@.code == 'VIDEO_GAME')].hasReleaseSource").value(true))
-                // BoardGameGeek ne date qu'à l'année : rien d'automatique, seulement la fiche.
+                // BoardGameGeek only dates to the year: nothing automatic, only the detail page.
                 .andExpect(jsonPath("$[?(@.code == 'BOARD_GAME')].hasReleaseSource").value(false));
     }
 

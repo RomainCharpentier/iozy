@@ -25,25 +25,25 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Découvrir, pour les mangas : d'autres œuvres du même mangaka que tes mangas
- * les mieux notés, en excluant ce que tu possèdes déjà - la façade du module
- * manga vers le cœur (Lot 133).
+ * Discover, for mangas: other works by the same mangaka as your
+ * best rated mangas, excluding what you already own - the facade of the
+ * manga module towards the core (Batch 133).
  *
- * <p>Tous les fournisseurs qui couvrent le manga sont essayés dans l'ordre,
- * pas seulement Jikan : la Recherche bascule sur MyAnimeList quand Jikan
- * flanche, et c'est précisément pour ça que ce relais existe (audit du
- * 2026-08-21 : Jikan répondait 504, le panneau Manga de Découvrir était vide
- * sans que rien ne le dise).
+ * <p>All the providers that cover manga are tried in order,
+ * not only Jikan: Search falls back to MyAnimeList when Jikan
+ * fails, and this is exactly why this relay exists (audit of
+ * 2026-08-21: Jikan answered 504, the Manga panel of Discover was empty
+ * and nothing said so).
  *
- * <h2>Ce que la mesure à volume a trouvé (lot 141)</h2>
- * Sur 300 séries, ouvrir Découvrir coûtait <b>307 requêtes SQL</b> - une par
- * œuvre pour lire ses notes - et <b>deux secondes</b> chez les fournisseurs,
- * à chaque ouverture, pour trois recherches dont le résultat ne bouge
- * qu'avec les notes et la collection. Les notes se lisent désormais en une
- * requête, et les suggestions sont <b>retenues une demi-heure</b>, sous une
- * clé qui porte exactement ce dont elles dépendent : les mangaka favoris et
- * les titres possédés. Un résultat vide n'est pas retenu - un fournisseur qui
- * toussait ne doit pas laisser le panneau vide une demi-heure de plus.
+ * <h2>What the measure at volume found (batch 141)</h2>
+ * On 300 series, opening Discover cost <b>307 SQL queries</b> - one per
+ * work to read its ratings - and <b>two seconds</b> at the providers,
+ * at every opening, for three searches whose result only changes
+ * with the ratings and the collection. Ratings are now read in one
+ * query, and the suggestions are <b>kept for half an hour</b>, under a
+ * key that carries exactly what they depend on: the favourite mangaka and
+ * the owned titles. An empty result is not kept - a provider that
+ * was coughing must not leave the panel empty for another half hour.
  */
 @Component
 public class MangaDiscovery implements DiscoverySource {
@@ -78,8 +78,8 @@ public class MangaDiscovery implements DiscoverySource {
                 .map(e -> TexteRecherche.normaliser(e.title()))
                 .collect(Collectors.toSet());
 
-        // Mangaka des œuvres les mieux notées, les mieux notées en premier,
-        // sans doublon - c'est le signal de goût le plus direct qu'on ait.
+        // Mangaka of the best rated works, best rated first,
+        // without duplicates - this is the most direct taste signal we have.
         Map<UUID, Integer> meilleuresNotes = meilleuresNotesParOeuvre();
         List<String> favoriteMangaka = ownedManga.stream()
                 .filter(entity -> meilleuresNotes.containsKey(entity.id()))
@@ -104,7 +104,7 @@ public class MangaDiscovery implements DiscoverySource {
                     break;
                 }
                 if (ownedTitles.contains(TexteRecherche.normaliser(candidate.title()))) {
-                    continue; // déjà dans la collection
+                    continue; // already in the collection
                 }
                 suggestions.add(new DiscoveryCandidate(
                         candidate.source(), candidate.externalId(), candidate.title(), candidate.imageUrl(),
@@ -117,7 +117,7 @@ public class MangaDiscovery implements DiscoverySource {
         return suggestions;
     }
 
-    /** La meilleure note de chaque œuvre, en UNE lecture - et non une par œuvre. */
+    /** The best rating of each work, in ONE read - and not one per work. */
     private Map<UUID, Integer> meilleuresNotesParOeuvre() {
         Map<UUID, Integer> notes = new HashMap<>();
         for (Experience experience : experienceRepository.findAll()) {
@@ -126,7 +126,7 @@ public class MangaDiscovery implements DiscoverySource {
         return notes;
     }
 
-    /** Les fournisseurs qui couvrent ce type, dans l'ordre, et le premier résultat non vide. */
+    /** The providers that cover this type, in order, and the first non-empty result. */
     private List<MetadataCandidate> searchWithFallback(EntityType entityType, String query) {
         for (MetadataProvider provider : metadataProviders) {
             if (!provider.supports(entityType)) {

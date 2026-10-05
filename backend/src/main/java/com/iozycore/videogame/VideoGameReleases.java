@@ -16,10 +16,10 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Le calendrier des sorties, pour les jeux vidéo : la date de sortie IGDB des
- * jeux qu'on possède ou qu'on veut - la façade du module vers le cœur
- * (lot 146). Seuls les jeux ajoutés depuis IGDB portent un {@code igdbId} ;
- * un jeu saisi à la main n'a que la date qu'on lui écrit sur sa fiche.
+ * The release calendar, for video games: the IGDB release date of the
+ * games the user owns or wants - the facade of the module towards the core
+ * (batch 146). Only games added from IGDB carry an {@code igdbId};
+ * a game entered by hand has only the date written on its work page.
  */
 @Component
 public class VideoGameReleases implements ReleaseSource {

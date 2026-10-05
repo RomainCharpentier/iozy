@@ -11,19 +11,19 @@ import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { Squelette } from '@/common/components/Squelette'
 
-/** Éditeur de types dynamique : liste des catégories de la collection (les
- * 3 types MVP historiques + tout type créé par l'utilisateur). Accessible
- * depuis Paramètres > Administration avancée (voir AdministrationPage) -
- * pas de 6e onglet dans la TabBar, configuration technique touchée une fois
- * puis oubliée, pas un outil consulté à chaque session. */
+/** Dynamic type editor: list of the collection categories (the
+ * 3 historical MVP types + any type created by the user). Reachable
+ * from Paramètres > Administration avancée (see AdministrationPage) -
+ * no 6th tab in the TabBar, technical configuration touched once
+ * then forgotten, not a tool consulted at every session. */
 export function EntityTypesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  /** Le type dont la suppression attend confirmation - même idiome que
-   * EditionsPage : un panneau en ligne, sous la ligne concernée, plutôt qu'un
-   * window.confirm arraché au thème de l'application. */
+  /** The type whose deletion is waiting for confirmation - same idiom as
+   * EditionsPage: an inline panel, under the concerned row, rather than a
+   * window.confirm torn out of the application theme. */
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   const deleteMutation = useMutation({
@@ -34,8 +34,8 @@ export function EntityTypesPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.entityTypes.all })
     },
     onError: (error, id) => {
-      // Le panneau se referme : le message d'erreur vit en haut de page, il
-      // resterait caché derrière une confirmation encore ouverte.
+      // The panel closes: the error message lives at the top of the page, it
+      // would stay hidden behind a confirmation that is still open.
       setConfirmingId(null)
       const type = entityTypesQuery.data?.find((t) => t.id === id)
       if (error instanceof ApiError && error.status === 409) {
@@ -71,10 +71,10 @@ export function EntityTypesPage() {
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
       {entityTypesQuery.isLoading && <Squelette lignes={3} />}
 
-      {/* Sans ça, quelqu'un qui a supprimé ses types voyait un titre, un bouton,
-          et rien entre les deux - une page qui a l'air inachevée plutôt que
-          vide. Le cas est atteignable : les trois types de départ se
-          suppriment. */}
+      {/* Without it, someone who deleted their types saw a title, a button,
+          and nothing between the two - a page that looks unfinished rather than
+          empty. The case is reachable: the three starting types can be
+          deleted. */}
       {entityTypesQuery.isSuccess && entityTypesQuery.data.length === 0 && (
         <p className="text-textDim">
           Aucun type pour l'instant. Un type, c'est ce que tu collectionnes — manga, jeu vidéo, jeu de
@@ -97,10 +97,10 @@ export function EntityTypesPage() {
                   <p className="text-sm font-medium text-textPrimary">{type.label}</p>
                   <p className="text-xs text-textDim">{type.code}</p>
                 </button>
-                {/* Ouvre la confirmation, ne supprime plus directement : la
-                    corbeille est à un doigt du bouton d'édition qui occupe
-                    toute la ligne, et une suppression partait au premier clic
-                    sans rien demander ni rien laisser annuler. */}
+                {/* Opens the confirmation, no longer deletes directly: the
+                    trash can is one finger away from the edit button that takes
+                    the whole row, and a deletion went through at the first click
+                    without asking anything or leaving anything to undo. */}
                 <button
                   type="button"
                   onClick={() => setConfirmingId(confirmingId === type.id ? null : type.id)}

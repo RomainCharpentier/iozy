@@ -12,17 +12,17 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La détection de source et ce qui se passe quand aucune source ne couvre
- * l'URL.
+ * Source detection and what happens when no source covers
+ * the URL.
  * <p>
- * Le provider est ici un <b>faux</b> qui enregistre ce qu'on lui demande : ces
- * tests peuvent donc affirmer non seulement ce que le résolveur répond, mais
- * aussi qu'il <b>n'a rien tenté d'aller chercher</b> - c'est la garantie qui
- * compte pour une URL arbitraire.
+ * The provider here is a <b>fake</b> that records what it is asked: these
+ * tests can therefore assert not only what the resolver answers, but
+ * also that it <b>did not try to fetch anything</b> - this is the guarantee that
+ * matters for an arbitrary URL.
  */
 class ListingSourceResolverTest {
 
-    /** Faux provider : couvre un seul hôte et note chaque URL qu'on lui demande de lire. */
+    /** Fake provider: covers a single host and notes each URL it is asked to read. */
     private static class ProviderFactice implements ListingProvider {
         private final List<String> urlsDemandees = new ArrayList<>();
         private ListingResolution reponse;
@@ -56,8 +56,8 @@ class ListingSourceResolverTest {
     void detecte_la_source_sans_aucun_appel_reseau() {
         assertThat(resolver.detectSource("https://source-connue.test/items/1")).isEqualTo(ListingPlatform.VINTED);
 
-        // La détection sert à annoncer « Détection : Vinted » avant même de
-        // récupérer quoi que ce soit : elle ne doit rien déclencher.
+        // Detection is used to announce "Détection : Vinted" before even
+        // fetching anything: it must trigger nothing.
         assertThat(provider.urlsDemandees).isEmpty();
     }
 
@@ -67,10 +67,10 @@ class ListingSourceResolverTest {
 
         assertThat(resolution.status()).isEqualTo(ListingResolution.Status.UNSUPPORTED_SOURCE);
         assertThat(resolution.source()).isEqualTo(ListingPlatform.OTHER);
-        // L'URL est conservée : elle sert à retrouver l'annonce depuis l'analyse.
+        // The URL is kept: it is used to find the listing again from the analysis.
         assertThat(resolution.url()).isEqualTo("https://une-autre-plateforme.test/annonce/42");
         assertThat(resolution.hasData()).isFalse();
-        // LE point de sécurité : aucune URL arbitraire n'est jamais suivie.
+        // THE security point: no arbitrary URL is ever followed.
         assertThat(provider.urlsDemandees).isEmpty();
     }
 
@@ -106,8 +106,8 @@ class ListingSourceResolverTest {
         ListingResolution resolution = resolver.resolve("https://source-connue.test/items/1");
 
         assertThat(provider.urlsDemandees).containsExactly("https://source-connue.test/items/1");
-        // Un résultat partiel est un succès utilisable : titre et prix lus, le
-        // reste à saisir - pas un échec.
+        // A partial result is a usable success: title and price read, the
+        // rest to be entered - not a failure.
         assertThat(resolution.status()).isEqualTo(ListingResolution.Status.PARTIAL);
         assertThat(resolution.hasData()).isTrue();
         assertThat(resolution.snapshot().price()).isEqualByComparingTo(new BigDecimal("70"));

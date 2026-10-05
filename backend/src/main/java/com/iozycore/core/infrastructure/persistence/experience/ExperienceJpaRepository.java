@@ -9,14 +9,14 @@ import java.util.UUID;
 public interface ExperienceJpaRepository extends JpaRepository<ExperienceJpaEntity, UUID> {
 
     /**
-     * Charger par identifiant, mais PAR UNE REQUÊTE.
+     * Load by id, but THROUGH A QUERY.
      *
-     * <p>{@code findById} de JPA charge par clé primaire sans passer par une
-     * requête : Hibernate n'y applique pas le cloisonnement par propriétaire
-     * (voir ProprietaireCourant), et la ligne d'un AUTRE compte remonte -
-     * constaté en écrivant le test d'isolation, qui passait sur les listes et
-     * échouait sur les chargements par identifiant. Cette variante est une
-     * requête dérivée, donc filtrée comme les autres.
+     * <p>JPA {@code findById} loads by primary key without a query:
+     * Hibernate does not apply the owner isolation there
+     * (see ProprietaireCourant), and the row of ANOTHER account comes back -
+     * found while writing the isolation test, which passed on the lists and
+     * failed on loads by id. This variant is a derived
+     * query, so it is filtered like the others.
      */
     Optional<ExperienceJpaEntity> findOneById(UUID id);
     List<ExperienceJpaEntity> findByEntityId(UUID entityId);

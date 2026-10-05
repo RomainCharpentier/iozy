@@ -71,8 +71,8 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
 
     @Override
     public ShareSettings find() {
-        // La clé primaire EST le propriétaire : la question « celui de qui ? »
-        // est déjà celle de la ligne à lire.
+        // The primary key IS the owner: the question "whose?"
+        // is already that of the row to read.
         UUID proprietaire = utilisateurCourant.proprietaire();
         return jpaRepository.findById(proprietaire)
                 .map(JpaShareSettingsRepositoryAdapter::toDomain)
@@ -88,9 +88,9 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
 
     @Override
     public Optional<ShareSettings> findByToken(String token) {
-        // Sans cette garde, un jeton nul ou vide « matcherait » la ligne d'un
-        // lien supprimé, dont la colonne token vaut justement null : le lien
-        // révoqué redeviendrait ouvert à qui appelle l'URL sans jeton.
+        // Without this guard, a null or empty token would "match" the row of a
+        // deleted link, whose token column is precisely null: the revoked
+        // link would become open again to whoever calls the URL without a token.
         if (token == null || token.isBlank()) {
             return Optional.empty();
         }

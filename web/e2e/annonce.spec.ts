@@ -2,21 +2,21 @@ import { expect, test } from '@playwright/test'
 import { serieAvecEdition } from './amorcage'
 
 /**
- * <b>Évaluer une annonce d'occasion avant d'acheter.</b>
+ * <b>Evaluate a used listing before buying.</b>
  *
- * <p>Sixième des dix parcours structurants, et celui qui a le plus à perdre à
- * ne pas être joué en entier : c'est le seul écran où l'application dit à
- * quelqu'un s'il doit <b>dépenser de l'argent</b>. Le moteur a ses trente-cinq
- * tests unitaires ; ce qu'ils ne peuvent pas dire, c'est si ce qui est saisi
- * arrive au serveur, et si ce qui en revient s'affiche.
+ * <p>Sixth of the ten structuring journeys, and the one that has the most to
+ * lose from not being played in full: it is the only screen where the
+ * application tells someone whether to <b>spend money</b>. The engine has its
+ * thirty-five unit tests; what they cannot say is whether what is typed
+ * reaches the server, and whether what comes back is displayed.
  *
- * <p>La règle vérifiée ici, et qui fait toute la différence entre cet écran et
- * une calculatrice : <b>l'annonce est confrontée à la collection</b>. Un lot
- * qui contient des tomes déjà possédés doit le dire, chiffrer ce qui reste
- * utile, et corriger le prix au-delà duquel il ne l'est plus.
+ * <p>The rule checked here, which makes all the difference between this screen
+ * and a calculator: <b>the listing is compared with the collection</b>. A
+ * bundle that contains already owned volumes must say so, put a number on what
+ * remains useful, and correct the price beyond which it is no longer useful.
  */
 
-test('saisir une annonce, et voir les tomes déjà possédés corriger le verdict', async ({ page }) => {
+test('enter a listing, and see the already owned volumes correct the verdict', async ({ page }) => {
   const titre = `Berserk ${Date.now()}`
   await serieAvecEdition(page, {
     titre,
@@ -26,50 +26,51 @@ test('saisir une annonce, et voir les tomes déjà possédés corriger le verdic
     prixNeufAuTome: 8,
   })
 
-  // --- Depuis Découvrir : c'est là que vit l'analyse depuis qu'elle a quitté
-  //     la barre de navigation (lot 137), avec la fiche d'une série. La barre,
-  //     elle, ne la nomme plus - une destination de moins, pas un raccourci
-  //     de plus.
+  // --- From Découvrir: this is where the analysis lives since it left the
+  //     navigation bar (batch 137), together with a series detail page. The
+  //     bar no longer names it - one destination less, not one shortcut
+  //     more.
   await page.goto('/discover')
   await page.getByRole('link', { name: /Analyser une annonce/ }).click()
   await expect(page).toHaveURL(/\/purchase-analysis$/)
   await expect(page.getByRole('heading', { name: 'Analyser une annonce' })).toBeVisible()
   await expect(page.getByRole('navigation').getByRole('link', { name: /Analyser une annonce/ })).toHaveCount(0)
-  // Et l'écran sait d'où l'on vient.
+  // And the screen knows where we come from.
   await expect(page.getByRole('button', { name: 'Découvrir' })).toBeVisible()
 
-  // --- Le lot : six tomes, dont deux qu'on a déjà
-  // `getByRole('textbox')` et non `getByLabel` : le bouton « Ajouter une autre
-  // série au lot », juste à côté, porte lui aussi le mot « Série ».
+  // --- The bundle: six volumes, two of which we already have
+  // `getByRole('textbox')` and not `getByLabel`: the button "Ajouter une autre
+  // série au lot", right next to it, also carries the word "Série".
   await page.getByRole('textbox', { name: 'Série' }).fill(titre)
   await page.getByRole('textbox', { name: 'Tomes' }).fill('1-6')
 
-  // Le prix vit derrière un dépliant, et son libellé DIT ce qui manque
-  // (« Prix, frais de port, titre… à renseigner ») plutôt que « Détails » :
-  // sans prix, il n'y a rien à évaluer, et le bouton principal reste grisé.
+  // The price lives behind a collapsible, and its label SAYS what is missing
+  // ("Prix, frais de port, titre… à renseigner") rather than "Détails":
+  // without a price, there is nothing to evaluate, and the main button stays
+  // grayed out.
   await page.getByRole('button', { name: /à renseigner/ }).click()
   await page.getByLabel('Prix demandé (€)').fill('30')
 
-  // Le bouton porte ce qu'il va évaluer, pas un verbe seul.
+  // The button carries what it will evaluate, not a verb alone.
   await page.getByRole('button', { name: 'Évaluer ce lot' }).click()
 
-  // --- Le verdict, et de quoi le comprendre
+  // --- The verdict, and what is needed to understand it
   await expect(page.getByText("Prix de l'annonce").first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Détail par série' })).toBeVisible()
 
-  // --- Ce que cet écran sait et qu'une calculatrice ignore
+  // --- What this screen knows and a calculator ignores
   //
-  //     Les tomes 1 et 2 sont déjà dans la collection : quatre tomes utiles
-  //     sur six, donc 7,50 € par tome réellement gagné et non 5 €.
+  //     Volumes 1 and 2 are already in the collection: four useful volumes
+  //     out of six, so 7.50 € per volume really gained and not 5 €.
   await expect(page.getByText('Tomes déjà possédés : 1, 2')).toBeVisible()
   await expect(page.getByText(/4 tomes utiles/)).toBeVisible()
-  // « 7,50 € » : virgule décimale et espace fine insécable devant le symbole (lot 148).
+  // "7,50 €": decimal comma and a narrow no-break space before the symbol (batch 148).
   await expect(page.getByText(/7,50\s€\/tome utile/)).toBeVisible()
 })
 
-test('un lot sans doublon ne parle pas de doublons', async ({ page }) => {
-  // Le pendant du test précédent : l'avertissement doit être une INFORMATION,
-  // pas un ornement permanent. Affiché toujours, il ne veut plus rien dire.
+test('a bundle with no duplicate does not talk about duplicates', async ({ page }) => {
+  // The counterpart of the previous test: the warning must be INFORMATION,
+  // not a permanent ornament. Always displayed, it no longer means anything.
   const titre = `Vinland Saga ${Date.now()}`
   await serieAvecEdition(page, {
     titre,

@@ -34,9 +34,9 @@ class RelationshipTest {
                 () -> new Relationship(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), " "));
     }
 
-    // Les deux suivants : un corps de requête incomplet arrivait jusqu'au
-    // .equals() du constructeur compact et remontait une NullPointerException
-    // en 500, là où l'appelant avait simplement omis un champ (Lot 28).
+    // The next two: an incomplete request body reached the
+    // compact constructor's .equals() and raised a NullPointerException
+    // as a 500, where the caller had simply left out a field (Batch 28).
     @Test
     void a_missing_source_is_refused_rather_than_dereferenced() {
         assertThrows(IllegalArgumentException.class,

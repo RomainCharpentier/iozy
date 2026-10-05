@@ -1,12 +1,12 @@
 /**
- * <b>Le calendrier des sorties : un mois en grille, son agenda, tout ce qui
- * vient à côté, et ce que chaque sortie représente.</b>
+ * <b>The release calendar: a month as a grid, its agenda, everything that
+ * is coming alongside, and what each release represents.</b>
  *
- * <p>Ce qui se casse en silence ici : un mois lu de travers dans l'URL, une
- * sortie rangée sous le mauvais jour ou absente de sa case, une relation qui
- * cesse d'être écrite, un jour choisi qui ne s'efface plus, un mois vide qui
- * perd sa grille, une ligne d'« À venir » qui n'amène plus la grille au bon
- * endroit.
+ * <p>What breaks silently here: a month misread from the URL, a
+ * release put under the wrong day or missing from its cell, a relation that
+ * stops being written, a chosen day that no longer clears, an empty month that
+ * loses its grid, an "À venir" row that no longer brings the grid to the right
+ * place.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
@@ -44,7 +44,7 @@ function sortie(surcharges: Partial<ReleaseEntryDto>): ReleaseEntryDto {
   }
 }
 
-/** Janvier 2000, tel que le serveur le rendrait : une sortie au mois près, puis deux jours. */
+/** January 2000, as the server would return it: a release known to the month, then two days. */
 const JANVIER_2000: ReleaseCalendarDto = {
   from: '2000-01-01',
   to: '2000-01-31',
@@ -57,9 +57,9 @@ const JANVIER_2000: ReleaseCalendarDto = {
 }
 
 /**
- * Deux requêtes partent de l'écran : le mois affiché, et l'année à venir
- * (« À venir », depuis aujourd'hui). Le mois demandé reçoit `mois` ; l'année
- * reçoit `annee` ; tout autre mois n'en reçoit que ce qui tombe dedans.
+ * Two requests leave the screen: the displayed month, and the coming year
+ * ("À venir", from today). The requested month receives `mois`; the year
+ * receives `annee`; any other month only receives what falls inside it.
  */
 function servir(mois: ReleaseCalendarDto, annee: ReleaseEntryDto[] = []) {
   const aujourdHui = isoLocal(new Date())
@@ -105,34 +105,34 @@ beforeEach(() => {
 })
 
 describe('ReleasesPage', () => {
-  it('lit le mois dans l’URL, le demande au serveur borné, et le rend en grille puis en agenda', async () => {
+  it('reads the month in the URL, asks the server for it bounded, and renders it as a grid then an agenda', async () => {
     servir(JANVIER_2000)
     rendre('/releases?mois=2000-01')
 
     expect(await screen.findByRole('heading', { name: 'Janvier 2000' })).toBeInTheDocument()
     expect(insights.getReleaseCalendar).toHaveBeenCalledWith('2000-01-01', '2000-01-31')
 
-    // La grille : les jours chargés se choisissent, et disent combien.
+    // The grid: the busy days can be chosen, and say how many.
     expect(screen.getByRole('table', { name: 'Grille de janvier 2000' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'dimanche 2 janvier, 1 sortie' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'vendredi 14 janvier, 2 sorties' })).toBeInTheDocument()
 
-    // L'agenda : les jours dans l'ordre, et à part ce qui n'a pas de jour.
+    // The agenda: the days in order, and apart what has no day.
     const intertitres = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
     expect(intertitres).toEqual(['Ce mois-ci, date à préciser', 'Dimanche 2 janvier', 'Vendredi 14 janvier'])
 
-    // La relation, toujours écrite, sans la source - et la catégorie quand rien de plus précis ne dit ce qui sort.
+    // The relation, always written, without the source - and the category when nothing more precise says what comes out.
     expect(screen.getByRole('link', { name: /Spy x Family.*Tome 15 · Kurokawa.*Envie/ })).toHaveAttribute('href', '/entity/spy')
     expect(screen.getByRole('link', { name: /Naruto.*Tome 71 · Kana.*Possédé/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Naruto.*Tome 72 · Kana.*À acheter/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Ark Nova.*Jeu de société.*Possédé/ })).toBeInTheDocument()
     expect(screen.queryByText(/Google Books|Date saisie sur la fiche/)).not.toBeInTheDocument()
 
-    // Le mois n'est pas celui de l'appareil : « Aujourd'hui » ramène.
+    // The month is not the one of the device: "Aujourd'hui" brings back.
     expect(screen.getByRole('button', { name: "Aujourd'hui" })).toBeInTheDocument()
   })
 
-  it('choisir un jour dans la grille ne garde que lui, et « Tout le mois » ramène', async () => {
+  it('choosing a day in the grid keeps only it, and "Tout le mois" brings back', async () => {
     servir(JANVIER_2000)
     rendre('/releases?mois=2000-01')
     const utilisateur = userEvent.setup()
@@ -149,7 +149,7 @@ describe('ReleasesPage', () => {
     expect(screen.getByRole('link', { name: /Spy x Family/ })).toBeInTheDocument()
   })
 
-  it('filtre par catégorie quand il y en a plusieurs, et retombe sur Tout', async () => {
+  it('filters by category when there are several, and falls back on Tout', async () => {
     servir({
       from: '2000-01-01',
       to: '2000-01-31',
@@ -163,14 +163,14 @@ describe('ReleasesPage', () => {
 
     expect(screen.queryByRole('link', { name: /Naruto/ })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Ark Nova/ })).toBeInTheDocument()
-    // La grille suit le filtre : la case ne compte plus que ce qui reste.
+    // The grid follows the filter: the cell now only counts what remains.
     expect(screen.getByRole('button', { name: 'vendredi 14 janvier, 1 sortie' })).toBeInTheDocument()
 
     await utilisateur.click(screen.getByRole('button', { name: /^Tout/ }))
     expect(screen.getByRole('link', { name: /Naruto/ })).toBeInTheDocument()
   })
 
-  it('tourne les pages du calendrier par l’URL, et oublie le jour choisi en tournant', async () => {
+  it('turns the calendar pages through the URL, and forgets the chosen day when turning', async () => {
     servir(JANVIER_2000)
     rendre('/releases?mois=2000-01')
     const utilisateur = userEvent.setup()
@@ -191,7 +191,7 @@ describe('ReleasesPage', () => {
     expect(screen.getByTestId('url')).toHaveTextContent('/releases?mois=1999-12')
   })
 
-  it('liste tout ce qui vient à côté, mois par mois, et une ligne amène la grille sur son jour', async () => {
+  it('lists everything that is coming alongside, month by month, and a row brings the grid to its day', async () => {
     servir(JANVIER_2000, [
       sortie({ date: '2000-03-19', entityId: 'gta', entityTitle: 'GTA VI', label: '', entityTypeId: SOCIETE.id, relation: 'WANTED', source: 'MANUAL' }),
       sortie({ date: '2000-02', precision: 'MONTH', entityId: 'spy-16', entityTitle: 'Spy x Family', label: 'Tome 16 · Kurokawa' }),
@@ -215,7 +215,7 @@ describe('ReleasesPage', () => {
     expect(screen.getByRole('button', { name: 'Tout le mois' })).toBeInTheDocument()
   })
 
-  it('garde sa grille quand le mois est vide, et dit comment suivre une œuvre', async () => {
+  it('keeps its grid when the month is empty, and says how to follow a work', async () => {
     servir({ from: '2000-01-01', to: '2000-01-31', entries: [] })
     rendre('/releases?mois=2000-01')
 
@@ -226,7 +226,7 @@ describe('ReleasesPage', () => {
     expect(await screen.findByText("Rien d'annoncé pour l'année qui vient.")).toBeInTheDocument()
   })
 
-  it('retombe sur le mois de l’appareil quand l’URL déraille, sans rien casser', async () => {
+  it('falls back on the month of the device when the URL derails, without breaking anything', async () => {
     servir({ from: '', to: '', entries: [] })
     rendre('/releases?mois=octobre')
 

@@ -3,17 +3,17 @@ import { Compass } from 'lucide-react'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 
 /**
- * Ce qui s'affiche pour une URL que l'application ne connaît pas.
+ * What is shown for a URL that the application does not know.
  *
- * Il n'y en avait aucune : toute adresse inconnue rendait un `<main>`
- * strictement vide, avec la navigation autour - un écran qui a l'air cassé
- * plutôt que d'expliquer. Le cas devient atteignable dès qu'une route est
- * retirée (ici « Envies d'amélioration ») et qu'un signet ou un historique
- * pointe encore dessus, mais il existait déjà pour la moindre faute de frappe.
+ * There was none: every unknown address rendered a strictly empty `<main>`,
+ * with the navigation around it - a screen that looks broken
+ * instead of explaining. The case becomes reachable as soon as a route is
+ * removed (here "Envies d'amélioration") and a bookmark or a history
+ * still points to it, but it already existed for the smallest typo.
  *
- * Ni code d'erreur, ni « 404 » : ce sont des mots de serveur, et cette page
- * n'en est pas un. Elle dit ce qui s'est passé et propose la seule chose
- * utile — revenir à la collection.
+ * No error code, no "404": these are server words, and this page
+ * is not one. It says what happened and offers the only useful
+ * thing - going back to the collection.
  */
 export function PageIntrouvable() {
   return (

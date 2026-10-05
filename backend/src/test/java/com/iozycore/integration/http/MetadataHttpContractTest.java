@@ -20,24 +20,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP des deux surfaces qui parlent au monde extérieur :
- * {@code /api/metadata} (cinq routes) et {@code /api/listing-metadata} (une).
+ * The HTTP contract of the two surfaces that talk to the outside world:
+ * {@code /api/metadata} (five routes) and {@code /api/listing-metadata} (one).
  *
- * <h2>Aucun appel réseau, et pas par accident</h2>
- * Ces tests importent {@link FakeMetadataProviders}, dont les faux ne
- * répondent qu'à un univers et à un hôte inventés pour l'occasion. Les vrais
- * fournisseurs - Jikan, Google Books, BGG, IGDB, Vinted - déclinent d'eux-mêmes
- * par leur propre {@code supports(...)}, sans qu'on ait à les désactiver. Un
- * test qui interrogerait une vraie source échouerait donc à trouver son faux,
- * plutôt que de partir silencieusement sur le réseau.
+ * <h2>No network call, and not by accident</h2>
+ * These tests import {@link FakeMetadataProviders}, whose fakes only
+ * answer to a universe and a host invented for the occasion. The real
+ * providers - Jikan, Google Books, BGG, IGDB, Vinted - decline by themselves
+ * through their own {@code supports(...)}, without having to deactivate them. A
+ * test that would query a real source would therefore fail to find its fake,
+ * rather than silently going out on the network.
  *
- * <h2>Ce qui est protégé</h2>
- * Uniquement la frontière : routage, paramètres, DTO, et surtout la
- * <b>traduction des situations</b> en status. Cinq situations distinctes vivent
- * ici et se confondent facilement - univers inconnu, paramètre manquant, aucun
- * fournisseur compatible, fournisseur compatible mais sans résultat, et
- * fournisseur en panne. Les fondre en un 500 ou un 409 générique est le défaut
- * que ces tests interdisent.
+ * <h2>What is protected</h2>
+ * Only the boundary: routing, parameters, DTOs, and above all the
+ * <b>translation of situations</b> into status codes. Five distinct situations live
+ * here and are easily mixed up - unknown universe, missing parameter, no
+ * compatible provider, compatible provider but no result, and
+ * provider down. Merging them into a generic 500 or 409 is the defect
+ * that these tests forbid.
  */
 @Import(FakeMetadataProviders.class)
 class MetadataHttpContractTest extends HttpContractTestBase {
@@ -48,7 +48,7 @@ class MetadataHttpContractTest extends HttpContractTestBase {
     private static final String META = "/api/metadata";
     private static final String LISTING = "/api/listing-metadata";
 
-    /** L'univers auquel seuls les faux répondent. */
+    /** The universe to which only the fakes answer. */
     private UUID universDeTest() {
         return entityTypeRepository.findByCode(UNIVERS_DE_TEST)
                 .map(EntityType::id)
@@ -57,16 +57,16 @@ class MetadataHttpContractTest extends HttpContractTestBase {
     }
 
     /**
-     * Un second univers de test que <b>personne</b> ne couvre - ni les faux, ni
-     * les vrais.
+     * A second test universe that <b>nobody</b> covers - neither the fakes nor
+     * the real ones.
      *
-     * <h2>Pourquoi pas simplement « Manga »</h2>
-     * C'était ma première version, et elle était fausse d'une façon qui compte :
-     * Manga EST couvert par de vrais fournisseurs (Google Books, OpenLibrary,
-     * Jikan), si bien que le test partait réellement sur le réseau pour prouver
-     * qu'aucun fournisseur ne répondait. Un univers inventé n'a, lui, aucune
-     * implémentation réelle : la branche « personne ne sait répondre » est
-     * atteinte sans qu'une seule connexion soit ouverte.
+     * <h2>Why not simply "Manga"</h2>
+     * It was my first version, and it was wrong in a way that matters:
+     * Manga IS covered by real providers (Google Books, OpenLibrary,
+     * Jikan), so the test really went out on the network to prove
+     * that no provider answered. An invented universe has no
+     * real implementation: the branch "nobody can answer" is
+     * reached without a single connection being opened.
      */
     private UUID universSansAucunFournisseur() {
         return entityTypeRepository.findByCode("ZZAUCUN")
@@ -87,8 +87,8 @@ class MetadataHttpContractTest extends HttpContractTestBase {
                         .param("entityTypeId", universDeTest().toString())
                         .param("query", "Berserk"))
                 .andExpect(status().isOk())
-                // La valeur vient du faux : la requête a bien traversé le
-                // service jusqu'au fournisseur, et le DTO est remonté entier.
+                // The value comes from the fake: the request did go through the
+                // service up to the provider, and the DTO came back whole.
                 .andExpect(jsonPath("$[0].source").value("SOURCE_DE_TEST"))
                 .andExpect(jsonPath("$[0].title").value("Résultat de test : Berserk"))
                 .andExpect(jsonPath("$[0].attributes.mangaka").value("Autrice de test"));
@@ -96,11 +96,11 @@ class MetadataHttpContractTest extends HttpContractTestBase {
 
     @Test
     void a_provider_does_not_answer_for_a_universe_it_does_not_support() throws Exception {
-        // Le faux ne répond qu'à son univers. Interroger un AUTRE univers ne doit
-        // pas lui faire prendre la demande - c'est ce qui garantit qu'en
-        // production le bon fournisseur est choisi. L'univers visé ici n'a aucune
-        // implémentation, réelle ou fausse : la réponse vide prouve donc que
-        // personne n'a répondu, et non qu'une source distante n'a rien trouvé.
+        // The fake only answers to its universe. Querying ANOTHER universe must not
+        // make it take the request - this is what guarantees that in
+        // production the right provider is chosen. The universe aimed at here has no
+        // implementation, real or fake: the empty response therefore proves that
+        // nobody answered, and not that a remote source found nothing.
         mockMvc.perform(get(META + "/search")
                         .param("entityTypeId", universSansAucunFournisseur().toString())
                         .param("query", "aucun-fournisseur-de-test-ne-repond"))
@@ -110,8 +110,8 @@ class MetadataHttpContractTest extends HttpContractTestBase {
 
     @Test
     void a_search_that_finds_nothing_is_an_empty_list_not_an_error() throws Exception {
-        // « Aucun résultat » n'est pas « quelque chose a échoué » : l'écran de
-        // recherche affiche « rien trouvé », il ne gère pas un 404.
+        // "No result" is not "something failed": the search screen
+        // shows "nothing found", it does not handle a 404.
         mockMvc.perform(get(META + "/search")
                         .param("entityTypeId", universDeTest().toString())
                         .param("query", DECLENCHE_VIDE))
@@ -145,22 +145,22 @@ class MetadataHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.title").value("Trouvé par code-barres"))
                 .andExpect(jsonPath("$.externalId").value("fake-9782505011118"));
 
-        // Fournisseur compatible mais sans correspondance : 404, une ressource
-        // précise a été demandée et n'existe pas. À distinguer de la recherche
-        // ci-dessus, qui rend une liste vide.
+        // Compatible provider but no match: 404, a specific resource
+        // was asked for and does not exist. To be distinguished from the search
+        // above, which returns an empty list.
         mockMvc.perform(get(META + "/lookup-barcode")
                         .param("entityTypeId", universDeTest().toString())
                         .param("barcode", DECLENCHE_VIDE))
                 .andExpect(status().isNotFound());
 
-        // Une source qui n'a pas répondu n'est PAS une absence : 503, parce que le
-        // geste utile est de réessayer, là où un 404 invite à chercher par titre.
+        // A source that did not answer is NOT an absence: 503, because the
+        // useful action is to try again, where a 404 invites to search by title.
         mockMvc.perform(get(META + "/lookup-barcode")
                         .param("entityTypeId", universDeTest().toString())
                         .param("barcode", DECLENCHE_PANNE))
                 .andExpect(status().isServiceUnavailable());
 
-        // Univers inconnu : la requête elle-même est invalide.
+        // Unknown universe: the request itself is invalid.
         mockMvc.perform(get(META + "/lookup-barcode")
                         .param("entityTypeId", ABSENT).param("barcode", "123"))
                 .andExpect(status().isBadRequest());
@@ -168,8 +168,8 @@ class MetadataHttpContractTest extends HttpContractTestBase {
 
     @Test
     void no_compatible_provider_for_a_barcode_is_404_not_a_server_error() throws Exception {
-        // Aucun fournisseur de code-barres ne couvre cet univers : rien à
-        // interroger, donc rien trouvé - et surtout pas un 500.
+        // No barcode provider covers this universe: nothing to
+        // query, so nothing found - and above all not a 500.
         mockMvc.perform(get(META + "/lookup-barcode")
                         .param("entityTypeId", universSansAucunFournisseur().toString())
                         .param("barcode", "0000000000000"))
@@ -213,8 +213,8 @@ class MetadataHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.volumes.length()").value(2))
                 .andExpect(jsonPath("$.volumes[0].volumeNumber").value(1))
                 .andExpect(jsonPath("$.volumes[0].edition").value("Standard"))
-                // Rien n'est possédé ici : le drapeau existe et vaut false,
-                // plutôt que d'être absent.
+                // Nothing is owned here: the flag exists and is false,
+                // rather than being absent.
                 .andExpect(jsonPath("$.volumes[0].alreadyOwned").value(false))
                 .andExpect(jsonPath("$.quotaExceeded").exists());
     }
@@ -242,8 +242,8 @@ class MetadataHttpContractTest extends HttpContractTestBase {
 
     @Test
     void rejects_a_bgg_import_without_a_username_with_400() throws Exception {
-        // Le seul cas de cette route atteignable sans réseau - et c'est
-        // délibéré : déclencher un vrai import contacterait BoardGameGeek.
+        // The only case of this route reachable without network - and this is
+        // deliberate: triggering a real import would contact BoardGameGeek.
         mockMvc.perform(post(META + "/bgg/import").param("username", "   "))
                 .andExpect(status().isBadRequest());
         mockMvc.perform(post(META + "/bgg/import"))
@@ -265,8 +265,8 @@ class MetadataHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.buyerProtectionFee").value(2.95))
                 .andExpect(jsonPath("$.imageUrls.length()").value(1))
                 .andExpect(jsonPath("$.externalId").value("42"))
-                // retrievedFields dit ce qui a RÉELLEMENT été lu : c'est lui
-                // qui autorise le formulaire à pré-remplir, champ par champ.
+                // retrievedFields says what was REALLY read: it is what
+                // allows the form to pre-fill, field by field.
                 .andExpect(jsonPath("$.retrievedFields").isNotEmpty());
     }
 
@@ -278,16 +278,16 @@ class MetadataHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.status").value("PARTIAL"))
                 .andExpect(jsonPath("$.title").value("Lot partiel de test"))
                 .andExpect(jsonPath("$.price").value(30))
-                // Le reste manque, et c'est dit sans que la réponse échoue :
-                // une donnée absente n'est jamais devinée.
+                // The rest is missing, and this is said without the response failing:
+                // a missing piece of data is never guessed.
                 .andExpect(jsonPath("$.shippingFee").doesNotExist())
                 .andExpect(jsonPath("$.buyerProtectionFee").doesNotExist());
     }
 
     @Test
     void reports_a_listing_that_no_longer_exists_and_a_source_that_is_down() throws Exception {
-        // Deux échecs distincts, deux statuts distincts - les confondre priverait
-        // l'écran de la seule information utile : faut-il réessayer ?
+        // Two distinct failures, two distinct statuses - mixing them up would deprive
+        // the screen of the only useful information: should we try again?
         mockMvc.perform(post(LISTING + "/resolve").contentType("application/json")
                         .content(json(java.util.Map.of("url", url(DECLENCHE_VIDE)))))
                 .andExpect(status().isOk())
@@ -302,23 +302,23 @@ class MetadataHttpContractTest extends HttpContractTestBase {
 
     @Test
     void an_unsupported_source_is_reported_without_fetching_anything() throws Exception {
-        // Une URL bien formée vers un hôte que personne ne couvre : la réponse
-        // le dit, et surtout le contrôleur ne va rien chercher au hasard.
+        // A well formed URL to a host that nobody covers: the response
+        // says so, and above all the controller does not look for anything at random.
         mockMvc.perform(post(LISTING + "/resolve").contentType("application/json")
                         .content(json(java.util.Map.of("url", "https://une-autre-plateforme.test/annonce/42"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UNSUPPORTED_SOURCE"))
-                // L'URL est conservée : elle sert à retrouver l'annonce depuis
-                // l'analyse, même sans lecture automatique.
+                // The URL is kept: it is used to find the listing again from
+                // the analysis, even without automatic reading.
                 .andExpect(jsonPath("$.url").value("https://une-autre-plateforme.test/annonce/42"))
                 .andExpect(jsonPath("$.title").doesNotExist());
     }
 
     @Test
     void an_unusable_url_is_refused_as_invalid_rather_than_followed() throws Exception {
-        // Toutes ces formes doivent être écartées AVANT qu'un fournisseur soit
-        // consulté. Le détail des règles appartient à ListingUrlGuard, qui a ses
-        // propres tests ; ici on fige seulement leur traduction HTTP.
+        // All these shapes must be ruled out BEFORE a provider is
+        // consulted. The detail of the rules belongs to ListingUrlGuard, which has its
+        // own tests; here we only freeze their HTTP translation.
         for (String url : new String[] {"pas une url", "file:///etc/passwd",
                                          "http://" + HOTE_DE_TEST + "/annonce/1", ""}) {
             mockMvc.perform(post(LISTING + "/resolve").contentType("application/json")
@@ -334,8 +334,8 @@ class MetadataHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(post(LISTING + "/resolve").contentType("application/json").content("{pas du json"))
                 .andExpect(status().isBadRequest());
-        // Corps présent mais sans URL : traité comme une URL inexploitable,
-        // jamais comme une erreur serveur.
+        // Body present but without URL: handled as an unusable URL,
+        // never as a server error.
         mockMvc.perform(post(LISTING + "/resolve").contentType("application/json").content("{}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("INVALID_URL"));

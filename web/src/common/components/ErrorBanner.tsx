@@ -1,8 +1,8 @@
 import { AlertTriangle } from 'lucide-react'
 
-/** Bannière d'erreur non bloquante - même esprit que le "Synchronisation
- * impossible, affichage du cache local" de l'iOS (mais ce client n'ayant
- * pas de cache offline, on affiche juste le message d'erreur). */
+/** Non-blocking error banner - same spirit as the "Synchronisation
+ * impossible, affichage du cache local" of iOS (but since this client has
+ * no offline cache, we just display the error message). */
 export function ErrorBanner({ message }: { message: string }) {
   return (
     <div className="flex items-center gap-2 rounded-xl bg-dangerTint px-4 py-3 text-sm text-dangerText">

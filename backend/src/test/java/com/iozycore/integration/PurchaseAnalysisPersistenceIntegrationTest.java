@@ -118,28 +118,28 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
 
     @Test
     void an_edition_created_through_the_add_flow_is_fully_enrichable_through_the_same_purchase_analysis_pipeline() {
-        // Étape 7 (réutiliser le pipeline d'enrichissement existant) : une Édition créée
-        // via l'ajout rapide (QuickAddService, étape 3) est un MangaEdition comme un
-        // autre - le même PATCH /editions/{id} déjà utilisé par l'Analyse d'achat
-        // fonctionne dessus sans distinction, aucune donnée dupliquée ni pipeline séparé.
+        // Step 7 (reuse the existing enrichment pipeline): an Edition created
+        // through the quick add (QuickAddService, step 3) is a MangaEdition like any
+        // other - the same PATCH /editions/{id} already used by the Purchase Analysis
+        // works on it without distinction, no duplicated data and no separate pipeline.
         String seriesTitle = "Vinland Saga " + UUID.randomUUID();
         com.iozycore.core.application.QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
                 EntityTypeFixtures.MANGA.id(), seriesTitle, com.iozycore.core.domain.ownership.OwnershipCondition.NEW,
                 Map.of(), 1, "Deluxe");
 
         MangaEdition created = mangaEditionRepository.findBySeriesAndEdition(seriesTitle, "Deluxe").orElseThrow();
-        assertThat(created.entityId()).isEqualTo(result.entityId()); // lié dès la création (étape 3)
-        assertThat(created.tier()).isEqualTo(EditionTier.OTHER); // strict minimum, rien deviné à la création
+        assertThat(created.entityId()).isEqualTo(result.entityId()); // linked from the creation (step 3)
+        assertThat(created.tier()).isEqualTo(EditionTier.OTHER); // strict minimum, nothing guessed at creation
         assertThat(created.totalVolumes()).isNull();
         assertThat(created.publisher()).isNull();
 
         MangaEdition enriched = purchaseAnalysisService.updateEdition(created.id(), EditionTier.DELUXE,
                 "Kurokawa", 10, new BigDecimal("19.90"), false, false, null);
 
-        assertThat(enriched.entityId()).isEqualTo(result.entityId()); // le lien à la Série survit à l'enrichissement
+        assertThat(enriched.entityId()).isEqualTo(result.entityId()); // the link to the Series survives the enrichment
         assertThat(enriched.publisher()).isEqualTo("Kurokawa");
         MangaEdition reloaded = mangaEditionRepository.findById(created.id()).orElseThrow();
-        assertThat(reloaded.totalVolumes()).isEqualTo(10); // persisté
+        assertThat(reloaded.totalVolumes()).isEqualTo(10); // persisted
         assertThat(reloaded.retailPriceNewPerVolume()).isEqualByComparingTo(new BigDecimal("19.90"));
     }
 
@@ -161,9 +161,9 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
 
     @Test
     void deleting_an_edition_is_refused_while_a_price_observation_still_refers_to_it() {
-        // Avant ce garde-fou, seule la contrainte de clé étrangère de Postgres
-        // protégeait la table : la suppression remontait une erreur SQL brute
-        // (500) au lieu du refus explicite déjà prévu pour les tomes.
+        // Before this guard, only the Postgres foreign key constraint
+        // protected the table: the deletion raised a raw SQL error
+        // (500) instead of the explicit refusal already planned for the volumes.
         MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("Pluto " + UUID.randomUUID(),
                 "Deluxe", EditionTier.DELUXE, "Delcourt", 8, new BigDecimal("15.50"), false, false, null));
         marketPriceObservationRepository.save(MarketPriceObservation.record_(edition.id(), new VolumeRange(1, 8),
@@ -232,10 +232,10 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
 
     @Test
     void les_reserves_de_la_reference_traversent_le_jsonb_comme_le_prix() {
-        // La fraîcheur de la référence est la PREMIÈRE date du payload : tout le
-        // reste de l'instantané est nombre, texte ou instant. Un aller-retour
-        // réel est le seul endroit où ça se vérifie - sérialisée de travers, une
-        // analyse ne se relirait plus du tout.
+        // The freshness of the reference is the FIRST date of the payload: all the
+        // rest of the snapshot is number, text or instant. A real round-trip
+        // is the only place where this is checked - badly serialised, an
+        // analysis could not be read again at all.
         MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("Blame " + UUID.randomUUID(),
                 "Master Edition", EditionTier.DELUXE, "Glénat", 6, new BigDecimal("22"), false, false, null));
         LocalDate plusRecent = LocalDate.now().minusDays(3);
@@ -264,8 +264,8 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
 
     @Test
     void un_port_saisi_a_la_main_se_relit_toujours_comme_une_estimation() {
-        // La lecture historique ne doit jamais promouvoir une saisie en tarif
-        // ferme : « 5,90 € estimés » aujourd'hui, « 5,90 € estimés » dans un an.
+        // The historical read must never promote an entry into a firm
+        // price: "5.90 € estimated" today, "5.90 € estimated" in a year.
         MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("Berserk " + UUID.randomUUID(),
                 "Standard", EditionTier.STANDARD, "Glenat", 41, new BigDecimal("8.50"), false, false, null));
 
@@ -311,9 +311,9 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
 
     @Test
     void edition_ai_suggestion_is_safely_absent_when_no_provider_key_is_configured() {
-        // Aucune clé gemini.api-key dans ce contexte de test (voir application.yml) - vérifie que le
-        // câblage Spring bout-en-bout (Service -> AiEditionAdvisor -> GeminiEditionAdvisor) reste
-        // silencieux plutôt que d'échouer, même règle que BGG/IGDB sans identifiants.
+        // No gemini.api-key in this test context (see application.yml) - checks that the
+        // end-to-end Spring wiring (Service -> AiEditionAdvisor -> GeminiEditionAdvisor) stays
+        // silent instead of failing, same rule as BGG/IGDB without credentials.
         Optional<EditionSuggestion> suggestion =
                 purchaseAnalysisService.suggestEditionReferenceData("Death Note", "Black Édition");
 
@@ -330,7 +330,7 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         for (int volume = 1; volume <= 24; volume++) {
             entity.addVariant("Tome " + volume, Map.of("volumeNumber", volume, "edition", "Standard"));
         }
-        entityRepository.save(entity); // la Série (et ses Variant) doivent exister avant qu'une Ownership les référence (FK)
+        entityRepository.save(entity); // the Series (and its Variants) must exist before an Ownership references them (FK)
         for (Variant variant : entity.variants()) {
             ownershipRepository.save(Ownership.acquire(entity.id(), variant.id(), OwnershipCondition.NEW, LocalDate.now(), null));
         }
@@ -359,10 +359,10 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
 
     @Test
     void near_complete_suggestions_never_counts_a_catalogued_but_unowned_tome_as_owned() {
-        // Étape 6 (modèle Tome != Ownership) : un Variant catalogué sans Ownership active
-        // (ex: exemplaire revendu puis son Ownership supprimée, voir OwnershipDeletionService)
-        // ne doit jamais gonfler ownedCount ni disparaître silencieusement de missingVolumeNumbers -
-        // et doit être reconnaissable comme "déjà catalogué" plutôt que purement virtuel.
+        // Step 6 (Volume != Ownership model): a catalogued Variant without an active Ownership
+        // (e.g. a copy sold and then its Ownership deleted, see OwnershipDeletionService)
+        // must never inflate ownedCount nor silently disappear from missingVolumeNumbers -
+        // and must be recognisable as "already catalogued" rather than purely virtual.
         String seriesTitle = "Parasyte " + UUID.randomUUID();
         mangaEditionRepository.save(MangaEdition.create(seriesTitle, "Standard", EditionTier.STANDARD, "Tonkam",
                 10, new BigDecimal("7.50"), false, false, null));
@@ -370,19 +370,19 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), seriesTitle);
         Variant owned1 = entity.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Standard"));
         Variant owned2 = entity.addVariant("Tome 2", Map.of("volumeNumber", 2, "edition", "Standard"));
-        entity.addVariant("Tome 3", Map.of("volumeNumber", 3, "edition", "Standard")); // catalogué, jamais possédé
+        entity.addVariant("Tome 3", Map.of("volumeNumber", 3, "edition", "Standard")); // catalogued, never owned
         entityRepository.save(entity);
         ownershipRepository.save(Ownership.acquire(entity.id(), owned1.id(), OwnershipCondition.NEW, LocalDate.now(), null));
         ownershipRepository.save(Ownership.acquire(entity.id(), owned2.id(), OwnershipCondition.NEW, LocalDate.now(), null));
-        // Tomes 4-10 : purement virtuels, aucun Variant catalogué du tout.
+        // Volumes 4-10: purely virtual, no catalogued Variant at all.
 
         NearCompleteSuggestion suggestion = purchaseAnalysisService.findNearCompleteSuggestions().stream()
                 .filter(s -> s.entityId().equals(entity.id())).findFirst().orElseThrow();
 
-        assertThat(suggestion.ownedCount()).isEqualTo(2); // pas 3
-        assertThat(suggestion.missingCount()).isEqualTo(8); // tomes 3 à 10
-        assertThat(suggestion.cataloguedMissingVolumeNumbers()).containsExactly(3); // catalogué, juste pas possédé
-        assertThat(suggestion.missingVolumeNumbers()).contains(3, 4, 10); // virtuels ET catalogué, tous "manquants"
+        assertThat(suggestion.ownedCount()).isEqualTo(2); // not 3
+        assertThat(suggestion.missingCount()).isEqualTo(8); // volumes 3 to 10
+        assertThat(suggestion.cataloguedMissingVolumeNumbers()).containsExactly(3); // catalogued, just not owned
+        assertThat(suggestion.missingVolumeNumbers()).contains(3, 4, 10); // virtual AND catalogued, all "missing"
     }
 
     @Test
@@ -413,21 +413,21 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
     }
 
     /**
-     * Un tome catalogué SANS édition précisée appartient à l'unique édition nommée de
-     * la série - c'est ce que la fiche et Ma collection affichent depuis toujours, via
-     * le regroupement de CollectionProgressService.
+     * A catalogued volume WITHOUT a specified edition belongs to the only named edition of
+     * the series - this is what the detail page and My collection have always shown, through
+     * the grouping of CollectionProgressService.
      * <p>
-     * L'analyse d'un lot exigeait, elle, une correspondance EXACTE de l'attribut
-     * {@code edition} : elle annonçait donc « manquant » un tome bien présent en rayon,
-     * et conseillait de le racheter. Trouvé en éprouvant le parcours le 2026-08-27 sur
-     * un Naruto dont le tome 1 n'a pas d'édition renseignée.
+     * The analysis of a batch required an EXACT match of the {@code edition}
+     * attribute: so it announced as "missing" a volume that was on the shelf,
+     * and advised to buy it again. Found while testing the journey on 2026-08-27 with
+     * a Naruto whose volume 1 has no edition filled in.
      */
     @Test
     void a_volume_catalogued_without_an_edition_still_counts_as_owned_in_the_only_named_edition() {
         String seriesTitle = "Naruto " + UUID.randomUUID();
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), seriesTitle);
-        // Le tome 1 sans édition, les deux autres dans "Kana" : exactement la forme
-        // qu'un ajout ancien laisse derrière lui.
+        // Volume 1 without edition, the two others in "Kana": exactly the shape
+        // that an old add leaves behind.
         entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
         entity.addVariant("Tome 2 — Kana", Map.of("volumeNumber", 2, "edition", "Kana"));
         entityRepository.save(entity);
@@ -448,25 +448,25 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         PurchaseAnalysis analysis = purchaseAnalysisService.analyze(command);
 
         var duplicates = analysis.itemBreakdown().get(0).duplicates();
-        // Le tome 1 compte comme déjà possédé malgré son édition absente ; seul le 3
-        // est réellement utile dans ce lot.
+        // Volume 1 counts as already owned despite its missing edition; only 3
+        // is really useful in this batch.
         assertThat(duplicates.duplicateVolumeNumbers()).containsExactlyInAnyOrder(1, 2);
         assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
     }
 
-    // --- Migration "Série -> Édition par ID" (historique de la conversation) ---
-    // Le titre ne doit plus jamais être la relation persistante entre une Série et
-    // ses Éditions : un renommage doit pouvoir modifier UNIQUEMENT Entity.title
-    // sans casser ni dupliquer quoi que ce soit côté MangaEdition/Variant.
+    // --- Migration "Series -> Edition by ID" (history of the conversation) ---
+    // The title must never again be the persistent relation between a Series and
+    // its Editions: a rename must be able to change ONLY Entity.title
+    // without breaking or duplicating anything on the MangaEdition/Variant side.
 
     @Test
     void renaming_a_series_does_not_orphan_or_duplicate_its_editions_or_tomes() {
         UUID mangaTypeId = EntityTypeFixtures.MANGA.id();
         String originalTitle = "Naruto " + UUID.randomUUID();
 
-        // Série avec PLUSIEURS Éditions (scénario 1) : tome 1 de "Kana", tome 1 de
-        // "Perfect Edition" - deux MangaEdition distinctes, toutes deux reliées par
-        // entityId (voir resolveOrCreateMangaEdition, jamais un doublon).
+        // Series with SEVERAL Editions (scenario 1): volume 1 of "Kana", volume 1 of
+        // "Perfect Edition" - two distinct MangaEditions, both linked by
+        // entityId (see resolveOrCreateMangaEdition, never a duplicate).
         var kanaTome1 = quickAddService.addNewEntityWithOwnership(mangaTypeId, originalTitle,
                 OwnershipCondition.NEW, Map.of(), 1, "Kana");
         quickAddService.addNewEntityWithOwnership(mangaTypeId, originalTitle,
@@ -478,7 +478,7 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         UUID kanaEditionId = editionsBeforeRename.stream()
                 .filter(e -> e.editionName().equalsIgnoreCase("Kana")).findFirst().orElseThrow().id();
 
-        // Renommage (scénario 2) : UNIQUEMENT Entity.title, rien côté MangaEdition.
+        // Rename (scenario 2): ONLY Entity.title, nothing on the MangaEdition side.
         String newTitle = "L'Histoire de Naruto " + UUID.randomUUID();
         Entity entity = entityRepository.findById(entityId).orElseThrow();
         entity.rename(newTitle);
@@ -486,21 +486,21 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         entityManager.flush();
         entityManager.clear();
 
-        // Un 2e ajout après renommage (avec le NOUVEAU titre, comme le ferait un
-        // utilisateur réel) doit rattacher le nouveau tome à l'édition "Kana" déjà
-        // connue plutôt que d'en créer une seconde (scénario 5 : aucune duplication).
+        // A 2nd add after the rename (with the NEW title, as a real
+        // user would do) must attach the new volume to the "Kana" edition already
+        // known instead of creating a second one (scenario 5: no duplication).
         quickAddService.addNewEntityWithOwnership(mangaTypeId, newTitle,
                 OwnershipCondition.NEW, Map.of(), 2, "Kana");
 
-        // Les Éditions restent rattachées (scénario 3), toujours exactement 2 - pas 3.
+        // The Editions stay attached (scenario 3), still exactly 2 - not 3.
         List<MangaEdition> editionsAfterRename = mangaEditionRepository.findByEntityId(entityId);
         assertThat(editionsAfterRename).hasSize(2);
         MangaEdition kanaAfterRename = editionsAfterRename.stream()
                 .filter(e -> e.editionName().equalsIgnoreCase("Kana")).findFirst().orElseThrow();
-        assertThat(kanaAfterRename.id()).isEqualTo(kanaEditionId); // même ligne, pas une nouvelle
+        assertThat(kanaAfterRename.id()).isEqualTo(kanaEditionId); // same row, not a new one
 
-        // Les Tomes restent rattachés aux mêmes Éditions (scénario 4) : tome 1 ET
-        // tome 2 pointent tous les deux vers CETTE MÊME MangaEdition "Kana".
+        // The Volumes stay attached to the same Editions (scenario 4): volume 1 AND
+        // volume 2 both point to THIS SAME MangaEdition "Kana".
         Entity reloaded = entityRepository.findById(entityId).orElseThrow();
         assertThat(reloaded.title()).isEqualTo(newTitle);
         Variant tome1 = reloaded.findVariantByLabel("Tome 1 — Kana").orElseThrow();
@@ -528,13 +528,13 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         entityManager.flush();
         entityManager.clear();
 
-        // La consultation (recherche d'édition par ID) continue de fonctionner (scénario 6).
+        // The read (search of an edition by ID) still works (scenario 6).
         Optional<MangaEdition> found = purchaseAnalysisService.findEdition(entityId, newTitle, "Kurokawa");
         assertThat(found).isPresent();
         assertThat(found.get().id()).isEqualTo(edition.id());
 
-        // La complétude aussi (scénario 6) - toujours calculable après renommage,
-        // avec le nombre de tomes connu conservé (27, jamais réinitialisé).
+        // The completeness too (scenario 6) - still computable after the rename,
+        // with the known number of volumes kept (27, never reset).
         CollectionStatus status = purchaseAnalysisService.computeCompleteness(entityId, newTitle, "Kurokawa", Set.of(1));
         assertThat(status.isKnown()).isTrue();
         assertThat(status.totalVolumes()).isEqualTo(27);

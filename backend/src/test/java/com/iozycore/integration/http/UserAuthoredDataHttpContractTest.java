@@ -28,29 +28,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP des trois surfaces par lesquelles l'utilisateur attache
- * <b>ses propres données</b> à une œuvre : un lien entre deux œuvres
- * ({@code /api/relationships}), un fait vécu ({@code /api/experiences}), une
- * envie ({@code /api/wishlist}).
+ * The HTTP contract of the three surfaces through which the user attaches
+ * <b>their own data</b> to a work: a link between two works
+ * ({@code /api/relationships}), a lived fact ({@code /api/experiences}), a
+ * wish ({@code /api/wishlist}).
  *
- * <h2>Pourquoi ces trois ensemble</h2>
- * Ce ne sont pas trois modules voisins par hasard : ce sont les trois endroits
- * où l'utilisateur écrit quelque chose qui n'existe nulle part ailleurs. Une
- * possession se rachète, un catalogue se re-télécharge ; une note de lecture,
- * un lien qu'on a établi soi-même et une envie notée un soir, non. Les trois
- * ont d'ailleurs été repris ensemble lors de la passe « rendre réversibles les
- * écritures utilisateur ».
+ * <h2>Why these three together</h2>
+ * These are not three neighbouring modules by chance: they are the three places
+ * where the user writes something that exists nowhere else. An
+ * ownership can be bought again, a catalogue can be downloaded again; a reading note,
+ * a link that one set up oneself and a wish noted one evening cannot. The three
+ * were also reworked together during the pass "make the user
+ * writes reversible".
  * <p>
- * Ils partagent aussi le <b>même défaut historique</b>, corrigé au Lot 28 : une
- * référence vers une œuvre inconnue n'était protégée que par la clé étrangère
- * de Postgres, et remontait en 500 avec la requête SQL. Ces tests figent le
- * 400 qui l'a remplacé - sur les trois surfaces, parce que le cas jumeau est
- * précisément ce qui se retrouve oublié.
+ * They also share the <b>same historical defect</b>, fixed in Batch 28: a
+ * reference to an unknown work was only protected by the foreign key
+ * of Postgres, and came out as a 500 with the SQL query. These tests freeze the
+ * 400 that replaced it - on the three surfaces, because the twin case is
+ * precisely what ends up forgotten.
  *
- * <h2>Les deux invariants produit</h2>
- * <b>Wishlist ≠ Ownership</b> : ajouter aux envies ne crée jamais de
- * possession. <b>Catalogue ≠ Collection</b> : une œuvre inconnue d'IozyCore
- * peut entrer aux envies, en créant sa seule fiche catalogue.
+ * <h2>The two product invariants</h2>
+ * <b>Wishlist != Ownership</b>: adding to the wishes never creates an
+ * ownership. <b>Catalogue != Collection</b>: a work unknown to IozyCore
+ * can enter the wishes, by creating its only catalogue detail page.
  */
 class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
 
@@ -77,13 +77,13 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
 
     private static final String MANGA = "00000000-0000-0000-0000-000000000001";
 
-    /** Une œuvre au catalogue, sans possession. */
+    /** A catalogue work, without ownership. */
     private Entity uneOeuvre(String titre) {
         return catalogEntityResolver.resolveOrCreate(EntityTypeFixtures.MANGA.id(),
                 titre + " " + UUID.randomUUID(), Map.of()).entity();
     }
 
-    /** Une œuvre possédée, avec un tome - nécessaire pour les expériences par tome. */
+    /** An owned work, with a volume - needed for the per-volume experiences. */
     private QuickAddService.QuickAddResult uneOeuvrePossedee() {
         return quickAddService.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(),
                 "Pluto " + UUID.randomUUID(), OwnershipCondition.USED, Map.of(), 1, "Standard");
@@ -105,8 +105,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.targetEntityId").value(cible.id().toString()))
                 .andExpect(jsonPath("$.relationshipType").value("SPIN_OFF"));
 
-        // Une relation est orientée : elle se lit depuis sa source, et depuis sa
-        // cible - les deux fiches doivent la montrer.
+        // A relationship is directed: it is read from its source, and from its
+        // target - both detail pages must show it.
         mockMvc.perform(get("/api/relationships/from/{id}", source.id()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].targetEntityId").value(cible.id().toString()));
@@ -119,8 +119,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
     void rejects_a_relationship_pointing_at_a_work_that_does_not_exist_with_400() throws Exception {
         Entity source = uneOeuvre("Berserk");
 
-        // Le défaut du Lot 28 : sans ce contrôle, seule la clé étrangère
-        // protégeait la table et remontait en 500 avec la requête SQL.
+        // The defect of Batch 28: without this check, only the foreign key
+        // protected the table and came out as a 500 with the SQL query.
         mockMvc.perform(post("/api/relationships").contentType("application/json")
                         .content("{\"sourceEntityId\":\"" + source.id() + "\",\"targetEntityId\":\"" + ABSENT
                                 + "\",\"relationshipType\":\"SEQUEL\"}"))
@@ -149,8 +149,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
             mockMvc.perform(post("/api/relationships").contentType("application/json").content(corps))
                     .andExpect(status().isBadRequest());
         }
-        // Un identifiant qui n'est pas un UUID échoue à la désérialisation,
-        // avant même d'atteindre le contrôleur.
+        // An identifier that is not a UUID fails at deserialisation,
+        // even before reaching the controller.
         mockMvc.perform(post("/api/relationships").contentType("application/json")
                         .content("{\"sourceEntityId\":\"" + MALFORME + "\",\"targetEntityId\":\"" + ABSENT
                                 + "\",\"relationshipType\":\"SEQUEL\"}"))
@@ -168,13 +168,13 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
                         .content("{\"relationshipType\":\"SPIN_OFF\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.relationshipType").value("SPIN_OFF"))
-                // Corriger le type ne redirige pas la relation.
+                // Correcting the type does not redirect the relationship.
                 .andExpect(jsonPath("$.sourceEntityId").value(source.id().toString()));
 
         mockMvc.perform(delete("/api/relationships/{id}", relation.id()))
                 .andExpect(status().isNoContent());
         assertThat(relationshipRepository.findById(relation.id())).isEmpty();
-        // Retirer une relation ne touche à aucune des deux œuvres.
+        // Removing a relationship touches neither of the two works.
         assertThat(entityRepository.findById(source.id())).isPresent();
         assertThat(entityRepository.findById(cible.id())).isPresent();
     }
@@ -228,11 +228,11 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
     void rejects_an_experience_without_a_date_with_400_rather_than_a_meaningless_conflict() throws Exception {
         Entity oeuvre = uneOeuvre("Nausicaa");
 
-        // Découvert par cette passe. La colonne est NOT NULL et rien ne le
-        // validait : le corps descendait jusqu'à Hibernate, dont la
-        // PropertyValueException ressortait en 409 « Cette donnée entre en
-        // conflit avec une donnée existante » - rien n'entrait en conflit, il
-        // manquait une date, et l'utilisateur ne pouvait pas savoir laquelle.
+        // Found by this pass. The column is NOT NULL and nothing
+        // validated it: the body went down to Hibernate, whose
+        // PropertyValueException came out as a 409 "Cette donnée entre en
+        // conflit avec une donnée existante" - nothing was in conflict, a
+        // date was missing, and the user could not know which one.
         mockMvc.perform(post("/api/experiences").contentType("application/json")
                         .content("{\"entityId\":\"" + oeuvre.id() + "\",\"experienceType\":\"READ\"}"))
                 .andExpect(status().isBadRequest())
@@ -244,8 +244,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
         Entity oeuvre = uneOeuvre("Gunnm");
         QuickAddService.QuickAddResult autre = uneOeuvrePossedee();
 
-        // Le tome existe, mais ailleurs : rattacher une lecture au mauvais tome
-        // fausserait durablement la fiche.
+        // The volume exists, but elsewhere: attaching a reading to the wrong volume
+        // would durably distort the detail page.
         mockMvc.perform(post("/api/experiences").contentType("application/json")
                         .content("{\"entityId\":\"" + oeuvre.id() + "\",\"variantId\":\"" + autre.variantId()
                                 + "\",\"experienceType\":\"READ\"}"))
@@ -256,8 +256,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
     void rejects_an_experience_type_the_universe_does_not_allow_with_400() throws Exception {
         Entity manga = uneOeuvre("Naruto");
 
-        // Un manga se lit ; « PLAYED » appartient au jeu vidéo. Le refus vient du
-        // type d'œuvre, pas d'une liste codée dans le contrôleur.
+        // A manga is read; "PLAYED" belongs to the video game. The refusal comes from
+        // the type of work, not from a list hard-coded in the controller.
         mockMvc.perform(post("/api/experiences").contentType("application/json")
                         .content("{\"entityId\":\"" + manga.id() + "\",\"experienceType\":\"PLAYED\"}"))
                 .andExpect(status().isBadRequest());
@@ -265,9 +265,9 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
 
     @Test
     void rejects_an_experience_on_a_work_that_does_not_exist_with_400_not_404() throws Exception {
-        // 400 délibéré et non 404 : l'endpoint existe, c'est le CORPS qui
-        // référence une œuvre inconnue. Le client remplace tout 404 par un repli
-        // traduit, et la vraie raison n'arrivait jamais à l'écran.
+        // Deliberate 400 and not 404: the endpoint exists, it is the BODY that
+        // references an unknown work. The client replaces any 404 by a translated
+        // fallback, and the real reason never reached the screen.
         mockMvc.perform(post("/api/experiences").contentType("application/json")
                         .content("{\"entityId\":\"" + ABSENT + "\",\"experienceType\":\"READ\"}"))
                 .andExpect(status().isBadRequest());
@@ -293,8 +293,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.rating").value(9))
                 .andExpect(jsonPath("$.comment").value("Relu, bien mieux"));
 
-        // null efface : les deux champs sont remplacés tels quels, ce qui permet
-        // de retirer une note posée par erreur.
+        // null erases: both fields are replaced as they are, which allows
+        // removing a rating set by mistake.
         mockMvc.perform(patch("/api/experiences/{id}", experience.id()).contentType("application/json")
                         .content("{\"rating\":null,\"comment\":null}"))
                 .andExpect(status().isOk())
@@ -304,7 +304,7 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(delete("/api/experiences/{id}", experience.id()))
                 .andExpect(status().isNoContent());
         assertThat(experienceRepository.findById(experience.id())).isEmpty();
-        // Retirer une lecture ne retire pas l'œuvre.
+        // Removing a reading does not remove the work.
         assertThat(entityRepository.findById(oeuvre.id())).isPresent();
     }
 
@@ -333,7 +333,7 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(get("/api/experiences")).andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/experiences").param("entityId", MALFORME))
                 .andExpect(status().isBadRequest());
-        // Aucune expérience n'est un état normal, pas une erreur.
+        // No experience is a normal state, not an error.
         mockMvc.perform(get("/api/experiences").param("entityId", ABSENT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -351,8 +351,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.entityId").value(oeuvre.id().toString()))
                 .andExpect(jsonPath("$.addedAt").isNotEmpty());
 
-        // Wishlist ≠ Ownership : l'assertion qui compte. Sans elle, le test
-        // passerait aussi si l'ajout fabriquait une possession.
+        // Wishlist != Ownership: the assertion that matters. Without it, the test
+        // would also pass if the add made up an ownership.
         assertThat(ownershipRepository.findByEntityId(oeuvre.id())).isEmpty();
     }
 
@@ -360,8 +360,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
     void adds_a_work_unknown_to_iozycore_by_creating_its_catalog_entry_only() throws Exception {
         String titre = "Œuvre jamais vue " + UUID.randomUUID();
 
-        // Catalogue ≠ Collection : une œuvre trouvée par une recherche externe
-        // ou un scan entre aux envies en créant sa seule fiche.
+        // Catalogue != Collection: a work found by an external search
+        // or a scan enters the wishes by creating its only detail page.
         String corps = mockMvc.perform(post("/api/wishlist").contentType("application/json")
                         .content("{\"entityTypeId\":\"" + MANGA + "\",\"title\":\"" + titre + "\"}"))
                 .andExpect(status().isCreated())
@@ -383,7 +383,7 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
         String second = mockMvc.perform(post("/api/wishlist").contentType("application/json").content(corps))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
 
-        // Idempotent : rejouer l'ajout rend la même entrée, sans doublon.
+        // Idempotent: replaying the add returns the same entry, without duplicate.
         assertThat(objectMapper.readTree(second).get("id"))
                 .isEqualTo(objectMapper.readTree(premier).get("id"));
         assertThat(wishlistEntryRepository.findAll().stream()
@@ -392,8 +392,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
 
     @Test
     void rejects_a_wishlist_body_that_identifies_no_work_at_all_with_400() throws Exception {
-        // Le corps accepte deux formes - un entityId, ou un type et un titre.
-        // N'en satisfaire aucune est une saisie invalide, pas un 500.
+        // The body accepts two forms - an entityId, or a type and a title.
+        // Satisfying neither is an invalid input, not a 500.
         for (String corps : new String[] {"{}", "", "{pas du json",
                 "{\"entityTypeId\":\"" + MANGA + "\"}",
                 "{\"entityTypeId\":\"" + MANGA + "\",\"title\":\"   \"}",
@@ -419,8 +419,8 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
         wishlistEntryRepository.save(WishlistEntry.add(souhaitee.id(), LocalDate.now()));
         QuickAddService.QuickAddResult possedee = uneOeuvrePossedee();
 
-        // Trois états, trois boutons : « Ajouter », « Déjà dans tes envies »,
-        // « Tu la possèdes ». C'est ce contrat que la fiche consomme.
+        // Three states, three buttons: "Ajouter", "Déjà dans tes envies",
+        // "Tu la possèdes". This is the contract that the detail page consumes.
         mockMvc.perform(get("/api/wishlist/lookup").param("entityId", souhaitee.id().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("WISHLISTED"));
@@ -449,11 +449,11 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(delete("/api/wishlist/{id}", entree.id())).andExpect(status().isNoContent());
 
-        // Ne plus vouloir une œuvre ne l'efface pas du catalogue : elle peut
-        // être classée, reliée, ou souhaitée de nouveau plus tard.
+        // No longer wanting a work does not erase it from the catalogue: it can
+        // be ranked, linked, or wished again later.
         assertThat(entityRepository.findById(oeuvre.id())).isPresent();
         assertThat(wishlistEntryRepository.findByEntityId(oeuvre.id())).isEmpty();
-        // Idempotent, comme les autres suppressions de données utilisateur.
+        // Idempotent, like the other deletions of user data.
         mockMvc.perform(delete("/api/wishlist/{id}", entree.id())).andExpect(status().isNoContent());
         mockMvc.perform(delete("/api/wishlist/{id}", MALFORME)).andExpect(status().isBadRequest());
     }

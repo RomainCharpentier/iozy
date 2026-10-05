@@ -20,12 +20,12 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Interroge l'API publique Open Library (https://openlibrary.org, aucune
- * clé requise) pour retrouver un livre/manga à partir de son ISBN
- * (le code-barres imprimé au dos d'un tome, souvent un EAN13 commençant
- * par 978/979). Couvre le type MANGA uniquement : les jeux vidéo et jeux
- * de société utilisent des codes-barres UPC/EAN non-ISBN, hors du
- * périmètre d'Open Library.
+ * Queries the public Open Library API (https://openlibrary.org, no
+ * key required) to find a book/manga from its ISBN
+ * (the barcode printed on the back of a volume, often an EAN13 starting
+ * with 978/979). Covers the MANGA type only: video games and board
+ * games use non-ISBN UPC/EAN barcodes, outside the
+ * scope of Open Library.
  */
 @Component
 public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
@@ -50,12 +50,12 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
     }
 
     /**
-     * La même recherche, en distinguant « Open Library ne connaît pas cet
-     * ISBN » de « Open Library n'a pas répondu ».
+     * The same search, telling apart "Open Library does not know this
+     * ISBN" from "Open Library did not answer".
      *
-     * <p>Un {@code 200} avec un corps vide <b>est</b> une réponse : cette API
-     * rend un objet vide pour un ISBN inconnu. Un statut autre, un délai
-     * dépassé ou un corps illisible n'en sont pas.
+     * <p>A {@code 200} with an empty body <b>is</b> an answer: this API
+     * returns an empty object for an unknown ISBN. Another status, a
+     * timeout or an unreadable body are not.
      */
     @Override
     public com.iozycore.core.metadata.BarcodeLookup lookupDetailed(String barcode) {
@@ -73,7 +73,7 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("Open Library a répondu {} pour l'ISBN '{}'", response.statusCode(), isbn);
+                log.warn("Open Library answered {} for ISBN '{}'", response.statusCode(), isbn);
                 return com.iozycore.core.metadata.BarcodeLookup.unavailable();
             }
 
@@ -81,7 +81,7 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
                     .map(com.iozycore.core.metadata.BarcodeLookup::found)
                     .orElseGet(com.iozycore.core.metadata.BarcodeLookup::absent);
         } catch (Exception e) {
-            log.warn("Échec du lookup Open Library pour '{}' : {}", isbn, e.getMessage());
+            log.warn("Open Library lookup failed for '{}': {}", isbn, e.getMessage());
             return com.iozycore.core.metadata.BarcodeLookup.unavailable();
         }
     }
@@ -90,7 +90,7 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
         JsonNode root = objectMapper.readTree(body);
         Iterator<String> fieldNames = root.fieldNames();
         if (!fieldNames.hasNext()) {
-            return Optional.empty(); // ISBN inconnu d'Open Library
+            return Optional.empty(); // ISBN unknown to Open Library
         }
 
         JsonNode book = root.elements().next();
@@ -114,7 +114,7 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
         return Optional.of(new MetadataCandidate("OPEN_LIBRARY", isbn, title, imageUrl, attributes));
     }
 
-    /** Retire les espaces/tirets qu'un scan peut parfois inclure. */
+    /** Removes the spaces/hyphens that a scan can sometimes include. */
     private String normalize(String rawBarcode) {
         return rawBarcode == null ? "" : rawBarcode.replaceAll("[^0-9Xx]", "");
     }

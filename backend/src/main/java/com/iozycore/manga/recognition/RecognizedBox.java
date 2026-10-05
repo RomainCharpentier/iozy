@@ -3,19 +3,19 @@ package com.iozycore.manga.recognition;
 import java.util.Optional;
 
 /**
- * Où un élément a été vu sur une photo : un rectangle en fractions de la
- * largeur et de la hauteur (0 à 1), sur la photo {@code imageIndex}.
+ * Where an item was seen on a photo: a rectangle in fractions of the
+ * width and the height (0 to 1), on the photo {@code imageIndex}.
  *
- * <p>Sert à l'écran de vérification : un cadre sur la photo, un recadrage
- * pour valider les lectures une par une. Une boîte absente n'enlève rien à la
- * lecture - le moteur peut lire un titre sans savoir le situer, et le texte ou
- * un code-barres n'ont pas de place sur une image.
+ * <p>Used by the review screen: a frame on the photo, a crop
+ * to validate the readings one by one. A missing box takes nothing away from the
+ * reading - the engine can read a title without knowing how to place it, and the text or
+ * a barcode have no place on an image.
  *
- * @param imageIndex la photo, dans l'ordre où l'utilisateur les a envoyées
- * @param top        bord haut, fraction de la hauteur
- * @param left       bord gauche, fraction de la largeur
- * @param bottom     bord bas, strictement sous le haut
- * @param right      bord droit, strictement à droite du gauche
+ * @param imageIndex the photo, in the order in which the user sent them
+ * @param top        top edge, fraction of the height
+ * @param left       left edge, fraction of the width
+ * @param bottom     bottom edge, strictly below the top
+ * @param right      right edge, strictly to the right of the left
  */
 public record RecognizedBox(int imageIndex, double top, double left, double bottom, double right) {
 
@@ -29,10 +29,10 @@ public record RecognizedBox(int imageIndex, double top, double left, double bott
     }
 
     /**
-     * Ce que Gemini rend : {@code [ymin, xmin, ymax, xmax]} en millièmes de la
-     * photo. Ramené dans la photo si ça déborde d'un peu ; vide si le
-     * rectangle n'a pas de surface - une lecture sans place n'est pas une
-     * erreur, elle n'a simplement pas de cadre.
+     * What Gemini returns: {@code [ymin, xmin, ymax, xmax]} in thousandths of the
+     * photo. Brought back inside the photo if it overflows a little; empty if the
+     * rectangle has no area - a reading without a place is not an
+     * error, it simply has no frame.
      */
     public static Optional<RecognizedBox> fromThousandths(int imageIndex, double ymin, double xmin, double ymax,
                                                           double xmax) {

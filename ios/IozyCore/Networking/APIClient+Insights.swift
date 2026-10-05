@@ -42,7 +42,7 @@ extension APIClient {
         try await get("/insights/stats")
     }
 
-    /// entityTypeCode attendu : "MANGA", "BOARD_GAME" ou "VIDEO_GAME".
+    /// Expected entityTypeCode: "MANGA", "BOARD_GAME" or "VIDEO_GAME".
     func fetchDiscovery(entityTypeCode: String) async throws -> [DiscoveryCandidateDTO] {
         try await get("/insights/discover?entityTypeCode=\(entityTypeCode)")
     }

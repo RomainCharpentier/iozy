@@ -26,9 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Le calendrier des sorties, vu du cœur : les dates saisies sur les fiches,
- * l'aiguillage vers les univers, l'ordre, et les bornes de la période.
- * Chaque univers a ses propres tests pour ses dates à lui.
+ * The release calendar, seen from the core: the dates entered on detail pages,
+ * the routing to the universes, the order, and the period bounds.
+ * Each universe has its own tests for its own dates.
  */
 class ReleaseCalendarServiceTest {
 
@@ -45,7 +45,7 @@ class ReleaseCalendarServiceTest {
         return new ReleaseCalendarService(types, entities, ownerships, wishlist, followed, List.of(sources));
     }
 
-    // ------------------------------------------------------------ Les dates saisies sur une fiche
+    // ------------------------------------------------------------ Dates entered on a detail page
 
     @Test
     void lists_a_hand_written_release_date_of_an_owned_work_of_any_category() {
@@ -93,7 +93,7 @@ class ReleaseCalendarServiceTest {
         soldOwnership.markSold();
         ownerships.save(soldOwnership);
 
-        // Le revendu n'est pas suivi : suivi, il s'afficherait « à acheter », et ce serait juste.
+        // The resold item is not followed: if followed, it would show as "to buy", and that would be right.
         suivre(inNovember, yearOnly);
 
         assertThat(service().releasesBetween(OCTOBER_1, OCTOBER_31).entries()).isEmpty();
@@ -111,7 +111,7 @@ class ReleaseCalendarServiceTest {
                 .isEqualTo("https://img/ark-nova.jpg");
     }
 
-    // ------------------------------------------------------------ L'aiguillage vers les univers
+    // ------------------------------------------------------------ Routing to the universes
 
     @Test
     void asks_each_source_that_covers_a_category_with_only_the_works_of_that_category() {
@@ -132,7 +132,7 @@ class ReleaseCalendarServiceTest {
         assertThat(context.activeOwnerships()).extracting(Ownership::entityId).containsExactly(naruto.id());
         assertThat(context.from()).isEqualTo(OCTOBER_1);
         assertThat(context.to()).isEqualTo(OCTOBER_31);
-        // Aucun jeu vidéo suivi : la source n'est pas dérangée.
+        // No video game followed: the source is not disturbed.
         assertThat(gameSource.contexts).isEmpty();
     }
 
@@ -149,7 +149,7 @@ class ReleaseCalendarServiceTest {
 
         List<ReleaseEntry> entries = service(mangaSource).releasesBetween(OCTOBER_1, OCTOBER_31).entries();
 
-        // Par date ; à date égale, par titre ; à titre égal, par numéro de tome.
+        // By date; on equal date, by title; on equal title, by volume number.
         assertThat(entries).extracting(entry -> (entry.entityTitle() + " " + entry.label()).trim())
                 .containsExactly("Naruto Tome 72", "Ark Nova", "Naruto Tome 73");
     }
@@ -190,7 +190,7 @@ class ReleaseCalendarServiceTest {
         assertThat(service.hasReleaseSource(EntityTypeFixtures.BOARD_GAME)).isFalse();
     }
 
-    // ------------------------------------------------------------ Les bornes de la période
+    // ------------------------------------------------------------ The period bounds
 
     @Test
     void refuses_a_period_that_is_missing_reversed_or_longer_than_a_year() {
@@ -201,12 +201,12 @@ class ReleaseCalendarServiceTest {
                 .hasMessageContaining("précède");
         assertThatThrownBy(() -> service.releasesBetween(OCTOBER_1, OCTOBER_1.plusDays(366)))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("un an");
-        // Un an tout rond passe ; un seul jour aussi.
+        // Exactly one year passes; a single day too.
         assertThat(service.releasesBetween(OCTOBER_1, OCTOBER_1.plusDays(365)).entries()).isEmpty();
         assertThat(service.releasesBetween(OCTOBER_1, OCTOBER_1).entries()).isEmpty();
     }
 
-    // ------------------------------------------------------------ Fabrique
+    // ------------------------------------------------------------ Factory
 
     private Entity manga(String title) {
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), title);
@@ -221,7 +221,7 @@ class ReleaseCalendarServiceTest {
         return entities.save(entity);
     }
 
-    /** Suivre : ce qui met une œuvre au calendrier, quoi qu'on en possède. */
+    /** Follow: what puts a work on the calendar, whatever one owns of it. */
     private void suivre(Entity... oeuvres) {
         for (Entity oeuvre : oeuvres) {
             followed.save(FollowedWork.follow(oeuvre.id(), LocalDate.now()));
@@ -233,7 +233,7 @@ class ReleaseCalendarServiceTest {
                 "Tome " + number, number, "Kana", null, ReleaseEntry.Relation.MISSING, "GOOGLE_BOOKS");
     }
 
-    /** Une source qui note ce qu'on lui demande et rend ce qu'on lui a confié. */
+    /** A source that records what it is asked and returns what it was given. */
     private static class RecordingSource implements ReleaseSource {
         private final String code;
         private final List<ReleaseEntry> entries;

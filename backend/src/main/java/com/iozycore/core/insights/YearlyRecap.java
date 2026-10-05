@@ -3,14 +3,14 @@ package com.iozycore.core.insights;
 import java.util.List;
 
 /**
- * "Bilan annuel" (Mon profil) - « 84 tomes achetés, 12 séries commencées,
- * auteur le plus présent... » sur une année donnée (voir
- * StatsService.computeYearlyRecap). Lecture pure au même titre que
- * StatsSummary/MonthlyPoint - pas d'endpoint public/non-authentifié : le
- * "partageable" se fait en téléchargeant l'image générée côté client
- * (voir web/CollectionRecapPage), jamais via un lien public exposant
- * directement les données du propriétaire (aucun système d'authentification
- * n'existe encore dans l'app pour distinguer "moi" de "n'importe qui").
+ * "Yearly recap" (My profile) - "84 volumes bought, 12 series started,
+ * most present author..." over a given year (see
+ * StatsService.computeYearlyRecap). Pure read like
+ * StatsSummary/MonthlyPoint - no public/unauthenticated endpoint: the
+ * "shareable" part is done by downloading the image generated on the client side
+ * (see web/CollectionRecapPage), never through a public link exposing
+ * the owner's data directly (no authentication system
+ * exists yet in the app to tell "me" from "anyone").
  */
 public record YearlyRecap(
         int year,

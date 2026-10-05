@@ -43,9 +43,9 @@ class JpaFollowedWorkRepositoryAdapter implements FollowedWorkRepository {
 
     @Override
     public void deleteByEntityId(UUID entityId) {
-        // Par une LECTURE filtrée, jamais un delete par clé : celui-ci
-        // passerait outre le cloisonnement par propriétaire (même règle que les
-        // envies). Rien à supprimer est le cas normal.
+        // Through a filtered READ, never a delete by key: it
+        // would bypass the owner isolation (same rule as the
+        // wishes). Nothing to delete is the normal case.
         jpaRepository.findByEntityId(entityId).ifPresent(jpaRepository::delete);
     }
 

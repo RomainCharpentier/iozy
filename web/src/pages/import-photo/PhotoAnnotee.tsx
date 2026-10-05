@@ -1,23 +1,23 @@
 import type { BoxDto } from '@/common/types/listingRecognition'
 
 /**
- * La photo, avec un cadre là où le moteur a vu un livre.
+ * The photo, with a frame where the engine saw a book.
  *
- * Dans la validation un par un, un seul cadre à la fois : celui du livre en
- * cours, pour situer le gros plan sur l'étagère. Le cadre porte l'état du
- * tome (coché, décoché, déjà possédé, numéro non lu) et son numéro ; sur une
- * tranche étroite, le numéro se lit de haut en bas, comme le titre imprimé.
+ * In the one-by-one validation, a single frame at a time: the one of the book in
+ * progress, to place the close-up on the shelf. The frame carries the state of the
+ * volume (checked, unchecked, already owned, number not read) and its number; on a
+ * narrow spine, the number reads from top to bottom, like the printed title.
  */
 export type EtatCadre = 'coche' | 'decoche' | 'possede' | 'sansNumero'
 
 export interface Cadre {
   cle: string
-  /** « T62 », ou « ? » quand le numéro n'a pas été lu. */
+  /** "T62", or "?" when the number was not read. */
   libelle: string
   titre: string
   etat: EtatCadre
   box: BoxDto
-  /** Ce que le lecteur a vu là (« Chiffre 62 sur la tranche »). */
+  /** What the reader saw there ("Chiffre 62 sur la tranche"). */
   indice?: string
 }
 
@@ -36,11 +36,11 @@ const PASTILLE: Record<EtatCadre, string> = {
 }
 
 /**
- * Une tranche est un rectangle bien plus haut que large : son étiquette se
- * lit alors de haut en bas, comme le titre imprimé dessus - à l'horizontale,
- * « T62 » n'y tiendrait pas. Le rapport est calculé en pixels de la photo ;
- * tant qu'elle n'est pas chargée, une photo de téléphone en paysage sert
- * d'estimation.
+ * A spine is a rectangle much taller than wide: its label is then
+ * read from top to bottom, like the title printed on it - horizontally,
+ * "T62" would not fit. The ratio is computed in pixels of the photo;
+ * as long as it is not loaded, a landscape phone photo is used
+ * as an estimate.
  */
 function etiquetteVerticale(box: BoxDto, taille?: { w: number; h: number }): boolean {
   const w = taille?.w ?? 16
@@ -60,16 +60,16 @@ export function PhotoAnnotee({
   onBasculer,
   onTaille,
 }: {
-  /** L'URL locale de la photo - vide quand le navigateur ne sait pas en fabriquer une. */
+  /** The local URL of the photo - empty when the browser cannot build one. */
   src: string
-  /** Le numéro de la photo tel que l'utilisateur la compte : 1, 2, 3. */
+  /** The number of the photo as the user counts it: 1, 2, 3. */
   numero: number
   cadres: Cadre[]
-  /** Le cadre en cours de validation un par un, mis en évidence. */
+  /** The frame currently in one-by-one validation, highlighted. */
   enCours?: string
-  /** Les dimensions de la photo, une fois chargée - pour orienter les étiquettes. */
+  /** The dimensions of the photo, once loaded - to orient the labels. */
   taille?: { w: number; h: number }
-  /** Faux : les cadres se regardent sans se cliquer - la validation un par un ne montre que le cadre en cours. */
+  /** False: the frames can be looked at without being clicked - the one-by-one validation only shows the current frame. */
   interactif?: boolean
   onBasculer?: (cadre: Cadre) => void
   onTaille?: (taille: { w: number; h: number }) => void

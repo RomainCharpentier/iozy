@@ -27,14 +27,14 @@ class ExportCsvWriterTest {
         Map<String, String> files = writer.writeAll(new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), List.of(),
-                // Quatre familles ajoutees au Lot 79, meme critere qu'au Lot 33.
+                // Four families added in Batch 79, same criterion as in Batch 33.
                 List.of(), List.of(), List.of(), List.of(), null));
 
-        // Les familles ajoutées au Lot 33 (éditions de référence, classements)
-        // et au Lot 79 (relevés de prix, édition suivie, types de collection,
-        // profil de collectionneur) répondent au même critère : saisies à la
-        // main, irrécupérables ailleurs, et pourtant absentes d'un export qui
-        // promet l'absence d'enfermement.
+        // The families added in Batch 33 (reference editions, rankings)
+        // and in Batch 79 (price records, followed edition, collection types,
+        // collector profile) meet the same criterion: entered by
+        // hand, unrecoverable elsewhere, and yet missing from an export that
+        // promises no lock-in.
         assertThat(files.keySet()).containsExactlyInAnyOrder(
                 "entities.csv", "variants.csv", "ownerships.csv", "experiences.csv",
                 "wishlist.csv", "relationships.csv", "tags.csv",

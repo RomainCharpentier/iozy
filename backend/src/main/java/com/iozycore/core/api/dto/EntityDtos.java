@@ -16,16 +16,16 @@ public final class EntityDtos {
     private EntityDtos() {
     }
 
-    /** Corps de requête de l'ajout rapide (UC1 / parcours 1). attributes est
-     * optionnel - typiquement rempli avec les attributs d'un MetadataCandidate
-     * choisi après une recherche via GET /api/metadata/search. volumeNumber,
-     * edition et volumeImageUrl sont optionnels et tous réservés au cas "tome
-     * d'une série" (Manga) : voir QuickAddService pour la distinction série
-     * (Entity) / tome précis d'une édition (Variant). volumeImageUrl est la
-     * jaquette de CE tome précis (voir VolumeCandidate), distincte de la
-     * jaquette de la série éventuellement présente dans attributes.
-     * purchasePrice est optionnel (voir Ownership.updatePurchasePrice) - jamais
-     * deviné, reste modifiable après coup via PATCH /api/ownerships/{id}/purchase-price. */
+    /** Request body of the quick add (UC1 / path 1). attributes is
+     * optional - typically filled with the attributes of a MetadataCandidate
+     * chosen after a search through GET /api/metadata/search. volumeNumber,
+     * edition and volumeImageUrl are optional and all reserved for the "volume
+     * of a series" case (Manga): see QuickAddService for the series
+     * (Entity) / specific volume of an edition (Variant) distinction. volumeImageUrl is the
+     * cover of THIS specific volume (see VolumeCandidate), different from the
+     * cover of the series possibly present in attributes.
+     * purchasePrice is optional (see Ownership.updatePurchasePrice) - never
+     * guessed, stays editable afterwards via PATCH /api/ownerships/{id}/purchase-price. */
     public record QuickAddRequest(UUID entityTypeId, String title, OwnershipCondition condition,
                                    Map<String, Object> attributes, Integer volumeNumber, String edition,
                                    String volumeImageUrl, BigDecimal purchasePrice, LocalDate acquiredAt) {
@@ -40,8 +40,8 @@ public final class EntityDtos {
         }
     }
 
-    /** champsSaisis : les cles d'attributes saisies a la main, qu'un rechargement
-     *  depuis la source ne touche pas (Lot 130) - l'ecran les signale. */
+    /** champsSaisis: the attribute keys typed by hand, which a reload
+     *  from the source does not touch (Batch 130) - the screen flags them. */
     public record EntityResponse(UUID id, UUID entityTypeId, String title, Map<String, Object> attributes,
                                   Set<UUID> tagIds, List<VariantResponse> variants, Set<String> champsSaisis) {
         public static EntityResponse from(Entity entity) {
@@ -51,11 +51,11 @@ public final class EntityDtos {
         }
     }
 
-    /** Réponse de l'ajout rapide - matchedExistingEntity indique qu'un doublon
-     * a été évité en réutilisant une Entity existante (UC1, étape 6). variantId
-     * est null si aucun tome n'a été précisé ; matchedExistingVariant indique
-     * qu'une Ownership active référence déjà ce même tome (utile pour avertir
-     * l'utilisateur qu'il possède peut-être déjà cette édition de ce tome). */
+    /** Response of the quick add - matchedExistingEntity says that a duplicate
+     * was avoided by reusing an existing Entity (UC1, step 6). variantId
+     * is null if no volume was specified; matchedExistingVariant says
+     * that an active Ownership already references this same volume (useful to warn
+     * the user that they may already own this edition of this volume). */
     public record QuickAddResponse(UUID entityId, boolean matchedExistingEntity,
                                     UUID variantId, boolean matchedExistingVariant) {
     }

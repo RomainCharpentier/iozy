@@ -20,15 +20,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Réessayer quand Google dit de réessayer - et seulement dans ce cas ; puis
- * le repli, une fois, quand le principal n'en peut vraiment plus.
+ * Retrying when Google says to retry - and only in that case; then
+ * the fallback, once, when the main model really cannot cope anymore.
  */
 class GeminiRequestsTest {
 
     private static final String PRINCIPAL = "gemini-3.5-flash";
     private static final String REPLI = "gemini-3.5-flash-lite";
 
-    /** Une suite de statuts servis dans l'ordre ; compte les envois. */
+    /** A series of statuses served in order; counts the sends. */
     private static final class EnvoisScriptes implements GeminiRequests.Envoi {
         private final Deque<Integer> statuts = new ArrayDeque<>();
         private int envois;
@@ -88,11 +88,11 @@ class GeminiRequestsTest {
         }
     }
 
-    // ------------------------------------------------------------ Le repli
+    // ------------------------------------------------------------ The fallback
 
     /**
-     * Un envoi par modèle : un statut par nom de modèle, et un délai dépassé
-     * pour tout modèle sans statut ; note les modèles appelés, dans l'ordre.
+     * One send per model: one status per model name, and a timeout
+     * for any model without a status; records the models called, in order.
      */
     private static final class EnvoisParModele implements GeminiRequests.EnvoiParModele {
         private final Map<String, Integer> statuts;
@@ -189,14 +189,14 @@ class GeminiRequestsTest {
         assertThat(GeminiRequests.effectiveFallbackModel(null, PRINCIPAL)).isEqualTo(REPLI);
         assertThat(GeminiRequests.effectiveFallbackModel("   ", PRINCIPAL)).isEqualTo(REPLI);
         assertThat(GeminiRequests.effectiveFallbackModel(" gemini-2.5-flash ", PRINCIPAL)).isEqualTo("gemini-2.5-flash");
-        // Le même nom que le principal désactive le repli - c'est le réglage
-        // documenté pour ne jamais rejouer ailleurs.
+        // The same name as the main one disables the fallback - this is the setting
+        // documented to never replay elsewhere.
         assertThat(GeminiRequests.effectiveFallbackModel(PRINCIPAL, PRINCIPAL)).isNull();
-        // Et la lite comme principal n'a pas de repli vers elle-même.
+        // And the lite as main has no fallback to itself.
         assertThat(GeminiRequests.effectiveFallbackModel(null, REPLI)).isNull();
     }
 
-    // ------------------------------------------------------------ Une réponse minimale
+    // ------------------------------------------------------------ A minimal answer
 
     private static HttpResponse<String> reponse(int statut) {
         return new HttpResponse<>() {

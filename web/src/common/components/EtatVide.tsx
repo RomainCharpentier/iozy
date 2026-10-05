@@ -3,20 +3,20 @@ import type { LucideIcon } from 'lucide-react'
 import { CLASSE_CARTE } from './Carte'
 
 /**
- * Un écran qui n'a rien à montrer, et qui le dit avec une forme.
+ * A screen that has nothing to show, and says so with a shape.
  *
- * <h2>Le défaut</h2>
- * Chaque écran écrivait son vide à sa manière : une phrase grise, une carte
- * avec une phrase, un simple « Aucun résultat » de 12 px. Un état vide est
- * pourtant l'un des écrans les plus vus d'une collection qui commence, et
- * le premier que voit quelqu'un qu'on invite. Une icône dans une pastille
- * teintée, un titre en police de titrage, une phrase qui dit par où sortir,
- * et l'action quand il y en a une - la même forme partout.
+ * <h2>The flaw</h2>
+ * Each screen wrote its empty state in its own way: a gray sentence, a card
+ * with a sentence, a simple 12 px "Aucun résultat". An empty state is
+ * yet one of the most seen screens of a collection that is starting, and
+ * the first one seen by someone who is invited. An icon in a tinted
+ * pill, a title in the heading font, a sentence that says the way out,
+ * and the action when there is one - the same shape everywhere.
  *
- * <h2>Ce qu'il ne fait pas</h2>
- * Il ne se substitue pas au silence : un panneau qui n'a rien à dire
- * disparaît (règle du lot 142). Il sert quand l'écran DOIT rester et
- * expliquer pourquoi il est vide.
+ * <h2>What it does not do</h2>
+ * It does not replace silence: a panel that has nothing to say
+ * disappears (rule of batch 142). It is used when the screen MUST stay and
+ * explain why it is empty.
  */
 export function EtatVide({
   icone: Icone,
@@ -29,7 +29,7 @@ export function EtatVide({
   titre: string
   detail?: ReactNode
   action?: ReactNode
-  /** Sans carte ni pastille pleine taille : pour un vide au milieu d'une liste. */
+  /** Without a card or full-size pill: for an empty state in the middle of a list. */
   compact?: boolean
 }) {
   if (compact) {

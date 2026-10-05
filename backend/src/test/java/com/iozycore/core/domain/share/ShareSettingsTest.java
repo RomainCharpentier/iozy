@@ -8,9 +8,9 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Les règles du partage d'espace : un lien, des sections, et deux invariants
- * qui ne doivent jamais céder - un lien inactif n'expose rien, un lien actif
- * expose au moins quelque chose.
+ * The rules of space sharing: one link, sections, and two invariants
+ * that must never give way - an inactive link exposes nothing, an active link
+ * exposes at least something.
  *
  */
 class ShareSettingsTest {
@@ -21,9 +21,9 @@ class ShareSettingsTest {
 
         assertThat(settings.hasLink()).isFalse();
         assertThat(settings.token()).isNull();
-        // Les drapeaux valent vrai (ce sera l'état du prochain lien créé) mais
-        // aucun n'expose quoi que ce soit tant qu'aucun jeton n'existe : sans
-        // cette règle, une ligne oubliée en base ouvrirait un accès.
+        // The flags are true (this will be the state of the next link created) but
+        // none exposes anything as long as no token exists: without
+        // this rule, a forgotten row in the database would open an access.
         assertThat(settings.sharesCollection()).isFalse();
         assertThat(settings.sharesWishlist()).isFalse();
         assertThat(settings.sharesTierLists()).isFalse();
@@ -36,8 +36,8 @@ class ShareSettingsTest {
         assertThat(settings.hasLink()).isTrue();
         assertThat(settings.sharesCollection()).isTrue();
         assertThat(settings.sharesWishlist()).isTrue();
-        // Un classement est un jugement personnel, pas un inventaire : il ne
-        // part jamais avec le reste sans avoir été demandé à part.
+        // A ranking is a personal judgment, not an inventory: it never
+        // leaves with the rest without having been asked for separately.
         assertThat(settings.includeTierLists()).isFalse();
         assertThat(settings.sharesTierLists()).isFalse();
     }
@@ -57,17 +57,17 @@ class ShareSettingsTest {
     void un_lien_actif_ne_peut_pas_tout_decocher() {
         ShareSettings settings = ShareSettings.withNewToken(DefaultOwner.ID);
 
-        // Un lien qui n'expose rien n'est pas un partage discret, c'est une URL
-        // active vers une page vide : l'invariant vit dans le domaine, pas
-        // seulement dans un formulaire.
+        // A link that exposes nothing is not a discreet share, it is an
+        // active URL to an empty page: the invariant lives in the domain, not
+        // only in a form.
         assertThatThrownBy(() -> settings.withSections(false, false))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void sans_lien_actif_avoir_les_deux_sections_a_faux_reste_permis() {
-        // Rien n'est exposé de toute façon : interdire cet état empêcherait de
-        // simplement supprimer le lien.
+        // Nothing is exposed anyway: forbidding this state would prevent
+        // simply deleting the link.
         assertThatCode(() -> new ShareSettings(DefaultOwner.ID, null, false, false, false))
                 .doesNotThrowAnyException();
     }
@@ -79,8 +79,8 @@ class ShareSettingsTest {
 
         ShareSettings enviesSeules = avecClassements.withSections(false, true);
 
-        // Les classements accompagnent la collection : la retirer les retire
-        // aussi, sans avoir à penser à décocher une seconde case.
+        // Rankings go with the collection: removing it removes them
+        // too, without having to remember to untick a second box.
         assertThat(enviesSeules.includeTierLists()).isTrue();
         assertThat(enviesSeules.sharesTierLists()).isFalse();
     }
@@ -94,8 +94,8 @@ class ShareSettingsTest {
 
     @Test
     void deux_liens_successifs_ne_portent_jamais_le_meme_jeton() {
-        // Régénérer doit réellement invalider l'ancien lien - un jeton
-        // reconduit laisserait l'ancien destinataire entrer.
+        // Regenerating must really invalidate the old link - a reused token
+        // would let the old recipient in.
         assertThat(ShareSettings.withNewToken(DefaultOwner.ID).token())
                 .isNotEqualTo(ShareSettings.withNewToken(DefaultOwner.ID).token());
     }
@@ -104,8 +104,8 @@ class ShareSettingsTest {
     void le_jeton_n_est_ni_sequentiel_ni_derive_de_l_identifiant_du_proprietaire() {
         String token = ShareSettings.withNewToken(DefaultOwner.ID).token();
 
-        // Un jeton devinable (/share/1, /share/2…) ou dérivé du propriétaire
-        // rendrait le « lien privé » énumérable.
+        // A guessable token (/share/1, /share/2...) or one derived from the owner
+        // would make the "private link" enumerable.
         assertThat(token).hasSize(36).doesNotContain(DefaultOwner.ID.toString());
         assertThat(token).doesNotMatch("^[0-9]+$");
     }

@@ -2,13 +2,13 @@ import type { EditionProgressDto, VariantDto } from '@/common/types/api'
 import { editionDe, numeroDe } from '@/common/lib/attributsTome'
 
 /**
- * La construction de la grille d'une edition : quels numeros existent, et
- * dans quel etat.
+ * Building the grid of an edition: which numbers exist, and
+ * in which state.
  *
- * Extrait de l'ancien TomesGridSection (supprime) parce que trois surfaces le
- * lisent desormais - la grille dense, le resume de l'edition affichee et les
- * cartes d'edition - et qu'aucune ne doit avoir sa propre idee de ce qu'est
- * un tome possede.
+ * Extracted from the old TomesGridSection (deleted) because three surfaces now
+ * read it - the dense grid, the summary of the displayed edition and the
+ * edition cards - and none of them must have its own idea of what an
+ * owned volume is.
  */
 export interface TomeTile {
   volumeNumber: number
@@ -16,30 +16,30 @@ export interface TomeTile {
   variant?: VariantDto
 }
 
-/** Construit la grille visuelle d'une édition : un possédé (Ownership active)
- * n'est jamais confondu avec un simplement catalogué (modèle Tome !=
- * Ownership) ni avec un purement virtuel (numéro déduit de totalVolumes,
- * jamais catalogué). Sans totalVolumes connu, on ne montre que ce qu'on
- * connaît réellement (possédé ou catalogué) - jamais de tuile virtuelle
- * devinée sans un total sur lequel s'appuyer.
+/** Builds the visual grid of an edition: an owned volume (active Ownership)
+ * is never confused with a simply cataloged one (Tome model !=
+ * Ownership) nor with a purely virtual one (number deduced from totalVolumes,
+ * never cataloged). Without a known totalVolumes, we only show what is
+ * really known (owned or cataloged) - never a virtual tile
+ * guessed without a total to rely on.
  *
- * <p>Tout vient du MÊME `groupe` (voir GET /insights/progress/{entityId}) :
- * possédés, catalogués et total. Auparavant ces trois-là arrivaient de trois
- * endroits - un regroupement refait ici, une lecture des Ownership refaite
- * ici, et un appel à la complétude - qui pouvaient se contredire.
+ * <p>Everything comes from the SAME `groupe` (see GET /insights/progress/{entityId}):
+ * owned, cataloged and total. Before, these three arrived from three
+ * places - a grouping redone here, a reading of the Ownership records redone
+ * here, and a call to completeness - which could contradict each other.
  *
- * <p>Un Variant existant vaut « catalogué » quoi qu'en dise la liste des
- * catalogués, qui vient d'une réponse réseau pouvant dater : c'est ce qui fait
- * qu'un tome mis en envies à l'instant (et donc catalogué à l'instant, voir
- * TomeResolver) porte immédiatement son état au lieu de retomber en tuile
- * purement déduite, sans identité à laquelle rattacher l'envie. */
+ * <p>An existing Variant counts as "cataloged" whatever the list of
+ * cataloged volumes says, since it comes from a network answer that may be old: this is what
+ * makes a volume put in the wishes just now (and therefore cataloged just now, see
+ * TomeResolver) carry its state at once instead of falling back to a purely
+ * deduced tile, with no identity to attach the wish to. */
 export function buildTiles(group: EditionProgressDto, variants: VariantDto[]): TomeTile[] {
   const owned = group.ownedVolumeNumbers
   const totalVolumes = group.totalVolumes
   const variantsByNumber = new Map<number, VariantDto>()
-  // group.sourceEditions plutôt que group.edition seul : un groupe fusionné
-  // (voir resolveEditionView) doit retrouver le Variant d'un tome sans
-  // édition précisée aussi bien que celui de l'édition nommée.
+  // group.sourceEditions rather than group.edition alone: a merged group
+  // (see resolveEditionView) must find the Variant of a volume with no
+  // specified edition as well as that of the named edition.
   const sourceSet = new Set(group.sourceEditions)
   for (const variant of variants) {
     const num = numeroDe(variant)
@@ -55,8 +55,8 @@ export function buildTiles(group: EditionProgressDto, variants: VariantDto[]): T
     }))
   }
 
-  // « Catalogué mais pas possédé » se déduit, plutôt que de se redemander au
-  // serveur : c'est exactement la différence des deux listes du groupe.
+  // "Cataloged but not owned" is deduced, rather than asked again from the
+  // server: it is exactly the difference between the two lists of the group.
   const cataloguedMissingSet = new Set(group.cataloguedVolumeNumbers.filter((n) => !ownedSet.has(n)))
   const tiles: TomeTile[] = []
   for (let n = 1; n <= totalVolumes; n++) {
@@ -69,13 +69,13 @@ export function buildTiles(group: EditionProgressDto, variants: VariantDto[]): T
     }
   }
 
-  // Tomes réellement catalogués/possédés AU-DELÀ du total connu de l'édition :
-  // affichés à la suite plutôt qu'escamotés. Le cas existe dès qu'un tome est
-  // ajouté à la main avec un numéro trop grand - les masquer rendait la donnée
-  // invisible ET irrécupérable depuis l'écran, d'autant qu'il n'existe plus de
-  // moyen de renuméroter un tome (voir USER_JOURNEYS §20) : le seul recours est
-  // de le supprimer et de le rajouter, encore faut-il le voir. Un total
-  // d'édition peut aussi être faux : mieux vaut montrer la contradiction.
+  // Volumes really cataloged/owned BEYOND the known total of the edition:
+  // shown after the others rather than hidden. The case exists as soon as a volume is
+  // added by hand with a number that is too big - hiding them made the data
+  // invisible AND unrecoverable from the screen, especially since there is no longer any
+  // way to renumber a volume (see USER_JOURNEYS section 20): the only recourse is
+  // to delete it and add it again, provided one can see it. An edition
+  // total can also be wrong: better to show the contradiction.
   const beyondTotal = [...new Set([...owned, ...group.cataloguedVolumeNumbers])]
     .filter((n) => n > totalVolumes)
     .sort((a, b) => a - b)

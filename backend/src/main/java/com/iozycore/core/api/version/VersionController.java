@@ -8,40 +8,40 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Quelle livraison tourne, en ce moment, sur ce serveur.
+ * Which delivery is running, right now, on this server.
  *
- * <h2>Pourquoi cette route existe</h2>
- * Depuis que les mises à jour sont automatiques, plus personne ne sait de
- * mémoire ce qui est en ligne : on pousse, et quelque chose arrive cinq minutes
- * plus tard. Devant un comportement inattendu, la première question n'est plus
- * « qu'est-ce qui cloche ? » mais « est-ce que ma correction est seulement
- * déployée ? » - et sans réponse, on cherche un bug dans du code qui n'est pas
- * encore là.
+ * <h2>Why this route exists</h2>
+ * Since updates became automatic, nobody knows by heart
+ * what is online: we push, and something arrives five minutes
+ * later. Facing unexpected behavior, the first question is no longer
+ * "what is wrong?" but "is my fix even
+ * deployed?" - and without an answer, we look for a bug in code that is not
+ * there yet.
  *
- * <h2>Un numéro de livraison, et pas le numéro du pom</h2>
- * {@code 0.1.0-SNAPSHOT} ne bouge jamais : il ne distingue pas deux
- * déploiements. Le numéro de livraison, lui, est un Majeure.Mineure.Patch
- * <b>déduit des messages de commit</b> au moment de la publication (la règle
- * vit dans {@code web/scripts/version.mjs}) — il croît, donc <b>il se
- * compare</b> : « serveur 1.2.0 » sous « version 1.3.1 » dit immédiatement
- * laquelle des deux images est en retard, ce qu'un SHA ne dira jamais. Et il
- * dit ce qui a changé : une mineure a ajouté, un patch a corrigé.
+ * <h2>A delivery number, and not the pom number</h2>
+ * {@code 0.1.0-SNAPSHOT} never moves: it does not tell two
+ * deployments apart. The delivery number, on the other hand, is a Major.Minor.Patch
+ * <b>deduced from the commit messages</b> at publication time (the rule
+ * lives in {@code web/scripts/version.mjs}) — it grows, so <b>it can
+ * be compared</b>: "server 1.2.0" under "version 1.3.1" immediately says
+ * which of the two images is late, which a SHA will never say. And it
+ * says what changed: a minor added, a patch fixed.
  *
- * <p>Ce même numéro étiquette l'image dans GHCR ({@code -api:v1.3.1}) et le
- * commit livré ({@code git show v1.3.1}). Un seul identifiant relie donc
- * l'écran, l'image et le commit.
+ * <p>This same number tags the image in GHCR ({@code -api:v1.3.1}) and the
+ * delivered commit ({@code git show v1.3.1}). A single identifier therefore links
+ * the screen, the image and the commit.
  *
- * <h2>Authentifiée, comme presque tout le reste</h2>
- * Elle ne figure pas dans les exceptions de {@code SecurityConfig} : connaître
- * la version exacte d'un serveur est une information d'attaquant autant que
- * d'exploitant, et personne n'a besoin de la lire <b>avant</b> de se connecter.
- * Un invité, lui, la voit - il est authentifié au sens de la chaîne de
- * sécurité, et ce n'est pas un secret vis-à-vis de quelqu'un qu'on laisse déjà
- * parcourir la collection.
+ * <h2>Authenticated, like almost everything else</h2>
+ * It is not among the exceptions of {@code SecurityConfig}: knowing
+ * the exact version of a server is information for an attacker as much as
+ * for an operator, and nobody needs to read it <b>before</b> signing in.
+ * A guest does see it - they are authenticated in the sense of the
+ * security chain, and it is not a secret from someone we already let
+ * browse the collection.
  */
 @RestController
 @RequestMapping("/api/version")
-@Tag(name = "Version", description = "La livraison en cours d'exécution")
+@Tag(name = "Version", description = "The delivery currently running")
 public class VersionController {
 
     private final String version;
@@ -51,15 +51,15 @@ public class VersionController {
     }
 
     /**
-     * {@code version} vaut le numéro de la livraison en cours ({@code "1.3.1"}),
-     * ou {@code dev} hors conteneur. C'est une chaîne et non un entier : elle
-     * doit pouvoir porter {@code dev}, et le client ne fait que l'afficher et
-     * la comparer à la sienne — jamais d'arithmétique dessus.
+     * {@code version} is the number of the current delivery ({@code "1.3.1"}),
+     * or {@code dev} outside a container. It is a string and not an integer: it
+     * must be able to carry {@code dev}, and the client only displays it and
+     * compares it to its own - never arithmetic on it.
      */
     public record VersionReponse(String version) {
     }
 
-    @Operation(summary = "Le numéro de la livraison en cours, ou « dev » hors conteneur.")
+    @Operation(summary = "The number of the current delivery, or \"dev\" outside a container.")
     @GetMapping
     public VersionReponse version() {
         return new VersionReponse(version);

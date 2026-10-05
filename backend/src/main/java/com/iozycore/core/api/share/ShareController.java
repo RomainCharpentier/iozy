@@ -12,19 +12,19 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Le partage d'espace côté propriétaire : un seul lien, dont on choisit les
- * sections visibles.
+ * Space sharing on the owner side: a single link, whose visible
+ * sections can be chosen.
  * <p>
- * Un seul contrôleur pour les deux sections, à dessein. Il y en avait deux -
- * {@code /collection-share} et {@code /wishlist/share} - qui produisaient deux
- * jetons distincts : entrer par « Ma collection » ou par « Mes envies »
- * donnait deux URL différentes pour le même espace personnel. Les raccourcis
- * de ces deux écrans appellent désormais ces mêmes endpoints ; il n'existe plus
- * qu'un jeton, quelle que soit la porte d'entrée.
+ * A single controller for both sections, on purpose. There used to be two -
+ * {@code /collection-share} and {@code /wishlist/share} - which produced two
+ * distinct tokens: entering through "My collection" or through "My wishes"
+ * gave two different URLs for the same personal space. The shortcuts
+ * of these two screens now call these same endpoints; there is only
+ * one token, whatever the entry door.
  */
 @RestController
 @RequestMapping("/api/share")
-@Tag(name = "Partage", description = "Un lien, des sections visibles au choix (collection, envies)")
+@Tag(name = "Sharing", description = "One link, visible sections of your choice (collection, wishes)")
 public class ShareController {
 
     private final ShareSettingsRepository repository;
@@ -35,30 +35,30 @@ public class ShareController {
         this.utilisateurCourant = utilisateurCourant;
     }
 
-    @Operation(summary = "État courant du partage (token null = aucun lien actif)")
+    @Operation(summary = "Current state of the sharing (token null = no active link)")
     @GetMapping
     public ShareResponse current() {
         return toResponse(repository.find());
     }
 
-    @Operation(summary = "Générer (ou régénérer) le lien. Régénérer invalide immédiatement l'ancien jeton, et "
-            + "repart des choix les plus fermés : les deux sections visibles, les Tier Lists exclues.")
+    @Operation(summary = "Generate (or regenerate) the link. Regenerating immediately invalidates the old token, and "
+            + "starts again from the most closed choices: both sections visible, Tier Lists excluded.")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ShareResponse generate() {
         return toResponse(repository.save(ShareSettings.withNewToken(utilisateurCourant.proprietaire())));
     }
 
-    @Operation(summary = "Changer les sections visibles SANS toucher au lien déjà distribué. Champ absent (null) "
-            + "= inchangé. Refuse de tout décocher : un lien qui n'expose rien doit être supprimé, pas vidé.")
+    @Operation(summary = "Change the visible sections WITHOUT touching the link already handed out. Absent field (null) "
+            + "= unchanged. Refuses to uncheck everything: a link that exposes nothing must be deleted, not emptied.")
     @PatchMapping
     public ShareResponse update(@RequestBody UpdateShareRequest request) {
         ShareSettings settings = repository.find();
         try {
-            // La construction est DANS le try : c'est elle qui refuse de tout
-            // décocher (voir ShareSettings), pas la sauvegarde. L'invariant vit
-            // dans le domaine, on ne le rejoue pas ici - on traduit son refus
-            // en 400 lisible plutôt que de laisser remonter un 500.
+            // The construction is INSIDE the try: it is what refuses to uncheck
+            // everything (see ShareSettings), not the save. The invariant lives
+            // in the domain, we do not replay it here - we translate its refusal
+            // into a readable 400 rather than letting a 500 come up.
             ShareSettings modifiees = settings
                     .withSections(
                             request.shareCollection() == null ? settings.shareCollection() : request.shareCollection(),
@@ -72,7 +72,7 @@ public class ShareController {
         }
     }
 
-    @Operation(summary = "Supprimer le lien - le jeton précédent cesse immédiatement de fonctionner")
+    @Operation(summary = "Delete the link - the previous token stops working immediately")
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove() {

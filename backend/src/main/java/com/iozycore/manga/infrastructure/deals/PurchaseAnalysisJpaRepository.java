@@ -9,14 +9,14 @@ import java.util.UUID;
 public interface PurchaseAnalysisJpaRepository extends JpaRepository<PurchaseAnalysisJpaEntity, UUID> {
 
     /**
-     * Charger par identifiant, mais PAR UNE REQUÊTE.
+     * Load by identifier, but THROUGH A QUERY.
      *
-     * <p>{@code findById} de JPA charge par clé primaire sans passer par une
-     * requête : Hibernate n'y applique pas le cloisonnement par propriétaire
-     * (voir ProprietaireCourant), et la ligne d'un AUTRE compte remonte -
-     * constaté en écrivant le test d'isolation, qui passait sur les listes et
-     * échouait sur les chargements par identifiant. Cette variante est une
-     * requête dérivée, donc filtrée comme les autres.
+     * <p>JPA's {@code findById} loads by primary key without going through a
+     * query: Hibernate does not apply the separation by owner there
+     * (see ProprietaireCourant), and the row of ANOTHER account comes up -
+     * seen while writing the isolation test, which passed on the lists and
+     * failed on loads by identifier. This variant is a derived
+     * query, so filtered like the others.
      */
     Optional<PurchaseAnalysisJpaEntity> findOneById(UUID id);
     List<PurchaseAnalysisJpaEntity> findAllByOrderByCreatedAtDesc();

@@ -1,17 +1,17 @@
-// Client HTTP minimal, un peu comme APIClient.swift côté iOS : pas de couche
-// d'abstraction supplémentaire, les modules api/*.ts appellent request()
-// directement et sont eux-mêmes appelés depuis les hooks TanStack Query des
-// écrans.
+// Minimal HTTP client, a bit like APIClient.swift on the iOS side: no extra
+// abstraction layer, the api/*.ts modules call request()
+// directly and are themselves called from the TanStack Query hooks of the
+// screens.
 //
-// Gestion des erreurs : le backend renvoie deux formats différents selon le
-// type d'exception (voir ApiExceptionHandler.java) -
-//   - exceptions domaine (409/400) -> { "error": "message" }
-//   - ResponseStatusException (404, certains 400) -> passe par le formateur
-//     Spring par défaut, qui n'inclut PAS le message détaillé du contrôleur
-//     tant que server.error.include-message=always n'est pas positionné
-//     (ce n'est pas le cas dans application.yml) - donc ces erreurs
-//     remontent un texte générique ("Not Found"), pas le message précis.
-// On tente body.error en priorité, sinon on retombe sur statusText.
+// Error handling: the backend returns two different formats depending on the
+// type of exception (see ApiExceptionHandler.java) -
+//   - domain exceptions (409/400) -> { "error": "message" }
+//   - ResponseStatusException (404, some 400) -> goes through the default
+//     Spring formatter, which does NOT include the detailed message of the controller
+//     as long as server.error.include-message=always is not set
+//     (this is not the case in application.yml) - so these errors
+//     come back with a generic text ("Not Found"), not the precise message.
+// We try body.error first, otherwise we fall back on statusText.
 
 export class ApiError extends Error {
   readonly status: number
@@ -23,11 +23,11 @@ export class ApiError extends Error {
   }
 }
 
-// Repli quand le backend n'a pas fourni de message exploitable : statusText
-// vaut alors "Not Found"/"Forbidden", de l'anglais brut affiché tel quel dans
-// une interface entièrement en français (constaté sur la fiche d'une œuvre
-// supprimée). On traduit les statuts qu'un utilisateur peut réellement
-// rencontrer, et on garde le code pour les autres.
+// Fallback when the backend did not provide a usable message: statusText
+// is then "Not Found"/"Forbidden", raw English displayed as it is in
+// an interface entirely in French (seen on the detail page of a deleted
+// work). We translate the statuses that a user can really
+// meet, and we keep the code for the others.
 const MESSAGES_PAR_STATUT: Record<number, string> = {
   400: "Requête invalide.",
   401: "Accès refusé.",
@@ -35,13 +35,13 @@ const MESSAGES_PAR_STATUT: Record<number, string> = {
   404: "Introuvable - cette donnée n'existe plus, ou le lien est erroné.",
   409: "Opération impossible dans l'état actuel.",
   500: "Erreur du serveur.",
-  // 502/504 : le serveur applicatif ne répond pas DERRIÈRE le serveur web. En
-  // développement (`npm run dev`) l'appel échoue avant d'aboutir et tombe dans
-  // MESSAGE_HORS_LIGNE ; mais l'application telle qu'elle est déployée passe par
-  // le nginx de docker-compose, qui répond lui, avec un 502 - la panne la plus
-  // ordinaire de cette application (conteneur API pas encore démarré, ou
-  // arrêté). Sans ces deux lignes, le repli affichait la phrase de statut
-  // anglaise, « Bad Gateway », dans une interface entièrement en français.
+  // 502/504: the application server does not answer BEHIND the web server. In
+  // development (`npm run dev`) the call fails before it completes and falls into
+  // MESSAGE_HORS_LIGNE; but the application as deployed goes through the
+  // nginx of docker-compose, which answers itself, with a 502 - the most
+  // ordinary failure of this application (API container not started yet, or
+  // stopped). Without these two lines, the fallback displayed the English status
+  // phrase, "Bad Gateway", in an interface entirely in French.
   502: "Le serveur de l'application ne répond pas - vérifiez qu'il est bien démarré.",
   503: "Service indisponible, réessayez dans un instant.",
   504: "Le serveur de l'application ne répond pas - vérifiez qu'il est bien démarré.",
@@ -50,62 +50,62 @@ const MESSAGES_PAR_STATUT: Record<number, string> = {
 async function extractErrorMessage(response: Response): Promise<string> {
   try {
     const body = await response.json()
-    // Piège : l'enveloppe générique de Spring porte ELLE AUSSI un champ
-    // "error", qui n'y contient pas un message mais la phrase de statut HTTP
-    // ("Not Found"). La reconnaître à sa forme (timestamp + status + path)
-    // évite d'afficher cet anglais brut au lieu du repli traduit.
+    // Trap: the generic Spring envelope ALSO carries an "error" field,
+    // which does not contain a message there but the HTTP status phrase
+    // ("Not Found"). Recognizing it by its shape (timestamp + status + path)
+    // avoids displaying this raw English instead of the translated fallback.
     const enveloppeSpring = body && 'timestamp' in body && 'status' in body
-    // Enveloppe Spring : "error" ne porte que la phrase de statut, mais
-    // "message" porte la raison écrite par le contrôleur quand il y en a une
-    // (server.error.include-message: always). Spring y met "No message
-    // available" lorsqu'il n'y en a pas - à ignorer, le repli traduit dit
-    // mieux les choses.
+    // Spring envelope: "error" only carries the status phrase, but
+    // "message" carries the reason written by the controller when there is one
+    // (server.error.include-message: always). Spring puts "No message
+    // available" there when there is none - to ignore, the translated fallback
+    // says things better.
     if (enveloppeSpring) {
       const raison = typeof body.message === 'string' ? body.message.trim() : ''
-      // Sauf en 404 : là, le message ne fait que nommer l'identifiant absent
-      // ("Entity introuvable : 3f2a...-9c1e"), ce qui n'apprend rien à qui lit.
-      // Le repli traduit dit la seule chose utile - le lien ne mène plus nulle
-      // part. Aux autres statuts (409/400 surtout), le message EST la raison
-      // actionnable ("3 tome(s) y sont encore rattachés") : on l'affiche.
+      // Except in 404: there, the message only names the missing identifier
+      // ("Entity introuvable : 3f2a...-9c1e"), which tells the reader nothing.
+      // The translated fallback says the only useful thing - the link leads
+      // nowhere anymore. With the other statuses (409/400 mostly), the message IS the
+      // actionable reason ("3 tome(s) y sont encore rattachés"): we display it.
       const utile = raison && raison !== 'No message available' && response.status !== 404
       if (utile) return raison
     } else if (typeof body?.error === 'string') {
       return body.error
     }
   } catch {
-    // pas de corps JSON exploitable, on retombe sur le repli ci-dessous
+    // no usable JSON body, we fall back on the fallback below
   }
   return MESSAGES_PAR_STATUT[response.status] ?? `Erreur ${response.status}`
 }
 
 /**
- * Ce qui s'affiche quand la requête n'a même pas pu partir.
+ * What is displayed when the request could not even leave.
  *
- * `fetch` rejette avec un `TypeError: Failed to fetch` - serveur éteint, réseau
- * coupé, DNS muet, CORS refusé. Ce message est celui du NAVIGATEUR : anglais,
- * technique, et il s'affichait tel quel au milieu d'une interface entièrement
- * en français (constaté sur « Bilan annuel », qui rendait « Failed to fetch »
- * là où l'écran attendait un bilan).
+ * `fetch` rejects with a `TypeError: Failed to fetch` - server off, network
+ * cut, DNS silent, CORS refused. This message is the BROWSER's: English,
+ * technical, and it was displayed as it is in the middle of an interface entirely
+ * in French (seen on "Bilan annuel", which showed "Failed to fetch"
+ * where the screen expected a recap).
  *
- * La traduction des statuts HTTP existait déjà (voir MESSAGES_PAR_STATUT), mais
- * elle suppose une RÉPONSE. Ici il n'y en a aucune : le cas passait entre les
- * mailles.
+ * The translation of HTTP statuses already existed (see MESSAGES_PAR_STATUT), but
+ * it assumes a RESPONSE. Here there is none: the case slipped through
+ * the cracks.
  */
 const MESSAGE_HORS_LIGNE =
   "Impossible de joindre IozyCore. Vérifie que le serveur est démarré, puis réessaie."
 
 /**
- * Le jeton anti-CSRF, tel que le serveur vient de le déposer.
+ * The anti-CSRF token, as the server has just set it.
  *
- * <h2>Pourquoi ce va-et-vient</h2>
- * La session est un cookie, et un cookie part TOUT SEUL avec la requête - y
- * compris quand c'est une autre page qui la déclenche. C'est la définition
- * d'une CSRF. Le serveur dépose donc un second cookie, celui-ci LISIBLE par
- * le JavaScript de cette origine, qu'on lui renvoie en en-tête : une page
- * tierce ne peut pas le lire, donc pas forger l'en-tête.
+ * <h2>Why this back and forth</h2>
+ * The session is a cookie, and a cookie goes ALONG BY ITSELF with the request - even
+ * when another page triggers it. This is the definition
+ * of a CSRF. So the server sets a second cookie, this one READABLE by
+ * the JavaScript of this origin, which we send back in a header: a
+ * third-party page cannot read it, so cannot forge the header.
  *
- * <p>Absent avant le tout premier appel (le serveur ne l'a pas encore posé) :
- * l'en-tête est alors simplement omis, et c'est le serveur qui tranche.
+ * <p>Absent before the very first call (the server has not set it yet):
+ * the header is then simply omitted, and it is the server that decides.
  */
 function jetonCsrf(): string | undefined {
   const brut = document.cookie
@@ -116,51 +116,51 @@ function jetonCsrf(): string | undefined {
 }
 
 /**
- * Ce qui est annoncé quand la session n'est plus valable.
+ * What is announced when the session is no longer valid.
  *
- * Un 401 peut tomber sur N'IMPORTE quel appel : session expirée, serveur
- * redémarré, déconnexion depuis un autre onglet. Plutôt que de laisser chaque
- * écran inventer sa réaction, le client l'annonce une fois, et l'écran de
- * connexion se remet en place de lui-même (voir lib/useAuth).
+ * A 401 can hit ANY call: expired session, restarted server, sign-out
+ * from another tab. Rather than letting each screen invent its reaction, the
+ * client announces it once, and the sign-in screen puts itself back
+ * (see lib/useAuth).
  */
 export const EVENEMENT_SESSION_PERDUE = 'iozycore:session-perdue'
 
 /**
- * Ce que lit quelqu'un qui visite une collection sans compte et appuie quand
- * même sur un bouton d'écriture.
+ * What someone reads who visits a collection without an account and presses
+ * a write button anyway.
  *
- * <h2>Pourquoi le refus est aussi ICI, alors que le serveur refuse déjà</h2>
- * Le serveur est la protection - lui seul l'est, et il refuse toute méthode
- * autre que GET à une session de visite (voir SecurityConfig). Ce garde-fou ne
- * protège rien : il RÉPOND. Une quarantaine de boutons d'écriture vivent dans
- * cette application, et masquer chacun d'eux dans chaque écran était la
- * garantie d'en oublier - et l'oubli, lui, se serait vu comme une erreur rouge
- * inexpliquée après un aller-retour réseau.
+ * <h2>Why the refusal is also HERE, when the server already refuses</h2>
+ * The server is the protection - only it is, and it refuses every method
+ * other than GET for a visit session (see SecurityConfig). This safeguard
+ * protects nothing: it ANSWERS. About forty write buttons live in
+ * this application, and hiding each of them in each screen was
+ * a guarantee of forgetting some - and the omission would have shown up as an unexplained
+ * red error after a network round trip.
  *
- * <p>Posé au même endroit que le jeton CSRF, pour la même raison : c'est le
- * passage obligé de tout appel, y compris celui qu'on écrira dans six mois
- * sans se souvenir qu'un mode visiteur existe.
+ * <p>Set in the same place as the CSRF token, for the same reason: it is
+ * the required passage of every call, including the one that will be written in six months
+ * without remembering that a visitor mode exists.
  */
 export const MESSAGE_LECTURE_SEULE =
   'Tu visites cette collection en lecture seule. Il faut un compte pour y changer quoi que ce soit.'
 
 /**
- * Annonce qu'une écriture vient d'être refusée parce qu'on visite.
+ * Announces that a write has just been refused because we are visiting.
  *
- * Le refus est levé comme une erreur, et chaque écran traite les siennes à sa
- * façon - certains les affichent en bannière, d'autres pas du tout. Or c'est
- * le seul cas où la « panne » n'en est pas une : elle est prévue, elle
- * s'explique en une phrase, et elle doit se lire quel que soit le bouton
- * pressé. L'annoncer une fois, ici, laisse un seul endroit la montrer (voir
- * lib/useRefusDeVisite) - même mécanique que la session perdue, juste au-dessus.
+ * The refusal is thrown as an error, and each screen handles its own in its
+ * own way - some display them in a banner, others not at all. Yet this is
+ * the only case where the "failure" is not one: it is expected, it
+ * is explained in one sentence, and it must be readable whatever the button
+ * pressed. Announcing it once, here, leaves a single place to show it (see
+ * lib/useRefusDeVisite) - same mechanism as the lost session, just above.
  */
 export const EVENEMENT_ECRITURE_REFUSEE = 'iozycore:ecriture-refusee'
 
 /**
- * Vrai pendant une visite sans compte. Une variable de module et non un
- * contexte React : `request` n'est pas un composant, et c'est justement pour
- * qu'AUCUN appel ne puisse passer à côté qu'il est le seul à décider (voir
- * lib/useAuth, qui la tient à jour).
+ * True during a visit without an account. A module variable and not a
+ * React context: `request` is not a component, and it is precisely so that
+ * NO call can miss it that it is the only one to decide (see
+ * lib/useAuth, which keeps it up to date).
  */
 let visiteEnLectureSeule = false
 
@@ -171,10 +171,10 @@ export function declarerVisiteEnCours(actif: boolean) {
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
   const methode = (init?.method ?? 'GET').toUpperCase()
-  // `/auth/` reste ouvert : entrer en visite et en sortir sont des POST, et ce
-  // sont les deux seuls gestes d'un visiteur qui doivent aboutir. Le serveur
-  // fait exactement la même exception, pour ne pas enfermer quelqu'un dans une
-  // collection qui n'est pas la sienne.
+  // `/auth/` stays open: entering a visit and leaving it are POSTs, and these
+  // are the only two actions of a visitor that must succeed. The server
+  // makes exactly the same exception, so as not to lock someone into a
+  // collection that is not theirs.
   if (visiteEnLectureSeule && methode !== 'GET' && !path.startsWith('/auth/')) {
     window.dispatchEvent(new CustomEvent(EVENEMENT_ECRITURE_REFUSEE))
     throw new ApiError(403, MESSAGE_LECTURE_SEULE)
@@ -183,33 +183,33 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(`/api${path}`, {
       ...init,
-      // La session voyage dans un cookie : sans ceci, un appel vers une autre
-      // origine que la page (déploiement où l'app et l'API sont sur deux
-      // domaines) partirait sans lui, donc en 401 - alors qu'on est connecté.
+      // The session travels in a cookie: without this, a call to another
+      // origin than the page (deployment where the app and the API are on two
+      // domains) would leave without it, so it would get a 401 - while we are signed in.
       credentials: 'include',
       headers: {
-        // Surtout PAS sur un FormData : le navigateur doit poser lui-même
-        // `multipart/form-data; boundary=…`, et l'écraser par `application/json`
-        // rendrait le corps illisible côté serveur (415, sans indice).
+        // Above all NOT on a FormData: the browser must set
+        // `multipart/form-data; boundary=…` itself, and overwriting it with `application/json`
+        // would make the body unreadable on the server side (415, with no clue).
         ...(init?.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
         ...(jeton ? { 'X-XSRF-TOKEN': jeton } : {}),
         ...init?.headers,
       },
     })
   } catch (cause) {
-    // Une annulation n'est PAS une panne : TanStack Query annule les requêtes
-    // devenues obsolètes (recherche débouncée), et transformer cela en « serveur
-    // injoignable » ferait clignoter une fausse erreur à chaque frappe.
+    // A cancellation is NOT a failure: TanStack Query cancels requests
+    // that became obsolete (debounced search), and turning this into "server
+    // unreachable" would flash a false error at every keystroke.
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
-    // 0 : aucune réponse n'a été reçue, il n'y a pas de statut à rapporter.
+    // 0: no response was received, there is no status to report.
     throw new ApiError(0, MESSAGE_HORS_LIGNE)
   }
 
   if (!response.ok) {
-    // La session a sauté : l'annoncer UNE fois, ici, plutôt que de laisser
-    // chaque écran deviner ce que veut dire son 401. `/auth/me` est exclu -
-    // c'est justement la question « suis-je connecté ? », et son 401 est une
-    // réponse, pas un incident.
+    // The session is gone: announce it ONCE, here, rather than letting
+    // each screen guess what its 401 means. `/auth/me` is excluded -
+    // it is precisely the question "am I signed in?", and its 401 is an
+    // answer, not an incident.
     if (response.status === 401 && !path.startsWith('/auth/')) {
       window.dispatchEvent(new CustomEvent(EVENEMENT_SESSION_PERDUE))
     }
@@ -223,9 +223,9 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T
 }
 
-/** `signal` optionnel (passé par TanStack Query) - annule la requête HTTP
- * sous-jacente si elle devient obsolète avant d'avoir répondu (voir
- * QuickAddPage, recherche de métadonnées débouncée). */
+/** Optional `signal` (passed by TanStack Query) - cancels the underlying
+ * HTTP request if it becomes obsolete before it has answered (see
+ * QuickAddPage, debounced metadata search). */
 export function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   return request<T>(path, { signal })
 }
@@ -235,9 +235,9 @@ export function post<T>(path: string, body?: unknown): Promise<T> {
 }
 
 /**
- * POST d'un formulaire multipart - le seul cas où l'on envoie autre chose que
- * du JSON : des fichiers. En base64 dans un corps JSON, trois photos gonflent
- * d'un tiers et se parsent d'un bloc en mémoire.
+ * POST of a multipart form - the only case where we send something other than
+ * JSON: files. In base64 inside a JSON body, three photos grow
+ * by a third and are parsed in one block in memory.
  */
 export function postForm<T>(path: string, form: FormData): Promise<T> {
   return request<T>(path, { method: 'POST', body: form })
@@ -255,7 +255,7 @@ export function del<T>(path: string): Promise<T> {
   return request<T>(path, { method: 'DELETE' })
 }
 
-/** Construit une query string en omettant les paramètres null/undefined/"". */
+/** Builds a query string, leaving out the null/undefined/"" parameters. */
 export function buildQuery(params: Record<string, string | undefined | null>): string {
   const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
   if (entries.length === 0) return ''

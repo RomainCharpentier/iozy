@@ -25,18 +25,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
- * Les deux données de l'Analyse d'achat que l'utilisateur crée explicitement -
- * une analyse enregistrée, un prix relevé - doivent pouvoir être retirées.
+ * The two data of the Purchase Analysis that the user creates explicitly -
+ * a saved analysis, an observed price - must be removable.
  * <p>
- * Ni l'une ni l'autre n'est modifiable, et c'est délibéré : une analyse est le
- * résultat figé d'un calcul (en corriger un chiffre produirait un verdict qui
- * n'a jamais été calculé) et un relevé est un fait constaté à une date (le
- * réécrire après coup réécrirait le passé sur lequel s'appuient les analyses).
- * On supprime, et on recommence.
+ * Neither of them can be edited, and this is deliberate: an analysis is the
+ * frozen result of a computation (correcting one number would produce a verdict that
+ * was never computed) and an observation is a fact noted at a date (rewriting
+ * it afterwards would rewrite the past on which the analyses rely).
+ * We delete, and we start again.
  * <p>
- * Le point le plus important est vérifié ici : supprimer une analyse ne touche
- * PAS aux prix relevés ni aux éditions renseignés au fil de cette analyse - ce
- * sont des données de référence, qui servent toutes les analyses suivantes.
+ * The most important point is checked here: deleting an analysis does NOT touch
+ * the observed prices or the editions filled in during this analysis - these
+ * are reference data, which serve all the following analyses.
  */
 class PurchaseDataReversibilityIntegrationTest extends PostgresIntegrationTest {
 
@@ -82,8 +82,8 @@ class PurchaseDataReversibilityIntegrationTest extends PostgresIntegrationTest {
 
         service.deleteAnalysis(analyse.id());
 
-        // Ce sont des données de référence, pas des sous-objets de l'analyse :
-        // les emporter appauvrirait toutes les analyses suivantes.
+        // These are reference data, not sub-objects of the analysis:
+        // taking them away would make all the following analyses poorer.
         assertThat(service.observationsOfEdition(edition.id())).extracting(MarketPriceObservation::id)
                 .contains(releve.id());
         assertThat(mangaEditionRepository.findById(edition.id())).isPresent();
@@ -114,7 +114,7 @@ class PurchaseDataReversibilityIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(service.observationsOfEdition(edition.id())).extracting(MarketPriceObservation::id)
                 .doesNotContain(releve.id());
-        // Retirer un relevé ne touche pas à l'édition qu'il documentait.
+        // Removing an observation does not touch the edition it documented.
         assertThat(mangaEditionRepository.findById(edition.id())).isPresent();
     }
 

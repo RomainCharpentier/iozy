@@ -7,68 +7,68 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
- * Un compte, et rien d'autre.
+ * An account, and nothing else.
  *
- * <h2>Une seule distinction, et ce qu'elle ne donne PAS</h2>
- * Ni rôle, ni permission, ni statut : un seul drapeau, {@code admin}. Tous les
- * comptes peuvent exactement la même chose sur les données - chacun sur SA
- * collection. Ce que l'administration ajoute ne concerne que l'<b>instance</b>
- * : voir qui a un compte, et en supprimer un. <b>Un administrateur n'a aucun
- * accès à la collection de qui que ce soit</b> - l'isolation par propriétaire
- * est intacte, et rien ici ne l'ouvre.
+ * <h2>One single distinction, and what it does NOT give</h2>
+ * No role, no permission, no status: one single flag, {@code admin}. All
+ * accounts can do exactly the same on the data - each one on ITS OWN
+ * collection. What administration adds only concerns the <b>instance</b>
+ * : seeing who has an account, and deleting one. <b>An administrator has no
+ * access to anyone's collection</b> - the isolation by owner
+ * is intact, and nothing here opens it.
  * <p>
- * Un booléen plutôt qu'une table de rôles : il n'y a qu'une distinction à
- * faire, et une machinerie à deux valeurs possibles dont personne ne lirait
- * jamais la seconde ligne.
+ * A boolean rather than a roles table: there is only one distinction to
+ * make, and a machinery with two possible values whose second line
+ * nobody would ever read.
  *
- * <h2>L'identifiant EST le propriétaire</h2>
- * Les colonnes {@code owner_id} existent depuis la migration V2, remplies
- * avec {@link DefaultOwner#ID}. Un compte n'a donc pas besoin d'un second
- * identifiant : son {@code id} est celui qu'on retrouvera dans ces colonnes.
- * C'est ce qui permet au tout premier compte de <b>reprendre</b> les données
- * déjà en base en adoptant cet identifiant, sans qu'une seule ligne ne bouge.
+ * <h2>The id IS the owner</h2>
+ * The {@code owner_id} columns exist since migration V2, filled
+ * with {@link DefaultOwner#ID}. An account therefore does not need a second
+ * id: its {@code id} is the one that will be found in these columns.
+ * This is what lets the very first account <b>take over</b> the data
+ * already in the database by adopting this id, without a single row moving.
  *
- * @param email        rangé en minuscules et sans espaces de bord - deux comptes
- *                     ne peuvent pas différer par la seule casse
- * @param passwordHash le hachage, jamais le mot de passe. Ce record traverse
- *                     l'application ; le mot de passe en clair, lui, ne vit que
- *                     le temps d'un appel à l'encodeur
- * @param admin        peut administrer l'INSTANCE (voir la migration V28), pas
- *                     les données des autres. Le premier compte l'est ; les
- *                     suivants ne le deviennent qu'en SQL
- * @param pseudo       le seul nom sous lequel une personne apparaît. Unique
- *                     (voir la migration V27), obligatoire, et jamais
- *                     l'adresse e-mail : celle-ci sert à se connecter, pas à
- *                     se montrer. <b>Fixé à l'inscription</b> et jamais
- *                     modifié - décision produit, pas une fonctionnalité
- *                     remise à plus tard : un pseudo qu'on peut reprendre
- *                     désigne quelqu'un d'autre demain, et aucune surface qui
- *                     l'a affiché ne le saura. Aucune route ne l'écrit après
+ * @param email        stored in lowercase and without edge spaces - two accounts
+ *                     cannot differ by case alone
+ * @param passwordHash the hash, never the password. This record travels through
+ *                     the application; the plain password only lives
+ *                     for the time of one call to the encoder
+ * @param admin        can administer the INSTANCE (see migration V28), not
+ *                     the data of others. The first account is one; the
+ *                     next ones only become one through SQL
+ * @param pseudo       the only name under which a person appears. Unique
+ *                     (see migration V27), required, and never
+ *                     the e-mail address: it is used to log in, not to
+ *                     be shown. <b>Set at sign-up</b> and never
+ *                     changed - a product decision, not a feature
+ *                     put off for later: a pseudo that can be taken over
+ *                     designates someone else tomorrow, and no surface that
+ *                     displayed it will know. No route writes it after
  *                     {@code POST /api/auth/register}
  */
 public record AppUser(UUID id, String email, String passwordHash, String pseudo, boolean admin,
                        Instant createdAt) {
 
     /**
-     * Ce qu'un pseudo a le droit d'être.
+     * What a pseudo is allowed to be.
      *
-     * <h2>Trois à vingt-quatre caractères</h2>
-     * En dessous de trois, il ne distingue plus rien ; au-delà de vingt-quatre,
-     * il ne tient plus dans les endroits qui l'affichent, à commencer par
-     * l'avatar du menu.
+     * <h2>Three to twenty-four characters</h2>
+     * Below three, it no longer tells anything apart; above twenty-four,
+     * it no longer fits in the places that display it, starting with
+     * the avatar of the menu.
      *
-     * <h2>Lettres, chiffres, et trois séparateurs</h2>
-     * Les <b>accents sont acceptés</b> ({@code \p{L}} et non {@code [a-z]}) :
-     * refuser « Rémi » dans une application française serait une règle
-     * technique déguisée en règle produit. Sont refusés l'espace - qui rend
-     * deux pseudos indistinguables à l'œil, « jean dupont » et
-     * « jean  dupont » - et l'arobase, qui ferait passer un pseudo pour une
-     * adresse.
+     * <h2>Letters, digits, and three separators</h2>
+     * <b>Accents are accepted</b> ({@code \p{L}} and not {@code [a-z]}):
+     * refusing "Rémi" in a French application would be a technical
+     * rule disguised as a product rule. Refused are the space - which makes
+     * two pseudos indistinguishable by eye, "jean dupont" and
+     * "jean  dupont" - and the at sign, which would make a pseudo pass for an
+     * address.
      *
-     * <h2>Il commence par une lettre ou un chiffre</h2>
-     * Sinon {@code ...} et {@code ---} seraient des pseudos valides, et deux
-     * personnes seraient distinguées par un motif que personne ne peut lire à
-     * voix haute.
+     * <h2>It starts with a letter or a digit</h2>
+     * Otherwise {@code ...} and {@code ---} would be valid pseudos, and two
+     * people would be told apart by a pattern that nobody can read
+     * out loud.
      */
     private static final Pattern FORME_DE_PSEUDO =
             Pattern.compile("^[\\p{L}\\p{N}][\\p{L}\\p{N}._-]{2,23}$", Pattern.UNICODE_CHARACTER_CLASS);
@@ -92,47 +92,47 @@ public record AppUser(UUID id, String email, String passwordHash, String pseudo,
     }
 
     /**
-     * Vrai quand ce texte peut servir de pseudo.
+     * True when this text can be used as a pseudo.
      * <p>
-     * Publique parce que la porte doit pouvoir <b>expliquer</b> un refus à
-     * l'utilisateur (400 avec une phrase) plutôt que de laisser remonter une
-     * exception de construction, qui n'est jamais destinée à être lue.
+     * Public because the door must be able to <b>explain</b> a refusal to
+     * the user (400 with a sentence) rather than let a construction
+     * exception come up, which is never meant to be read.
      */
     public static boolean estUnPseudoValide(String pseudo) {
         return pseudo != null && FORME_DE_PSEUDO.matcher(pseudo.trim()).matches();
     }
 
     /**
-     * La forme sous laquelle deux pseudos se comparent : la casse ne distingue
-     * pas deux personnes, exactement comme pour l'adresse (voir la migration
-     * V27, qui pose l'index unique sur {@code lower(pseudo)}).
+     * The form in which two pseudos are compared: case does not tell
+     * two people apart, exactly like for the address (see migration
+     * V27, which sets the unique index on {@code lower(pseudo)}).
      */
     public static String normaliserPseudo(String pseudo) {
         return pseudo == null ? "" : pseudo.trim().toLowerCase();
     }
 
     /**
-     * La forme sous laquelle une adresse se compare et se range.
+     * The form in which an address is compared and stored.
      * <p>
-     * Publique parce que la comparaison se fait aussi à la lecture (chercher
-     * un compte par son adresse saisie au clavier) : deux normalisations
-     * écrites séparément finiraient par diverger, et un utilisateur se
-     * verrait refuser sa propre adresse pour une majuscule.
+     * Public because the comparison is also done at read time (looking up
+     * an account by the address typed on the keyboard): two normalizations
+     * written separately would end up different, and a user would
+     * see their own address refused because of a capital letter.
      */
     public static String normaliserEmail(String email) {
         return email == null ? "" : email.trim().toLowerCase();
     }
 
     /**
-     * Le tout premier compte adopte l'identifiant du propriétaire par défaut :
-     * la collection déjà saisie devient la sienne. Les suivants reçoivent un
-     * identifiant neuf, donc une collection vide.
+     * The very first account adopts the id of the default owner:
+     * the collection already entered becomes its own. The next ones get a
+     * new id, so an empty collection.
      */
     public static AppUser premier(String email, String passwordHash, String pseudo) {
-        // Administrateur d'office : sur une instance neuve, personne d'autre ne
-        // pourrait le devenir, et l'écran d'administration n'aurait aucun
-        // ouvreur. Voir aussi la V28, qui fait la même chose sur les instances
-        // déjà en service.
+        // Administrator by default: on a new instance, nobody else
+        // could become one, and the administration screen would have no
+        // opener. See also V28, which does the same on instances
+        // already in service.
         return new AppUser(DefaultOwner.ID, email, passwordHash, pseudo, true, Instant.now());
     }
 

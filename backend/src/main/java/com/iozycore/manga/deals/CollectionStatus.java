@@ -15,11 +15,11 @@ import java.util.List;
  *                                   cannot be computed in that case, see {@link #missingCount()}
  * @param missingCount               null when {@code totalVolumes} is unknown; 0 means the listing
  *                                   completes the edition entirely
- * @param cataloguedMissingVolumeNumbers étape 6/8 (modèle Tome != Ownership) - parmi
- *                                   {@code missingVolumeNumbers}, ceux qui ont déjà un Variant catalogué
- *                                   (juste sans Ownership active) plutôt que purement virtuels (aucun
- *                                   Variant, seulement un numéro déduit de {@code totalVolumes}). Toujours
- *                                   vide pour un appelant qui ne fournit pas cette distinction (voir
+ * @param cataloguedMissingVolumeNumbers step 6/8 (Volume != Ownership model) - among
+ *                                   {@code missingVolumeNumbers}, those that already have a catalogued Variant
+ *                                   (just without an active Ownership) rather than purely virtual ones (no
+ *                                   Variant, only a number deduced from {@code totalVolumes}). Always
+ *                                   empty for a caller that does not provide this distinction (see
  *                                   {@link CompletenessCalculator#compute(java.util.Set, MangaEdition, MarketPrice)}).
  * @param estimatedCostToComplete    null when it cannot be computed (unknown total, or no price data at all) -
  *                                   {@link BigDecimal#ZERO} when the listing already completes the edition,

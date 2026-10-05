@@ -27,21 +27,21 @@ public class SeriesMatcher {
     }
 
     public MangaSeries match(String rawTitle) {
-        // Une série sans titre ne se rapproche de rien : ce n'est pas « aucune
-        // correspondance », c'est une entrée inexploitable. Sans cette garde,
-        // le trim() ci-dessous levait une NullPointerException rendue en 500 -
-        // par DEUX portes distinctes, toutes deux ouvertes à l'utilisateur :
-        // un lot d'analyse dont un élément n'a pas de série, et la création
-        // d'une édition sans titre de série.
+        // A series without a title matches nothing: it is not "no
+        // match", it is an input that cannot be used. Without this guard,
+        // the trim() below threw a NullPointerException returned as a 500 -
+        // through TWO distinct doors, both open to the user:
+        // an analysis lot with an item that has no series, and the creation
+        // of an edition without a series title.
         if (rawTitle == null || rawTitle.isBlank()) {
             throw new IllegalArgumentException("Le titre de la série est requis");
         }
-        // La décoration d'annonce est retirée ICI plutôt que chez chaque
-        // appelant : c'est le point de passage unique vers le catalogue, donc
-        // le seul endroit où une seconde normalisation ne risque pas d'en
-        // contredire une première. « 🔥 Hell's Paradise » et « Hell's Paradise »
-        // désignent la même œuvre, quelle que soit la source qui les propose -
-        // texte d'annonce, photo, ou saisie manuelle.
+        // The listing decoration is removed HERE rather than in each
+        // caller: it is the single point of passage to the catalogue, so
+        // the only place where a second normalisation cannot
+        // contradict a first one. "🔥 Hell's Paradise" and "Hell's Paradise"
+        // name the same work, whatever the source that offers them -
+        // listing text, photo, or manual entry.
         String trimmedTitle = SeriesTitleNormalizer.normalize(rawTitle);
         Optional<EntityType> mangaType = entityTypeRepository.findByCode("MANGA");
         if (mangaType.isEmpty()) {

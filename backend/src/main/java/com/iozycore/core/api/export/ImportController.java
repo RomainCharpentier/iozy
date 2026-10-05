@@ -15,19 +15,19 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Le retour de {@link ExportController} : on renvoie le fichier JSON qu'il a
- * produit, et la collection se reconstruit dans le compte connecte. Deux
- * temps, comme le veut §19 de docs/CONCEPTION.md : <b>analyser</b> dit ce qui
- * sera cree, rattache ou ignore sans rien ecrire ; <b>appliquer</b> le fait,
- * en une transaction.
+ * The return trip of {@link ExportController}: we send back the JSON file it
+ * produced, and the collection is rebuilt in the signed-in account. Two
+ * steps, as §19 of docs/CONCEPTION.md wants: <b>analyze</b> says what
+ * will be created, attached or ignored without writing anything; <b>apply</b> does it,
+ * in one transaction.
  *
- * <p>Le corps est le document d'export lui-meme, en JSON - pas un fichier
- * multipart : le navigateur le lit et le renvoie tel quel, et c'est aussi ce
- * qu'un script curl enverrait.
+ * <p>The body is the export document itself, in JSON - not a multipart
+ * file: the browser reads it and sends it back as is, and it is also what
+ * a curl script would send.
  */
 @RestController
 @RequestMapping("/api/import")
-@Tag(name = "Import", description = "Reimporter un export JSON de la collection - analyse a blanc, puis application")
+@Tag(name = "Import", description = "Re-import a JSON export of the collection - dry run analysis, then application")
 public class ImportController {
 
     private final ImportService importService;
@@ -36,14 +36,14 @@ public class ImportController {
         this.importService = importService;
     }
 
-    @Operation(summary = "Analyser un export JSON sans rien ecrire : ce qui serait cree, rattache a l'existant, ou ignore")
+    @Operation(summary = "Analyze a JSON export without writing anything: what would be created, attached to what exists, or ignored")
     @PostMapping("/analyse")
     public ImportReport analyser(@RequestBody ExportDocument document) {
         verifier(document);
         return importService.analyser(document, estAdministrateur());
     }
 
-    @Operation(summary = "Appliquer un export JSON dans la collection du compte connecte (une seule transaction)")
+    @Operation(summary = "Apply a JSON export to the collection of the signed-in account (a single transaction)")
     @PostMapping("/appliquer")
     public ImportReport appliquer(@RequestBody ExportDocument document) {
         verifier(document);
@@ -51,9 +51,9 @@ public class ImportController {
     }
 
     private static void verifier(ExportDocument document) {
-        // Un JSON quelconque se desserialise en document vide : on refuse ce
-        // qui n'a visiblement pas ete produit par l'export, plutot que de
-        // rapporter "0 partout" comme si tout allait bien.
+        // Any JSON deserializes into an empty document: we refuse what
+        // was visibly not produced by the export, rather than
+        // reporting "0 everywhere" as if everything was fine.
         if (document == null || (document.entities() == null && document.entityTypes() == null
                 && document.editions() == null && document.ownerships() == null)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -61,7 +61,7 @@ public class ImportController {
         }
     }
 
-    /** Meme regle que SecurityConfig sur /api/tags : seul un administrateur cree un tag. */
+    /** Same rule as SecurityConfig on /api/tags: only an administrator creates a tag. */
     private static boolean estAdministrateur() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()

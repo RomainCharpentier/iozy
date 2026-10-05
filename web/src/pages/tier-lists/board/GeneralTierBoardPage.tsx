@@ -14,12 +14,12 @@ import { useQuickRank } from '@/pages/tier-lists/useQuickRank'
 import { RANKS, type Rank, type TierListEntryDto } from '@/common/types/tierList'
 import { Squelette } from '@/common/components/Squelette'
 
-/** Board du classement GÉNÉRAL d'un univers - toujours l'échelle complète
- * S-F (voir DS v1.1 §45), candidats = toute œuvre réellement possédée de
- * ce type (voir TierListService.ownedEntitiesOfType côté backend). */
+/** Board of the GENERAL ranking of a universe - always the complete
+ * S-F scale (see DS v1.1 section 45), candidates = every work really owned of
+ * this type (see TierListService.ownedEntitiesOfType on the backend side). */
 export function GeneralTierBoardPage() {
   const { entityTypeId } = useParams<{ entityTypeId: string }>()
-  // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
+  // Named by the screen of origin when it passes it, otherwise the natural parent.
   const queryClient = useQueryClient()
   const [activeEntry, setActiveEntry] = useState<TierListEntryDto | null>(null)
   const quickRank = useQuickRank()
@@ -32,11 +32,11 @@ export function GeneralTierBoardPage() {
   const entityType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
   const visual = getEntityTypeVisual(entityType)
 
-  // "Classer mes éléments" (Découvrir/Tier Lists) demande le classement
-  // rapide, pas seulement l'ouverture du board (voir DS v1.1 §50) - la file
-  // ne peut démarrer qu'une fois les données arrivées, d'où ce démarrage
-  // différé plutôt qu'au clic. Une seule fois par montage : sans ce garde,
-  // chaque invalidation de requête relancerait la file depuis le début.
+  // "Classer mes éléments" (Découvrir/Tier Lists) asks for the quick
+  // ranking, not only the opening of the board (see DS v1.1 section 50) - the queue
+  // can only start once the data has arrived, hence this deferred
+  // start rather than at the click. Only once per mount: without this guard,
+  // each query invalidation would restart the queue from the beginning.
   const requestedQuickRank = (useLocation().state as { quickRank?: boolean } | null)?.quickRank === true
   const autoStarted = useRef(false)
   const unranked = boardQuery.data?.unranked
@@ -52,8 +52,8 @@ export function GeneralTierBoardPage() {
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.general(entityTypeId!) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.entitySummary(variables.entityId) })
-      // En classement rapide, enchaîner remplace la fermeture : le sélecteur
-      // reste ouvert sur l'œuvre suivante de la file.
+      // In quick ranking, chaining replaces closing: the picker
+      // stays open on the next work of the queue.
       if (quickRank.isActive) quickRank.next()
       else setActiveEntry(null)
     },
@@ -64,9 +64,9 @@ export function GeneralTierBoardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Le lien de retour commun : 44 px de haut (la copie manuelle d'ici en
-          faisait 20), la destination nommée par celui qui a ouvert l'écran
-          (voir lib/retour), sinon le parent naturel - lien reçu, F5. */}
+      {/* The common back link: 44 px high (the manual copy here
+          made 20), the destination named by whoever opened the screen
+          (see lib/retour), otherwise the natural parent - received link, F5. */}
       <LienRetour parDefaut={{ to: '/tier-lists', libelle: 'Tier Lists' }} />
 
       <div className="flex flex-wrap items-center gap-2.5">

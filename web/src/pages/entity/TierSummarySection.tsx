@@ -10,12 +10,12 @@ import { RANKS, type Rank } from '@/common/types/tierList'
 import { Squelette } from '@/common/components/Squelette'
 
 /**
- * "Mes classements" (voir DS v1.1 §52) : rang général visuellement dominant
- * (voir TierListService.customRanksFor côté backend, même commentaire) + les
- * Tier Lists personnalisées où cette œuvre est RÉELLEMENT classée. Rang
- * général géré ICI (au niveau Entity, pas Variant/tome - un classement porte
- * sur la série/l'œuvre entière, jamais un tome individuel), via le même
- * TierPicker que les boards (voir CustomTierBoardPage/GeneralTierBoardPage).
+ * "Mes classements" (see DS v1.1 section 52): general rank visually dominant
+ * (see TierListService.customRanksFor on the backend side, same comment) + the
+ * custom Tier Lists where this work is REALLY ranked. General
+ * rank managed HERE (at the Entity level, not Variant/volume - a ranking is about
+ * the whole series/work, never an individual volume), through the same
+ * TierPicker as the boards (see CustomTierBoardPage/GeneralTierBoardPage).
  */
 export function TierSummarySection({
   entityId,
@@ -58,8 +58,8 @@ export function TierSummarySection({
       {summaryQuery.isLoading ? (
         <Squelette lignes={3} />
       ) : generalRank ? (
-        // Le rang général est visuellement DOMINANT (voir DS v1.1 §52) : c'est
-        // le jugement porté sur l'œuvre, pas une ligne de liste parmi d'autres.
+        // The general rank is visually DOMINANT (see DS v1.1 section 52): it is
+        // the judgment made on the work, not one list line among others.
         <div className="flex items-center gap-3.5 rounded-[15px] bg-gradient-to-br from-background to-surface2 p-4">
           <TierBadge rank={generalRank} />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -78,8 +78,8 @@ export function TierSummarySection({
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-3 rounded-[15px] bg-gradient-to-br from-background to-surface2 p-4">
-          {/* `min-w` : sans lui, la phrase se tassait sur quatre lignes de deux
-              mots à côté du bouton au lieu de passer dessous (390 px). */}
+          {/* `min-w`: without it, the sentence got squeezed into four lines of two
+              words next to the button instead of going below it (390 px). */}
           <span className="flex min-h-11 min-w-[200px] flex-1 items-center text-sm text-textDim">
             Cette œuvre n'est classée nulle part.
           </span>

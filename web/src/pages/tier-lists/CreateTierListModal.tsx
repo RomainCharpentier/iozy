@@ -10,21 +10,21 @@ import { TierBadge } from '@/common/components/TierBadge'
 import { useModalA11y } from '@/common/hooks/useModalA11y'
 import { RANKS, type Rank } from '@/common/types/tierList'
 
-/** "Nouvelle Tier List" - vrai flow minimal (nom, univers, rangs actifs,
- * description optionnelle - voir DS v1.1 §51), jamais un simple toast
- * descriptif. Le choix des éléments à ajouter se fait ensuite depuis le
- * board vide de la liste créée (pas dans ce même formulaire - garde la
- * création courte).
+/** "Nouvelle Tier List" - real minimal flow (name, universe, active ranks,
+ * optional description - see DS v1.1 section 51), never a simple descriptive
+ * toast. The choice of the items to add is then made from the
+ * empty board of the created list (not in this same form - keeps the
+ * creation short).
  * <p>
- * L'univers est un vrai choix depuis le Lot 14, "Toutes catégories" compris
- * (voir TierList côté backend, entityTypeId nullable) - avant, il était
- * imposé par le bouton d'où l'on venait et seulement rappelé en pastille.
- * L'appelant ne fait plus que proposer une valeur de départ. */
+ * The universe is a real choice since batch 14, "Toutes catégories" included
+ * (see TierList on the backend side, nullable entityTypeId) - before, it was
+ * imposed by the button one came from and only recalled as a pill.
+ * The caller now only offers a starting value. */
 export function CreateTierListModal({
   entityTypeId: initialEntityTypeId,
   onClose,
 }: {
-  /** Univers présélectionné, null pour démarrer sur "Toutes catégories". */
+  /** Preselected universe, null to start on "Toutes catégories". */
   entityTypeId: string | null
   onClose: () => void
 }) {
@@ -35,9 +35,9 @@ export function CreateTierListModal({
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [activeRanks, setActiveRanks] = useState<Set<Rank>>(new Set(RANKS))
-  // Toujours monté "ouvert" - c'est le parent qui monte/démonte ce composant
-  // (voir TierListsScreen/DiscoverTierPreview, `{creatingFor && <...>}`) -
-  // voir useModalA11y (Lot 9) pour ce style d'usage.
+  // Always mounted "open" - it is the parent that mounts/unmounts this component
+  // (see TierListsScreen/DiscoverTierPreview, `{creatingFor && <...>}`) -
+  // see useModalA11y (batch 9) for this style of use.
   const containerRef = useModalA11y<HTMLDivElement>(true, onClose)
 
   const createMutation = useMutation({
@@ -58,7 +58,7 @@ export function CreateTierListModal({
     setActiveRanks((prev) => {
       const next = new Set(prev)
       if (next.has(rank)) {
-        if (next.size === 1) return prev // toujours au moins un rang actif
+        if (next.size === 1) return prev // always at least one active rank
         next.delete(rank)
       } else {
         next.add(rank)
@@ -116,9 +116,9 @@ export function CreateTierListModal({
                   {type.label}
                 </button>
               ))}
-              {/* "Toutes catégories" volontairement en DERNIER et visuellement
-                  à part : mélanger les univers est le cas particulier, pas le
-                  défaut - une liste sans univers doit être un choix assumé. */}
+              {/* "Toutes catégories" deliberately LAST and visually
+                  apart: mixing the universes is the special case, not the
+                  default - a list without a universe must be a deliberate choice. */}
               <button
                 type="button"
                 onClick={() => setEntityTypeId(null)}

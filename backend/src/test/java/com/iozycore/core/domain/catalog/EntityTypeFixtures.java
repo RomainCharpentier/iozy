@@ -4,11 +4,11 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Remplace les anciennes constantes statiques EntityType.MANGA/VIDEO_GAME/
- * BOARD_GAME (supprimées du code de production - les types sont désormais
- * gérés dynamiquement via EntityTypeRepository, éditeur de types). Mêmes
- * UUIDs que les 3 lignes seedées par V1__init_schema.sql, pour rester
- * réalistes face aux tests Testcontainers qui tapent une vraie base.
+ * Replaces the old static constants EntityType.MANGA/VIDEO_GAME/
+ * BOARD_GAME (removed from the production code - types are now
+ * managed dynamically via EntityTypeRepository, type editor). Same
+ * UUIDs as the 3 rows seeded by V1__init_schema.sql, to stay
+ * realistic against Testcontainers tests that hit a real database.
  */
 public final class EntityTypeFixtures {
 

@@ -5,29 +5,29 @@ import { PiedDePage } from '@/common/components/layout/PiedDePage'
 import { useAuth } from '@/common/hooks/useAuth'
 
 /**
- * La porte, côté écran.
+ * The gate, screen side.
  *
- * <h2>Un seul écran, trois situations</h2>
- * Une instance neuve n'a aucun compte : elle propose d'en <b>créer le
- * premier</b>, qui reprendra la collection déjà en base. Une instance en
- * service propose de <b>se connecter</b>, et n'ouvre la création que si
- * l'exploitant a configuré un code d'invitation. Trois écrans séparés
- * auraient trois fois la même erreur à afficher.
+ * <h2>One screen, three situations</h2>
+ * A new instance has no account: it offers to <b>create the
+ * first one</b>, which will take over the collection already in the database. An instance in
+ * service offers to <b>sign in</b>, and only opens creation if
+ * the operator has configured an invitation code. Three separate screens
+ * would have the same error to show three times.
  *
- * <h2>Ce qui n'est pas dit</h2>
- * Un refus de connexion dit « adresse ou mot de passe incorrect » et rien de
- * plus : c'est le serveur qui en décide, et il rend volontairement le même
- * message dans les deux cas - distinguer offrirait un test d'existence de
- * compte à qui n'en a pas.
+ * <h2>What is not said</h2>
+ * A sign-in refusal says "adresse ou mot de passe incorrect" and nothing
+ * more: the server decides this, and it deliberately returns the same
+ * message in both cases - telling them apart would offer an account existence
+ * test to someone who has none.
  *
- * <h2>Et une quatrième issue, toujours ouverte</h2>
- * « Visiter sans compte » mène au <b>catalogue</b> : les œuvres que l'instance
- * connaît, en lecture seule. Rien de ce que quiconque possède, note ou
- * souhaite - ces données appartiennent à des comptes, et un visiteur n'en est
- * pas un. Aucun réglage ne conditionne ce bouton : il n'y a rien à autoriser.
+ * <h2>And a fourth way out, always open</h2>
+ * "Visiter sans compte" leads to the <b>catalog</b>: the works the instance
+ * knows, read-only. Nothing that anyone owns, rates or
+ * wishes for - this data belongs to accounts, and a visitor is not
+ * one. No setting conditions this button: there is nothing to authorize.
  *
- * <p>Hors de {@code AppShell} : quelqu'un qui n'est pas connecté ne doit voir
- * ni la navigation, ni le moindre compteur de collection.
+ * <p>Outside {@code AppShell}: someone who is not signed in must see
+ * neither the navigation, nor any collection counter.
  */
 export function AuthPage() {
   const { aucunCompteSurLInstance, creationOuverte, connexion, creation, visite } = useAuth()
@@ -37,7 +37,7 @@ export function AuthPage() {
   const [pseudo, setPseudo] = useState('')
   const [codeInvitation, setCodeInvitation] = useState('')
 
-  // Le mode par défaut suit l'instance ; un clic explicite le remplace.
+  // The default mode follows the instance; an explicit click replaces it.
   const modeCourant = mode ?? (aucunCompteSurLInstance ? 'creation' : 'connexion')
   const enCreation = modeCourant === 'creation'
   const enCours = connexion.isPending || creation.isPending || visite.isPending
@@ -59,9 +59,9 @@ export function AuthPage() {
 
   return (
     <main className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-5 px-4 py-10">
-      {/* Une lueur d'accent en haut, rien d'autre : la porte est le premier
-          écran qu'on voit, elle doit ressembler à l'application, pas à un
-          formulaire posé sur du vide. */}
+      {/* A glow of accent at the top, nothing else: the gate is the first
+          screen that is seen, it must look like the application, not like a
+          form placed on an empty page. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(70%_60%_at_50%_0%,var(--color-accentTint),transparent_70%)]"
@@ -95,18 +95,18 @@ export function AuthPage() {
           />
         </label>
 
-        {/* Même structure que le pseudo : la longueur minimale est une
-            DESCRIPTION, pas une partie du nom du champ. Dans le label, elle
-            faisait annoncer « Mot de passe Au moins 10 caractères » comme un
-            seul intitulé - et rendait le champ introuvable sous son nom. */}
+        {/* Same structure as the username: the minimum length is a
+            DESCRIPTION, not a part of the field name. In the label, it
+            made "Mot de passe Au moins 10 caractères" be announced as one
+            single title - and made the field impossible to find under its name. */}
         <div className="flex flex-col gap-1.5">
           <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-mot-de-passe">
             Mot de passe
             <input
               id="auth-mot-de-passe"
               type="password"
-              // Dit au gestionnaire de mots de passe s'il doit proposer d'en
-              // fabriquer un ou de relire celui qu'il a déjà.
+              // Tells the password manager whether it should offer to
+              // make one up or to read again the one it already has.
               autoComplete={enCreation ? 'new-password' : 'current-password'}
               required
               minLength={enCreation ? 10 : undefined}
@@ -124,10 +124,10 @@ export function AuthPage() {
         </div>
 
         {enCreation && (
-          // La règle vit HORS du label, reliée par `aria-describedby` : dans le
-          // label, elle ferait partie du NOM du champ, qu'un lecteur d'écran
-          // annonce alors d'une traite (« Pseudo 3 à 24 caractères sans
-          // espace c'est le nom… ») au lieu de le nommer puis de le décrire.
+          // The rule lives OUTSIDE the label, linked by `aria-describedby`: inside the
+          // label, it would be part of the field NAME, which a screen reader
+          // then announces in one go ("Pseudo 3 à 24 caractères sans
+          // espace c'est le nom…") instead of naming it and then describing it.
           <div className="flex flex-col gap-1.5">
             <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-pseudo">
               Pseudo
@@ -143,18 +143,18 @@ export function AuthPage() {
                 className="champ"
               />
             </label>
-            {/* La règle est écrite AVANT la saisie, pas rendue en refus après :
-                le serveur reste seul juge (il connaît les pseudos déjà pris),
-                mais rien n'oblige à laisser découvrir les bornes par essais. */}
+            {/* The rule is written BEFORE typing, not returned as a refusal after:
+                the server stays the only judge (it knows the usernames already taken),
+                but nothing forces the user to find the limits by trial. */}
             <span id="auth-pseudo-regle" className="text-xs text-textDim">
               3 à 24 caractères, sans espace. C’est le nom sous lequel tu apparais.
             </span>
           </div>
         )}
 
-        {/* Le code d'invitation ne concerne QUE les comptes suivants : le
-            premier n'en a pas besoin, et l'afficher alors laisserait croire
-            qu'il en faut un. */}
+        {/* The invitation code concerns ONLY the following accounts: the
+            first one does not need it, and showing it then would suggest
+            that one is needed. */}
         {enCreation && !aucunCompteSurLInstance && (
           <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-invitation">
             Code d’invitation
@@ -179,9 +179,9 @@ export function AuthPage() {
         {echec && <ErrorBanner message={echec.message} />}
       </form>
 
-      {/* Bascule proposée seulement quand elle mène quelque part : sur une
-          instance fermée aux nouveaux comptes, « créer un compte » n'ouvrirait
-          qu'un refus. */}
+      {/* Switch offered only when it leads somewhere: on an
+          instance closed to new accounts, "créer un compte" would only open
+          a refusal. */}
       {!aucunCompteSurLInstance && creationOuverte && (
         <button
           type="button"
@@ -192,9 +192,9 @@ export function AuthPage() {
         </button>
       )}
 
-      {/* Toujours proposé, sans condition : il n'y a rien à autoriser, et le
-          catalogue n'appartient à personne. En dehors du formulaire, parce que
-          ce n'en est pas une variante - c'est renoncer à s'identifier. */}
+      {/* Always offered, without condition: there is nothing to authorize, and the
+          catalog belongs to nobody. Outside the form, because
+          it is not a variant of it - it is giving up on identifying oneself. */}
       <div className="flex flex-col items-center gap-1.5 border-t border-white/5 pt-5">
           <button
             type="button"
@@ -208,8 +208,8 @@ export function AuthPage() {
           Tu consultes le catalogue des œuvres, en lecture seule.
         </p>
       </div>
-      {/* Quelle livraison tourne - ici plus qu'ailleurs : quand on n'entre
-          pas, la première question est de savoir ce qui est en ligne. */}
+      {/* Which delivery is running - here more than elsewhere: when one does not
+          enter, the first question is to know what is online. */}
       <PiedDePage sansSession />
     </main>
   )

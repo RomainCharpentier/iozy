@@ -1,16 +1,16 @@
 /**
- * <b>La seule source de prix réellement constatés, et le geste qui la
- * remplit.</b>
+ * <b>The only source of prices actually observed, and the action that
+ * fills it.</b>
  *
- * <p>Un relevé alimente toutes les analyses d'achat suivantes de son édition.
- * Jusqu'au 2026-08-29, la seule façon d'en enregistrer un était d'analyser une
- * annonce, puis d'ouvrir le détail d'une de ses séries — et seulement si
- * l'édition était reconnue et les tomes contigus. La capacité la plus
- * déterminante de l'application était la plus cachée (§16 des parcours).
+ * <p>A record feeds all the later purchase analyses of its edition.
+ * Until 2026-08-29, the only way to save one was to analyse a
+ * listing, then open the detail of one of its series — and only if
+ * the edition was recognised and the volumes were contiguous. The most
+ * decisive capability of the app was the most hidden (§16 of the journeys).
  *
- * <p>Pire : quand une édition n'avait aucun relevé, ce bloc ne s'affichait
- * <b>pas du tout</b>. Rien ne disait que ces prix existaient, et c'est
- * exactement là qu'il faut pouvoir en saisir un.
+ * <p>Worse: when an edition had no record, this block was <b>not shown
+ * at all</b>. Nothing said that these prices existed, and that is
+ * exactly where one must be able to enter one.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -45,14 +45,14 @@ beforeEach(() => {
   api.recordMarketObservation.mockResolvedValue({})
 })
 
-/** Ouvre le formulaire et remplit ce qui est exigé. */
+/** Opens the form and fills in what is required. */
 async function saisirUnPrix(prix: string) {
   await userEvent.click(screen.getByRole('button', { name: /Relever un prix/ }))
   await userEvent.type(screen.getByLabelText(/Prix constaté/), prix)
 }
 
-describe('une édition sans aucun relevé', () => {
-  it('dit que ces prix existent, au lieu de ne rien montrer', async () => {
+describe('an edition with no record at all', () => {
+  it('says that these prices exist, instead of showing nothing', async () => {
     await ecran()
 
     expect(await screen.findByText(/Aucun prix relevé pour cette édition/)).toBeInTheDocument()
@@ -60,8 +60,8 @@ describe('une édition sans aucun relevé', () => {
   })
 })
 
-describe('relever un prix à la main', () => {
-  it('transmet le prix, la plateforme et la date', async () => {
+describe('recording a price by hand', () => {
+  it('sends the price, the platform and the date', async () => {
     await ecran()
     await saisirUnPrix('45')
 
@@ -72,14 +72,14 @@ describe('relever un prix à la main', () => {
     expect(envoye.mangaEditionId).toBe('ed-1')
     expect(envoye.observedPrice).toBe(45)
     expect(envoye.platform).toBe('VINTED')
-    // Un relevé est un fait DATÉ : la date part toujours, pré-remplie à
-    // aujourd'hui.
+    // A record is a DATED fact: the date is always sent, pre-filled with
+    // today.
     expect(envoye.observedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
-  it('n’envoie une portée que si les DEUX bornes sont saisies', async () => {
-    // Une portée à moitié remplie ne décrit rien, et le serveur l'ignorerait en
-    // silence - autant ne pas la lui envoyer.
+  it('only sends a range if BOTH bounds are entered', async () => {
+    // A half-filled range describes nothing, and the server would silently ignore
+    // it - better not to send it.
     await ecran()
     await saisirUnPrix('45')
     await userEvent.type(screen.getByLabelText('Premier tome du lot'), '1')
@@ -92,14 +92,14 @@ describe('relever un prix à la main', () => {
     expect(envoye.volumeRangeEnd).toBeUndefined()
   })
 
-  it('envoie la portée quand elle est complète, et le dit avant', async () => {
+  it('sends the range when it is complete, and says so before', async () => {
     await ecran()
     await saisirUnPrix('90')
     await userEvent.type(screen.getByLabelText('Premier tome du lot'), '1')
     await userEvent.type(screen.getByLabelText('Dernier tome du lot'), '6')
 
-    // Ce que ce prix décrira, annoncé AVANT d'enregistrer : sans portée il
-    // couvre l'édition entière, ce qui ne se devine pas.
+    // What this price will describe, announced BEFORE saving: without a range it
+    // covers the whole edition, which cannot be guessed.
     expect(screen.getByText('Ce prix décrira les tomes 1 à 6.')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
@@ -110,9 +110,9 @@ describe('relever un prix à la main', () => {
     expect(envoye.volumeRangeEnd).toBe(6)
   })
 
-  it('n’invente pas un état quand il n’est pas précisé', async () => {
-    // « Bon état » par défaut fausserait toutes les comparaisons dans le sens
-    // optimiste.
+  it('does not invent a condition when none is given', async () => {
+    // "Good condition" by default would skew all comparisons in the optimistic
+    // direction.
     await ecran()
     await saisirUnPrix('45')
 
@@ -122,7 +122,7 @@ describe('relever un prix à la main', () => {
     expect(api.recordMarketObservation.mock.calls[0][0].observedCondition).toBeUndefined()
   })
 
-  it('renonce sans rien envoyer', async () => {
+  it('gives up without sending anything', async () => {
     await ecran()
     await saisirUnPrix('45')
 
@@ -132,7 +132,7 @@ describe('relever un prix à la main', () => {
     expect(api.recordMarketObservation).not.toHaveBeenCalled()
   })
 
-  it('affiche le refus du serveur tel quel', async () => {
+  it('shows the server refusal as it is', async () => {
     api.recordMarketObservation.mockRejectedValue(new Error('Le prix doit être strictement positif.'))
     await ecran()
     await saisirUnPrix('45')

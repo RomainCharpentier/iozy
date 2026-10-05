@@ -15,16 +15,16 @@ public interface PurchaseAnalysisRepository {
     List<PurchaseAnalysis> findAll();
 
     /**
-     * Retire une analyse de l'historique. Aucune modification n'est offerte en
-     * regard : une analyse est le RÉSULTAT figé d'un calcul sur une annonce à
-     * un instant donné - en corriger un chiffre produirait un verdict qui n'a
-     * jamais été calculé. On la supprime, et on relance une analyse si besoin.
+     * Removes an analysis from the history. No edit is offered
+     * in return: an analysis is the frozen RESULT of a calculation on a listing at
+     * a given time - correcting a number in it would produce a verdict that was
+     * never computed. We delete it, and run a new analysis if needed.
      * <p>
-     * Ne touche à rien d'autre : les prix relevés et les éditions de référence
-     * créés au fil d'une analyse sont des données à part entière, qui servent
-     * toutes les analyses suivantes.
+     * Touches nothing else: the observed prices and the reference editions
+     * created during an analysis are data in their own right, which serve
+     * all the following analyses.
      * <p>
-     * Idempotent, comme les autres suppressions de données utilisateur du projet.
+     * Idempotent, like the other deletions of user data in the project.
      */
     void deleteById(UUID id);
 }

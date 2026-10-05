@@ -1,23 +1,23 @@
 package com.iozycore.core.metadata;
 
 /**
- * Levée par un fournisseur externe (voir GoogleBooksHttpClient) quand la
- * source n'a tout simplement PAS répondu : statut HTTP autre que 200/429
- * (503, 500, 400...), délai dépassé, coupure réseau. Sœur de
- * {@link QuotaExceededException} : les deux disent « réessaie », par
- * opposition à une réponse valide et vide, qui, elle, dit « ça n'existe
- * pas » et peut être mise en cache.
+ * Thrown by an external provider (see GoogleBooksHttpClient) when the
+ * source simply did NOT answer: HTTP status other than 200/429
+ * (503, 500, 400...), timeout, network cut. Sister of
+ * {@link QuotaExceededException}: both say "try again", as opposed
+ * to a valid and empty answer, which says "it does not exist"
+ * and can be cached.
  * <p>
- * Cas réel qui la motive (vérifié manuellement le 2026-08-27, voir
- * {@code docs/DESIGN_MIGRATION_V1.2.md}, Lot 58) : « Retrouver 1 jaquette »
- * sur Naruto affichait « Aucune trouvée cette fois. » alors que le journal
- * de l'API montrait trois « Google Books a répondu 503 » pendant ce clic -
- * et le tome manquant existe bel et bien chez ce fournisseur. Pire que le
- * message inexact : la liste vide était mise en cache DURABLEMENT, donc le
- * bouton restait impuissant même une fois la source rétablie.
+ * Real case that motivates it (checked manually on 2026-08-27, see
+ * {@code docs/DESIGN_MIGRATION_V1.2.md}, Batch 58): "Find 1 cover"
+ * on Naruto displayed "None found this time." while the log
+ * of the API showed three "Google Books answered 503" during this click -
+ * and the missing volume does exist at this provider. Worse than the inexact
+ * message: the empty list was cached DURABLY, so the
+ * button stayed powerless even once the source was back.
  * <p>
- * Volontairement générique, comme sa sœur : {@link MetadataSearchService}
- * ne connaît jamais un fournisseur externe précis (voir sa javadoc).
+ * Deliberately generic, like its sister: {@link MetadataSearchService}
+ * never knows a precise external provider (see its javadoc).
  */
 public class SourceUnavailableException extends RuntimeException {
     public SourceUnavailableException(String message) {

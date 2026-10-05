@@ -21,16 +21,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Interroge l'API IGDB (v4, JSON + langage de requête Apicalypse), qui
- * appartient à Twitch - l'authentification se fait via un access token
- * OAuth2 Twitch (voir IgdbTokenProvider), pas une clé API statique comme
- * Jikan/BGG. Couvre le type VIDEO_GAME uniquement.
+ * Queries the IGDB API (v4, JSON + Apicalypse query language), which
+ * belongs to Twitch - authentication uses a Twitch OAuth2 access
+ * token (see IgdbTokenProvider), not a static API key like
+ * Jikan/BGG. Covers the VIDEO_GAME type only.
  * <p>
- * Limite assumée : averageDurationHours (un des customFieldKeys du type
- * VIDEO_GAME) n'est pas disponible via les champs de recherche basiques
- * d'IGDB - laissé absent des attributs, à saisir manuellement si besoin
- * (même limite déjà acceptée côté BGG pour les champs indisponibles à la
- * recherche).
+ * Accepted limit: averageDurationHours (one of the customFieldKeys of the
+ * VIDEO_GAME type) is not available through the basic search fields
+ * of IGDB - left out of the attributes, to be entered manually if needed
+ * (same limit already accepted on the BGG side for fields not available in
+ * search).
  */
 @Component
 public class IgdbMetadataProvider implements MetadataProvider {
@@ -74,16 +74,16 @@ public class IgdbMetadataProvider implements MetadataProvider {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("IGDB a répondu {} pour la requête '{}'", response.statusCode(), query);
+                log.warn("IGDB answered {} for the query '{}'", response.statusCode(), query);
                 return List.of();
             }
 
             return parse(response.body());
         } catch (IgdbUnavailableException e) {
-            log.warn("IGDB indisponible pour la requête '{}' : {}", query, e.getMessage());
+            log.warn("IGDB unavailable for the query '{}': {}", query, e.getMessage());
             return List.of();
         } catch (Exception e) {
-            log.warn("Échec de l'appel à IGDB pour '{}' : {}", query, e.getMessage());
+            log.warn("Call to IGDB failed for '{}': {}", query, e.getMessage());
             return List.of();
         }
     }
@@ -113,8 +113,8 @@ public class IgdbMetadataProvider implements MetadataProvider {
         return candidates;
     }
 
-    /** IGDB renvoie des URLs protocol-relative en taille "thumb" (//images.igdb.com/.../t_thumb/xxx.jpg) -
-     * normalisées en https et agrandies en "cover_big" pour un meilleur rendu côté client. */
+    /** IGDB returns protocol-relative URLs in "thumb" size (//images.igdb.com/.../t_thumb/xxx.jpg) -
+     * normalised to https and enlarged to "cover_big" for a better rendering on the client side. */
     private static String normalizeCoverUrl(String rawUrl) {
         if (rawUrl == null || rawUrl.isBlank()) {
             return null;

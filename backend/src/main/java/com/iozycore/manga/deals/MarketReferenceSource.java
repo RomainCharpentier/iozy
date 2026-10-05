@@ -1,27 +1,27 @@
 package com.iozycore.manga.deals;
 
 /**
- * D'où vient une référence marché. Toujours dit, jamais supposé.
+ * Where a market reference comes from. Always stated, never assumed.
  *
- * <h2>Une seule source produit une référence</h2>
- * Les prix relevés par l'utilisateur. Ni l'estimation IA ni le prix neuf
- * catalogue n'en constituent une : ce sont des repères utiles ailleurs (coût
- * pour compléter, négociation, verdict global), mais les présenter comme
- * « le marché » donnerait à une supposition l'autorité d'un constat. La
- * distinction existait déjà pour le prix par tome ({@link PriceBasis}) ; elle
- * s'applique désormais aussi au positionnement prix.
+ * <h2>Only one source produces a reference</h2>
+ * The prices observed by the user. Neither the AI estimate nor the catalogue
+ * new price is one: they are benchmarks that are useful elsewhere (cost
+ * to complete, negotiation, overall verdict), but presenting them as
+ * "the market" would give a guess the authority of a finding. The
+ * distinction already existed for the price per volume ({@link PriceBasis}); it
+ * now also applies to the price position.
  */
 public enum MarketReferenceSource {
 
-    /** Prix relevés dans IozyCore, filtrés sur des annonces structurellement comparables. */
+    /** Prices observed in IozyCore, filtered on listings that are structurally comparable. */
     OBSERVED_COMPARABLES,
 
-    /** Aucune référence - voir {@link ReferenceGap} pour ce qui manque exactement. */
+    /** No reference - see {@link ReferenceGap} for what exactly is missing. */
     NONE,
 
     /**
-     * Analyse enregistrée avant que la provenance soit conservée. On ne
-     * réinvente pas après coup d'où venait son chiffre : on dit qu'on l'ignore.
+     * Analysis saved before the origin was kept. We do not
+     * reinvent afterwards where its number came from: we say we do not know.
      */
     NOT_RECORDED
 }

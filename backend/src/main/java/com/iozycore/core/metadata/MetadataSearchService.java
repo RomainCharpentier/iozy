@@ -15,30 +15,30 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Point d'entrée du Bounded Context Metadata Enrichment (étape 8 de la
- * conception) pour ce qui vaut POUR TOUS LES UNIVERS : la recherche par
- * titre et la reconnaissance d'un code-barres. Sélectionne le(s)
- * MetadataProvider/BarcodeMetadataProvider compétent(s) pour l'EntityType
- * demandé et agrège leurs résultats - le reste de l'application n'a jamais
- * besoin de connaître Jikan/BGG/IGDB directement.
+ * Entry point of the Metadata Enrichment Bounded Context (step 8 of the
+ * design) for what applies to ALL UNIVERSES: the search by
+ * title and the recognition of a barcode. Selects the
+ * MetadataProvider/BarcodeMetadataProvider competent for the requested
+ * EntityType and aggregates their results - the rest of the application never
+ * needs to know Jikan/BGG/IGDB directly.
  *
- * <h2>Un paquet par univers (Lot 132)</h2>
- * Ce qui n'a de sens que pour un manga - le titre de l'édition française,
- * les tomes et leurs éditions, les séries liées - vit dans
+ * <h2>One package per universe (Batch 132)</h2>
+ * What only makes sense for a manga - the title of the French edition,
+ * the volumes and their editions, the related series - lives in
  * {@code metadata.manga} ({@code FrenchTitleService}, {@code TomeSearchService},
- * {@code RelatedSeriesService}) avec ses sources (AniList, Jikan,
- * MyAnimeList, Google Books, BnF, Open Library). Les jeux vidéo (IGDB) sont
- * dans {@code metadata.videogame}, les jeux de société (BGG) dans
- * {@code metadata.boardgame}, et ce que la BASE IOZYCORE sait déjà - le
- * catalogue local - dans {@code metadata.catalog}. Ici ne restent que les
- * contrats communs et les deux gestes transverses.
+ * {@code RelatedSeriesService}) with its sources (AniList, Jikan,
+ * MyAnimeList, Google Books, BnF, Open Library). Video games (IGDB) are
+ * in {@code metadata.videogame}, board games (BGG) in
+ * {@code metadata.boardgame}, and what the IOZYCORE DATABASE already knows - the
+ * local catalog - in {@code metadata.catalog}. Only the common
+ * contracts and the two cross-cutting actions remain here.
  * <p>
- * Les appels aux providers eux-mêmes (recherche par titre et lookup par
- * code-barres) sont mis en cache (voir {@link TtlCache}) pour limiter les
- * appels aux API externes - une même recherche retapée, un débounce qui
- * laisse quand même passer plusieurs requêtes proches, ou plusieurs clients
- * (iOS + Web) interrogeant la même chose ne déclenchent qu'un seul appel
- * réel par fenêtre de temps.
+ * The calls to the providers themselves (search by title and lookup by
+ * barcode) are cached (see {@link TtlCache}) to limit the
+ * calls to the external APIs - the same search retyped, a debounce that
+ * still lets several close requests through, or several clients
+ * (iOS + Web) asking the same thing trigger only one real
+ * call per time window.
  */
 @Service
 public class MetadataSearchService {
@@ -47,40 +47,40 @@ public class MetadataSearchService {
     private final List<BarcodeMetadataProvider> barcodeProviders;
     private final CatalogSearchService catalogue;
 
-    // Clé = entityTypeId + requête/code-barres normalisés. La recherche par
-    // titre cache le résultat BRUT des providers (avant filtrage "déjà
-    // possédé") : ce filtrage dépend de l'état courant de la collection, qui
-    // peut changer entre deux appels (un ajout vient d'avoir lieu) - il est
-    // donc toujours recalculé à la volée, seul l'appel réseau est mis en cache.
-    // TTL plus long pour les codes-barres : un ISBN scanné n'a par nature
-    // qu'une seule réponse possible, contrairement à une recherche par titre
-    // dont on veut quand même revoir les nouveautés de temps en temps.
+    // Key = entityTypeId + normalized query/barcode. The search by
+    // title caches the RAW result of the providers (before the "already
+    // owned" filtering): this filtering depends on the current state of the collection, which
+    // can change between two calls (an add has just happened) - it is
+    // therefore always recomputed on the fly, only the network call is cached.
+    // Longer TTL for barcodes: a scanned ISBN has by nature
+    // only one possible answer, unlike a search by title
+    // for which we still want to see the new releases from time to time.
     //
-    // barcodeCache ne mémorise QUE les résultats trouvés (jamais une absence
-    // de résultat) : un échec réseau transitoire (timeout, 429...) ne doit
-    // pas condamner la même recherche à échouer pendant 24h - au pire, un
-    // ISBN réellement introuvable relance un appel externe à chaque fois, ce
-    // qui reste largement acceptable (juste plus rare que pour un vrai hit).
-    // searchCache garde le comportement précédent (même un résultat vide est
-    // mis en cache) : son TTL de 15 min est court, et une liste de résultats
-    // vide y est une réponse légitime (aucun résultat pour cette recherche),
-    // pas une distinction nette échec/succès comme pour un Optional.
+    // barcodeCache remembers ONLY the results found (never an absence
+    // of result): a transient network failure (timeout, 429...) must not
+    // condemn the same search to fail for 24h - at worst, an
+    // ISBN really not found triggers an external call each time, which
+    // remains largely acceptable (just rarer than for a real hit).
+    // searchCache keeps the previous behavior (even an empty result is
+    // cached): its TTL of 15 min is short, and an empty list of results
+    // is a legitimate answer there (no result for this search),
+    // not a clear failure/success distinction as for an Optional.
     private final TtlCache<String, List<MetadataCandidate>> searchCache = new TtlCache<>(Duration.ofMinutes(15), 300);
     private final TtlCache<String, MetadataCandidate> barcodeCache = new TtlCache<>(Duration.ofHours(24), 500);
 
     /**
-     * Les codes-barres cherchés sans succès.
+     * The barcodes searched without success.
      *
-     * <p>Un cache <b>séparé</b>, et à durée bien plus courte, parce qu'il ne
-     * mémorise pas la même nature de chose : « ce code désigne Naruto tome 9 »
-     * est une connaissance durable, « aucune base ne connaît ce code » est un
-     * état du monde qui change dès qu'un contributeur l'ajoute. Trente minutes
-     * couvrent la session pendant laquelle on relance une analyse sur les mêmes
-     * photos, sans rendre le catalogue aveugle à ses propres progrès.
+     * <p>A <b>separate</b> cache, with a much shorter duration, because it does not
+     * remember the same kind of thing: "this code is Naruto volume 9"
+     * is lasting knowledge, "no database knows this code" is a
+     * state of the world that changes as soon as a contributor adds it. Thirty minutes
+     * cover the session during which an analysis is restarted on the same
+     * photos, without making the catalog blind to its own progress.
      *
-     * <p>Plus d'entrées que le cache des succès : sur une photo de pile, les
-     * EAN introuvables sont souvent les plus nombreux. Chacune ne pèse qu'une
-     * clé et un booléen.
+     * <p>More entries than the cache of successes: on a photo of a pile, the
+     * EANs not found are often the most numerous. Each one only weighs a
+     * key and a boolean.
      */
     private final TtlCache<String, Boolean> barcodeMissCache = new TtlCache<>(Duration.ofMinutes(30), 1000);
 
@@ -93,36 +93,36 @@ public class MetadataSearchService {
     }
 
     /**
-     * Exclut les candidats dont le titre correspond déjà à une Entity de ce
-     * type dans la collection (comparaison insensible à la casse, même
-     * règle que la déduplication de QuickAddService) : le but de cette
-     * recherche est de préparer l'ajout d'un nouvel élément, pas de
-     * réafficher ce qu'on possède déjà parmi les suggestions.
+     * Excludes the candidates whose title already matches an Entity of this
+     * type in the collection (case-insensitive comparison, same
+     * rule as the deduplication of QuickAddService): the goal of this
+     * search is to prepare the adding of a new item, not to
+     * show again what is already owned among the suggestions.
      * <p>
-     * Ne s'applique volontairement qu'à la recherche par titre - le lookup
-     * par code-barres ({@link #lookupByBarcode}) doit au contraire pouvoir
-     * retrouver un titre déjà possédé, pour y rattacher un second exemplaire
-     * scanné (voir QuickAddService.addNewEntityWithOwnership).
+     * Deliberately applies only to the search by title - the lookup
+     * by barcode ({@link #lookupByBarcode}) must on the contrary be able to
+     * find a title already owned, to attach a second scanned copy to it
+     * (see QuickAddService.addNewEntityWithOwnership).
      * <p>
-     * Voir {@link #search(EntityType, String, boolean)} pour le seul appelant
-     * qui a besoin de l'inverse.
+     * See {@link #search(EntityType, String, boolean)} for the only caller
+     * that needs the opposite.
      */
     public List<MetadataCandidate> search(EntityType entityType, String query) {
         return search(entityType, query, false);
     }
 
     /**
-     * Même recherche, avec la possibilité de GARDER ce qu'on possède déjà.
+     * Same search, with the possibility to KEEP what is already owned.
      * <p>
-     * Le filtre ci-dessus sert un écran précis : celui qui prépare un ajout.
-     * Recharger les informations d'une fiche existante pose la question
-     * inverse - « que sait la source sur CETTE œuvre-là ? » - et le filtre y
-     * garantissait zéro correspondance, par construction. Constaté sur Naruto :
-     * la recherche rendait huit dérivés (Boruto, les light novels…) et jamais
-     * la série elle-même.
+     * The filter above serves a precise screen: the one that prepares an add.
+     * Reloading the information of an existing detail page asks the opposite
+     * question - "what does the source know about THIS work?" - and the filter
+     * guaranteed zero matches there, by construction. Observed on Naruto:
+     * the search returned eight spin-offs (Boruto, the light novels...) and never
+     * the series itself.
      * <p>
-     * Le cache n'est pas concerné : il mémorise les résultats BRUTS des
-     * fournisseurs, le filtre s'applique après.
+     * The cache is not concerned: it remembers the RAW results of the
+     * providers, the filter applies afterwards.
      */
     public List<MetadataCandidate> search(EntityType entityType, String query, boolean includeOwned) {
         String cacheKey = entityType.id() + "|" + normalize(query);
@@ -148,27 +148,27 @@ public class MetadataSearchService {
     }
 
     /**
-     * La cle de comparaison des titres - accents et ponctuation plies, comme
-     * la recherche locale et Decouvrir (voir TexteRecherche). Sert aussi de
-     * cle de cache : deux frappes qui designent la meme oeuvre partagent la
-     * meme reponse des fournisseurs.
+     * The comparison key of titles - accents and punctuation folded, like
+     * the local search and Discover (see TexteRecherche). Also serves as
+     * cache key: two keystrokes that designate the same work share the
+     * same provider response.
      */
     private static String normalize(String value) {
         return TexteRecherche.normaliser(value);
     }
 
     /**
-     * Plusieurs fournisseurs peuvent remonter le même titre - ex: "Naruto",
-     * inchangé en français, ressort à la fois de Jikan/MyAnimeList (titre
-     * original) et de GoogleBooksTitleSearchProvider (recherche par titre
-     * français) - deux entrées visuellement identiques dans la liste de
-     * suggestions, sans intérêt pour l'utilisateur. Garde la première
-     * occurrence rencontrée par titre normalisé (insensible à la casse) :
-     * l'ordre des providers (voir leurs @Order respectifs) fait gagner
-     * Jikan/MyAnimeList sur Google Books/Open Library quand les deux
-     * trouvent le même titre - attributs plus riches (titleEnglish/
-     * titleRomaji/mediaType/startYear), utiles à la résolution du titre
-     * français et à la recherche de tomes qui suivent la sélection.
+     * Several providers can return the same title - e.g. "Naruto",
+     * unchanged in French, comes out of both Jikan/MyAnimeList (original
+     * title) and GoogleBooksTitleSearchProvider (search by
+     * French title) - two visually identical entries in the list of
+     * suggestions, of no interest for the user. Keeps the first
+     * occurrence met per normalized title (case-insensitive):
+     * the order of the providers (see their respective @Order) makes
+     * Jikan/MyAnimeList win over Google Books/Open Library when both
+     * find the same title - richer attributes (titleEnglish/
+     * titleRomaji/mediaType/startYear), useful to the resolution of the
+     * French title and to the search for volumes that follow the selection.
      */
     private static List<MetadataCandidate> dedupeByTitle(List<MetadataCandidate> candidates) {
         Map<String, MetadataCandidate> byTitle = new LinkedHashMap<>();
@@ -179,38 +179,38 @@ public class MetadataSearchService {
     }
 
     /**
-     * Retourne le premier résultat trouvé par un provider compétent pour ce
-     * code-barres.
+     * Returns the first result found by a provider competent for this
+     * barcode.
      *
-     * <h2>Les échecs aussi sont mémorisés — et pas pour la même durée</h2>
-     * Seuls les succès l'étaient. Un EAN qu'aucune base n'indexe était donc
-     * réinterrogé <b>à chaque fois</b>, au prix fort : de 1,4 à 5,5 secondes
-     * mesurées par appel. La lecture des codes-barres sur les photos d'un lot
-     * a rendu ce trou coûteux — une pile de mangas peut porter une douzaine
-     * d'EAN dont plusieurs absents des bases, et l'utilisateur qui relance son
-     * analyse repayait l'attente entière.
+     * <h2>Failures are remembered too - and not for the same duration</h2>
+     * Only successes were. An EAN that no database indexes was therefore
+     * queried again <b>every time</b>, at full price: 1.4 to 5.5 seconds
+     * measured per call. Reading the barcodes on the photos of a batch
+     * made this hole expensive - a pile of mangas can carry a dozen
+     * EANs, several of them absent from the databases, and the user who restarts their
+     * analysis paid the whole wait again.
      *
-     * <p>Les deux durées diffèrent, et c'est le fond du sujet : <b>un succès
-     * est une connaissance, un échec est un état du monde</b>. « Ce code
-     * désigne Naruto tome 9 » reste vrai indéfiniment ({@code 24 h} ici, par
-     * prudence) ; « aucune base ne connaît ce code » peut cesser d'être vrai
-     * dès qu'un contributeur l'ajoute. Mémoriser un échec aussi longtemps
-     * qu'un succès rendrait le catalogue aveugle à ses propres progrès.
+     * <p>The two durations differ, and this is the heart of the matter: <b>a success
+     * is knowledge, a failure is a state of the world</b>. "This code
+     * is Naruto volume 9" stays true indefinitely ({@code 24 h} here, for
+     * caution); "no database knows this code" can stop being true
+     * as soon as a contributor adds it. Remembering a failure as long
+     * as a success would make the catalog blind to its own progress.
      */
     public Optional<MetadataCandidate> lookupByBarcode(EntityType entityType, String barcode) {
         return lookupDetailedByBarcode(entityType, barcode).candidateIfAny();
     }
 
     /**
-     * Comme {@link #lookupByBarcode}, mais en disant AUSSI si l'absence a été
-     * constatée ou seulement subie.
+     * Like {@link #lookupByBarcode}, but saying ALSO whether the absence was
+     * observed or only suffered.
      * <p>
-     * Le service faisait déjà la différence pour son cache - une panne n'y est
-     * jamais mémorisée - mais la gardait pour lui : l'appelant ne recevait qu'un
-     * {@code Optional} vide, et l'écran ne pouvait que rester vague. Or c'est
-     * précisément la distinction qui intéresse celui qui scanne : « ce code
-     * n'existe pas » appelle une saisie par titre, « une base n'a pas répondu »
-     * appelle un simple ré-essai.
+     * The service already made the difference for its cache - an outage is
+     * never remembered there - but kept it to itself: the caller only received an
+     * empty {@code Optional}, and the screen could only stay vague. Yet this is
+     * precisely the distinction that matters to whoever scans: "this code
+     * does not exist" calls for an entry by title, "a database did not answer"
+     * calls for a simple retry.
      */
     public BarcodeLookup lookupDetailedByBarcode(EntityType entityType, String barcode) {
         String cacheKey = entityType.id() + "|" + normalize(barcode);
@@ -219,13 +219,13 @@ public class MetadataSearchService {
             return BarcodeLookup.found(cached.get());
         }
         if (barcodeMissCache.get(cacheKey).isPresent()) {
-            // Déjà cherché récemment, et introuvable. Inutile de refaire
-            // l'aller-retour pour obtenir la même réponse.
+            // Already searched recently, and not found. No need to redo
+            // the round trip to get the same answer.
             return BarcodeLookup.absent();
         }
 
-        // Tous les providers compétents sont interrogés jusqu'au premier
-        // résultat - et l'on retient au passage si chacun a bien RÉPONDU.
+        // All the competent providers are queried until the first
+        // result - and we note along the way whether each one did ANSWER.
         Optional<MetadataCandidate> result = Optional.empty();
         boolean tousOntRepondu = true;
         for (BarcodeMetadataProvider provider : barcodeProviders) {
@@ -244,13 +244,13 @@ public class MetadataSearchService {
             barcodeCache.put(cacheKey, result.get());
             return BarcodeLookup.found(result.get());
         } else if (tousOntRepondu) {
-            // Absence CONSTATÉE : toutes les bases compétentes ont répondu, et
-            // aucune ne connaît ce code. La reposer dans la demi-heure donnerait
-            // la même chose - autant l'éviter, chaque appel coûte des secondes.
+            // OBSERVED absence: all the competent databases answered, and
+            // none knows this code. Asking it again within half an hour would give
+            // the same thing - better to avoid it, each call costs seconds.
             //
-            // Une panne, elle, n'est jamais mémorisée : sinon le ré-essai de
-            // l'utilisateur rendrait l'échec en cache au lieu de retenter, et un
-            // incident d'une seconde se figerait pour trente minutes.
+            // An outage, on the other hand, is never remembered: otherwise the user's
+            // retry would return the cached failure instead of trying again, and a
+            // one-second incident would freeze for thirty minutes.
             barcodeMissCache.put(cacheKey, Boolean.TRUE);
         }
         return tousOntRepondu ? BarcodeLookup.absent() : BarcodeLookup.unavailable();

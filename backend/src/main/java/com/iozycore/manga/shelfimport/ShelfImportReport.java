@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Ce qu'un import a fait, tome par tome.
+ * What an import did, volume by volume.
  *
- * @param items un résultat par tome demandé, dans l'ordre de la demande
+ * @param items one result per requested volume, in the order of the request
  */
 public record ShelfImportReport(List<ImportedItem> items) {
 
@@ -15,15 +15,15 @@ public record ShelfImportReport(List<ImportedItem> items) {
     }
 
     public enum Outcome {
-        /** Le tome a été ajouté à la collection. */
+        /** The volume was added to the collection. */
         ADDED,
-        /** Un exemplaire de ce numéro était encore possédé : rien n'a été écrit. */
+        /** A copy of this number was still owned: nothing was written. */
         ALREADY_OWNED
     }
 
     /**
-     * @param seriesCreated vrai si la série n'existait pas au catalogue et vient d'être créée
-     * @param entityId      la série, retrouvée ou créée
+     * @param seriesCreated true if the series did not exist in the catalog and was just created
+     * @param entityId      the series, found or created
      */
     public record ImportedItem(String seriesTitle, int volumeNumber, String edition, Outcome outcome,
                                boolean seriesCreated, UUID entityId) {

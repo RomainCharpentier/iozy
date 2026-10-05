@@ -3,14 +3,14 @@ package com.iozycore.core.application;
 import java.util.UUID;
 
 /**
- * Point d'extension du cœur : ce qui, dans un univers, retient encore une
- * œuvre qu'on veut supprimer.
+ * Extension point of the core: what, in a universe, still holds
+ * a work that we want to delete.
  *
- * <p>Le cœur compte les possessions et les expériences ; les éditions de
- * référence d'un manga vivent dans leur module et se comptent ici (Lot 133).
+ * <p>The core counts ownerships and experiences; the reference editions
+ * of a manga live in their module and are counted here (Batch 133).
  */
 public interface EntityDeletionGuard {
 
-    /** Combien de choses de cet univers référencent encore cette œuvre - zéro si rien ne la retient. */
+    /** How many things of this universe still reference this work - zero if nothing holds it. */
     long referencesRestantes(UUID entityId);
 }

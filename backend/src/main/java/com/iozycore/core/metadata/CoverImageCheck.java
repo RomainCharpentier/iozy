@@ -1,13 +1,13 @@
 package com.iozycore.core.metadata;
 
 /**
- * Point d'extension du cœur : une jaquette peut-elle être GARDÉE ?
+ * Extension point of the core: can a cover be KEPT?
  *
- * <p>Le cœur enregistre l'adresse d'une jaquette telle qu'un fournisseur la
- * donne ; certains fournisseurs répondent 200 sur une adresse qui n'a pas
- * d'image (la BnF, en 500). Un univers qui connaît ce genre de source dit
- * ici si l'adresse est utilisable - le cœur, lui, ne connaît aucune source
- * (Lot 133).
+ * <p>The core saves the address of a cover as a provider
+ * gives it; some providers answer 200 on an address that has no
+ * image (the BnF, in 500). A universe that knows this kind of source says
+ * here whether the address is usable - the core itself knows no source
+ * (Batch 133).
  */
 public interface CoverImageCheck {
 

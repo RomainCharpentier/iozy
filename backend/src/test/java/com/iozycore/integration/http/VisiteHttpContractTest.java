@@ -21,19 +21,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * <b>La porte ouverte : entrer sans compte, et ne rien pouvoir écrire.</b>
+ * <b>The open door: entering without an account, and being unable to write anything.</b>
  *
- * <p>C'est le seul endroit de l'application où quelqu'un obtient une session
- * <b>sans rien présenter</b>. Deux erreurs y sont possibles, et aucune ne se
- * voit à l'écran : une porte qui s'ouvre alors que personne ne l'a ouverte, et
- * un visiteur qui écrit dans la collection de son hôte.
+ * <p>This is the only place of the application where someone gets a session
+ * <b>without presenting anything</b>. Two errors are possible there, and none can be
+ * seen on the screen: a door that opens when nobody opened it, and
+ * a visitor who writes into the collection of their host.
  *
- * <h2>Le refus d'écriture se vérifie PAR LA MÉTHODE, sur plusieurs routes</h2>
- * La règle n'est pas « telle route est interdite » mais « tout ce qui n'est pas
- * un GET l'est » (voir SecurityConfig). Un test route par route se serait
- * périmé au premier contrôleur ajouté ; ceux-ci prennent donc un échantillon
- * délibérément varié - écrire dans la collection, régler le partage de son
- * hôte, supprimer - pour montrer que le refus ne dépend d'aucune liste.
+ * <h2>The write refusal is checked BY THE METHOD, on several routes</h2>
+ * The rule is not "this route is forbidden" but "everything that is not
+ * a GET is" (see SecurityConfig). A route by route test would have become
+ * outdated at the first controller added; these therefore take a deliberately
+ * varied sample - writing into the collection, setting the sharing of their
+ * host, deleting - to show that the refusal does not depend on any list.
  */
 @AutoConfigureMockMvc
 class VisiteHttpContractTest extends PostgresIntegrationTest {
@@ -44,16 +44,16 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // ------------------------------------------------- Ce qui ouvre la porte
+    // ------------------------------------------------- What opens the door
 
     @Test
     void on_entre_sans_compte_et_sans_que_personne_ait_rien_a_faire() throws Exception {
-        // Aucun reglage, aucune condition : la visite est un fait, pas une
-        // option. Meme sur une instance vierge - il n'y a rien a autoriser.
+        // No setting, no condition: the visit is a fact, not an
+        // option. Even on an empty instance - there is nothing to authorise.
         mockMvc.perform(post("/api/auth/visite").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.invite").value(true))
-                // Un visiteur n'est personne : ni identifiant, ni adresse.
+                // A visitor is nobody: no identifier, no address.
                 .andExpect(jsonPath("$.id").doesNotExist())
                 .andExpect(jsonPath("$.email").doesNotExist());
     }
@@ -62,29 +62,29 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     void la_visite_se_relit_comme_n_importe_quelle_session() throws Exception {
         MockHttpSession visite = entrerEnVisite();
 
-        // /me lisait un principal TYPÉ : celui d'une visite y arrivait nul, et
-        // la seule route censée dire qui l'on est répondait 401.
+        // /me read a TYPED principal: the one of a visit arrived null there, and
+        // the only route meant to say who one is answered 401.
         mockMvc.perform(get("/api/auth/me").session(visite))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.invite").value(true));
     }
 
-    // ------------------------------------------------------- La lecture seule
+    // ------------------------------------------------------- Read only
 
     @Test
     void un_visiteur_lit_le_catalogue() throws Exception {
         MockHttpSession visite = entrerEnVisite();
 
-        // Le catalogue est partagé : il n'a pas de propriétaire, donc une
-        // session qui n'en nomme aucun le voit entièrement.
+        // The catalogue is shared: it has no owner, so a
+        // session that names none sees it entirely.
         mockMvc.perform(get("/api/entities/search").session(visite)).andExpect(status().isOk());
         mockMvc.perform(get("/api/entity-types").session(visite)).andExpect(status().isOk());
     }
 
     @Test
     void un_visiteur_ne_voit_la_collection_de_personne() throws Exception {
-        // Un compte existe et possède quelque chose ; le visiteur, lui, ne
-        // nomme aucun propriétaire - il ne doit donc voir aucune possession.
+        // An account exists and owns something; the visitor, for its part, does not
+        // name any owner - so it must not see any ownership.
         creerLePremierCompte("kenshin");
         MockHttpSession visite = entrerEnVisite();
 
@@ -100,17 +100,17 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     void un_visiteur_n_ecrit_rien_quelle_que_soit_la_route() throws Exception {
         MockHttpSession visite = entrerEnVisite();
 
-        // Avec le jeton CSRF, pour que le refus vienne bien de la visite et pas
-        // d'un jeton manquant - deux refus différents.
+        // With the CSRF token, so that the refusal really comes from the visit and not
+        // from a missing token - two different refusals.
         mockMvc.perform(post("/api/entities").session(visite).with(csrf())
                         .contentType("application/json").content("{}"))
                 .andExpect(status().isForbidden())
-                // La raison est DITE : « Accès refusé » aurait laissé croire à
-                // une panne, ou à une erreur de sa part.
+                // The reason is SAID: "Accès refusé" would have made them believe
+                // in a failure, or in an error on their side.
                 .andExpect(jsonPath("$.error").value(Matchers.containsString("lecture seule")));
 
-        // Régler le partage de son hôte, en particulier : un visiteur n'a rien
-        // à décider de ce que son hôte expose.
+        // Setting the sharing of their host, in particular: a visitor has nothing
+        // to decide about what their host exposes.
         mockMvc.perform(patch("/api/share").session(visite).with(csrf())
                         .contentType("application/json").content("{\"shareWishlist\":false}"))
                 .andExpect(status().isForbidden());
@@ -122,9 +122,9 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     void un_visiteur_n_atteint_pas_l_administration_de_l_instance() throws Exception {
         MockHttpSession visite = entrerEnVisite();
 
-        // Celle-ci est fermée par le RÔLE et non par la méthode : un GET aussi
-        // doit être refusé, sans quoi la liste des comptes de l'instance se
-        // lirait depuis une porte ouverte à tout Internet.
+        // This one is closed by the ROLE and not by the method: a GET too
+        // must be refused, otherwise the list of the accounts of the instance would
+        // be read from a door open to the whole Internet.
         mockMvc.perform(get("/api/admin/comptes").session(visite)).andExpect(status().isForbidden());
     }
 
@@ -132,9 +132,9 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     void un_visiteur_peut_toujours_sortir() throws Exception {
         MockHttpSession visite = entrerEnVisite();
 
-        // La déconnexion est un POST : sans son exception explicite, le refus
-        // d'écriture aurait enfermé le visiteur dans la collection d'un autre
-        // jusqu'à expiration de sa session.
+        // The logout is a POST: without its explicit exception, the write
+        // refusal would have locked the visitor inside the collection of someone else
+        // until the expiry of their session.
         mockMvc.perform(post("/api/auth/logout").session(visite).with(csrf()))
                 .andExpect(status().isNoContent());
 
@@ -142,14 +142,14 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     }
 
 
-    // ------------------------------------------------------------------ Outils
+    // ------------------------------------------------------------------ Tools
 
     /**
-     * Crée le premier compte et rend sa session.
+     * Creates the first account and returns its session.
      * <p>
-     * Rien de plus : sa collection est visitable du seul fait qu'il existe.
-     * Ce helper a coché puis décoché une case, au fil de deux versions ; elle
-     * n'existe plus, et c'est tout le sujet.
+     * Nothing more: its collection is visitable by the sole fact that it exists.
+     * This helper ticked then unticked a box, over two versions; it
+     * no longer exists, and that is the whole point.
      */
     private MockHttpSession creerLePremierCompte(String pseudo) throws Exception {
         MvcResult creation = mockMvc.perform(post("/api/auth/register").with(csrf())
@@ -169,7 +169,7 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
                 .andReturn());
     }
 
-    /** La session que la réponse vient d'ouvrir - entrer en ouvre une neuve. */
+    /** The session that the response has just opened - entering opens a new one. */
     private static MockHttpSession sessionOuverte(MvcResult resultat) {
         return (MockHttpSession) resultat.getRequest().getSession(false);
     }

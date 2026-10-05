@@ -27,11 +27,11 @@ import { indicesDe } from '@/common/lib/indicesOeuvre'
 import { nomDeSource } from '@/common/lib/sources'
 import { EtatVide } from '@/common/components/EtatVide'
 
-/** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
- * de la liste de suggestions. mediaType/startYear sont absents pour les
- * sources qui ne les fournissent pas (BGG/IGDB) ou pour un candidat qui n'a
- * pas ce champ renseigné (ex: MAL n'a pas toujours une start_date) - le
- * séparateur ` · ` n'est alors mis qu'entre les parties réellement présentes. */
+/** e.g. "Manga · 1999 · MYANIMELIST" - see the usage comment in the rendering
+ * of the suggestions list. mediaType/startYear are missing for
+ * sources that do not provide them (BGG/IGDB) or for a candidate that does not
+ * have this field filled in (e.g. MAL does not always have a start_date) - the
+ * separator ` · ` is then only placed between the parts that are really present. */
 function candidateSubtitle(candidate: MetadataCandidateDto): string {
   const mediaType = candidate.attributes.mediaType
   const startYear = candidate.attributes.startYear
@@ -45,23 +45,23 @@ function candidateKey(candidate: MetadataCandidateDto): string {
 }
 
 /**
- * Écran 1/2 (voir la maquette V1.2, §420 - "Recherche + Ajout, un seul
- * point d'entrée") : recherche + liste de résultats GROUPÉS (déjà dans ta
- * collection avant tout - état personnel avant métadonnées, voir §24 du
- * brief de migration), le clic sur un résultat mène à l'écran 2
- * (AddDraftPage, "quels tomes possèdes-tu ?") plutôt que de tout gérer sur
- * la même page (voir l'ancien QuickAddPage.tsx, remplacé par ce découpage -
- * Lot 5, docs/DESIGN_MIGRATION_V1.2.md). Un résultat "déjà possédé" ouvre
- * directement sa fiche (le parcours contextuel d'ajout de tome y vit déjà,
- * voir AddVolumeSection) plutôt que de repasser par ce formulaire.
+ * Screen 1/2 (see mockup V1.2, §420 - "Search + Add, a single
+ * entry point"): search + list of GROUPED results (already in your
+ * collection first - personal state before metadata, see §24 of the
+ * migration brief), a click on a result leads to screen 2
+ * (AddDraftPage, "which volumes do you own?") rather than managing everything on
+ * the same page (see the old QuickAddPage.tsx, replaced by this split -
+ * Batch 5, docs/DESIGN_MIGRATION_V1.2.md). An "already owned" result opens
+ * its detail page directly (the contextual add-volume flow already lives there,
+ * see AddVolumeSection) rather than going through this form again.
  */
 /**
- * Toute fiche ou tout aperçu ouvert depuis cet écran propose d'y revenir (voir
- * retourFiche) - et y revenir doit RETROUVER la recherche, pas une page vide.
+ * Every detail page or preview opened from this screen offers to come back here (see
+ * retourFiche) - and coming back must FIND the search again, not an empty page.
  *
- * D'où l'URL complète, `search` compris : c'est elle qui porte le type et le
- * titre cherchés, donc c'est elle qu'il faut rouvrir. Une constante `/add`
- * ramenait bien à l'écran, mais vidé de ce qu'on y avait tapé.
+ * Hence the full URL, `search` included: it carries the type and the
+ * title searched, so it is what must be reopened. A constant `/add`
+ * did bring back the screen, but emptied of what had been typed.
  */
 function retourVersRecherche(search: string): EtatRetour {
   return { retour: { to: `/add${search}`, libelle: 'Recherche' } }
@@ -72,47 +72,47 @@ export function SearchPage() {
   const { search } = useLocation()
   const titleComposition = useTitleComposition()
   const wishlist = useWishlist()
-  // Un visiteur consulte le catalogue et rien d'autre : ni sources externes
-  // (elles servent à AJOUTER, et sortent chez un fournisseur), ni état
-  // personnel - il ne possède rien, et « Pas encore possédé » sur chaque ligne
-  // serait un bruit qui parle de quelqu'un d'autre.
+  // A visitor browses the catalogue and nothing else: no external sources
+  // (they serve to ADD, and go out to a provider), no personal state
+  // either - they own nothing, and "Pas encore possédé" on every row
+  // would be noise that talks about someone else.
   const { estInvite } = useAuth()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   /**
-   * Le type et le titre cherchés vivent dans l'URL.
+   * The type and the title searched live in the URL.
    *
-   * <h2>Pourquoi pas un simple `useState`</h2>
-   * Parce qu'un état local meurt avec le composant : ouvrir un résultat puis
-   * revenir rendait une page vierge, la recherche perdue. L'URL, elle, survit
-   * à l'aller-retour, au F5 et au partage - c'est la règle que ce dépôt s'est
-   * déjà donnée au Lot 31 (« quand un écran mérite d'être revu ou envoyé, lui
-   * donner une vraie URL »), simplement pas encore appliquée ici.
+   * <h2>Why not a simple `useState`</h2>
+   * Because a local state dies with the component: opening a result then
+   * coming back gave a blank page, the search lost. The URL survives
+   * the round trip, F5 and sharing - this is the rule this repo already gave
+   * itself in Batch 31 ("when a screen deserves to be seen again or sent, give it
+   * a real URL"), simply not yet applied here.
    *
-   * <p>La frappe reste dans un état local : l'URL ne suit qu'après la même
-   * temporisation que la requête (voir plus bas), et en `replace` - sinon
-   * chaque lettre laisserait une entrée dans l'historique et le bouton
-   * Précédent remonterait le mot caractère par caractère.
+   * <p>Typing stays in a local state: the URL only follows after the same
+   * delay as the query (see below), and with `replace` - otherwise
+   * each letter would leave an entry in the history and the Back button
+   * would go back through the word character by character.
    */
   const [parametres, setParametres] = useSearchParams()
   const [entityTypeId, setEntityTypeId] = useState<string | undefined>(parametres.get('type') ?? undefined)
   const [title, setTitle] = useState(parametres.get('q') ?? '')
-  // Un tag décrit une ŒUVRE et vit dans le catalogue partagé : c'est donc ici,
-  // devant tout le catalogue, qu'il filtre le plus naturellement - Ma
-  // collection ne filtrait que ce qu'on possède (lot 143). Un seul à la fois,
-  // comme le paramètre du serveur.
+  // A tag describes a WORK and lives in the shared catalogue: so it is here,
+  // in front of the whole catalogue, that it filters most naturally - My
+  // collection only filtered what we own (batch 143). Only one at a time,
+  // like the server parameter.
   const [tagId, setTagId] = useState<string | undefined>(parametres.get('tag') ?? undefined)
   const tagsQuery = useQuery({ queryKey: queryKeys.tags.all, queryFn: listTags })
   const tags = tagsQuery.data ?? []
   const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
   const [frenchTitles, setFrenchTitles] = useState<Record<string, string>>({})
 
-  // On arrive sur « Tout », pour tout le monde (lot 139, demande de
-  // l'utilisateur : « il faut d'abord sélectionner Tout au lieu de Manga »).
-  // Le premier type de l'instance était présélectionné pour un compte
-  // connecté - arriver prêt à chercher chez un fournisseur, qui s'interroge
-  // type par type - mais c'est le CATALOGUE qu'on ouvre, et il ne montrait
-  // alors qu'un univers pris pour les autres. Le type se choisit quand on
-  // cherche, et la phrase sous le champ le dit au moment utile.
+  // We arrive on "Tout", for everyone (batch 139, request from
+  // the user: "you must first select Tout instead of Manga").
+  // The first type of the instance was preselected for a signed-in account
+  // - arriving ready to search at a provider, which is queried
+  // type by type - but it is the CATALOGUE that we open, and it then showed
+  // only one universe taken for the others. The type is chosen when
+  // searching, and the sentence under the field says so at the useful moment.
   function choisirType(id: string | undefined) {
     setEntityTypeId(id)
   }
@@ -120,30 +120,30 @@ export function SearchPage() {
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
   const debouncedTitle = useDebouncedValue(title, 500)
   /**
-   * Les catégories chez qui chercher : celle qui est choisie, ou TOUTES
-   * celles qui ont une source quand aucune ne l'est (lot 145).
+   * The categories to search in: the one that is chosen, or ALL
+   * those that have a source when none is (batch 145).
    *
-   * <p>Sous « Tout », la recherche externe était coupée - « un fournisseur
-   * s'interroge type par type » - et l'écran le disait en une phrase. Un
-   * titre tapé sans catégorie ne trouvait donc que le catalogue : « Injustice »
-   * ne répondait qu'après avoir choisi « Jeu vidéo », alors qu'on ne sait pas
-   * toujours d'avance de quel univers est ce qu'on cherche. Chaque source
-   * s'interroge toujours type par type ; c'est l'écran qui les interroge
-   * toutes, et les présente par catégorie.
+   * <p>Under "Tout", the external search was cut off - "a provider
+   * is queried type by type" - and the screen said so in one sentence. A
+   * title typed with no category therefore only found the catalogue: "Injustice"
+   * only answered after choosing "Jeu vidéo", while we do not
+   * always know in advance which universe the thing we search belongs to. Each source
+   * is still queried type by type; it is the screen that queries
+   * all of them, and presents them by category.
    */
   const typesCherches = useMemo(
     () => (entityTypeId ? (selectedType ? [selectedType] : []) : (entityTypesQuery.data ?? [])).filter((t) => t.hasMetadataProvider),
     [entityTypeId, selectedType, entityTypesQuery.data],
   )
   const typeManga = typesCherches.find((t) => t.code === 'MANGA')
-  // La collecte PAR TOME (l'aperçu qui liste des tomes) ne concerne que le
-  // manga : c'est pour lui seul qu'on demande au serveur les séries qu'il
-  // sait déjà sans tome.
+  // The collection BY VOLUME (the preview that lists volumes) only concerns
+  // manga: only for it do we ask the server for the series it
+  // already knows to have no volume.
   const parTome = useCollecteParTome(typeManga?.id ?? null)
 
-  // L'URL suit la recherche RÉELLEMENT lancée, pas la frappe : même
-  // temporisation que la requête, et `replace` pour ne pas empiler une entrée
-  // d'historique par lettre.
+  // The URL follows the search that was ACTUALLY run, not the typing: same
+  // delay as the query, and `replace` so as not to stack one history entry
+  // per letter.
   useEffect(() => {
     const voulu = new URLSearchParams()
     if (entityTypeId) voulu.set('type', entityTypeId)
@@ -151,31 +151,31 @@ export function SearchPage() {
     if (debouncedTitle.trim()) voulu.set('q', debouncedTitle.trim())
     if (voulu.toString() !== parametres.toString()) setParametres(voulu, { replace: true })
   }, [entityTypeId, tagId, debouncedTitle, parametres, setParametres])
-  // Un type sans fournisseur de métadonnées (type personnalisé créé depuis
-  // Administration) n'a AUCUNE source externe : ni recherche, ni scan - voir
-  // requiresMatch et EntityTypeDto.hasMetadataProvider. Sans ce garde, l'écran
-  // lançait une recherche vouée à ne rien trouver, puis affichait "Aucun
-  // résultat pour ce titre" - un échec annoncé là où il n'y avait tout
-  // simplement rien à chercher.
+  // A type with no metadata provider (custom type created from
+  // Administration) has NO external source: no search, no scan - see
+  // requiresMatch and EntityTypeDto.hasMetadataProvider. Without this guard, the screen
+  // ran a search doomed to find nothing, then displayed "Aucun
+  // résultat pour ce titre" - a failure announced where there was quite
+  // simply nothing to search.
   const searchEnabled = !estInvite && typesCherches.length > 0 && debouncedTitle.trim().length >= 3
-  // La recherche LOCALE, elle, ne dépend d'aucun fournisseur : elle interroge
-  // le catalogue déjà en base, gratuitement. La brancher sur searchEnabled
-  // privait du garde-fou anti-doublon ("Déjà dans ta collection", voir plus
-  // bas) exactement les types personnalisés - c'est-à-dire les seuls où
-  // AUCUNE déduplication externe ne rattrape le coup derrière.
+  // The LOCAL search, for its part, does not depend on any provider: it queries
+  // the catalogue already in the database, for free. Tying it to searchEnabled
+  // deprived of the anti-duplicate safeguard ("Déjà dans ta collection", see below)
+  // exactly the custom types - that is, the only ones where
+  // NO external deduplication catches the problem afterwards.
   //
-  // Elle tourne désormais SANS CONDITION, et c'est ce qui fait de cet écran
-  // l'entrée du catalogue. Elle exigeait un type ET trois caractères : à
-  // l'arrivée, la page était donc vide, et il n'existait nulle part dans
-  // l'application de vue sur l'ensemble des œuvres connues - « Ma collection »
-  // ne montre que ce qu'on possède ou souhaite (voir correspondAuFiltre). Sans
-  // aucun paramètre, l'endpoint rend tout ; type et titre ne font plus que
-  // RESTREINDRE.
+  // It now runs UNCONDITIONALLY, and that is what makes this screen
+  // the entry to the catalogue. It required a type AND three characters: on
+  // arrival, the page was therefore empty, and nowhere in
+  // the app was there a view of all the known works - "Ma collection"
+  // only shows what we own or wish for (see correspondAuFiltre). With
+  // no parameter, the endpoint returns everything; type and title now only
+  // RESTRICT.
   const localSearchEnabled = true
 
-  // Une requête PAR catégorie cherchée, en parallèle : une seule sous une
-  // catégorie choisie, une par source sous « Tout ». Chacune garde sa clé
-  // de cache (type, titre) : choisir ensuite « Manga » ne relance rien.
+  // One query PER category searched, in parallel: only one under a
+  // chosen category, one per source under "Tout". Each keeps its cache
+  // key (type, title): choosing "Manga" afterwards relaunches nothing.
   const recherches = useQueries({
     queries: typesCherches.map((type) => ({
       queryKey: queryKeys.metadata.search(type.id, debouncedTitle),
@@ -192,24 +192,24 @@ export function SearchPage() {
     enabled: localSearchEnabled,
   })
   /**
-   * Ce que « Déjà dans IozyCore » a le droit de montrer.
+   * What "Déjà dans IozyCore" is allowed to show.
    *
-   * Une Entity peut exister sans que rien ne la rattache à l'utilisateur : ni
-   * possession, ni tome catalogué, ni envie. Relevé à l'audit - « One Piece »
-   * et « One Piece: Strong World » traînaient ainsi, et s'annonçaient comme
-   * déjà connues d'IozyCore alors qu'ouvrir leur fiche ne montrait rien.
+   * An Entity can exist with nothing linking it to the user: no
+   * ownership, no catalogued volume, no wish. Found in the audit - "One Piece"
+   * and "One Piece: Strong World" were lying around like this, and presented themselves as
+   * already known to IozyCore although opening their page showed nothing.
    *
-   * On garde donc une fiche qui a AU MOINS un lien réel : un tome catalogué,
-   * une possession, ou une envie. Les autres restent en base - on ne supprime
-   * rien dans le dos de l'utilisateur - elles cessent simplement de se
-   * présenter comme un résultat.
+   * So we keep a page that has AT LEAST one real link: a catalogued volume,
+   * an ownership, or a wish. The others stay in the database - we delete
+   * nothing behind the user's back - they simply stop
+   * presenting themselves as a result.
    */
   const localMatchesBrutes = localMatchQuery.data ?? []
-  // Une œuvre connue d'IozyCore n'est pas forcément possédée : une série mise
-  // en envies sans être achetée a une fiche et aucune possession. Sans cette
-  // vérification, ce bloc affichait « Possédé » sur TOUT résultat local -
-  // c'est-à-dire un mensonge sur ses propres envies. Une seule requête pour
-  // toute la liste, jamais une par résultat.
+  // A work known to IozyCore is not necessarily owned: a series put
+  // on the wishlist without being bought has a page and no ownership. Without this
+  // check, this block displayed "Possédé" on EVERY local result -
+  // that is, a lie about one's own wishes. One single query for
+  // the whole list, never one per result.
   const ownershipsQuery = useQuery({
     queryKey: queryKeys.allOwnerships,
     queryFn: listAllOwnerships,
@@ -224,27 +224,27 @@ export function SearchPage() {
   )
 
   /**
-   * Les œuvres qu'on sait DÉJÀ sans aucun tome, signalées dans la liste.
+   * The works we ALREADY know to have no volume, flagged in the list.
    *
-   * Une seule requête pour toute la page de résultats, et surtout **aucun
-   * appel à un fournisseur** : le backend répond depuis le seul cache durable
-   * des recherches de tomes (voir `/metadata/volumes/known-empty`). Poser
-   * vraiment la question coûterait huit requêtes Google Books PAR œuvre, sur
-   * une recherche qui se relance à chaque frappe - le quota n'y survivrait
-   * pas.
+   * One single query for the whole results page, and above all **no
+   * call to a provider**: the backend answers from the durable cache alone
+   * of volume searches (see `/metadata/volumes/known-empty`). Really asking
+   * the question would cost eight Google Books requests PER work, on
+   * a search that relaunches at each keystroke - the quota would not
+   * survive it.
    *
-   * Conséquence assumée, et c'est le compromis choisi : une œuvre jamais
-   * ouverte n'est pas signalée. La mention apparaît une fois qu'on a
-   * réellement cherché ses tomes et qu'il n'y en avait aucun.
+   * Accepted consequence, and it is the chosen trade-off: a work never
+   * opened is not flagged. The mention appears once its volumes have
+   * really been searched and there were none.
    *
-   * Le couple (titre, auteur) envoyé est EXACTEMENT celui que la recherche de
-   * tomes utiliserait - titre primaire résolu et mangaka - sans quoi la clé de
-   * cache ne correspondrait pas et la mention ne sortirait jamais.
+   * The (title, author) pair sent is EXACTLY the one the volume search would
+   * use - resolved primary title and mangaka - otherwise the
+   * cache key would not match and the mention would never show up.
    *
-   * <p>Uniquement pour un type qui se collectionne PAR TOME : un jeu vidéo
-   * n'a pas de tome, donc « aucun tome connu » n'y signale rien - ça se lisait
-   * comme un manque (constaté sur « Hollow Knight »). Et ça évite une requête
-   * qui ne pouvait rien rendre.
+   * <p>Only for a type that is collected BY VOLUME: a video game
+   * has no volume, so "no known volume" flags nothing there - it read
+   * as something missing (seen on "Hollow Knight"). And it avoids a query
+   * that could return nothing.
    */
   const clesInterrogees = (suggestionsManga ?? []).map((candidate) => ({
     title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
@@ -257,13 +257,13 @@ export function SearchPage() {
   })
   const titresSansTomes = new Set((sansTomesQuery.data ?? []).map((s) => s.title.trim().toLowerCase()))
 
-  // Résout un titre français pour les 6 premières suggestions affichées -
-  // voir l'ancien QuickAddPage.tsx pour le même mécanisme et son
-  // raisonnement complet (cache 24h côté backend, capé pour contenir le
-  // nombre d'appels externes).
-  // Les titres français ne concernent que le manga (Jikan/MyAnimeList/AniList
-  // ne les donnent pas) : c'est le groupe Manga qui est lu, qu'il soit seul
-  // ou parmi les catégories cherchées sous « Tout ».
+  // Resolves a French title for the first 6 suggestions displayed -
+  // see the old QuickAddPage.tsx for the same mechanism and its
+  // full reasoning (24h cache on the backend, capped to limit the
+  // number of external calls).
+  // French titles only concern manga (Jikan/MyAnimeList/AniList
+  // do not give them): it is the Manga group that is read, whether it is alone
+  // or among the categories searched under "Tout".
   const typeMangaId = typeManga?.id
   useEffect(() => {
     setFrenchTitles({})
@@ -287,28 +287,28 @@ export function SearchPage() {
   }, [suggestionsManga, typeMangaId, titleComposition])
 
   /**
-   * Ouvrir un résultat mène à son APERÇU - la même page que sa fiche, mais
-   * lue chez le fournisseur. Rien n'est écrit en base : consulter n'est pas
-   * collectionner, et parcourir des résultats ne doit pas remplir le
-   * catalogue d'œuvres qu'on ne veut pas.
+   * Opening a result leads to its PREVIEW - the same page as its detail page, but
+   * read from the provider. Nothing is written to the database: browsing is not
+   * collecting, and going through results must not fill the
+   * catalogue with works we do not want.
    *
-   * <p>Le titre porté par l'URL est le titre PRIMAIRE, jamais le libellé
-   * composé qu'affiche la liste (`candidateDisplayTitle` sert à reconnaître
-   * l'œuvre, et sa documentation dit déjà « jamais intégré au titre
-   * réellement sauvegardé »). C'est sur lui que l'ajout dédupliquera.
+   * <p>The title carried by the URL is the PRIMARY title, never the composed
+   * label that the list displays (`candidateDisplayTitle` serves to recognise
+   * the work, and its documentation already says "never built into the title
+   * actually saved"). The add will deduplicate on it.
    */
   function ouvrirApercu(candidate: MetadataCandidateDto, typeId: string) {
     const titre = resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
-    // Le candidat voyage en raccourci pour éviter une seconde recherche à
-    // l'arrivée ; l'URL reste seule maîtresse de l'identité (voir
-    // ApercuOeuvrePage). Le type est celui du GROUPE où le résultat a été
-    // trouvé : sous « Tout », ce n'est pas celui de l'écran.
+    // The candidate travels as a shortcut to avoid a second search on
+    // arrival; the URL alone remains master of the identity (see
+    // ApercuOeuvrePage). The type is the one of the GROUP where the result was
+    // found: under "Tout", it is not the one of the screen.
     navigate(`/apercu?type=${encodeURIComponent(typeId)}&titre=${encodeURIComponent(titre)}`, {
       state: { candidat: candidate, ...retourVersRecherche(search) },
     })
   }
 
-  /** Saisie libre : aucun candidat, juste un titre. Même destination. */
+  /** Free entry: no candidate, just a title. Same destination. */
   function ouvrirApercuManuel(titreManuel: string) {
     if (!entityTypeId || !titreManuel.trim()) return
     navigate(`/apercu?type=${encodeURIComponent(entityTypeId)}&titre=${encodeURIComponent(titreManuel.trim())}`, {
@@ -321,8 +321,8 @@ export function SearchPage() {
   }
 
   const showSearching = searchEnabled && groupes.some((g) => g.requete.isFetching)
-  // Un groupe se montre dès qu'il a répondu avec quelque chose ; les autres
-  // n'attendent pas la source la plus lente.
+  // A group shows as soon as it has answered with something; the others
+  // do not wait for the slowest source.
   const groupesAvecResultats = searchEnabled
     ? groupes.filter((g) => !g.requete.isFetching && g.requete.isSuccess && g.requete.data.length > 0)
     : []
@@ -336,33 +336,33 @@ export function SearchPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* « Catalogue » et non plus « Rechercher » : l'écran ne part plus d'une
-          page vide qu'une saisie remplit, il MONTRE d'emblée les œuvres que
-          l'instance connaît, et la saisie ne fait que restreindre. Il reste le
-          seul point d'entrée pour ajouter (voir §24 du brief) - chercher chez
-          un fournisseur est devenu la seconde moitié de l'écran, pas sa
-          raison d'être. */}
+      {/* "Catalogue" and no longer "Rechercher": the screen no longer starts from an
+          empty page that typing fills, it SHOWS the works the
+          instance knows right away, and typing only restricts. It stays the
+          only entry point to add (see §24 of the brief) - searching at
+          a provider has become the second half of the screen, not its
+          reason for being. */}
       <EnTeteSection niveau={1} titre="Catalogue" />
 
-      {/* Scanner reste ici : c'est la même intention que la recherche, saisie
-          autrement. « Analyser une annonce » en est parti - c'est un parcours
-          indépendant, qui a désormais sa propre entrée de navigation (étude
-          produit du 2026-08-27, §4).
+      {/* Scanning stays here: it is the same intention as searching, entered
+          differently. "Analyser une annonce" left it - it is an
+          independent flow, which now has its own navigation entry (product
+          study of 2026-08-27, §4).
 
-          L'import BGG les a rejoints le 2026-08-29. Il vivait sous
-          Administration, ce qui n'a jamais eu de sens : récupérer ses jeux
-          depuis BoardGameGeek, c'est AJOUTER à sa collection - la même
-          intention que taper un titre ou scanner un code-barres, avec une
-          troisième source. Rien d'administratif là-dedans.
+          The BGG import joined them on 2026-08-29. It lived under
+          Administration, which never made sense: getting one's games
+          from BoardGameGeek is ADDING to one's collection - the same
+          intention as typing a title or scanning a barcode, with a
+          third source. Nothing administrative there.
 
-          L'import depuis une photo de l'étagère (lot 147) est la quatrième :
-          la maquette d'origine prévoyait déjà « photo » parmi les façons
-          d'ajouter, le moteur de lecture existait pour les annonces, il ne
-          manquait que la porte. */}
-      {/* Les deux mènent à des écrans d'AJOUT, fermés à un visiteur (voir
-          lib/accesInvite) : les lui proposer l'aurait renvoyé ici sans un mot,
-          ce qui se lit comme une panne. C'est la règle générale de cette
-          visite - on ne montre pas une porte qui rebondit. */}
+          The import from a photo of the shelf (batch 147) is the fourth:
+          the original mockup already planned "photo" among the ways
+          to add, the reading engine existed for listings, only the door
+          was missing. */}
+      {/* Both lead to ADD screens, closed to a visitor (see
+          lib/accesInvite): offering them would have sent them back here without a word,
+          which reads as a breakdown. It is the general rule of this
+          visit - we do not show a door that bounces. */}
       {!estInvite && (
         <div className="flex flex-wrap gap-2">
           <Link
@@ -393,20 +393,20 @@ export function SearchPage() {
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
 
       <div className="flex flex-wrap gap-2">
-        {/* « Tout » d'abord, et il n'existait pas : les puces ne servaient qu'à
-            cadrer une recherche chez un fournisseur, qui s'interroge type par
-            type. Elles filtrent maintenant aussi le catalogue affiché, et sans
-            cette entrée il n'y avait aucun moyen de le voir en entier. */}
+        {/* "Tout" first, and it did not exist: the chips only served to
+            frame a search at a provider, which is queried type by
+            type. They now also filter the catalogue displayed, and without
+            this entry there was no way to see it in full. */}
         <Chip label="Tout" isActive={!entityTypeId} onClick={() => choisirType(undefined)} />
         {(entityTypesQuery.data ?? []).map((type) => (
           <Chip key={type.id} label={type.label} isActive={entityTypeId === type.id} onClick={() => choisirType(type.id)} />
         ))}
       </div>
 
-      {/* Les tags, seulement s'il en existe : une rangée vide serait le filtre
-          qui ne filtre jamais rien. Un clic pose le tag, un second le retire ;
-          il se combine au type et au titre, et il vaut aussi pour un visiteur
-          - les tags décrivent les œuvres, pas une collection. */}
+      {/* The tags, only if there are any: an empty row would be the filter
+          that never filters anything. A click sets the tag, a second removes it;
+          it combines with the type and the title, and it also applies to a visitor
+          - tags describe works, not a collection. */}
       {tags.length > 0 && (
         <div role="group" aria-label="Filtrer par tag" className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Tag</span>
@@ -435,26 +435,26 @@ export function SearchPage() {
         />
       </div>
 
-      {/* Un silence qui se lisait comme une panne : sous trois caractères, la
-          recherche externe est coupée (quota), et l'écran filtrait le
-          catalogue sans un mot sur ce qu'il ne faisait PAS. Sous « Tout »,
-          elle ne l'est plus (lot 145) : toutes les sources sont interrogées. */}
+      {/* A silence that read as a breakdown: under three characters, the
+          external search is cut off (quota), and the screen filtered the
+          catalogue without a word about what it was NOT doing. Under "Tout",
+          it no longer is (batch 145): all the sources are queried. */}
       {!estInvite && typesCherches.length > 0 && title.trim().length > 0 && title.trim().length < 3 && (
         <p className="text-xs text-textDim">Trois caractères au moins pour chercher chez une source externe.</p>
       )}
 
-      {/* Type sans fournisseur de métadonnées (personnalisé) : rien à
-          chercher, saisie directe vers l'écran de sélection. Annoncé AVANT la
-          saisie - sinon l'écran ressemble à une recherche qui ne trouverait
-          jamais rien. */}
+      {/* Type with no metadata provider (custom): nothing to
+          search, direct entry to the selection screen. Announced BEFORE the
+          typing - otherwise the screen looks like a search that would
+          never find anything. */}
       {!requiresMatch && entityTypeId && title.trim().length === 0 && (
         <p className="text-xs text-textDim">
           Ce type n'a pas de source externe : saisis le titre, il sera ajouté tel quel.
         </p>
       )}
-      {/* Scan masqué pour un type sans fournisseur : le lookup par code-barres
-          passe par les mêmes sources externes que la recherche (voir
-          MetadataSearchService.lookupByBarcode), il ne peut rien trouver ici. */}
+      {/* Scan hidden for a type with no provider: the barcode lookup
+          goes through the same external sources as the search (see
+          MetadataSearchService.lookupByBarcode), it cannot find anything here. */}
       {!requiresMatch ? null : showBarcodeLookup ? (
         <BarcodeLookupField entityTypeId={entityTypeId ?? ''} onFound={(candidate) => ouvrirApercu(candidate, entityTypeId ?? '')} />
       ) : (
@@ -470,15 +470,15 @@ export function SearchPage() {
         )
       )}
 
-      {/* État personnel AVANT les métadonnées (voir §24/§420 du brief) : la
-          collection possédée passe en premier groupe, toujours visible avant
-          les suggestions externes. */}
+      {/* Personal state BEFORE the metadata (see §24/§420 of the brief): the
+          owned collection comes as the first group, always visible before
+          the external suggestions. */}
       {localMatches.length > 0 && (
         <div className="flex flex-col gap-2">
-          {/* Sans titre saisi, cette liste EST le catalogue - l'annoncer
-              « Déjà dans IozyCore » n'aurait de sens que face à des
-              suggestions externes, qui n'apparaissent qu'une fois qu'on
-              cherche quelque chose. */}
+          {/* With no title typed, this list IS the catalogue - announcing it
+              "Déjà dans IozyCore" would only make sense against external
+              suggestions, which only appear once we
+              search for something. */}
           <span className="text-xs font-semibold tracking-wide text-textDim uppercase">
             {debouncedTitle.trim() ? 'Déjà dans IozyCore' : 'Le catalogue'}
           </span>
@@ -490,20 +490,20 @@ export function SearchPage() {
                   key={entity.id}
                   className="ligne-differee flex items-center gap-2.5 rounded-xl bg-surface px-2.5 py-1 transition-transform hover:-translate-y-0.5"
                 >
-                  {/* Le bouton prend toute la hauteur de la ligne (44 px au moins) :
-                      il ne mesurait que sa ligne de texte, 24 px, et le reste de la
-                      carte ne répondait pas au doigt. Le titre peut prendre deux
-                      lignes plutôt que d'être coupé à dix caractères sur téléphone -
-                      c'est lui qui distingue une ligne de sa voisine. */}
+                  {/* The button takes the full height of the row (44 px at least):
+                      it only measured its line of text, 24 px, and the rest of the
+                      card did not respond to a finger. The title can take two
+                      lines rather than being cut at ten characters on a phone -
+                      it is what tells one row from its neighbour. */}
                   <button type="button" onClick={() => goToEntity(entity)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 py-1 text-left">
                     <TexteCoupe texte={entity.title} className="line-clamp-2 flex-1 text-sm font-medium text-textPrimary" />
-                    {/* Deux états bien distincts : possédée, ou seulement
-                        connue (fiche existante sans aucun exemplaire - typique
-                        d'une œuvre mise en envies). */}
-                    {/* Rien de tout cela pour un visiteur : il ne possède
-                        rien, et ces deux pastilles parleraient de la
-                        collection de quelqu'un d'autre - ou, pire, de la
-                        sienne, qui n'existe pas. */}
+                    {/* Two clearly distinct states: owned, or only
+                        known (existing page with no copy - typical
+                        of a work put on the wishlist). */}
+                    {/* None of this for a visitor: they own
+                        nothing, and these two badges would speak of
+                        someone else's collection - or, worse, of their
+                        own, which does not exist. */}
                     {estInvite ? null : possede ? (
                       <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-xs font-semibold text-accentText">
                         Possédé
@@ -514,8 +514,8 @@ export function SearchPage() {
                       </span>
                     )}
                   </button>
-                  {/* Pas de cœur sur ce qu'on possède déjà : vouloir un jeu qu'on a
-                      n'a pas de sens, et la pastille « Possédé » dit déjà tout. */}
+                  {/* No heart on what we already own: wanting a game we have
+                      makes no sense, and the "Possédé" badge already says it all. */}
                   {!estInvite && !possede && (
                     <WishlistToggle entityId={entity.id} entityTypeId={entity.entityTypeId} variant="inline" />
                   )}
@@ -526,10 +526,10 @@ export function SearchPage() {
         </div>
       )}
 
-      {/* Après "Déjà dans ta collection", jamais avant : sur un type sans
-          fournisseur, ce bouton est le SEUL chemin d'ajout - le placer en
-          premier revenait à proposer de créer un doublon avant même d'avoir
-          montré que l'œuvre existe déjà. */}
+      {/* After "Déjà dans ta collection", never before: on a type with no
+          provider, this button is the ONLY way to add - placing it
+          first amounted to offering to create a duplicate before even having
+          shown that the work already exists. */}
       {!estInvite && !requiresMatch && title.trim().length > 0 && entityTypeId && (
         <button
           type="button"
@@ -564,17 +564,17 @@ export function SearchPage() {
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Suggestions</span>
-            {/* Le réglage qui décide de CES titres, à côté d'eux.
-                « Ordre des langues de titre » vivait dans Paramètres, sans
-                aucun lien depuis l'écran qu'il gouverne (§16 des parcours) :
-                on voyait un titre en romaji sans savoir que c'était un choix,
-                encore moins où le changer. Le lien ne dit pas « Paramètres »,
-                il dit ce qu'on va y régler. */}
+            {/* The setting that decides THESE titles, next to them.
+                "Ordre des langues de titre" lived in Settings, with no
+                link from the screen it governs (§16 of the journeys):
+                we saw a title in romaji without knowing it was a choice,
+                still less where to change it. The link does not say "Paramètres",
+                it says what we are going to set there. */}
             <Link
               to="/profile"
-              // Le réglage vit dans « Cet appareil », en bas de Profil (lot
-              // 140) : on y arrive directement, pas en haut d'une page à
-              // faire défiler.
+              // The setting lives in "Cet appareil", at the bottom of Profil (batch
+              // 140): we go there directly, not to the top of a page to
+              // scroll.
               state={{ focusAppareil: true }}
               className="flex min-h-11 items-center gap-1.5 text-xs font-semibold text-accentText"
             >
@@ -582,8 +582,8 @@ export function SearchPage() {
               Langue des titres
             </Link>
           </div>
-          {/* Un groupe par catégorie cherchée, nommé seulement quand il y en a
-              plusieurs : sous « Manga », le mot répéterait la puce. */}
+          {/* One group per category searched, named only when there are
+              several: under "Manga", the word would repeat the chip. */}
           {groupesAvecResultats.map(({ type, requete }) => (
             <section key={type.id} aria-label={type.label} className="flex flex-col gap-1.5">
               {typesCherches.length > 1 && (
@@ -609,10 +609,10 @@ export function SearchPage() {
                           className="line-clamp-2 text-sm font-medium text-textPrimary"
                         />
                         <div className="text-xs text-textDim">{candidateSubtitle(candidate)}</div>
-                        {/* Signalé, jamais masqué : l'œuvre reste ajoutable à la
-                            main depuis son aperçu (voir AddVolumeSection). La
-                            mention évite seulement d'y arriver en s'attendant à
-                            une liste de tomes. Ne vaut que pour le manga. */}
+                        {/* Flagged, never hidden: the work can still be added by
+                            hand from its preview (see AddVolumeSection). The
+                            mention only avoids arriving there expecting
+                            a list of volumes. Only applies to manga. */}
                         {type.code === 'MANGA' &&
                           titresSansTomes.has(
                             resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
@@ -623,27 +623,27 @@ export function SearchPage() {
                           )}
                       </div>
                     </button>
-                    {/* Deux issues possibles pour une œuvre trouvée : « je
-                        l'achète » (le clic, qui mène à la saisie des tomes
-                        possédés) et « je la veux » - la seconde n'existait pas,
-                        faute de pouvoir référencer une œuvre sans la posséder. Le
-                        backend crée sa fiche catalogue, sans aucune possession. */}
+                    {/* Two possible outcomes for a work found: "I
+                        buy it" (the click, which leads to entering the owned
+                        volumes) and "I want it" - the second did not exist,
+                        for lack of a way to reference a work without owning it. The
+                        backend creates its catalogue page, with no ownership. */}
                     <WishlistToggle
                       variant="inline"
                       entityTypeId={type.id}
                       external={{
                         entityTypeId: type.id,
-                        // Le titre PRIMAIRE, pas celui affiché : la ligne montre
-                        // « Titre (Autre titre) » pour aider à reconnaître l'œuvre,
-                        // mais c'est sur le titre seul que porte la déduplication
-                        // côté backend. Envoyer le libellé composé créait une
-                        // seconde fiche pour la même œuvre dès qu'un autre chemin
-                        // (ouvrir la fiche, ajout rapide) utilisait le titre nu.
+                        // The PRIMARY title, not the displayed one: the row shows
+                        // "Titre (Autre titre)" to help recognise the work,
+                        // but deduplication relies on the title alone
+                        // on the backend. Sending the composed label created a
+                        // second page for the same work as soon as another path
+                        // (opening the detail page, quick add) used the bare title.
                         title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
-                        // Même règle que partout ailleurs : la
-                        // jaquette du candidat est persistée sous la clé
-                        // partagée, sans quoi l'œuvre apparaîtrait sans visuel
-                        // dans les Envies et dans la liste partagée.
+                        // Same rule as everywhere else: the
+                        // candidate's cover is persisted under the shared
+                        // key, otherwise the work would appear with no image
+                        // in the Wishlist and in the shared list.
                         attributes: candidate.imageUrl
                           ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
                           : candidate.attributes,

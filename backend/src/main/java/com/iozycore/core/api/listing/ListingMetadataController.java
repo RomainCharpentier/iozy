@@ -16,26 +16,26 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Lit une annonce en ligne pour pré-remplir un brouillon d'analyse d'achat.
+ * Reads an online listing to pre-fill a purchase analysis draft.
  *
- * <h2>Ce n'est pas un endpoint de récupération d'URL arbitraire</h2>
- * Le serveur ne va chercher que ce qu'un provider déclaré reconnaît, et
- * uniquement sur les hôtes que ce provider autorise explicitement. Une URL
- * quelconque n'est jamais suivie : elle rend {@code UNSUPPORTED_SOURCE} sans le
- * moindre appel réseau. Voir {@code ListingUrlGuard} pour le détail des
- * protections (HTTPS seul, liste blanche, refus des adresses internes,
- * redirections revalidées une par une, délai et taille plafonnés).
+ * <h2>This is not an arbitrary URL fetch endpoint</h2>
+ * The server only fetches what a declared provider recognizes, and
+ * only on the hosts that this provider explicitly allows. Any
+ * other URL is never followed: it returns {@code UNSUPPORTED_SOURCE} without the
+ * slightest network call. See {@code ListingUrlGuard} for the detail of the
+ * protections (HTTPS only, allow list, refusal of internal addresses,
+ * redirects revalidated one by one, time and size capped).
  *
- * <h2>Toujours 200</h2>
- * Une annonce supprimée, une plateforme non couverte ou un résultat partiel ne
- * sont pas des erreurs d'API : ce sont des issues normales du parcours, que le
- * formulaire doit savoir présenter sans se bloquer. Le {@code status} de la
- * réponse les distingue, plutôt qu'un code HTTP qui les confondrait tous dans
- * un bandeau rouge.
+ * <h2>Always 200</h2>
+ * A deleted listing, an uncovered platform or a partial result are
+ * not API errors: they are normal outcomes of the path, which the
+ * form must know how to present without getting stuck. The {@code status} of the
+ * response tells them apart, rather than an HTTP code that would mix them all up in
+ * a red banner.
  */
 @RestController
 @RequestMapping("/api/listing-metadata")
-@Tag(name = "Listing metadata", description = "Pré-remplissage d'une analyse d'achat depuis le lien d'une annonce")
+@Tag(name = "Listing metadata", description = "Pre-filling of a purchase analysis from the link of a listing")
 public class ListingMetadataController {
 
     private final ListingSourceResolver resolver;
@@ -48,8 +48,8 @@ public class ListingMetadataController {
     }
 
     /**
-     * @param retrievedFields ce qui a RÉELLEMENT été lu - le client ne pré-remplit que ces champs,
-     *                        et n'invente jamais les autres
+     * @param retrievedFields what was REALLY read - the client only pre-fills these fields,
+     *                        and never invents the others
      */
     public record ListingPreviewResponse(String status, ListingPlatform source, String url, String externalId,
                                           String title, String description, BigDecimal price, String currency,
@@ -73,9 +73,9 @@ public class ListingMetadataController {
         }
     }
 
-    @Operation(summary = "Lire une annonce depuis son lien pour pré-remplir une analyse d'achat. "
-            + "Répond toujours 200 : le champ status distingue succès, résultat partiel, source non prise "
-            + "en charge, annonce introuvable et indisponibilité, chacun ayant sa suite côté formulaire.")
+    @Operation(summary = "Read a listing from its link to pre-fill a purchase analysis. "
+            + "Always answers 200: the status field tells apart success, partial result, unsupported "
+            + "source, listing not found and unavailability, each having its own follow-up on the form side.")
     @PostMapping("/resolve")
     public ListingPreviewResponse resolve(@RequestBody ResolveListingRequest request) {
         return ListingPreviewResponse.from(resolver.resolve(request.url()));

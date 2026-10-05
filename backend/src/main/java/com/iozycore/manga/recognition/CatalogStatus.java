@@ -1,29 +1,29 @@
 package com.iozycore.manga.recognition;
 
 /**
- * Ce que le catalogue IozyCore sait de ce qui vient d'être reconnu.
+ * What the IozyCore catalog knows about what has just been recognised.
  *
- * <p>Cette question est <b>séparée</b> de la reconnaissance elle-même : lire
- * « Platinum End 4 » sur une photo et savoir si cette série existe dans le
- * catalogue sont deux choses. Les confondre ferait entrer une lecture
- * approximative dans le catalogue - or le catalogue reste la source de vérité,
- * et un résultat de moteur n'en est jamais une.
+ * <p>This question is <b>separate</b> from recognition itself: reading
+ * "Platinum End 4" on a photo and knowing whether this series exists in the
+ * catalog are two things. Mixing them would bring an approximate reading
+ * into the catalog - but the catalog remains the source of truth,
+ * and an engine result is never one.
  */
 public enum CatalogStatus {
 
-    /** La série existe dans le catalogue, et l'édition lue y correspond. */
+    /** The series exists in the catalog, and the edition read matches it. */
     MATCHED,
 
     /**
-     * La série existe, mais l'édition n'a pas été lue ou ne correspond à aucune
-     * édition connue. L'écran affiche « édition à confirmer » - il n'en choisit
-     * jamais une, voir {@link RecognitionCatalogResolver}.
+     * The series exists, but the edition was not read or matches no
+     * known edition. The screen shows "édition à confirmer" - it never chooses
+     * one, see {@link RecognitionCatalogResolver}.
      */
     EDITION_TO_CONFIRM,
 
     /**
-     * Reconnu, mais absent du catalogue local. Rien n'est créé : l'utilisateur
-     * passera par le parcours catalogue habituel s'il le souhaite.
+     * Recognised, but missing from the local catalog. Nothing is created: the user
+     * will go through the usual catalog flow if they wish.
      */
     NOT_IN_CATALOG
 }

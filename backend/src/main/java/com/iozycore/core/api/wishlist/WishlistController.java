@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/wishlist")
-@Tag(name = "Wishlist", description = "UC5 - wishlist, et UC4 - vérification avant achat")
+@Tag(name = "Wishlist", description = "UC5 - wishlist, and UC4 - check before purchase")
 public class WishlistController {
 
     private final WishlistEntryRepository wishlistEntryRepository;
@@ -55,9 +55,9 @@ public class WishlistController {
         this.workFollowing = workFollowing;
     }
 
-    @Operation(summary = "Ajouter aux envies l'objet réellement voulu : un tome (variantId, ou volumeNumber "
-            + "+ edition) quand le type en a, l'œuvre entière sinon. L'œuvre se désigne par son entityId ou, "
-            + "si elle n'a pas encore de fiche, par entityTypeId + titre. Ne crée jamais de possession.")
+    @Operation(summary = "Add to the wishes the item really wanted: a volume (variantId, or volumeNumber "
+            + "+ edition) when the type has them, the whole work otherwise. The work is designated by its entityId or, "
+            + "if it has no page yet, by entityTypeId + title. Never creates an ownership.")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public WishlistEntryResponse add(@RequestBody AddToWishlistRequest request) {
@@ -67,16 +67,16 @@ public class WishlistController {
         if (variantId != null) {
             refuserSiDejaPossede(variantId);
         }
-        // Un état à la fois (Possédé / Suivi / Envie) : vouloir l'ŒUVRE entière,
-        // c'est ne plus la suivre. Vouloir un tome ne dit rien de sa série.
+        // One state at a time (Owned / Followed / Wish): wanting the WHOLE work
+        // means no longer following it. Wanting a volume says nothing about its series.
         if (variantId == null) {
             workFollowing.wantedAsAWhole(entityId);
         }
 
-        // Idempotent : un même objet déjà voulu n'en crée pas un second. Sans
-        // ça, deux ajouts depuis deux surfaces (ou un double clic) produiraient
-        // deux entrées. La question porte sur le TOME quand il y en a un, sur
-        // l'œuvre sinon - c'est le même objet dont on demande l'état.
+        // Idempotent: an item that is already wanted does not create a second one. Without
+        // this, two adds from two surfaces (or a double click) would produce
+        // two entries. The question is about the VOLUME when there is one, about
+        // the work otherwise - it is the same item whose state is asked.
         Optional<WishlistEntry> existante = variantId != null
                 ? wishlistEntryRepository.findByVariantId(variantId)
                 : wishlistEntryRepository.findByEntityId(entityId);
@@ -91,19 +91,19 @@ public class WishlistController {
     }
 
     /**
-     * Rend le TOME voulu, ou null quand l'envie porte sur l'œuvre entière.
+     * Returns the wanted VOLUME, or null when the wish is about the whole work.
      * <p>
-     * Un {@code variantId} reçu est vérifié comme appartenant bien à l'œuvre
-     * annoncée : sans ce contrôle, une requête forgée rattacherait l'envie
-     * d'un tome à une autre série, et la fiche l'afficherait sur un tome qui
-     * n'est pas le sien.
+     * A received {@code variantId} is checked to really belong to the announced
+     * work: without this check, a forged request would attach the wish
+     * of a volume to another series, and the detail page would show it on a volume that
+     * is not its own.
      * <p>
-     * Un {@code volumeNumber} fait exister le tome au catalogue s'il n'y est
-     * pas encore : c'est le cas NORMAL depuis une fiche, où les tomes
-     * manquants sont pour la plupart déduits du total de l'édition sans
-     * jamais avoir été catalogués. Le catalogue grossit donc d'un tome qui
-     * existe réellement dans cette édition - c'est le même geste que l'ajout
-     * rapide, sans la possession.
+     * A {@code volumeNumber} makes the volume exist in the catalog if it is not
+     * there yet: this is the NORMAL case from a detail page, where missing
+     * volumes are mostly deduced from the total of the edition without
+     * ever having been cataloged. The catalog therefore grows by a volume that
+     * really exists in this edition - it is the same move as the quick
+     * add, without the ownership.
      */
     private UUID resolveVariantId(UUID entityId, AddToWishlistRequest request) {
         if (request.variantId() != null) {
@@ -130,10 +130,10 @@ public class WishlistController {
     }
 
     /**
-     * « Je le veux » et « je l'ai » sont deux états du MÊME objet, jamais deux
-     * états superposés (voir l'étude produit du 2026-08-27, §1). Vouloir un
-     * tome qu'on possède déjà est donc refusé ici plutôt que masqué côté
-     * interface : la règle doit tenir quel que soit l'appelant.
+     * "I want it" and "I have it" are two states of the SAME item, never two
+     * superposed states (see the product study of 2026-08-27, §1). Wanting a
+     * volume that we already own is therefore refused here rather than hidden on the
+     * interface side: the rule must hold whatever the caller.
      */
     private void refuserSiDejaPossede(UUID variantId) {
         boolean possede = ownershipRepository.findAll().stream()
@@ -146,19 +146,19 @@ public class WishlistController {
     }
 
     /**
-     * Rend l'identité catalogue canonique de l'œuvre à mettre en envies.
+     * Returns the canonical catalog identity of the work to put in wishes.
      * <p>
-     * Une œuvre venue d'une recherche externe ou d'un scan n'a pas encore de
-     * fiche IozyCore : elle est résolue-ou-créée ici, <b>sans aucune
-     * possession</b> - Catalogue ≠ Collection. La déduplication est celle de
-     * CatalogEntityResolver, partagée avec l'ajout rapide : la même œuvre
-     * trouvée par deux sources différentes retombe sur la même Entity.
+     * A work coming from an external search or a scan has no IozyCore
+     * page yet: it is resolved-or-created here, <b>without any
+     * ownership</b> - Catalog is not Collection. The deduplication is the one of
+     * CatalogEntityResolver, shared with the quick add: the same work
+     * found by two different sources lands on the same Entity.
      */
     private UUID resolveEntityId(AddToWishlistRequest request) {
         if (request.entityId() != null) {
-            // Sans ce contrôle, seule la contrainte de clé étrangère de Postgres
-            // protégeait la table : une œuvre inconnue remontait un 500 portant
-            // la requête SQL et le nom de la contrainte (Lot 28).
+            // Without this check, only the foreign key constraint of Postgres
+            // protected the table: an unknown work came up as a 500 carrying
+            // the SQL query and the name of the constraint (Batch 28).
             entityRepository.findById(request.entityId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "Entité introuvable : " + request.entityId()));
@@ -177,7 +177,7 @@ public class WishlistController {
                 .id();
     }
 
-    @Operation(summary = "Lister toutes les entrées de la wishlist (onglet Wishlist)")
+    @Operation(summary = "List all entries of the wishlist (Wishlist tab)")
     @GetMapping
     public List<WishlistEntryResponse> listAll() {
         return wishlistEntryRepository.findAll().stream()
@@ -185,23 +185,23 @@ public class WishlistController {
                 .collect(Collectors.toList());
     }
 
-    @Operation(summary = "Retirer une entrée de la wishlist - cible uniquement WishlistEntry, "
-            + "jamais la Série/Édition/Tome ni une Ownership. Idempotent : un id déjà retiré ne renvoie pas d'erreur.")
+    @Operation(summary = "Remove an entry from the wishlist - only targets WishlistEntry, "
+            + "never the Series/Edition/Volume nor an Ownership. Idempotent: an id already removed does not return an error.")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove(@PathVariable UUID id) {
         wishlistEntryRepository.deleteById(id);
     }
 
-    @Operation(summary = "Parcours 3 : vérifier en un appel si une Entity est possédée, en wishlist, ou inconnue")
+    @Operation(summary = "Path 3: check in one call whether an Entity is owned, in the wishlist, or unknown")
     @GetMapping("/lookup")
     public LookupResponse lookup(@RequestParam UUID entityId) {
         if (ownershipRepository.existsByEntityId(entityId)) {
             return LookupResponse.OWNED;
         }
-        // findAllByEntityId : depuis V21, l'envie porte sur un tome. « Cette
-        // œuvre est-elle voulue ? » veut dire « en veux-tu quoi que ce soit ? »,
-        // sans quoi une série dont on veut cinq tomes ressortirait UNKNOWN.
+        // findAllByEntityId: since V21, the wish is about a volume. "Is this
+        // work wanted?" means "do you want anything of it?",
+        // without which a series of which five volumes are wanted would come out UNKNOWN.
         if (!wishlistEntryRepository.findAllByEntityId(entityId).isEmpty()) {
             return LookupResponse.WISHLISTED;
         }
