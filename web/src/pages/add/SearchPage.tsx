@@ -488,7 +488,7 @@ export function SearchPage() {
               return (
                 <div
                   key={entity.id}
-                  className="flex items-center gap-2.5 rounded-xl bg-surface px-2.5 py-1 transition-transform hover:-translate-y-0.5"
+                  className="ligne-differee flex items-center gap-2.5 rounded-xl bg-surface px-2.5 py-1 transition-transform hover:-translate-y-0.5"
                 >
                   {/* Le bouton prend toute la hauteur de la ligne (44 px au moins) :
                       il ne mesurait que sa ligne de texte, 24 px, et le reste de la
@@ -591,7 +591,7 @@ export function SearchPage() {
               )}
               <ul className="flex flex-col gap-1.5">
                 {requete.data!.map((candidate) => (
-                  <li key={candidateKey(candidate)} className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5">
+                  <li key={candidateKey(candidate)} className="ligne-differee flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5">
                     <button
                       type="button"
                       onClick={() => ouvrirApercu(candidate, type.id)}
