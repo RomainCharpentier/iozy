@@ -1,6 +1,6 @@
 # Backend (Spring Boot, Java 21)
 
-Modulith DDD. Le début de `backend/README.md` décrit encore l'ancien découpage par couches (`domain/`, `application/`…). La structure réelle est ci-dessous.
+Modulith DDD. La section « Architecture » de `backend/README.md` décrit la même structure, plus en détail. La version courte est ci-dessous.
 
 ## Structure
 

@@ -1,4 +1,4 @@
-# IozyCore — squelette iOS
+# IozyCore — client iOS (hors service)
 
 > ## ⚠️ Hors service depuis le 2026-08-29
 >
@@ -34,7 +34,8 @@ IozyCore est une base de connaissances personnelle, auto-hébergée, où
 société), suivre ce qu'on possède indépendamment de ce qu'on a vécu (lu,
 joué, terminé, avec note et commentaire), enrichi automatiquement via des
 API publiques gratuites. Ce dossier est le client iOS ; le backend (Spring
-Boot) est un projet séparé, livré à côté (`iozycore-backend.zip`).
+Boot) est dans `../backend`, et le client Web (`../web`) est aujourd'hui le
+client vivant.
 
 Document de conception complet : `../docs/CONCEPTION.md`.
 Ce README documente l'état du code tel qu'il existe.
@@ -52,7 +53,7 @@ IozyCore/
   Networking/         APIClient (cœur HTTP) + une extension par domaine
                        (APIClient+Collections, +Insights, +TagsAndRelationships, +EntityTypes)
   Features/           un dossier par écran : Shelf, Search, QuickAdd, EntityDetail, Wishlist,
-                       Stats, EntityTypes (gestion des types - liste + création/édition)
+                       Stats, Settings, EntityTypes (gestion des types - liste + création/édition)
   IozyCoreApp.swift   point d'entrée, TabView racine, thème forcé en sombre
 ```
 
@@ -101,7 +102,9 @@ statistiques, découverte heuristique (mangas/jeux de société/jeux vidéo),
 éditeur de types dynamique (`Features/EntityTypes/`), direction visuelle
 dédiée (voir plus bas).
 
-Volontairement pas construit : authentification, synchronisation
+Pas construit : l'authentification (cause de la panne décrite en tête de
+fichier : cookie de session et jeton CSRF, rien à voir avec un JWT), et
+volontairement pas construit : synchronisation
 Tag/Relationship en tant que telle avec le cache local (elles vivent
 uniquement en mémoire le temps de la session sur la fiche détail),
 validation locale des `customFieldKeys` d'un type contre les attributs
@@ -131,8 +134,11 @@ l'app tourne normalement avec la police système en repli silencieux.
 
 ## Lancer l'app en 2 commandes
 
+> Les commandes ci-dessous restent valables, mais l'app ne peut rien charger
+> tant qu'elle n'ouvre pas de session (voir le bandeau en tête de fichier).
+
 ```bash
-cd iozycore-ios
+cd ios
 xcodegen generate
 open IozyCore.xcodeproj
 ```
@@ -140,9 +146,9 @@ open IozyCore.xcodeproj
 Puis dans Xcode : sélectionne un simulateur iPhone (ou ton iPhone en USB pour
 tester le scanner) et clique sur **Run** (▶).
 
-**Pour tester le flux complet :**
-1. Lance d'abord le backend (`docker compose up --build` dans le dossier du
-   backend). L'app pointe par défaut sur `http://localhost:8080/api`.
+**Pour tester le flux complet** (historique : ce parcours reçoit 401 tant que
+l'iOS n'ouvre pas de session) :
+1. Lance d'abord le backend (`docker compose up --build` dans `../backend`). L'app pointe par défaut sur `http://localhost:8080/api`.
 2. Onglet **Ajouter** : tape un titre (ou scanne un code-barres avec l'icône
    à côté du champ Titre - iPhone physique requis), crée l'élément.
 3. Onglet **Étagères** : l'élément apparaît immédiatement.
@@ -244,6 +250,7 @@ indépendants du nom affiché de l'app.
   cache local de l'appareil (pas de recherche serveur dédiée) — suffisant à
   l'usage, mais une Entity jamais ouverte sur cet appareil n'apparaîtra pas
   dans la liste.
-- Pas d'authentification (JWT) sur les appels réseau.
+- Pas d'authentification sur les appels réseau : c'est ce qui le rend hors
+  service (voir le bandeau en tête de fichier).
 - Avant un vrai déploiement, remplace `baseURL` dans `APIClient.swift` par
   l'URL de production (reverse proxy HTTPS, `docker-compose.synology.yml`).

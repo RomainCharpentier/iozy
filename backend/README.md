@@ -3,96 +3,104 @@
 ## Le projet
 
 IozyCore est une base de connaissances personnelle et auto-hébergée : un
-"second cerveau" pour cataloguer une collection
-(aujourd'hui : mangas, jeux vidéo, jeux de société), suivre ce qu'on
-possède (`Ownership`) indépendamment de ce qu'on a vécu (`Experience` —
-lu/joué/terminé, note, commentaire), avec enrichissement automatique des
-métadonnées via des API publiques gratuites (Jikan pour les mangas, BGG
-pour les jeux de société, IGDB pour les jeux vidéo, Open Library pour le
-lookup ISBN).
+« second cerveau » pour cataloguer une collection (mangas, jeux vidéo, jeux de
+société, et tout type que l'on définit soi-même), suivre ce qu'on possède
+(`Ownership`) indépendamment de ce qu'on a vécu (`Experience` — lu/joué/terminé,
+note, commentaire), avec enrichissement automatique des métadonnées par des API
+publiques (AniList, Jikan, MyAnimeList, Google Books, BnF et Open Library pour
+les mangas, IGDB pour les jeux vidéo, BoardGameGeek pour les jeux de société).
+Chaque compte a sa collection ; le catalogue des œuvres est partagé.
 
-Document de conception complet (vision, personas, DDD, modèle de données,
-UML, roadmap - 21 étapes) : `../docs/CONCEPTION.md`. Ce
-README documente l'état du code tel qu'il existe, pas l'intention de
-départ — en cas de divergence entre les deux, le code fait foi.
+Document de conception (vision, personas, modèle de données) :
+`../docs/CONCEPTION.md`. Ce README documente l'état du code tel qu'il existe,
+pas l'intention de départ — en cas de divergence entre les deux, le code fait
+foi. Les règles de travail (tests, pièges Docker, conventions) sont dans
+`CLAUDE.md`, à lire en premier.
 
 ### Architecture
 
-Clean Architecture + DDD, en monolithe modulaire :
+Un **modulith DDD** : un cœur et quatre univers, dans `src/main/java/com/iozycore/`.
 
 ```
-domain/            agrégats métier purs (aucune dépendance Spring/JPA)
-  catalog/          Entity, Variant, Tag, Relationship, EntityType (partagé, pas de owner -
-                     éditeur de types dynamique, plus de constantes codées en dur)
-  ownership/        Ownership (possession d'un exemplaire)
-  experience/        Experience (vécu : lu/joué/terminé)
-  wishlist/          WishlistEntry
-  shared/            DomainEvent, DefaultOwner (le compte d'origine, et « personne »)
-  user/              AppUser (les comptes, depuis le 2026-08-29)
-application/        orchestration des cas d'usage (QuickAddService, EntityDeletionService...)
-infrastructure/     adaptateurs JPA qui implémentent les ports du domaine
-  persistence/       une paire {Xxx}JpaEntity + Jpa{Xxx}RepositoryAdapter par agrégat
-metadata/           Bounded Context "Metadata Enrichment" (Jikan, BGG, Open Library)
-insights/           Bounded Context "Insights" (StatsService, DiscoveryService - lecture seule)
-api/                contrôleurs REST + DTOs, un package par ressource
-  config/            configuration transverse (CorsConfig - autorise les
-                     requêtes d'écriture du client Web, voir web/README.md
-                     et web.allowed-origins dans application.yml), ne
-                     correspond pas au découpage "un package par ressource"
-                     du reste de api/
-  entitytype/        EntityTypeController (éditeur de types dynamique)
+core/        ce qui vaut pour tous les types de collection
+  domain/      agrégats purs, sans Spring ni JPA : catalog (Entity, Variant, Tag,
+               Relationship, EntityType), ownership, experience, wishlist,
+               tierlist, share, follow, user, shared
+  application/ cas d'usage : QuickAddService, EntityDeletionService,
+               TierListService..., et sous-paquets admin/ et auth/
+  infrastructure/  adaptateurs JPA (une paire {Xxx}JpaEntity + adaptateur par
+               agrégat) et multitenance (@TenantId, ProprietaireCourant)
+  api/         contrôleurs REST et DTO, un paquet par ressource ; config/ porte
+               la sécurité et CORS
+  metadata/    recherche de métadonnées et ses contrats (MetadataProvider,
+               BarcodeMetadataProvider, CoverImageCheck)
+  insights/    statistiques, découverte, calendrier des sorties, bilan annuel
+  export/      export et import de collection (TransferModule)
+  listing/     lecture des annonces (Leboncoin, Vinted)
+  gemini/      client de l'assistance IA
+manga/       éditions françaises, tomes, sources (AniList, Jikan, MyAnimeList,
+             Google Books, BnF, Open Library), analyse d'achat (deals/),
+             reconnaissance de piles (recognition/), import d'étagère
+             (shelfimport/), éditions suivies
+videogame/   IGDB
+boardgame/   BoardGameGeek
+custom/      types définis dans iozycore, sans fournisseur
 ```
 
-Chaque agrégat du domaine a une interface de repository (`EntityRepository`,
-`OwnershipRepository`...) dans son package `domain/`, et une seule
-implémentation JPA dans `infrastructure/persistence/`. Le domaine ne connaît
-jamais Spring ni JPA — seule l'infrastructure en dépend.
+**Un univers dépend du cœur, jamais d'un autre univers ; le cœur ne dépend
+d'aucun univers.** Quand le cœur a besoin d'un appel vers un univers, il expose
+un point d'extension (une interface dans `core`) que l'univers implémente à sa
+racine : `DiscoverySource`, `ReleaseSource`, `SeriesProgressSource`,
+`OwnedValueSource`, `CoverImageCheck`, `EditionLinker`, `EntityDeletionGuard`,
+`VariantDeletionHook`, `TransferModule`. Ajouter un type sans fournisseur ne
+demande aucun code : on le crée dans l'app (module `custom`). `ModulesTest`
+(Spring Modulith) vérifie ces frontières à chaque build.
+
+Chaque agrégat a une interface de dépôt dans son paquet `domain/` et une seule
+implémentation JPA dans `infrastructure/`. Le domaine ne connaît jamais Spring
+ni JPA. Les routes HTTP ne dépendent pas du module qui les sert.
 
 ### Comment travailler sur ce projet
 
-**Ajouter une fonctionnalité qui touche un agrégat existant** (ex: un
-nouveau champ sur `Ownership`) :
-1. Modifier l'agrégat dans `domain/` (constructeur privé + factory statique
-   `acquire()`/`create()`/`record_()`, `reconstitute()` pour recharger depuis
-   la persistance — voir `Ownership.java` comme référence).
+**Ajouter une fonctionnalité qui touche un agrégat existant** (ex : un nouveau
+champ sur `Ownership`) :
+1. Modifier l'agrégat dans le `domain/` de son module (constructeur privé +
+   factory statique `acquire()`/`create()`, `reconstitute()` pour recharger
+   depuis la persistance — voir `Ownership.java` comme référence).
 2. Ajouter la colonne via une nouvelle migration Flyway
    (`V{n}__description.sql`, jamais modifier une migration déjà livrée).
-3. Répercuter dans le `{Xxx}JpaEntity` et le mapper `to Jpa`/`toDomain` de
-   l'adaptateur correspondant.
-4. Exposer si besoin dans le DTO de réponse REST (`api/dto/`).
+3. Répercuter dans le `{Xxx}JpaEntity` et le mapper de l'adaptateur.
+4. Exposer si besoin dans le DTO de réponse REST.
 
-**Ajouter un nouveau Bounded Context** (comme `metadata` ou `insights`) :
-package dédié à la racine, un ou des services `@Service`, jamais de logique
-métier dans les contrôleurs REST.
+**Ajouter une source ou une fonction propre à un univers** : dans le module de
+cet univers, jamais dans `core`. Si le cœur doit l'appeler, ajoute une interface
+dans `core` et implémente-la à la racine de l'univers. Jamais de logique métier
+dans les contrôleurs REST.
 
-**Tests** — deux styles, pas de mocks (Mockito n'est pas utilisé) :
-- Logique applicative pure : repositories en mémoire (`Map<UUID, X>`) écrits
-  à la main dans le fichier de test (voir `QuickAddServiceTest`,
-  `DiscoveryServiceTest` comme modèles).
-- Comportement JPA/SQL réel : Testcontainers + vrai PostgreSQL (voir
-  `EntityPersistenceIntegrationTest`).
-- Parsing XML/JSON de sources externes : tests sur `.parse()` avec des
-  fixtures inline, jamais d'appel réseau réel dans un test (voir
-  `BggThingFetcherTest`, `JikanMetadataProviderTest`).
+**Tests** — pas de Mockito :
+- Logique applicative pure : dépôts en mémoire (`Map<UUID, X>`) écrits à la main
+  dans le fichier de test (voir `QuickAddServiceTest` comme modèle).
+- Comportement JPA/SQL réel : Testcontainers + vrai PostgreSQL, base commune
+  `PostgresIntegrationTest` (voir `EntityPersistenceIntegrationTest`).
+- Parsing de sources externes : fixtures inline sur `.parse()`, jamais d'appel
+  réseau réel dans un test.
 
-**Conventions** : code et identifiants en anglais, commentaires et
-discussions en français (décision explicite, assumée dans tout le code).
-Les commentaires qui référencent une "étape N" renvoient au document de
-conception - à consulter en cas de doute sur le "pourquoi" d'un choix.
+Comment lancer les tests (Docker seulement, sous-ensemble ciblé en itération) :
+voir `CLAUDE.md`.
 
-### État actuel (voir aussi "Limites connues" dans `../README.md`)
+**Conventions** : le code, les commentaires, les noms de tests et les logs
+s'écrivent en anglais simple ; les messages d'erreur que l'app affiche, et tous
+les `.md`, en français. Une partie des identifiants existants est française
+(`Carte`, `ProprietaireCourant`) : on ne renomme pas en masse.
 
-Construit : éditeur de types dynamique (`entity-types`, plus de 3 types
-figés en dur - voir section dédiée), ajout rapide avec déduplication,
-Ownership/Experience/Wishlist/Tag/Relationship, recherche transversale,
-statistiques, découverte heuristique (Jikan/BGG/IGDB), import de collection
-BGG, comptes et cloisonnement par propriétaire (voir « Comptes et session »).
+### État actuel (voir aussi « Limites connues » dans `../README.md`)
 
-`GET /api/wishlist` (liste complète, à ne pas confondre avec
-`GET /api/wishlist/lookup` qui vérifie une seule Entity) a été ajouté pour
-l'onglet Wishlist du client Web (`../web`) - `WishlistEntryRepository.findAll()`
-et son implémentation JPA existaient déjà (utilisés par Insights), seule la
-route de contrôleur manquait.
+Construit : types de collection dynamiques (`entity-types`, voir plus bas),
+ajout rapide avec déduplication, Ownership/Experience/Wishlist/Tag/Relationship,
+recherche transversale, statistiques, découverte, calendrier des sorties,
+éditions françaises et suivi de séries, analyse d'achat, import de collection BGG
+et d'étagère, tier lists, partage, export/import, comptes et cloisonnement par
+propriétaire (voir « Comptes et session »).
 
 Volontairement pas construit : validation serveur des `customFieldKeys` d'un
 type contre les attributs d'une Entity (reste descriptif).
@@ -110,8 +118,9 @@ docker compose up --build
 
 Ça démarre 2 conteneurs : l'API Spring Boot (port 8080) et PostgreSQL (port
 5432, exposé en local pour pouvoir l'inspecter avec un client SQL si besoin).
-Les migrations Flyway (`V1__init_schema.sql`) s'exécutent automatiquement au
-démarrage — la base est prête avec les 3 `EntityType` du MVP déjà insérés.
+Les migrations Flyway (`src/main/resources/db/migration`) s'exécutent
+automatiquement au démarrage — la base est prête, avec les 3 types historiques
+(manga, jeu vidéo, jeu de société) déjà insérés.
 
 Premier démarrage : le build Maven télécharge les dépendances, compte
 1 à 2 minutes. Les démarrages suivants sont quasi instantanés (cache Docker).
@@ -132,23 +141,24 @@ Swagger est fermé comme le reste, et le cookie de session du navigateur vaut
 pour lui aussi.
 
 **Option B — fichier `requests.http` fourni :**
-Si tu utilises VS Code, installe l'extension "REST Client" et ouvre
-`requests.http` : un clic sur "Send Request" au-dessus de chaque bloc exécute
+Si tu utilises VS Code, installe l'extension « REST Client » et ouvre
+`requests.http` : un clic sur « Send Request » au-dessus de chaque bloc exécute
 la requête. Compatible aussi avec le client HTTP intégré à IntelliJ/DataGrip.
-Couvre les 9 requêtes clés : ajout rapide, consultation, vérification avant
-achat, expérience (valide et invalide), tag, suppression bloquée...
+La requête 0 ouvre la session, les suivantes la réutilisent. Le fichier couvre
+le parcours de base (ajout rapide, consultation, vérification avant achat,
+expérience, tag, suppression bloquée, types) ; il ne couvre ni les tier lists,
+ni le partage, ni le calendrier, ni les éditions.
 
-**Option C — curl direct**, par exemple pour rejouer le parcours 1 :
-```bash
-curl -X POST http://localhost:8080/api/entities/quick-add \
-  -H "Content-Type: application/json" \
-  -d '{"entityTypeId":"00000000-0000-0000-0000-000000000001","title":"Death Note","condition":"NEW"}'
-```
+**Option C — curl :** toute écriture demande le cookie de session et le jeton
+CSRF (voir « Comptes et session »). Pour rejouer un appel sans les gérer à la
+main, copie plutôt la requête depuis `requests.http`.
 
 ## 3. Lancer les tests (sans installer Java ni Maven)
 
 Les tests unitaires (domaine) et d'intégration (Testcontainers, qui lance un
-vrai PostgreSQL jetable) tournent dans un conteneur Maven :
+vrai PostgreSQL jetable) tournent dans un conteneur Maven. Version courte ; les
+options utiles (sous-ensemble ciblé, variables `TESTCONTAINERS_*` sous Docker
+Desktop, `-o` hors ligne) sont dans `CLAUDE.md` :
 
 ```bash
 docker run --rm \
@@ -172,50 +182,61 @@ docker compose down -v     # arrête et supprime aussi les volumes (repart à z�
 ## Fichiers de déploiement
 
 - `docker-compose.yml` — usage local/test, tel que décrit ci-dessus.
+- `docker-compose.e2e.yml` — pile jetable des tests de bout en bout du web
+  (voir `CLAUDE.md` pour son piège sur les clés de fournisseurs).
+- `docker-compose.nas.yml` — déploiement sur le NAS à partir d'images publiées.
 - `docker-compose.synology.yml` — déploiement réel sur le NAS (reverse proxy
   Traefik + HTTPS Let's Encrypt automatique) : nécessite un `.env` rempli
   (voir `.env.example`) et un vrai nom de domaine pointant vers le NAS.
 - `scripts/backup.sh` — sauvegarde PostgreSQL, à planifier en prod uniquement.
 
-## Éditeur de types dynamique
+## Types de collection dynamiques
 
-`entity_type` est une vraie table (déjà créée par `V1__init_schema.sql`,
-seedée avec les 3 types historiques MANGA/VIDEO_GAME/BOARD_GAME), pas des
-constantes Java figées - `GET/POST/PATCH/DELETE /api/entity-types`
+`entity_type` est une vraie table (créée par `V1__init_schema.sql`, seedée avec
+les 3 types historiques MANGA/VIDEO_GAME/BOARD_GAME), pas des constantes Java
+figées. `GET/POST/PATCH/DELETE /api/entity-types`
+(`custom/api/EntityTypeController`, logique dans `custom/EntityTypeService`)
 permettent de lister/créer/modifier/supprimer des types (label, types
 d'expérience autorisés, champs personnalisés). Le `code` est normalisé en
 UPPER_SNAKE_CASE à la création et ne change jamais ensuite (même invariant
 que `entityTypeId` sur `Entity` - changer de code ferait perdre le sens des
 attributs déjà enregistrés). Suppression bloquée (409) tant qu'au moins une
 `Entity` référence encore le type (`EntityTypeDeletionNotAllowedException`,
-même garde-fou que la suppression d'une `Entity`).
+même garde-fou que la suppression d'une `Entity`). `GET /api/entity-types`
+dit aussi, par `hasReleaseSource`, quelles catégories un univers sait dater.
 
-Les fonctionnalités intrinsèquement liées à une source externe précise
-(lookup ISBN, import BGG, découverte) restent câblées sur les 3 codes
-historiques via `findByCode(...)`, jamais sur un id figé ni généralisées à
-un type créé par l'utilisateur - éditer le label/schema d'un de ces 3
-types n'interrompt donc pas ces fonctionnalités.
+Un type créé par l'utilisateur appartient au module `custom` : aucun
+fournisseur, ses fiches se saisissent à la main. Les fonctionnalités liées à
+une source externe précise (lookup ISBN, import BGG, découverte, tomes) vivent
+dans le module de leur univers (`manga`, `videogame`, `boardgame`) et ne
+s'appliquent qu'aux types historiques, retrouvés par `findByCode(...)`, jamais
+par un id figé. Éditer le label ou le schéma d'un de ces types n'interrompt donc
+pas ces fonctionnalités.
 
 ## Metadata Enrichment (recherche automatique)
 
-`GET /api/metadata/search?entityTypeId=...&query=...` interroge automatiquement
-**Jikan** (mangas, aucune clé requise), **BGG** (jeux de société, token
-d'application requis pour un usage conforme — voir section dédiée ci-dessous)
-ou **IGDB** (jeux vidéo, identifiants Twitch obligatoires - pas de mode
-dégradé, voir section dédiée) selon le type demandé, et renvoie une liste de
-candidats (titre, image si disponible, attributs).
+`GET /api/metadata/search?entityTypeId=...&query=...` interroge les fournisseurs
+du type demandé, chacun implémentant `MetadataProvider` (contrat du cœur) dans
+son univers : **AniList**, **Jikan** et **MyAnimeList** pour les mangas (voir
+« Client ID MyAnimeList » plus bas), **BGG** pour les jeux de société (token
+d'application requis pour un usage conforme — voir section dédiée),
+**IGDB** pour les jeux vidéo (identifiants Twitch obligatoires, pas de mode
+dégradé — voir section dédiée). `MetadataSearchService` agrège les réponses
+et renvoie une liste de candidats (titre, image si disponible, attributs). Les
+tomes et éditions françaises viennent de Google Books, de la BnF et d'Open
+Library ; quotas et ordre de repli : « Quand un fournisseur se tait » dans
+`../README.md`.
 
 `GET /api/metadata/lookup-barcode?entityTypeId=...&barcode=...` retrouve un
-manga à partir de son ISBN (le code-barres scanné) via **Open Library**
-(aucune clé requise) — répond 404 si l'ISBN est inconnu. Couvre uniquement
-MANGA : les jeux vidéo/société utilisent des codes-barres UPC/EAN non-ISBN,
-hors du périmètre d'Open Library.
+manga à partir de son ISBN (le code-barres scanné) — répond 404 si l'ISBN est
+inconnu. Couvre uniquement MANGA : les jeux vidéo/société utilisent des
+codes-barres UPC/EAN non-ISBN.
 
 Le résultat choisi peut être transmis tel quel dans `attributes` du corps de
-`POST /api/entities/quick-add` (voir `requests.http`, requêtes 10-12) pour
+`POST /api/entities/quick-add` (voir `requests.http`) pour
 pré-remplir l'Entity sans ressaisie manuelle.
 
-Une panne de Jikan/BGG/IGDB ne fait jamais échouer la recherche : elle
+Une panne d'un fournisseur ne fait jamais échouer la recherche : elle
 renvoie simplement une liste vide pour la source en panne (voir les logs
 `WARN`), l'utilisateur peut toujours saisir le titre à la main.
 
@@ -414,7 +435,7 @@ L'API **demande une session**. Sans elle, tout répond 401 sauf trois choses :
 `GET /api/auth/etat`, `POST /api/auth/login` et `POST /api/auth/register` (il
 faut bien pouvoir entrer), et `/api/public/**` — les liens de partage, dont le
 destinataire n'a par définition pas de compte. **Swagger aussi est fermé** :
-une documentation qui liste 92 routes est une carte, et elle n'apporte rien à
+une documentation qui liste toutes les routes est une carte, et elle n'apporte rien à
 qui n'a pas le droit de les appeler. On se connecte dans le navigateur, la
 session vaut ensuite pour Swagger.
 
@@ -533,23 +554,23 @@ passe par `AuNomDe.executer(proprietaire, …)`, écrit en toutes lettres dans
    paramétrer le nom d'un service via `.env` (seulement ses valeurs), donc
    c'est un remplacement direct dans ces 2 fichiers (recherche/remplace
    simple, 2-3 occurrences par fichier).
-3. **Le package Java `com.iozycore`** (69 fichiers) — si tu veux aussi
-   renommer le package lui-même, **utilise le "Rename Package" de ton IDE**
+3. **Le package Java `com.iozycore`** (plus de 350 fichiers) — si tu veux aussi
+   renommer le package lui-même, **utilise le « Rename Package » de ton IDE**
    (IntelliJ, Eclipse, VS Code + extension Java) plutôt qu'un
    chercher-remplacer manuel : c'est une opération de refactoring vérifiée
    par le compilateur, qui met à jour tous les `package`/`import` d'un coup
-   sans rien casser. Un remplacement texte brut sur 69 fichiers serait
-   fragile et risquerait de casser des chaînes de caractères qui contiennent
-   "iozycore" sans rapport avec le package (ex: les noms de colonnes SQL,
-   volontairement non affectés par ce genre de renommage).
+   sans rien casser. Un remplacement texte brut serait fragile et risquerait
+   de casser des chaînes de caractères qui contiennent « iozycore » sans
+   rapport avec le package (ex : les noms de colonnes SQL, volontairement non
+   affectés par ce genre de renommage). `ModulesTest` doit rester vert après.
 
 ## Structure du code
 
-- `domain/` — les 4 agrégats métier (Entity, Ownership, Experience,
-  WishlistEntry), aucune dépendance à Spring/JPA.
-- `application/` — orchestration des cas d'usage (ex : `QuickAddService`).
-- `infrastructure/persistence/` — implémentation JPA des ports du domaine.
-- `api/` — contrôleurs REST.
-- `src/test/` — tests unitaires (domaine) et d'intégration (Testcontainers).
+- `src/main/java/com/iozycore/{core,manga,videogame,boardgame,custom}` — le
+  modulith décrit dans « Architecture » plus haut.
+- `src/main/resources/db/migration` — les migrations Flyway, jamais modifiées
+  après livraison.
+- `src/test/` — tests unitaires, d'intégration (Testcontainers) et
+  `ModulesTest`, qui vérifie les frontières entre modules.
 
 Document de conception complet : voir `../docs/CONCEPTION.md`.
