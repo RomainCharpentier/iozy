@@ -47,7 +47,7 @@ Une vérification qui ne s'exécute pas ne vaut rien : plusieurs commandes évid
 - **Court et direct** : annonce l'action en une ou deux phrases, puis agis. Quand on te demande « on fait quoi ? », tranche et dis pourquoi, pas de menu d'options. Pose une question seulement si la réponse change vraiment le travail. Le détail technique va dans le message de commit et dans `docs/DESIGN_MIGRATION_V1.2.md`, pas dans le fil.
 - **Maquettes à plusieurs planches** : si un export de design contient plusieurs planches du même écran, dis en une phrase ce que chacune propose et fais trancher **avant** la première ligne de code. Rien dans un zip ne dit laquelle fait foi, et se tromper coûte un lot entier.
 - **« Je ne vois pas de changement »** : vérifie d'abord que le serveur de dev tourne encore. N'accuse pas le cache.
-- **Fin de lot** : vérification en direct sur des données jetables, avec retour à l'état exact d'avant ; une section dans `docs/DESIGN_MIGRATION_V1.2.md` ; un commit. Piège : une analyse d'achat jetable laisse une trace (`market_price_observation`, supprimable par `DELETE /api/purchase-analysis/market-observations/{id}`). Compte la table avant et après, sinon les analyses de vérification se servent de comparables les unes aux autres.
+- **Fin de lot** : skill `/fin-de-lot` (vérification en direct sur données jetables avec retour à l'état d'avant, section dans `docs/DESIGN_MIGRATION_V1.2.md`, commit). Piège : une analyse d'achat jetable laisse une trace dans `market_price_observation` ; compte la table avant et après.
 - **Éditer des fichiers par script** : la copie de travail mélange LF et CRLF (`core.autocrlf=true`). Un remplacement multi-lignes écrit avec `\n` peut ne trouver « 0 occurrence », et un texte inséré en LF rend le fichier mixte. Normalise pour chercher, puis réécris avec la fin de ligne d'origine ; vérifie toujours le nombre d'occurrences avant de remplacer. Les avertissements « LF will be replaced by CRLF » de git sont du bruit attendu.
 - **Commandes Bash longues** : une commande de plus de ~5 Ko est tronquée sans message clair (on croit à une erreur de guillemets). Un fichier par appel, les gros fichiers en `cat >` puis `cat >>`.
 
@@ -57,47 +57,8 @@ Une vérification qui ne s'exécute pas ne vaut rien : plusieurs commandes évid
 
 Le propriétaire peut commiter **directement sur `main`**. Pour tout le reste (autre intervenant, travail expérimental, changement risqué ou à relire), **évite `main`** : travaille sur une branche et laisse la fusion au propriétaire. Ne pousse jamais de force.
 
-### Format des messages de commit
+### Messages de commit
 
-Conventional Commits, **en anglais**, sujet comme corps :
+Conventional Commits, **en anglais** (sujet comme corps), `type(scope): subject`, impératif, sans point final, ~65 caractères. Termine par la ligne `Co-Authored-By` que la session impose. **Un commit = une intention.** Le détail (types, portées, corps) est dans le skill `/commit`, qui lance aussi la suite complète du dossier touché avant de commiter.
 
-```
-type(scope): subject
-
-body (optional)
-
-Co-Authored-By: ...
-```
-
-**Type** : choisis celui qui décrit l'effet, pas l'outil.
-
-| Type | Quand |
-|---|---|
-| `feat` | un comportement nouveau pour l'utilisateur |
-| `fix` | quelque chose de livré qui se comportait mal |
-| `refactor` | la structure change, le comportement non |
-| `perf` | même résultat, plus vite ou moins coûteux |
-| `test` | tests seuls (ajout, renforcement, retrait) |
-| `docs` | documentation seule (`docs/`, READMEs, `CLAUDE.md`) |
-| `chore` | entretien : dépendances, config, scripts |
-| `ci` | workflows GitHub (`.github/workflows`) |
-| `style` | mise en forme sans effet (rare) |
-| `revert` | annule un commit précédent |
-
-**Portée** (optionnelle) : un seul mot en minuscules, sans accent (ou deux séparés par une virgule). Elle nomme la couche ou la fonctionnalité.
-- Couche : `web`, `api`, `e2e`, `ui`, ou `web,api` quand un changement traverse les deux.
-- Fonctionnalité : `fiche`, `import`, `recognition`, `purchase-analysis`, `tomes`, `editions`, `catalogue`, `gemini`, `visite`, `metadonnees`, `listing`, `profil`.
-- Pas de portée si le changement est transversal ou si le type suffit.
-- Réutilise une portée existante avant d'en inventer une (`git log --format=%s | grep '(fiche)'`). Les portées existantes gardent leur nom français : ce sont des noms de fonctionnalités.
-
-**Sujet** : à l'impératif (« add », « retry », « stop »), **sans point final**, minuscule au début, ~65 caractères (plafond ~100). Dis **ce que ça change pour l'utilisateur ou pour le système**, pas les fichiers touchés : `fix(gemini): retry a 503 or 429 before reporting failure`, pas `fix: update GeminiClient.java`. Autres exemples : `feat(import): validate extracted titles one by one`, `refactor(web): move shared hooks into common`, `chore(web): bump dependencies within their ranges`.
-
-L'historique d'avant cette règle est en français : ne le réécris pas (ni rebase, ni `--amend` sur du déjà poussé).
-
-**Corps** : pour tout ce qui n'est pas trivial. Le *pourquoi* d'abord (ce qui était faux ou hésitant), puis la liste de ce qui a été fait, puis ce qui a été vérifié (`typecheck, lint, contrast, boundaries, N tests and build green`). Le détail technique va ici, pas dans le fil de discussion.
-
-**Pied** : termine par la ligne `Co-Authored-By` que la session impose. Un lot numéroté peut garder « Batch N » dans le corps, pas dans le sujet.
-
-**Un commit = une intention.** Ne mélange pas un `fix` et un `feat`, ni un `refactor` et un changement de comportement. Avant de commiter, lance la suite complète du dossier touché (voir `backend/CLAUDE.md` et `web/CLAUDE.md`).
-
-Les messages de fusion automatiques (`Merge remote-tracking branch …`) restent tels quels.
+L'historique d'avant cette règle est en français : ne le réécris pas (ni rebase, ni `--amend` sur du déjà poussé). Les messages de fusion automatiques (`Merge remote-tracking branch …`) restent tels quels.
