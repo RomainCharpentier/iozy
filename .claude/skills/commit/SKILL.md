@@ -14,7 +14,7 @@ disable-model-invocation: true
 4. Message, **en anglais simple** (sujet comme corps) :
 
 ```
-type(scope): subject
+type: subject
 
 body (optional)
 
@@ -22,7 +22,8 @@ Co-Authored-By: <la ligne imposée par la session>
 ```
 
 - **Type** : `feat` (comportement nouveau pour l'utilisateur), `fix` (livré mais défaillant), `refactor` (structure, pas de comportement), `perf`, `test`, `docs` (docs, READMEs, CLAUDE.md seuls), `chore`, `ci`, `style`, `revert`.
-- **Portée** (optionnelle, un mot en minuscules sans accent, ou deux séparés par une virgule) : couche (`web`, `api`, `e2e`, `ui`, `web,api`) ou fonctionnalité (`fiche`, `import`, `recognition`, `purchase-analysis`, `tomes`, `editions`, `catalogue`, `gemini`, `visite`, `metadonnees`, `listing`, `profil`). Réutilise une portée existante : `git log --format=%s | grep '(fiche)'`. Pas de portée si le changement est transversal.
+- **Portée** : aucune par défaut (`type: subject`). N'en mets une que si elle aide vraiment à retrouver le commit, un mot en minuscules sans accent (`fiche`, `import`, `api`…), en reprenant une portée déjà utilisée : `git log --format=%s | grep '(fiche)'`. Pas de liste à maintenir.
+- **Version** : le numéro est déduit du préfixe (`feat` = mineur, `!` ou `BREAKING CHANGE:` = majeur, tout le reste = patch). Le bon type compte donc : voir « Numéro de version » dans `docs/DEPLOIEMENT.md`.
 - **Sujet** : impératif, sans point final, minuscule au début, ~65 caractères (plafond ~100). Dis ce que ça change pour l'utilisateur ou le système, pas les fichiers touchés.
 - **Corps** (si non trivial) : le pourquoi d'abord, puis ce qui a été fait, puis ce qui a été vérifié (`typecheck, lint, N tests and build green`).
 - Les messages d'avant la règle sont en français : ne les réécris pas (ni rebase, ni `--amend` sur du déjà poussé).

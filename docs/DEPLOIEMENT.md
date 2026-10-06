@@ -316,3 +316,29 @@ seul comportement.
 - **La base est la seule chose irremplaçable.** Railway garde des sauvegardes,
   mais un export régulier depuis l'app (Profil ▸ Paramètres ▸ Administration ▸
   Export, 14 fichiers) coûte deux clics et ne dépend d'aucun hébergeur.
+
+## Numéro de version
+
+Le numéro `Majeur.Mineur.Patch` n'est jamais saisi à la main : le déploiement le
+**déduit des messages de commit** (`web/scripts/version.mjs`, testé par
+`version.test.mjs`). Le type du commit décide donc du chiffre qui monte.
+
+| Commit | Effet |
+|---|---|
+| `feat!:`, `type(scope)!:` ou ligne `BREAKING CHANGE:` dans le corps | majeur + 1, le reste à zéro |
+| `feat:` | mineur + 1, patch à zéro |
+| tout le reste (`fix`, `perf`, `refactor`, `docs`, `test`, `chore`…), même un message hors convention | patch + 1 |
+
+- Le calcul part du dernier tag `vX.Y.Z` atteignable et applique les commits qui
+  le suivent. Un `git tag -a v2.0.0` posé à la main suffit à décider d'un nouveau
+  cap.
+- Le tag est posé **après** la publication des images : un commit sans tag n'est
+  pas encore déployé, ce n'est pas une anomalie.
+- Les tags `version-379` à `version-381` viennent d'un premier essai de
+  numérotation. Ils sont ignorés (seul `vX.Y.Z` compte) et restent en place.
+- Sans tag de départ (clone partiel, tags non récupérés), le script **échoue**
+  plutôt que de repartir de 1.0.0 : un numéro qui recule se lit comme un numéro
+  qui avance.
+- Limite assumée : un commit `docs:` ou `chore:` qui part en production monte
+  quand même le patch, sinon deux livraisons différentes porteraient le même
+  numéro. Les sauts dans la suite des tags (`v1.22`, `v1.28`…) sont normaux.
