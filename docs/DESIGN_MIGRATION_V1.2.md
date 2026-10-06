@@ -8616,3 +8616,39 @@ affiché dans le pied de page, qui est déduit du type des commits
 Vérifié : `node scripts/version.mjs` donne 1.32.5 avant et après, 10 tests de
 `version.test.mjs` verts. Pas d'e2e ni de vérification en direct : ni `web/` ni
 l'API n'ont changé.
+
+### Lot 151 — Les README remis d'accord avec le code
+
+Pas d'écran touché : seuls des `.md` bougent. Le README backend décrivait encore
+l'ancien découpage par couches (`domain/`, `application/`, `infrastructure/`,
+`api/`) alors que le code est un modulith (`core`, `manga`, `videogame`,
+`boardgame`, `custom`). Un audit des quatre README contre le code a trouvé
+d'autres écarts.
+
+- **`backend/README.md`** : « Le projet » et « Architecture » décrivent les cinq
+  modules, leurs frontières et les points d'extension ; la section sur les types
+  devient « Types de collection dynamiques » (module `custom`) ; la liste des
+  fournisseurs est complète ; la convention de langue est corrigée (code en
+  anglais). Chiffres périmés retirés (69 fichiers, 92 routes, 3 types du MVP).
+  Les guides BGG/IGDB/MAL et les sections « Comptes et session » et
+  « L'isolation » sont gardés (d'autres documents y renvoient).
+- **`README.md`** : flux de test web réécrit pour la navigation à trois entrées,
+  Node 24, chemin de `CorsConfig`, fichiers compose `nas` et `e2e`, variables
+  `GEMINI_*`, `GOOGLE_BOOKS_API_KEY`, `SESSION_COOKIE_SECURE`, scénario iOS marqué
+  historique.
+- **`web/README.md`** : « État actuel » réécrit (le scan caméra n'y était plus
+  « pas construit »), liste des pages, scripts (`check:frontieres`, mise en garde
+  sur `tsc --noEmit`), chiffre de tests retiré (il se périme à chaque lot).
+- **`ios/README.md`** : titre, chemins (`cd ios`), zip du backend, « pas de JWT »,
+  `Settings/`, scénario marqué historique.
+- **`backend/CLAUDE.md`** : la phrase qui disait le README backend périmé est
+  remplacée par un renvoi vers sa section « Architecture ».
+
+Hors périmètre, signalé : `backend/requests.http` (en anglais, ne couvre que
+l'ancien parcours de base) ; le dossier non suivi `ios/IozyCore/{Models,Networking,Features/`.
+
+Vérifié : un script a contrôlé chaque chemin, fichier, script npm et variable
+cités dans les quatre README (14 faux positifs examinés : routes, URL, types
+MIME) ; les classes de test citées et les sections visées par `docs/` existent.
+Pas d'e2e ni de vérification en direct : ni `web/` ni l'API n'ont changé. Le
+scénario web du README racine n'a pas été rejoué à l'écran.

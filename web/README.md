@@ -5,12 +5,11 @@
 IozyCore est une base de connaissances personnelle, auto-hébergée, où
 **chaque personne a sa collection** (depuis le 2026-08-29 ; le catalogue des
 œuvres, lui, est commun) : cataloguer une collection (mangas, jeux vidéo, jeux de
-société), suivre ce qu'on possède indépendamment de ce qu'on a vécu (lu,
+société, types personnalisés), suivre ce qu'on possède indépendamment de ce qu'on a vécu (lu,
 joué, terminé, avec note et commentaire), enrichi automatiquement via des
 API publiques gratuites. Ce dossier est le client Web (React) ; le backend
-(Spring Boot) et le client iOS sont dans des dossiers séparés du même dépôt
-(`../backend`, `../ios`). Créé pour tester facilement la collection depuis
-un PC, sans dépendre d'un simulateur Xcode.
+(Spring Boot) est dans `../backend`. Le client iOS (`../ios`) est hors
+service depuis le 2026-08-29 : le Web est le client vivant.
 
 Document de conception complet : `../docs/CONCEPTION.md`. Ce README
 documente l'état du code tel qu'il existe.
@@ -28,9 +27,10 @@ web/
     pages/          UNE PAGE = UN DOSSIER, nommé comme son URL ; ses sous-pages en
                     sous-dossiers ; dedans, la page, ses composants, ses hooks, ses
                     tests, sans autre découpage
-                      auth/  collection/ (+ category/, a-lire/)  entity/ (+ apercu/)
-                      add/  scan/  discover/  tier-lists/ (+ board/)  purchase-analysis/
-                      (+ history/)  profile/ (+ administration/, import/, import-bgg/)
+                      auth/  collection/ (+ category/)  entity/ (+ apercu/)
+                      add/  scan/  import-photo/  discover/  tier-lists/ (+ board/)
+                      purchase-analysis/ (+ history/)
+                      profile/ (+ administration/, import/, import-bgg/)
                       suggestions/  releases/  recap/  stats/  editions/
                       share/  entity-types/ (+ form/)  not-found/
     common/         ce qui est partagé par plusieurs pages, et rien d'autre
@@ -65,7 +65,7 @@ réutilise les composants de `common/components/` (`Carte`, `Chip`, `Jaquette`�
 plutôt que du style en dur, et les tokens de `common/theme/tokens.ts` (ou les
 classes Tailwind générées depuis `src/index.css` : `bg-surface`,
 `text-textDim`, `text-accent`, `font-display`...) pour rester visuellement
-cohérent avec le reste de l'app et avec le client iOS. Une route de plus dans
+cohérent avec le reste de l'app. Une route de plus dans
 `app/App.tsx`, et c'est tout.
 
 **Écrire un test** : Vitest + Testing Library, dans un `*.test.ts(x)` posé
@@ -87,7 +87,7 @@ qui a besoin d'un visiteur ouvre un contexte neuf (`visite.spec.ts`,
 l'écran avec le code d'invitation de la pile (`CODE_INVITATION` dans
 `e2e/compte.ts`, voir `import.spec.ts`) - le compte de la suite est
 l'administrateur, et il ne peut pas se supprimer lui-même. Ce qui
-mérite un parcours, ce n'est pas une règle - les 292 tests Vitest la couvrent
+mérite un parcours, ce n'est pas une règle - les tests Vitest la couvrent
 déjà - c'est un **passage** : d'un écran au suivant, du clic à la base. Un
 formulaire branché sur la mauvaise route ou un cache qu'on oublie d'invalider
 ne casse aucune règle : l'écran reste simplement sur l'état d'avant.
@@ -125,7 +125,7 @@ transparentes pour le navigateur, mais pas les requêtes qui modifient
 l'état (POST/PATCH/DELETE) — celles-ci embarquent toujours un header
 `Origin`, même en apparence same-origin via un proxy. Sans l'origine
 correspondante dans `web.allowed-origins` côté backend (voir
-`../backend/src/main/java/com/iozycore/api/config/CorsConfig.java`), ces
+`../backend/src/main/java/com/iozycore/core/api/config/CorsConfig.java`), ces
 requêtes échouent en 403 "Invalid CORS request" - constaté en testant la
 création d'un type depuis le build Docker (`:8081`, absent de la liste au
 départ, seul `:5173` y était). Toute nouvelle origine servant cette app
@@ -133,32 +133,33 @@ départ, seul `:5173` y était). Toute nouvelle origine servant cette app
 
 ### État actuel
 
-Construit : les 5 onglets (Étagères/Recherche/Ajouter/Wishlist/Stats) + la
-fiche détail + l'éditeur de types (`/types`), mêmes parcours que le client
-iOS - ajout rapide avec suggestions de métadonnées (Jikan/BGG/IGDB),
-recherche transversale avec vérification avant achat, wishlist réellement
-fonctionnelle (contrairement au client iOS actuel, voir note ci-dessous),
-tags/relations/expériences sur la fiche détail, import BGG, statistiques
-et découverte à la demande (mangas/jeux de société/jeux vidéo).
+Le Web est **le client vivant** : le client iOS est hors service depuis le
+2026-08-29 (voir `../ios/README.md`). La navigation a **trois entrées**, qui ne
+nomment aucun univers : **Ma collection** (`/`), **Ajouter** et la recherche
+(`/add`), **Découvrir** (`/discover`).
 
-Trois différences volontaires avec l'iOS :
-- **Wishlist fonctionnelle** : l'endpoint `GET /api/wishlist` (liste) a été
-  ajouté au backend pour cette app web (il n'existait pas, l'onglet
-  Wishlist de l'iOS est de fait toujours vide aujourd'hui) - un seul
-  changement backend, partagé, plutôt que dupliqué par client.
-- **Suivi de "candidat ajouté" en découverte** par `entityId` retourné
-  plutôt que par titre (le suivi par titre côté iOS peut se tromper en cas
-  de collision).
-- **Types d'expérience/champs personnalisés en saisie libre** dans le
-  formulaire de création de type, pas en multi-select : aucune liste
-  canonique commune n'existe côté backend (chaque type a la sienne), même
-  choix que côté iOS.
+Les autres écrans s'atteignent depuis ces trois-là :
+- la collection par catégorie (`/collection/:entityTypeId`), la fiche d'une
+  œuvre (`/entity/:id`) avec ses possessions, expériences, tags et relations,
+  les éditions (`/editions`) ;
+- **Envies** et **Suivre** sont des états d'une œuvre, à côté de « possédé » ;
+  `/wishlist` ne fait que rediriger vers la collection filtrée ;
+- le calendrier des sorties (`/releases`), les suggestions (`/suggestions`),
+  les statistiques (`/stats`) et le bilan (`/recap`) ;
+- les classements (`/tier-lists`) et l'analyse d'une annonce
+  (`/purchase-analysis`, avec son historique) ;
+- l'ajout rapide avec suggestions de métadonnées, le scan de code-barres par
+  caméra (`/scan`) et l'import de l'étagère depuis une photo (`/import-photo`) ;
+- l'éditeur de types de collection (`/types`), le profil (`/profile`, avec
+  l'import BGG et l'import de collection) et l'administration
+  (`/administration`, réservée à l'administrateur) ;
+- la page d'un lien de partage (`/public/share/:token`), sans compte.
 
-Volontairement pas construit : scan de code-barres par caméra (saisie
-manuelle à la place, cohérent avec un usage desktop), cache
-offline/hors-ligne (TanStack Query sert de cache mémoire pendant la
-session, mais rien n'est persisté - cet outil est pensé pour tester avec
-le backend lancé, pas pour un usage nomade comme l'iOS).
+Volontairement pas construit : un cache hors-ligne des données. TanStack Query
+sert de cache mémoire pendant la session, mais rien n'est persisté (voir la
+section PWA : le service worker ne met en cache que la coquille, jamais
+`/api`). Le scan par caméra utilise `BarcodeDetector` (Chrome, Edge, Android) ;
+Safari et Firefox retombent sur la saisie manuelle de l'ISBN.
 
 ### Installable sur l'écran d'accueil
 
@@ -203,12 +204,15 @@ Ouvre `http://localhost:5173`.
 - `npm run dev` — serveur de dev avec rechargement à chaud
 - `npm run build` — vérification TypeScript + build de production dans `dist/`
 - `npm run preview` — sert le build de production en local
-- `npm run typecheck` — TypeScript seul, sans build
+- `npm run typecheck` — TypeScript seul, sans build (`tsc -b --noEmit`). **`npx tsc --noEmit`
+  ne vérifie rien** ici : le `tsconfig.json` racine n'a que des références
 - `npm run lint` — oxlint
 - `npm test` — la suite Vitest, une fois (`npm run test:watch` pour itérer)
 - `npm run test:e2e` — les parcours de bout en bout (Playwright). Démarre sa
   **propre pile Docker** (base + API sur `:8090`), joue les parcours, éteint
   tout, volumes compris. Rien à lancer avant, rien à nettoyer après.
+  `npm run test:e2e:ui` ouvre l'interface de Playwright.
+- `npm run check:frontieres` — vérifie les règles d'import entre pages et `common`
 - `npm run check:contrast` — vérifie que tous les couples de couleurs des deux
   thèmes tiennent le 4.5:1 de WCAG AA
 - `npm run check:pwa` — vérifie que l'app est réellement installable (manifeste,
@@ -228,5 +232,6 @@ Ouvre `http://localhost:5173`.
 (sert les fichiers statiques + proxy `/api` en interne vers le service
 `iozycore-api`, fallback SPA vers `index.html` pour les routes client-side
 comme `/entity/:id`). Utilisé par `docker-compose.yml` (dev local, port
-`8081`) et `docker-compose.synology.yml` (prod, sous-domaine Traefik
-séparé de l'API - voir ce fichier pour le détail).
+`8081`), `docker-compose.synology.yml` (prod, sous-domaine Traefik
+séparé de l'API - voir ce fichier pour le détail) et `docker-compose.nas.yml`
+(NAS, à partir d'images publiées). Ces fichiers sont dans `../backend/`.

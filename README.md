@@ -1,8 +1,8 @@
 # IozyCore — Guide de démarrage
 
 Ce guide réunit en un seul endroit tout ce qu'il faut pour lancer et tester
-IozyCore : le backend (API + base de données), l'app iOS et l'app Web. Les
-trois dossiers (`backend/`, `ios/`, `web/`) ont chacun leur propre README
+IozyCore : le backend (API + base de données), l'app Web et, pour mémoire,
+l'app iOS (hors service). Les trois dossiers (`backend/`, `ios/`, `web/`) ont chacun leur propre README
 plus détaillé sur leur partie ; celui-ci sert de point d'entrée et de
 check-list.
 
@@ -32,7 +32,7 @@ ligne de commande.
                           └──────────────────┘                └────────────┘
 ┌─────────────────┐               ▲                   │
 │   App Web         │ ──────────────┘                   ▼
-│ (Vite, :5173)      │  localhost:8080          Jikan / BGG (APIs publiques)
+│ (Vite, :5173)      │  localhost:8080          Fournisseurs (APIs publiques)
 └─────────────────┘  (proxy /api en dev)
 ```
 
@@ -80,7 +80,8 @@ docker compose up --build
 
 Premier lancement : 1-2 minutes (téléchargement des images + build Maven).
 Les suivants sont quasi instantanés. La base PostgreSQL est initialisée
-automatiquement (migrations Flyway), avec les 3 types du MVP déjà en place.
+automatiquement (migrations Flyway), avec les 3 types historiques (manga,
+jeu vidéo, jeu de société) déjà en place.
 Cette même commande lance aussi un build de l'app web sur
 `http://localhost:8081` (voir Partie 3, Option B) — si tu veux juste tester
 l'API seule, ignore ce port.
@@ -148,7 +149,7 @@ sa **propre collection** à quelqu'un en particulier, sélection comprise.
 |---|---|---|
 | **Swagger UI** | Interface web pour tester chaque route à la main | Ouvrir `http://localhost:8080/swagger-ui.html` — **connecte-toi d'abord** (le navigateur garde le cookie de session, Swagger en profite) |
 | **`requests.http`** | 25 requêtes prêtes à l'emploi (ajout rapide + déduplication, recherche métadonnées, lookup ISBN, import BGG, recherche transversale, statistiques, découverte, wishlist, suppression bloquée...) | Extension "REST Client" (VS Code) ou client HTTP intégré (IntelliJ/DataGrip), clic sur "Send Request" |
-| **curl** | Ligne de commande | Voir exemples dans `requests.http` ou le README backend |
+| **curl** | Ligne de commande | Les écritures demandent le cookie de session et le jeton CSRF : pars des exemples de `requests.http` ou du README backend |
 
 ### Lancer les tests automatisés
 
@@ -162,8 +163,10 @@ docker run --rm \
 ```
 
 Couvre : tests unitaires du domaine (invariants des agrégats), tests
-d'intégration Testcontainers (vrai PostgreSQL jetable), tests du parsing
-Jikan/BGG (fixtures, pas d'appel réseau réel).
+d'intégration Testcontainers (vrai PostgreSQL jetable), tests du parsing des
+fournisseurs (fixtures, pas d'appel réseau réel) et `ModulesTest` (frontières
+entre modules). Pour itérer sur un sous-ensemble, et pour les pièges de
+Docker Desktop, voir `backend/CLAUDE.md`.
 
 ### Arrêter
 
@@ -297,9 +300,10 @@ Dans le dossier `backend/` :
    docker compose up --build
    ```
 
-**Vérifier que ça marche :** dans l'app (iOS ou Web), onglet Ajouter, type
+**Vérifier que ça marche :** dans l'app Web, écran Ajouter, type
 "Jeu vidéo", tape un titre — des suggestions IGDB doivent apparaître après
-un court instant. Ou en ligne de commande :
+un court instant. Ou en ligne de commande, une fois connecté (cookie de
+session) :
 ```bash
 curl "http://localhost:8080/api/metadata/search?entityTypeId=00000000-0000-0000-0000-000000000002&query=zelda"
 ```
@@ -426,7 +430,7 @@ Dans le dossier `backend/` :
    docker compose up --build
    ```
 
-**Vérifier que ça marche :** dans l'app (iOS ou Web), onglet Ajouter, type
+**Vérifier que ça marche :** dans l'app Web, écran Ajouter, type
 "Manga", tape un titre - si Jikan est aussi up, tu peux voir des
 suggestions des deux sources (`JIKAN` et `MYANIMELIST`) pour un même titre,
 c'est normal (les deux sont agrégées, jamais l'une à la place de l'autre).
@@ -466,7 +470,11 @@ open IozyCore.xcodeproj
 
 Dans Xcode : choisir un simulateur iPhone, cliquer sur **Run** (▶).
 
-### Tester le flux complet (backend + iOS ensemble)
+### Tester le flux complet (backend + iOS ensemble) — historique
+
+> Ce parcours n'est plus jouable tant que l'iOS est hors service (tout reçoit
+> 401). Il est gardé pour mémoire : il décrit l'app telle qu'elle était le
+> 2026-08-28.
 
 1. Backend lancé (`docker compose up --build`).
 2. App iOS lancée sur le simulateur.
@@ -505,16 +513,15 @@ Dans Xcode : choisir un simulateur iPhone, cliquer sur **Run** (▶).
 
 ## Partie 3 — App Web
 
-Client React pour tester la collection depuis un PC, sans simulateur Xcode.
-Mêmes parcours que l'iOS (voir `web/README.md` pour le détail), plus une
-Wishlist réellement fonctionnelle (l'endpoint de liste manquait côté
-backend - ajouté à cette occasion, partagé avec l'iOS).
+Client React, **le client vivant** : navigation à trois entrées (Ma collection,
+Ajouter, Découvrir), installable comme une PWA en production. Voir
+`web/README.md` pour le détail.
 
 ### Lancer
 
 **Option A — avec rechargement à chaud (dev)** :
 ```bash
-# Prérequis : Node.js (18+) et npm, backend déjà lancé (Partie 1)
+# Prérequis : Node.js (24 recommandé, comme le Dockerfile) et npm, backend déjà lancé (Partie 1)
 cd web
 npm install
 npm run dev
@@ -532,23 +539,23 @@ de rechargement à chaud mais aucune installation locale requise.
 ### Tester le flux complet (backend + Web ensemble)
 
 1. Backend lancé (`docker compose up --build`).
-2. App Web lancée (`npm run dev` dans `web/`).
-3. Onglet **Ajouter** : taper "Death Note" → suggestions Jikan → en choisir
-   une pré-remplit titre + attributs → **Ajouter**.
-4. Onglet **Étagères** : le manga apparaît immédiatement.
+2. App Web lancée (`npm run dev` dans `web/`), compte créé ou connexion faite.
+3. **Ajouter** : taper « Death Note » → suggestions de métadonnées (AniList,
+   Jikan…) → en choisir une pré-remplit titre + attributs → **Ajouter**.
+4. **Ma collection** : le manga apparaît immédiatement.
 5. Cliquer dessus → la fiche récupère Ownership/Experience/Tags/Relations
-   depuis l'API. "Ajouter une expérience" → note + commentaire →
+   depuis l'API. « Ajouter une expérience » → note + commentaire →
    **Enregistrer**.
-6. Onglet **Recherche** : taper "Death Note" → résultat remonté par la
-   recherche transversale côté serveur → "Vérifier" confirme "Possédé".
-7. Onglet **Recherche** sur un titre pas encore possédé → "Vérifier" →
-   "Ajouter à la wishlist" → onglet **Wishlist** : le titre y apparaît.
-8. Onglet **Stats** : les compteurs reflètent ce qui vient d'être ajouté ;
-   "Voir des suggestions" propose des mangas/jeux (et jeux vidéo via IGDB,
-   si des identifiants sont configurés) à ajouter en un clic.
-9. Bouton "Gérer les types" (écran Étagères) : crée un type personnalisé
-   (ex: "Films", champ personnalisé "réalisateur") — il apparaît aussitôt
-   dans le sélecteur de l'onglet Ajouter et les filtres des Étagères.
+6. **Ajouter** (recherche) sur un titre déjà possédé → il est signalé comme
+   possédé ; sur un titre pas encore possédé, la fiche propose de le mettre en
+   **envie** ou de le **suivre**. **Ma collection** filtre ensuite sur
+   Possédés, Envies et Suivies.
+7. **Découvrir** : les suggestions (et, pour les jeux vidéo, IGDB si des
+   identifiants sont configurés) s'ajoutent en un clic ; « Sorties » ouvre le
+   calendrier. Les statistiques sont à `/stats`, le bilan à `/recap`.
+8. Créer un type personnalisé depuis l'écran des types (`/types`, ex :
+   « Films », champ personnalisé « réalisateur ») : il apparaît aussitôt dans l'écran Ajouter et
+   dans les filtres de Ma collection.
 
 ---
 
@@ -559,6 +566,24 @@ Backend et iOS ont chacun un point de départ documenté pour ça (section
 un seul fichier (`Config.xcconfig`) à modifier ; côté backend, 2-3 endroits
 ciblés selon jusqu'où tu veux aller (nom Maven, noms des services Docker,
 et le package Java si tu veux aussi renommer ça via ton IDE).
+
+## Fichiers de déploiement
+
+Dans `backend/` : `docker-compose.yml` (dev local), `docker-compose.e2e.yml`
+(pile jetable des tests de bout en bout du web, API sur `:8090`),
+`docker-compose.synology.yml` (NAS Synology, Traefik + HTTPS) et
+`docker-compose.nas.yml` (NAS, images publiées). Le détail est dans
+`docs/DEPLOIEMENT.md`.
+
+## Réglages de l'assistance IA et de la session
+
+Quelques réglages de `backend/.env` ne sont décrits nulle part ailleurs dans ce
+guide (la liste complète fait foi : `backend/.env.example`) :
+`GEMINI_API_KEY`, `GEMINI_MODEL` et `GEMINI_FALLBACK_MODEL` (assistance IA :
+lecture des photos d'une annonce et de l'étagère, suggestions d'éditions,
+estimations de prix ; sans clé, seuls les codes-barres visibles sont lus, en
+local), `GOOGLE_BOOKS_API_KEY` (la clé principale ; les clés de secours sont
+décrites plus haut) et `SESSION_COOKIE_SECURE` (à activer derrière HTTPS).
 
 ## Limites connues (assumées, pas des oublis)
 
@@ -585,12 +610,12 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
 - Le **lookup par code-barres** ne couvre que les mangas (ISBN, via Open
   Library) — les jeux vidéo/société utilisent des codes-barres UPC/EAN,
   hors du périmètre d'Open Library ; le scan y pré-remplit juste le code brut.
-- **Éditeur de types dynamique** : les champs personnalisés
+- **Types de collection dynamiques** : les champs personnalisés
   (`customFieldKeys`) restent purement descriptifs, rien ne valide côté
   serveur qu'une Entity respecte les champs déclarés par son type. Le
-  lookup code-barres, l'import BGG et la découverte restent câblés sur les
-  3 codes historiques (`MANGA`/`BOARD_GAME`/`VIDEO_GAME`) — un type créé
-  par l'utilisateur n'a accès à aucun de ces trois, intrinsèquement liés à
+  lookup code-barres, l'import BGG et la découverte vivent dans les modules
+  `manga`, `boardgame` et `videogame` — un type créé par l'utilisateur
+  (module `custom`) n'a accès à aucun de ces trois, intrinsèquement liés à
   des API externes spécifiques.
 - **L'authentification vit désormais dans l'application** (depuis le
   2026-08-29) : comptes, session en cookie, et chaque compte cloisonné sur sa
@@ -615,15 +640,14 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
   l'API navigateur `BarcodeDetector` (Shape Detection API) : disponible sur
   Chrome/Edge desktop et Android, absente de Safari et Firefox, où l'écran
   annonce clairement le repli sur la saisie manuelle de l'ISBN. L'app Web n'a
-  par ailleurs pas de **cache hors-ligne** persistant (contrairement au cache
-  SwiftData de l'iOS) — pensée pour tester avec le backend lancé, pas pour un
-  usage nomade.
+  par ailleurs pas de **cache hors-ligne** des données : le service worker ne
+  garde que la coquille de l'app, jamais `/api`.
 
 ## En cas de problème
 
 - **`docker compose up` échoue au build** : vérifier que Docker Desktop
   tourne et a assez de mémoire allouée (4 Go minimum recommandé).
-- **L'app iOS n'arrive pas à joindre l'API** : vérifier que
+- **(iOS, hors service) L'app iOS n'arrive pas à joindre l'API** : vérifier que
   `docker compose up` est bien lancé et que `curl http://localhost:8080/...`
   répond depuis le Mac. Le simulateur iOS partage le réseau du Mac, donc
   `localhost` fonctionne tel quel — pas besoin de trouver une IP.
@@ -644,7 +668,7 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
 - **Créer/modifier un type (ou toute autre action d'écriture) échoue en
   403 "Invalid CORS request" depuis l'app Web** : l'origine du navigateur
   n'est pas dans `WEB_ALLOWED_ORIGINS` côté backend (voir
-  `api/config/CorsConfig.java`) — par défaut seuls `localhost:5173` (dev
+  `backend/src/main/java/com/iozycore/core/api/config/CorsConfig.java`) — par défaut seuls `localhost:5173` (dev
   Vite) et `localhost:8081` (build Docker local) sont autorisés ; en
   déploiement Synology, définir cette variable avec le vrai domaine du
   service web dans `.env`.
