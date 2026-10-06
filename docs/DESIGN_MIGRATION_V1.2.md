@@ -8609,6 +8609,10 @@ affiché dans le pied de page, qui est déduit du type des commits
 - **À savoir** : un commit `docs:` déployé monte quand même le patch, donc le
   numéro lu sur le site. Le type se choisit avec soin.
 
+- **Skills de lot** : `debut-de-lot` (cadrer, explorer, planifier, valider) est ajouté ;
+  `fin-de-lot` gagne la revue de code et le push, qui déclenche le déploiement
+  quand il part de `main`.
+
 Vérifié : `node scripts/version.mjs` donne 1.32.5 avant et après, 10 tests de
 `version.test.mjs` verts. Pas d'e2e ni de vérification en direct : ni `web/` ni
 l'API n'ont changé.
