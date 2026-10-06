@@ -8590,3 +8590,25 @@ bouton du système).
 Vérifié : 423 tests web, 18 parcours Playwright, typecheck, lint, contraste
 (116 combinaisons), build ; captures des écrans clés en sombre et en clair,
 mobile et desktop, et le squelette de l'accueil sous une API ralentie.
+
+### Lot 150 — Les conventions de commit et le numéro de version
+
+Pas d'écran touché : le lot met d'accord les règles de commit et le numéro
+affiché dans le pied de page, qui est déduit du type des commits
+(`web/scripts/version.mjs`).
+
+- **Portée facultative, absente par défaut** : le skill `commit` et `CLAUDE.md`
+  écrivent `type: subject`. La liste de portées est supprimée (elle était longue
+  à tenir à jour et le calcul de version ne lit que le type). L'historique
+  mélangeait déjà des variantes (`sortie`/`sorties`, `nav`/`navigation`).
+- **Règle de version écrite** : section « Numéro de version » dans
+  `docs/DEPLOIEMENT.md` (`feat` = mineur, `!` ou `BREAKING CHANGE:` = majeur, le
+  reste = patch ; départ au dernier tag `vX.Y.Z` ; tag posé après la
+  publication ; échec volontaire sans tag). Les tags `version-379` à `381`
+  restent en place, ignorés par le calcul.
+- **À savoir** : un commit `docs:` déployé monte quand même le patch, donc le
+  numéro lu sur le site. Le type se choisit avec soin.
+
+Vérifié : `node scripts/version.mjs` donne 1.32.5 avant et après, 10 tests de
+`version.test.mjs` verts. Pas d'e2e ni de vérification en direct : ni `web/` ni
+l'API n'ont changé.

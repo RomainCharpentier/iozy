@@ -59,6 +59,6 @@ Le propriétaire peut commiter **directement sur `main`**. Pour tout le reste (a
 
 ### Messages de commit
 
-Conventional Commits, **en anglais** (sujet comme corps), `type(scope): subject`, impératif, sans point final, ~65 caractères. Termine par la ligne `Co-Authored-By` que la session impose. **Un commit = une intention.** Le détail (types, portées, corps) est dans le skill `/commit`, qui lance aussi la suite complète du dossier touché avant de commiter.
+Conventional Commits, **en anglais** (sujet comme corps), `type: subject` (portée facultative, absente par défaut), impératif, sans point final, ~65 caractères. Termine par la ligne `Co-Authored-By` que la session impose. **Un commit = une intention.** Le détail (types, portées, corps) est dans le skill `/commit`, qui lance aussi la suite complète du dossier touché avant de commiter. Le type décide aussi du numéro de version (`feat` = mineur, `!` = majeur, le reste = patch) : voir « Numéro de version » dans `docs/DEPLOIEMENT.md`.
 
 L'historique d'avant cette règle est en français : ne le réécris pas (ni rebase, ni `--amend` sur du déjà poussé). Les messages de fusion automatiques (`Merge remote-tracking branch …`) restent tels quels.
