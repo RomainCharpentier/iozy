@@ -8705,3 +8705,77 @@ iozycore-api` (sessions perdues, V36 appliquée à la base de dev). (2) Playwrig
 1.63 demandait un Chromium absent : `npx playwright install chromium`. (3) Le
 batch ne relit que 10 séries par passage : sur une grande collection, plusieurs
 lancements manuels sont nécessaires, la ligne dit combien il en reste.
+
+### Lot 153 — La validation photo s'enregistre à chaque tome, et se quitte quand on veut
+
+Import de la bibliothèque depuis une photo (lot 147). Retour du propriétaire :
+« ça me saoule de pas pouvoir finir l'étape de validation quand je le veux. Si ma
+photo montre 80 mangas, je devrais faire les 80. Et il faut pas gérer ceux déjà
+dans ma collection. » Puis : « je voudrais que ça enregistre à chaque fois que je
+valide un tome, ça permet de quitter à tout moment ».
+
+- **« C'est bien ça » écrit tout de suite** : ce seul tome part à
+  `POST /api/shelf-import/apply` (même déduplication serveur que le
+  récapitulatif), l'extrait suivant n'arrive qu'une fois le tome enregistré, et un
+  échec laisse sur l'extrait avec « L'ajout a échoué : rien n'a été écrit ».
+  « Écarter » n'écrit rien. C'est un revirement de la règle du lot 147 (« un écran
+  qui relit avant d'écrire ») : la validation un par un EST la relecture. Le
+  récapitulatif et sa relecture restent pour ce qui n'est pas encore décidé.
+  Quitter la page ne perd rien : relire la même photo montre ces tomes comme
+  « déjà possédés » (règle serveur du lot 147).
+- **Les possédés ne se gèrent pas** : retirés des groupes, des pastilles et du
+  compteur du récapitulatif, qui les compte en une phrase (« dont N déjà dans ta
+  collection ignorés », « N ajoutés à l'instant »). Ils n'étaient déjà plus dans
+  la validation. Limite connue : un tome possédé dont le numéro n'est pas lu, ou
+  dont la série n'est pas rattachée au catalogue, ne peut pas être reconnu côté
+  serveur et reste proposé.
+- **Reprise au premier extrait non décidé** : le bouton du récapitulatif disait
+  toujours « Valider un par un (N) » et repartait de 0. Il dit maintenant
+  « Reprendre la validation (47 restants sur 60) » et reprend là où on s'était
+  arrêté ; « Passer » laisse un extrait ouvert.
+- **Une édition a toujours un nom** : plus de « Je ne sais pas ». Choix dans une
+  liste déroulante (`ChoixEdition`), présélectionné quand il n'y a qu'un choix,
+  vide sinon ; rien ne s'écrit pour une série qui n'est pas rattachée au catalogue
+  tant que l'édition n'est pas choisie (la série rattachée garde l'édition que le
+  catalogue résout). La liste d'une série nouvelle vient du catalogue et des
+  sources (`useEditionsDesSeries` : mêmes appel et clé de cache que la fiche
+  d'une œuvre, `searchVolumes`), **une série à la fois, celle de l'extrait en
+  cours** — une recherche par série au récapitulatif ferait bloquer l'IP par la
+  BnF. Aucune édition trouvée, ou source muette : le seul choix est « Édition
+  standard ». Noms dédoublonnés sans casse ni accents (« Édition Originale » =
+  « Édition originale »).
+- **La mention lue sur la photo ne sert que de repli** : une tranche montre
+  souvent l'éditeur (« Glénat »), que le moteur renvoie comme édition ; elle
+  s'affichait à côté de la vraie (One Piece : « Glénat » + « Édition originale »
+  pour une seule édition). Elle n'entre plus dans la liste que si le catalogue et
+  les sources n'en connaissent aucune. Contrepartie : une vraie édition distincte
+  lue sur la photo (« Masked ») n'est plus proposée quand le catalogue en connaît
+  déjà une. Si le cas se présente, resserrer le prompt de lecture plutôt que
+  d'ajouter un champ libre.
+- **Contrôles natifs aux couleurs de l'app** : `color-scheme` suivait le système
+  (`light dark`), pas le thème choisi dans l'app, donc la liste déroulante
+  s'ouvrait en couleurs claires avec le texte clair de l'app. `html` = `light`,
+  `html[data-theme="dark"]` = `dark`, et les `option` prennent la surface et le texte
+  de l'app. Le réglage est global : les autres contrôles natifs (défilement,
+  dates) suivent aussi le thème de l'app. La surbrillance de l'option survolée est
+  dessinée par le navigateur ; si elle reste illisible, il faudra une liste
+  dessinée par l'app.
+
+Vérifié : `import-photo.spec.ts` étendu, 19 parcours e2e verts. Le nouveau parcours
+fait lire la photo par une réponse simulée (la pile n'a pas de moteur) et laisse
+tout le reste réel : la liste d'éditions (aucune clé de source, donc « Édition
+standard » présélectionnée), l'écriture au clic (réponse `apply` : 1 tome ajouté,
+édition « Édition standard »), puis, la page quittée sur le deuxième extrait, la
+possession relue par `/api/ownerships` (1). Pile jetable détruite ensuite.
+Web : 440 tests (dont reprise, échec d'écriture, numéro corrigé, édition à
+choisir, liste unique avec éditeur lu et deux orthographes), mutations vérifiées
+(reprise, possédés, présélection, repli, source muette, dédoublonnage),
+`typecheck`, `lint` propre sur `import-photo`, `check:frontieres`,
+`check:contrast`, `build`. Pas touché au backend. **Non vérifié** : la lecture avec
+le vrai moteur (clé Gemini) et le rendu de la liste ouverte dans un vrai
+navigateur — le navigateur de l'app ne compose aucune image. Piège rencontré :
+dans un script Bash, les antislashs d'une expression régulière arrivent perdus
+(`\p{M}` devient `p{M}`) ; écrire ces fichiers avec l'outil d'édition.
+
+
+Revue du lot : deux défauts de correction trouvés et corrigés. (1) « Précédent » et « Passer » restaient actifs pendant l'enregistrement : un clic juste après « C'est bien ça » détachait le rappel, le tome était écrit mais pas marqué ; ils sont grisés tant que l'ajout est en route. (2) Quand seules les éditions manquaient, le récapitulatif disait « Rien de coché à ajouter » ; il dit « Choisis une édition pour ajouter ». 442 tests web.

@@ -7,6 +7,9 @@ import { preparerLesPhotos } from '@/common/lib/photosAAnalyser'
 import { resumerNumeros } from '@/common/lib/numerosDeTomes'
 import type { EtatCadre } from './PhotoAnnotee'
 import { ValidationUnParUn, type Extrait } from './ValidationUnParUn'
+import { ChoixEdition } from './ChoixEdition'
+import { editionNommee } from './editionNommee'
+import { useEditionsDesSeries, type ChoixPossibles } from './useEditionsDesSeries'
 import {
   COULEURS_CONFIANCE,
   LIBELLES_CONFIANCE,
@@ -41,8 +44,14 @@ import type {
  * collection?". Hence the **already owned** volumes, checked and inert, and the
  * **proposed work page** for a series that is still unknown to the catalog.
  *
- * <h2>Nothing is written before the gesture - and the gesture comes in two steps</h2>
- * The reading creates nothing. "Vérifier l'ajout de N tomes" moves to a
+ * <h2>The one-by-one check writes each volume as it is confirmed</h2>
+ * "C'est bien ça" adds that single volume right away, with the edition and the
+ * work page the summary would have used: the check IS the review, and the user
+ * can leave at any point - what is confirmed is already in the collection, and
+ * reading the same photo again shows it as owned. "Écarter" writes nothing.
+ *
+ * <h2>The summary and the review write the rest, in two steps</h2>
+ * The reading itself creates nothing. "Vérifier l'ajout de N tomes" moves to a
  * review that shows, series by series, what would be sent; it is there that
  * "Ajouter N tomes à ma collection" sends exactly what is checked -
  * title, number, edition, work page kept or not - and the server writes in one
@@ -54,9 +63,6 @@ import type {
  * The subtitle says so before the choice of files, and nothing is sent without this
  * choice: it is the consent, not a separate flag.
  */
-
-/** "Je ne sais pas": the volume is added without an edition. */
-const SANS_EDITION = ''
 
 interface Correction {
   coche?: boolean
@@ -135,6 +141,8 @@ export function ImportPhotoPage() {
       setEditions({})
       setFichesChoisies({})
       setGroupesRetires({})
+      setAjoutes({})
+      ajout.reset()
       // The check is one by one: as soon as there is something to
       // validate, we enter it directly; the summary by series comes
       // after. With nothing to validate (all owned, nothing read), the summary
@@ -148,6 +156,14 @@ export function ImportPhotoPage() {
     mutationFn: importerDepuisLEtagere,
     onSuccess: () => invaliderApresPossession(queryClient),
   })
+
+  /** One volume at a time, from the one-by-one check. */
+  const ajout = useMutation({
+    mutationFn: importerDepuisLEtagere,
+    onSuccess: () => invaliderApresPossession(queryClient),
+  })
+  /** The volumes added from the one-by-one check during this reading. */
+  const [ajoutes, setAjoutes] = useState<Record<string, boolean>>({})
 
   const choisirPhotos = (liste: FileList | null) => {
     setRefusees(null)
@@ -188,6 +204,8 @@ export function ImportPhotoPage() {
    */
   const groupes: Groupe[] = []
   for (const ligne of lignes) {
+    // An owned volume has nothing to decide: it only shows in a one-line count.
+    if (ligne.entree.alreadyOwned) continue
     const item = ligne.entree.item
     const cle = `${cleSerie(item)}|${(item.editionHint ?? '').toLowerCase()}`
     if (groupesRetires[cle]) continue
@@ -217,12 +235,17 @@ export function ImportPhotoPage() {
     })
   }
 
+  /** Already in the collection: owned before the photo, or added from the one-by-one check. */
+  function estPossede(ligne: Ligne): boolean {
+    return ligne.entree.alreadyOwned || ajoutes[ligne.cle] === true
+  }
+
   function numeroDe(ligne: Ligne): number | null {
     return ligne.entree.item.volumeNumber ?? corrections[ligne.cle]?.numero ?? null
   }
 
   function estCoche(ligne: Ligne): boolean {
-    if (ligne.entree.alreadyOwned) return true
+    if (estPossede(ligne)) return true
     const correction = corrections[ligne.cle]
     if (correction?.decoche) return false
     if (correction?.coche) return true
@@ -235,20 +258,34 @@ export function ImportPhotoPage() {
   }
 
   function estImportable(ligne: Ligne): boolean {
-    return !ligne.entree.alreadyOwned && estCoche(ligne) && numeroDe(ligne) !== null
+    return !estPossede(ligne) && estCoche(ligne) && numeroDe(ligne) !== null
   }
 
   /**
-   * The edition kept for a series. Known from the catalog: its own. To
-   * confirm: nothing until the user has chosen - a single known edition
-   * is not a reason to assign it to them. New series: what
-   * the photo said, if there was something.
+   * The edition kept for a series. Matched to the catalog: what the photo said,
+   * if anything - the server resolves the rest. Otherwise the one the user picked
+   * from the list, or the only choice when there is just one; with several, nothing
+   * until they pick. Empty = no name yet.
    */
   function editionDe(groupe: Groupe): string {
     const choisie = editions[groupe.cle]
     if (choisie !== undefined) return choisie
-    if (groupe.catalogStatus === 'EDITION_TO_CONFIRM') return SANS_EDITION
-    return groupe.editionLue ?? SANS_EDITION
+    if (groupe.catalogStatus === 'MATCHED') return groupe.editionLue ?? ''
+    return choixEdition(groupe).parDefaut
+  }
+
+  /**
+   * An edition always has a name. A series that is not plainly matched to the
+   * catalog gets none by guess: nothing is written for it until one is chosen or
+   * typed. (A matched series keeps the edition the catalog resolves for it.)
+   */
+  function editionManquante(groupe: Groupe): boolean {
+    return groupe.catalogStatus !== 'MATCHED' && !editionNommee(editionDe(groupe))
+  }
+
+  /** The checked volumes of a series that can be sent - none while its edition has no name. */
+  function lignesAImporter(groupe: Groupe): Ligne[] {
+    return editionManquante(groupe) ? [] : groupe.lignes.filter(estImportable)
   }
 
   /**
@@ -278,45 +315,41 @@ export function ImportPhotoPage() {
     setCorrections((prev) => {
       const suivant = { ...prev }
       for (const ligne of groupe.lignes) {
-        if (ligne.entree.alreadyOwned) continue
+        if (estPossede(ligne)) continue
         suivant[ligne.cle] = { ...suivant[ligne.cle], coche: cocher, decoche: !cocher }
       }
       return suivant
     })
   }
 
-  function tomesAImporter(): TomeAImporter[] {
-    return groupes.flatMap((groupe) => {
-      const edition = editionDe(groupe)
-      const fiche = ficheGardee(groupe)
-      return groupe.lignes.filter(estImportable).map((ligne) => {
-        const tome: TomeAImporter = { seriesTitle: titreDe(groupe), volumeNumber: numeroDe(ligne) as number }
-        if (edition) tome.edition = edition
-        if (fiche) {
-          tome.attributes = fiche.attributes
-          if (fiche.imageUrl) tome.coverImageUrl = fiche.imageUrl
-        }
-        return tome
-      })
-    })
+  /** What is sent for one volume of a series: its title, number, edition and work page kept. */
+  function tomeAEnvoyer(groupe: Groupe, numero: number): TomeAImporter {
+    const edition = editionDe(groupe).trim()
+    const fiche = ficheGardee(groupe)
+    const tome: TomeAImporter = { seriesTitle: titreDe(groupe), volumeNumber: numero }
+    if (edition) tome.edition = edition
+    if (fiche) {
+      tome.attributes = fiche.attributes
+      if (fiche.imageUrl) tome.coverImageUrl = fiche.imageUrl
+    }
+    return tome
   }
 
-  const aImporter = tomesAImporter()
-  /** What the review displays: by series, the numbers that would be sent. */
-  const relecture: SerieARelire[] = groupes
-    .map((groupe) => ({
-      groupe,
-      numeros: groupe.lignes.filter(estImportable).map((ligne) => numeroDe(ligne) as number),
-    }))
-    .filter((serie) => serie.numeros.length > 0)
+  function tomesAImporter(): TomeAImporter[] {
+    return groupes.flatMap((groupe) =>
+      lignesAImporter(groupe).map((ligne) => tomeAEnvoyer(groupe, numeroDe(ligne) as number)),
+    )
+  }
+
   const dejaPossedes = lignes.filter((ligne) => ligne.entree.alreadyOwned).length
-  const enCours = lecture.isPending || importation.isPending
+  const nbAjoutes = lignes.filter((ligne) => ajoutes[ligne.cle]).length
+  const enCours = lecture.isPending || importation.isPending || ajout.isPending
 
   // ------------------------------------------- The frames on the photo, the excerpts
 
   /** The state of a volume, the same on its pill and on its frame. */
   function etatDe(ligne: Ligne): EtatCadre {
-    if (ligne.entree.alreadyOwned) return 'possede'
+    if (estPossede(ligne)) return 'possede'
     if (numeroDe(ligne) === null) return 'sansNumero'
     return estCoche(ligne) ? 'coche' : 'decoche'
   }
@@ -332,22 +365,73 @@ export function ImportPhotoPage() {
    * right - the order of a row - then what the engine could not place.
    * An already owned volume has nothing to validate.
    */
-  const extraits: Extrait[] = lignesEnPlace
+  const extraitsBase = lignesEnPlace
     .filter(({ ligne }) => !ligne.entree.alreadyOwned)
     .map(({ ligne, groupe }) => ({
-      cle: ligne.cle,
-      titre: groupe.titre,
-      numero: numeroDe(ligne),
-      editionLue: ligne.entree.item.editionHint,
-      confiance: ligne.entree.item.confidence,
-      indice: ligne.entree.item.evidence.join(' · '),
-      box: ligne.entree.item.boxes[0] ?? null,
-      etat: etatDe(ligne),
+      groupe,
+      extrait: {
+        cle: ligne.cle,
+        titre: groupe.titre,
+        numero: numeroDe(ligne),
+        editionLue: ligne.entree.item.editionHint,
+        confiance: ligne.entree.item.confidence,
+        indice: ligne.entree.item.evidence.join(' · '),
+        box: ligne.entree.item.boxes[0] ?? null,
+        etat: etatDe(ligne),
+      },
     }))
     .sort((a, b) => {
-      if (!a.box || !b.box) return Number(!a.box) - Number(!b.box)
-      return a.box.image - b.box.image || a.box.left - b.box.left
+      if (!a.extrait.box || !b.extrait.box) return Number(!a.extrait.box) - Number(!b.extrait.box)
+      return a.extrait.box.image - b.extrait.box.image || a.extrait.box.left - b.extrait.box.left
     })
+
+  // The editions to pick from; the sources are only asked for the series being checked.
+  const choixEdition = useEditionsDesSeries({
+    series: groupes,
+    courante: extraitsBase[pas]?.groupe.cle,
+    actif: resultat !== null && etape === 'unparun',
+  })
+
+  const extraits: Extrait[] = extraitsBase.map(({ groupe, extrait }) => ({
+    ...extrait,
+    // Asked before writing: an edition has a name, and none is guessed.
+    choixEdition:
+      groupe.catalogStatus !== 'MATCHED'
+        ? { ...choixEdition(groupe), editionLue: groupe.editionLue, choisie: editionDe(groupe) }
+        : null,
+  }))
+
+  const aImporter = tomesAImporter()
+  /** Volumes are checked but wait for the edition of their series to be chosen. */
+  const editionAChoisir = groupes.some((groupe) => editionManquante(groupe) && groupe.lignes.some(estImportable))
+  /** What the review displays: by series, the numbers that would be sent. */
+  const relecture: SerieARelire[] = groupes
+    .map((groupe) => ({
+      groupe,
+      numeros: lignesAImporter(groupe).map((ligne) => numeroDe(ligne) as number),
+    }))
+    .filter((serie) => serie.numeros.length > 0)
+
+  /**
+   * The excerpts the user has not decided yet: a "Passer" leaves one open. Coming
+   * back from the summary resumes at the first of them, not at the first excerpt.
+   */
+  const restants = extraits.filter((e) => e.etat !== 'possede' && !corrections[e.cle]?.coche && !corrections[e.cle]?.decoche)
+  const premierRestant = Math.max(0, extraits.findIndex((e) => restants.includes(e)))
+  const aTraiter = lignes.length - dejaPossedes - nbAjoutes
+
+  /** Writes this one volume now; the next excerpt comes only once it is in the collection. */
+  function ajouterCeTome(cle: string, numero: number) {
+    const trouve = lignesEnPlace.find((x) => x.ligne.cle === cle)
+    if (!trouve) return
+    ajout.mutate([tomeAEnvoyer(trouve.groupe, numero)], {
+      onSuccess: () => {
+        corriger(cle, { coche: true, decoche: false, numero })
+        setAjoutes((prev) => ({ ...prev, [cle]: true }))
+        setPas((p) => p + 1)
+      },
+    })
+  }
 
 
   const messageVision =
@@ -413,15 +497,22 @@ export function ImportPhotoPage() {
           urls={urls}
           tailles={tailles}
           onTaille={(image, taille) => setTailles((prev) => ({ ...prev, [image]: taille }))}
-          onConfirmer={(cle, numero) => {
-            corriger(cle, numero === null ? { coche: true, decoche: false } : { coche: true, decoche: false, numero })
-            setPas((p) => p + 1)
+          enregistrement={ajout.isPending}
+          echec={ajout.isError}
+          onConfirmer={ajouterCeTome}
+          onEdition={(cle, nom) => {
+            const groupe = lignesEnPlace.find((x) => x.ligne.cle === cle)?.groupe
+            if (groupe) setEditions((prev) => ({ ...prev, [groupe.cle]: nom }))
           }}
           onEcarter={(cle) => {
+            ajout.reset()
             corriger(cle, { decoche: true, coche: false })
             setPas((p) => p + 1)
           }}
-          onAller={(index) => setPas(Math.max(0, index))}
+          onAller={(index) => {
+            ajout.reset()
+            setPas(Math.max(0, index))
+          }}
           onTerminer={() => setEtape('verification')}
         />
       ) : resultat && etape === 'relecture' ? (
@@ -444,8 +535,12 @@ export function ImportPhotoPage() {
                 lignes.length === 0
                   ? 'Rien n’a pu être lu. Essaie une photo plus proche, une rangée à la fois.'
                   : `${lignes.length} ${pluriel(lignes.length, 'tome lu', 'tomes lus')} sur ${resultat.analyzedImageCount} ${pluriel(resultat.analyzedImageCount, 'photo', 'photos')}${
-                      dejaPossedes > 0 ? `, dont ${dejaPossedes} ${pluriel(dejaPossedes, 'déjà possédé', 'déjà possédés')}` : ''
-                    }. Vérifie, puis ajoute.`
+                      dejaPossedes > 0
+                        ? `, dont ${dejaPossedes} déjà dans ta collection ${pluriel(dejaPossedes, 'ignoré', 'ignorés')}`
+                        : ''
+                    }${nbAjoutes > 0 ? `, ${nbAjoutes} ${pluriel(nbAjoutes, 'ajouté', 'ajoutés')} à l’instant` : ''}. ${
+                      aTraiter > 0 ? 'Vérifie, puis ajoute.' : 'Rien à ajouter.'
+                    }`
               }
             />
 
@@ -471,23 +566,32 @@ export function ImportPhotoPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setPas(0)
+                  setPas(premierRestant)
                   setEtape('unparun')
                 }}
                 className="btn-secondaire self-start"
               >
-                Valider un par un ({extraits.length})
+                {restants.length === extraits.length
+                  ? `Valider un par un (${extraits.length})`
+                  : restants.length > 0
+                    ? `Reprendre la validation (${restants.length} ${pluriel(restants.length, 'restant', 'restants')} sur ${extraits.length})`
+                    : `Revoir un par un (${extraits.length})`}
               </button>
             )}
 
             <>
             {groupes.length > 0 && (
               <div className="flex flex-col gap-2">
-                {groupes.map((groupe) => (
+                {groupes
+                  // What was added from the one-by-one check is done: no pill for it here.
+                  .map((groupe) => ({ ...groupe, lignes: groupe.lignes.filter((ligne) => !ajoutes[ligne.cle]) }))
+                  .filter((groupe) => groupe.lignes.length > 0)
+                  .map((groupe) => (
                   <GroupeEtagere
                     key={groupe.cle}
                     groupe={groupe}
                     editionChoisie={editionDe(groupe)}
+                    choix={choixEdition(groupe)}
                     ficheGardee={ficheGardee(groupe) !== null}
                     numeroDe={numeroDe}
                     estCoche={estCoche}
@@ -537,10 +641,12 @@ export function ImportPhotoPage() {
                   className="btn-primaire"
                 >
                   {aImporter.length === 0
-                    ? 'Rien de coché à ajouter'
+                    ? editionAChoisir
+                      ? 'Choisis une édition pour ajouter'
+                      : 'Rien de coché à ajouter'
                     : `Vérifier l’ajout de ${aImporter.length} ${pluriel(aImporter.length, 'tome', 'tomes')}`}
                 </button>
-                {aImporter.length === 0 && dejaPossedes === lignes.length && (
+                {aImporter.length === 0 && dejaPossedes + nbAjoutes === lignes.length && (
                   <span className="text-xs text-textDim">Tout ce qui a été lu est déjà dans ta collection.</span>
                 )}
               </div>
@@ -560,6 +666,7 @@ export function ImportPhotoPage() {
 function GroupeEtagere({
   groupe,
   editionChoisie,
+  choix,
   ficheGardee,
   numeroDe,
   estCoche,
@@ -572,6 +679,7 @@ function GroupeEtagere({
 }: {
   groupe: Groupe
   editionChoisie: string
+  choix: ChoixPossibles
   ficheGardee: boolean
   numeroDe: (ligne: Ligne) => number | null
   estCoche: (ligne: Ligne) => boolean
@@ -715,47 +823,13 @@ function GroupeEtagere({
         </p>
       )}
       {aChoisir && groupe.catalogStatus !== 'MATCHED' && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-textDim">Édition :</span>
-          {groupe.editionOptions.map((option) => (
-            <button
-              key={option.editionId}
-              type="button"
-              onClick={() => onEdition(option.editionName)}
-              aria-pressed={editionChoisie === option.editionName}
-              className={`min-h-11 rounded-lg px-2.5 text-xs font-medium ${
-                editionChoisie === option.editionName ? 'bg-accent text-accentInk' : 'bg-surface2 text-textPrimary'
-              }`}
-            >
-              {option.editionName}
-            </button>
-          ))}
-          {/* What the photo says about the edition ("Masked", "Perfect") is worth
-              proposing even when the series is already in the catalog: its
-              known editions do not necessarily cover it. */}
-          {groupe.editionLue && !groupe.editionOptions.some((option) => option.editionName === groupe.editionLue) && (
-            <button
-              type="button"
-              onClick={() => onEdition(groupe.editionLue as string)}
-              aria-pressed={editionChoisie === groupe.editionLue}
-              className={`min-h-11 rounded-lg px-2.5 text-xs font-medium ${
-                editionChoisie === groupe.editionLue ? 'bg-accent text-accentInk' : 'bg-surface2 text-textPrimary'
-              }`}
-            >
-              {groupe.editionLue} (lu sur la photo)
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => onEdition(SANS_EDITION)}
-            aria-pressed={editionChoisie === SANS_EDITION}
-            className={`min-h-11 rounded-lg px-2.5 text-xs font-medium ${
-              editionChoisie === SANS_EDITION ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
-            }`}
-          >
-            Je ne sais pas
-          </button>
-        </div>
+        <ChoixEdition
+          proposees={choix.proposees}
+          enRecherche={choix.enRecherche}
+          editionLue={groupe.editionLue}
+          choisie={editionChoisie}
+          onEdition={onEdition}
+        />
       )}
     </div>
   )
@@ -798,7 +872,7 @@ function Relecture({
 
       <ul className="flex flex-col divide-y divide-line rounded-xl bg-surface px-3">
         {series.map(({ groupe, numeros }) => {
-          const edition = editionDe(groupe)
+          const edition = editionDe(groupe).trim()
           const fiche = ficheGardee(groupe)
           const nouvelle = groupe.catalogStatus === 'NOT_IN_CATALOG'
           return (
