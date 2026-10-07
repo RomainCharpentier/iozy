@@ -3,6 +3,9 @@ import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { COULEURS_CONFIANCE, LIBELLES_CONFIANCE } from '@/common/lib/reconnaissance'
 import type { BoxDto, RecognitionConfidence } from '@/common/types/listingRecognition'
+import { ChoixEdition } from './ChoixEdition'
+import { editionNommee } from './editionNommee'
+import type { ChoixPossibles } from './useEditionsDesSeries'
 import { PhotoAnnotee, type EtatCadre } from './PhotoAnnotee'
 import { rapportDuBloc, recadrer } from './recadrage'
 
@@ -12,9 +15,9 @@ import { rapportDuBloc, recadrer } from './recadrage'
  * For each book, the photo with its single frame - to place it on
  * the shelf - then this frame in close-up and what was read from it. The user confirms,
  * corrects the number, or sets it aside, then the next one, from left to right.
- * Nothing is written here: each gesture only checks or unchecks the
- * matching pill; the summary by series comes after, and the
- * review before writing remains the only required step.
+ * "C'est bien ça" adds that single volume to the collection right away, so the
+ * user can leave at any point; "Écarter" writes nothing. The summary by series
+ * comes after, for what is still undecided.
  */
 export interface Extrait {
   cle: string
@@ -26,6 +29,8 @@ export interface Extrait {
   indice: string
   box: BoxDto | null
   etat: EtatCadre
+  /** Set when the series needs its edition chosen before anything is written. */
+  choixEdition: (ChoixPossibles & { editionLue: string | null; choisie: string }) | null
 }
 
 export function ValidationUnParUn({
@@ -33,7 +38,10 @@ export function ValidationUnParUn({
   index,
   urls,
   tailles,
+  enregistrement,
+  echec,
   onConfirmer,
+  onEdition,
   onEcarter,
   onAller,
   onTerminer,
@@ -43,7 +51,12 @@ export function ValidationUnParUn({
   index: number
   urls: string[]
   tailles: Record<number, { w: number; h: number }>
-  onConfirmer: (cle: string, numero: number | null) => void
+  /** An add is on its way: the buttons wait for it. */
+  enregistrement: boolean
+  /** The last add failed. */
+  echec: boolean
+  onConfirmer: (cle: string, numero: number) => void
+  onEdition: (cle: string, editionName: string) => void
   onEcarter: (cle: string) => void
   onAller: (index: number) => void
   onTerminer: () => void
@@ -53,16 +66,16 @@ export function ValidationUnParUn({
   const extrait = extraits[index]
 
   if (!extrait) {
-    const confirmes = extraits.filter((e) => e.etat === 'coche').length
+    const ajoutes = extraits.filter((e) => e.etat === 'possede').length
     const ecartes = extraits.filter((e) => e.etat === 'decoche').length
     return (
       <section aria-labelledby="titre-un-par-un" className="flex flex-col gap-3">
         <EnTeteSection
           niveau={2}
           titre={<span id="titre-un-par-un">Tout est passé en revue</span>}
-          sousTitre={`${confirmes} ${confirmes > 1 ? 'confirmés' : 'confirmé'}, ${ecartes} ${ecartes > 1 ? 'écartés' : 'écarté'}${
-            total - confirmes - ecartes > 0 ? `, ${total - confirmes - ecartes} sans numéro` : ''
-          }. Rien n’est écrit : le récapitulatif te montre le résultat par série, puis tu relis avant d’ajouter.`}
+          sousTitre={`${ajoutes} ${ajoutes > 1 ? 'ajoutés' : 'ajouté'} à ta collection, ${ecartes} ${ecartes > 1 ? 'écartés' : 'écarté'}${
+            total - ajoutes - ecartes > 0 ? `, ${total - ajoutes - ecartes} pas encore décidés` : ''
+          }. Le récapitulatif te montre le reste, série par série.`}
         />
         <button
           type="button"
@@ -124,7 +137,10 @@ export function ValidationUnParUn({
         taille={extrait.box ? tailles[extrait.box.image] : undefined}
         premier={index === 0}
         dernier={index === total - 1}
+        enregistrement={enregistrement}
+        echec={echec}
         onConfirmer={(numero) => onConfirmer(extrait.cle, numero)}
+        onEdition={(nom) => onEdition(extrait.cle, nom)}
         onEcarter={() => onEcarter(extrait.cle)}
         onPrecedent={() => onAller(index - 1)}
         onPasser={() => onAller(index + 1)}
@@ -140,7 +156,10 @@ function FicheExtrait({
   taille,
   premier,
   dernier,
+  enregistrement,
+  echec,
   onConfirmer,
+  onEdition,
   onEcarter,
   onPrecedent,
   onPasser,
@@ -150,7 +169,10 @@ function FicheExtrait({
   taille: { w: number; h: number } | undefined
   premier: boolean
   dernier: boolean
-  onConfirmer: (numero: number | null) => void
+  enregistrement: boolean
+  echec: boolean
+  onConfirmer: (numero: number) => void
+  onEdition: (editionName: string) => void
   onEcarter: () => void
   onPrecedent: () => void
   onPasser: () => void
@@ -188,7 +210,7 @@ function FicheExtrait({
           <span className="flex flex-wrap items-center gap-x-2 text-xs">
             <span className={COULEURS_CONFIANCE[extrait.confiance]}>{LIBELLES_CONFIANCE[extrait.confiance]}</span>
             {extrait.editionLue && <span className="text-textDim">édition lue : {extrait.editionLue}</span>}
-            {extrait.etat === 'possede' && <span className="text-ok">déjà possédé</span>}
+            {extrait.etat === 'possede' && <span className="text-ok">ajouté à ta collection</span>}
           </span>
           {extrait.indice && <span className="text-xs text-textDim">Ce que le lecteur a vu : {extrait.indice}</span>}
         </div>
@@ -209,20 +231,42 @@ function FicheExtrait({
           )}
         </label>
 
+        {extrait.choixEdition && extrait.etat !== 'possede' && (
+          <ChoixEdition
+            proposees={extrait.choixEdition.proposees}
+            enRecherche={extrait.choixEdition.enRecherche}
+            editionLue={extrait.choixEdition.editionLue}
+            choisie={extrait.choixEdition.choisie}
+            onEdition={onEdition}
+          />
+        )}
+
+        {echec && (
+          <p role="alert" className="text-xs text-dangerText">
+            L’ajout a échoué : rien n’a été écrit. Réessaie.
+          </p>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => onConfirmer(numeroSaisi)}
-            disabled={numeroSaisi === null || numeroSaisi < 1 || extrait.etat === 'possede'}
+            onClick={() => numeroSaisi !== null && onConfirmer(numeroSaisi)}
+            disabled={
+              numeroSaisi === null ||
+              numeroSaisi < 1 ||
+              extrait.etat === 'possede' ||
+              enregistrement ||
+              (extrait.choixEdition !== null && !editionNommee(extrait.choixEdition.choisie))
+            }
             className="btn-primaire"
           >
             <Check size={14} />
-            C’est bien ça
+            {enregistrement ? 'Ajout…' : 'C’est bien ça'}
           </button>
           <button
             type="button"
             onClick={onEcarter}
-            disabled={extrait.etat === 'possede'}
+            disabled={extrait.etat === 'possede' || enregistrement}
             className="btn-secondaire"
           >
             <X size={14} />
@@ -231,7 +275,7 @@ function FicheExtrait({
           <button
             type="button"
             onClick={onPrecedent}
-            disabled={premier}
+            disabled={premier || enregistrement}
             aria-label="Extrait précédent"
             className="flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm text-textDim disabled:opacity-40"
           >
@@ -241,8 +285,9 @@ function FicheExtrait({
           <button
             type="button"
             onClick={onPasser}
+            disabled={enregistrement}
             aria-label={dernier ? 'Terminer la revue' : 'Extrait suivant'}
-            className="flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm text-textDim"
+            className="flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm text-textDim disabled:opacity-40"
           >
             {dernier ? 'Terminer' : 'Passer'}
             <ArrowRight size={14} />
