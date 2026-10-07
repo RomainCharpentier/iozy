@@ -6,6 +6,7 @@ import com.iozycore.core.domain.follow.FollowedWorkRepository;
 import com.iozycore.core.application.QuickAddService;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,8 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
     private WishlistEntryRepository wishlistEntryRepository;
     @Autowired
     private FollowedWorkRepository followedWorkRepository;
+    @Autowired
+    private OwnershipRepository ownershipRepository;
 
     @Test
     void lists_a_hand_dated_owned_work_with_everything_the_calendar_page_needs() throws Exception {
@@ -118,13 +121,74 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
     }
 
     @Test
-    void an_owned_work_nobody_follows_stays_out_of_the_calendar() throws Exception {
+    void the_latest_come_newest_first_with_no_period_to_give() throws Exception {
+        String title = "Dans longtemps " + UUID.randomUUID();
+        QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
+                EntityTypeFixtures.BOARD_GAME.id(), title, OwnershipCondition.NEW, Map.of("releaseDate", "2099-06-15"));
+        followedWorkRepository.save(FollowedWork.follow(result.entityId(), LocalDate.now()));
+
+        // Far beyond the one-year bound of the calendar, and still first.
+        mockMvc.perform(get("/api/insights/releases/latest").param("limit", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries[0].entityId").value(result.entityId().toString()))
+                .andExpect(jsonPath("$.entries[0].date").value("2099-06-15"))
+                .andExpect(jsonPath("$.entries[0].precision").value("DAY"))
+                .andExpect(jsonPath("$.entries[0].entityTitle").value(title));
+
+        mockMvc.perform(get("/api/insights/releases/latest"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries[0].entityId").value(result.entityId().toString()));
+    }
+
+    @Test
+    void the_latest_refuse_a_limit_outside_one_to_fifty() throws Exception {
+        mockMvc.perform(get("/api/insights/releases/latest").param("limit", "0")).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/insights/releases/latest").param("limit", "51")).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void the_refresh_status_says_whether_a_launch_is_possible_and_when_it_last_ran() throws Exception {
+        mockMvc.perform(get("/api/insights/releases/refresh"))
+                .andExpect(status().isOk())
+                // The manga universe can refresh its dates; nothing runs from a test.
+                .andExpect(jsonPath("$.available").value(true))
+                .andExpect(jsonPath("$.running").value(false));
+    }
+
+    @Test
+    void an_owned_work_nobody_follows_is_in_the_calendar_as_owned() throws Exception {
         QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
                 EntityTypeFixtures.BOARD_GAME.id(), "Pas suivi " + UUID.randomUUID(), OwnershipCondition.NEW,
                 Map.of("releaseDate", "2026-10-20"));
 
         mockMvc.perform(get("/api/insights/releases").param("from", "2026-10-01").param("to", "2026-10-31"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.entries[?(@.entityId == '" + result.entityId() + "')]").doesNotExist());
+                .andExpect(jsonPath("$.entries[?(@.entityId == '" + result.entityId() + "')].relation").value("OWNED"));
+    }
+
+    @Test
+    void a_wanted_work_nobody_follows_is_in_the_calendar_as_wanted() throws Exception {
+        QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
+                EntityTypeFixtures.BOARD_GAME.id(), "Voulu " + UUID.randomUUID(), OwnershipCondition.NEW,
+                Map.of("releaseDate", "2026-10-21"));
+        // Not owned any more, only wanted: the possession goes, the wish stays.
+        ownershipRepository.findByEntityId(result.entityId()).forEach(o -> ownershipRepository.deleteById(o.id()));
+        wishlistEntryRepository.save(WishlistEntry.add(result.entityId(), LocalDate.now()));
+
+        mockMvc.perform(get("/api/insights/releases").param("from", "2026-10-01").param("to", "2026-10-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries[?(@.entityId == '" + result.entityId() + "')].relation").value("WANTED"));
+    }
+
+    @Test
+    void a_work_that_is_neither_followed_owned_nor_wanted_stays_out_of_the_calendar() throws Exception {
+        QuickAddService.QuickAddResult owned = quickAddService.addNewEntityWithOwnership(
+                EntityTypeFixtures.BOARD_GAME.id(), "Rendu " + UUID.randomUUID(), OwnershipCondition.NEW,
+                Map.of("releaseDate", "2026-10-22"));
+        ownershipRepository.findByEntityId(owned.entityId()).forEach(o -> ownershipRepository.deleteById(o.id()));
+
+        mockMvc.perform(get("/api/insights/releases").param("from", "2026-10-01").param("to", "2026-10-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries[?(@.entityId == '" + owned.entityId() + "')]").doesNotExist());
     }
 }

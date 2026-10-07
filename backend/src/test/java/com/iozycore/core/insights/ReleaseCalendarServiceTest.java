@@ -81,22 +81,41 @@ class ReleaseCalendarServiceTest {
     }
 
     @Test
-    void ignores_dates_outside_the_period_and_years_alone_and_works_nobody_follows() {
+    void ignores_dates_outside_the_period_years_alone_and_works_that_matter_to_nobody() {
         Entity inNovember = boardGame("Trop tard", "2026-11-02");
         ownerships.save(Ownership.acquire(inNovember.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
         Entity yearOnly = boardGame("Juste une année", "2026");
         ownerships.save(Ownership.acquire(yearOnly.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
-        Entity notFollowed = boardGame("Possédé mais pas suivi", "2026-10-10");
-        ownerships.save(Ownership.acquire(notFollowed.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        boardGame("Ni suivi, ni possédé, ni voulu", "2026-10-10");
         Entity sold = boardGame("Revendu", "2026-10-12");
         Ownership soldOwnership = Ownership.acquire(sold.id(), null, OwnershipCondition.USED, LocalDate.now(), null);
         soldOwnership.markSold();
         ownerships.save(soldOwnership);
 
-        // The resold item is not followed: if followed, it would show as "to buy", and that would be right.
+        // The resold item is no longer owned, and nobody follows or wants it: out. (If followed, it
+        // would show as "to buy", and that would be right.)
         suivre(inNovember, yearOnly);
 
         assertThat(service().releasesBetween(OCTOBER_1, OCTOBER_31).entries()).isEmpty();
+    }
+
+    @Test
+    void an_owned_work_nobody_follows_is_listed_as_owned() {
+        Entity game = boardGame("Ark Nova", "2026-10-14");
+        ownerships.save(Ownership.acquire(game.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+
+        assertThat(service().releasesBetween(OCTOBER_1, OCTOBER_31).entries()).singleElement()
+                .satisfies(entry -> assertThat(entry.relation()).isEqualTo(ReleaseEntry.Relation.OWNED));
+    }
+
+    @Test
+    void a_wanted_work_nobody_follows_is_listed_as_wanted() {
+        Entity game = boardGame("Dune Imperium", "2026-10-20");
+        wishlist.save(WishlistEntry.add(game.id(), LocalDate.now()));
+
+        assertThat(service().releasesBetween(OCTOBER_1, OCTOBER_31).entries()).singleElement()
+                .satisfies(entry -> assertThat(entry.relation()).isEqualTo(ReleaseEntry.Relation.WANTED));
+        assertThat(service().latest(10)).extracting(ReleaseEntry::entityTitle).containsExactly("Dune Imperium");
     }
 
     @Test
@@ -204,6 +223,31 @@ class ReleaseCalendarServiceTest {
         // Exactly one year passes; a single day too.
         assertThat(service.releasesBetween(OCTOBER_1, OCTOBER_1.plusDays(365)).entries()).isEmpty();
         assertThat(service.releasesBetween(OCTOBER_1, OCTOBER_1).entries()).isEmpty();
+    }
+
+    // ------------------------------------------------------------ The latest releases
+
+    @Test
+    void the_latest_are_the_newest_dates_future_or_past_with_no_one_year_limit() {
+        Entity old = boardGame("Très ancien", "2019-03-01");
+        Entity past = boardGame("Passé", "2026-05-20");
+        Entity future = boardGame("Futur", "2027-02-11");
+        Entity monthOnly = boardGame("Au mois", "2026-12");
+        suivre(old, past, future, monthOnly);
+
+        List<ReleaseEntry> latest = service().latest(3);
+
+        // Newest first; a month sorts as its first day, below the days of that month.
+        assertThat(latest).extracting(ReleaseEntry::entityTitle).containsExactly("Futur", "Au mois", "Passé");
+        assertThat(service().latest(10)).extracting(ReleaseEntry::entityTitle).endsWith("Très ancien");
+    }
+
+    @Test
+    void the_latest_are_empty_when_nothing_matters_to_the_collector_and_refuse_a_limit_that_is_not_positive() {
+        boardGame("Ni suivi, ni possédé, ni voulu", "2026-10-10");
+
+        assertThat(service().latest(10)).isEmpty();
+        assertThatThrownBy(() -> service().latest(0)).isInstanceOf(IllegalArgumentException.class);
     }
 
     // ------------------------------------------------------------ Factory

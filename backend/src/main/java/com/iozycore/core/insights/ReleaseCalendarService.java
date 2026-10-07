@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -24,11 +25,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * The release calendar: what comes out, when, for the works we
- * FOLLOW - all categories mixed. Following is the third state of a
- * work, next to owning and wanting (see WorkFollowing): it alone
- * puts a work on the calendar; possessions and wishes only
- * say what each release represents.
+ * The release calendar: what comes out, when, for the works the collector
+ * FOLLOWS, OWNS or WANTS - all categories mixed. Following is the third state of a
+ * work, next to owning and wanting (see WorkFollowing); any of the three puts a
+ * work on the calendar, and the relation says what each release represents
+ * for the collection.
  *
  * <h2>Where the dates come from</h2>
  * From two places, and only two. Each universe that has a real
@@ -60,6 +61,9 @@ public class ReleaseCalendarService {
     public static final String MANUAL_SOURCE = "MANUAL";
     /** One year and one day: enough to turn the pages of a whole year, not enough to load all the history. */
     static final int MAX_PERIOD_DAYS = 366;
+    /** The bounds of "no period": wider than any date a source can hold. */
+    private static final LocalDate EARLIEST = LocalDate.of(1900, 1, 1);
+    private static final LocalDate LATEST = LocalDate.of(2200, 12, 31);
 
     private static final String COVER_IMAGE_URL = "coverImageUrl";
 
@@ -98,20 +102,44 @@ public class ReleaseCalendarService {
      */
     public ReleaseCalendar releasesBetween(LocalDate from, LocalDate to) {
         validatePeriod(from, to);
+        return new ReleaseCalendar(from, to, collect(from, to));
+    }
 
+    /**
+     * The releases with the latest dates, whatever the period: future or past,
+     * newest first. The sources only use the period as a filter, so it is opened
+     * wide here and the bound of one year, which protects the calendar screen, does
+     * not apply.
+     *
+     * @throws IllegalArgumentException the limit is not positive
+     */
+    public List<ReleaseEntry> latest(int limit) {
+        if (limit < 1) {
+            throw new IllegalArgumentException("Le nombre de sorties demandé doit être positif");
+        }
+        List<ReleaseEntry> entries = collect(EARLIEST, LATEST);
+        // Calendar order is oldest first: the newest are at the end.
+        List<ReleaseEntry> newestFirst = new ArrayList<>(entries);
+        Collections.reverse(newestFirst);
+        return newestFirst.stream().limit(limit).toList();
+    }
+
+    private List<ReleaseEntry> collect(LocalDate from, LocalDate to) {
         List<Ownership> activeOwnerships = ownershipRepository.findAll().stream()
                 .filter(Ownership::isActive)
                 .toList();
         List<WishlistEntry> wishlist = wishlistEntryRepository.findAll();
-        // Only FOLLOWED works enter the calendar (one state at a time:
-        // Owned / Followed / Wish). Possessions and wishes now only serve to
-        // say what each release represents.
+        // A work enters the calendar when the collector cares about it in any of the
+        // three ways: they follow it, they own it, or they want it (it is what they
+        // see in their collection and their wishes, so it is what they expect here).
         Set<UUID> ofInterest = followedWorkRepository.findAll().stream()
                 .map(FollowedWork::entityId)
                 .collect(Collectors.toCollection(HashSet::new));
+        activeOwnerships.forEach(ownership -> ofInterest.add(ownership.entityId()));
+        wishlist.forEach(entry -> ofInterest.add(entry.entityId()));
         if (ofInterest.isEmpty()) {
-            // Nothing followed: no source to consult, no catalog to read.
-            return new ReleaseCalendar(from, to, List.of());
+            // Nothing followed, owned or wanted: no source to consult, no catalog to read.
+            return List.of();
         }
 
         List<ReleaseEntry> entries = new ArrayList<>();
@@ -135,7 +163,7 @@ public class ReleaseCalendarService {
             }
         }
         entries.sort(CALENDAR_ORDER);
-        return new ReleaseCalendar(from, to, entries);
+        return entries;
     }
 
     /** The dates typed on the detail pages - for any category, whether a universe covers it or not. */

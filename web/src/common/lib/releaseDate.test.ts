@@ -7,7 +7,7 @@ import {
   libelleJour,
   libelleMois,
   parseReleaseDate,
-  periodeAVenir,
+  libelleIlYA,
   periodeSurUnAn,
   titreDuJour,
   yearMonthLocal,
@@ -45,9 +45,15 @@ describe('the labels in French', () => {
     expect(yearMonthLocal(tardLeSoir)).toBe('2026-09')
   })
 
-  it('opens the preview window from today to three months later, day for day', () => {
-    expect(periodeAVenir(new Date(2026, 8, 9))).toEqual({ from: '2026-09-09', to: '2026-12-09' })
-    expect(periodeAVenir(new Date(2026, 10, 30))).toEqual({ from: '2026-11-30', to: '2027-03-02' })
+  it('says how long ago an instant was', () => {
+    const maintenant = new Date('2026-10-07T12:00:00Z')
+    expect(libelleIlYA('2026-10-07T11:59:40Z', maintenant)).toBe("à l'instant")
+    expect(libelleIlYA('2026-10-07T11:55:00Z', maintenant)).toBe('il y a 5 min')
+    expect(libelleIlYA('2026-10-07T09:00:00Z', maintenant)).toBe('il y a 3 h')
+    expect(libelleIlYA('2026-10-06T10:00:00Z', maintenant)).toBe('hier')
+    expect(libelleIlYA('2026-09-25T12:00:00Z', maintenant)).toBe('il y a 12 jours')
+    // A clock a little ahead never writes a negative duration.
+    expect(libelleIlYA('2026-10-07T12:05:00Z', maintenant)).toBe("à l'instant")
   })
 
   it('opens the window of what is coming over one year minus one day, leap year included', () => {

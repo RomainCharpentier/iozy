@@ -98,7 +98,7 @@ export function ReleasesPage() {
     <div className="flex flex-col gap-5">
       <LienRetour parDefaut={{ to: '/discover', libelle: 'Découvrir' }} />
 
-      <EnTeteSection niveau={1} titre="Calendrier des sorties" sousTitre="Ce qui sort pour les œuvres que tu suis." />
+      <EnTeteSection niveau={1} titre="Calendrier des sorties" sousTitre="Ce qui sort pour ta collection et tes envies." />
 
       {/* Two columns from 1100 px (the page goes to 960 px, see AppShell): the
           month on the left, everything that is coming on the right. On mobile, one under the other. */}
@@ -155,8 +155,8 @@ export function ReleasesPage() {
           {calendrierQuery.isSuccess && toutes.length === 0 && (
             <EtatVide
               icone={CalendarDays}
-              titre={`Rien ne sort en ${libelleMois(mois).toLowerCase()} pour les œuvres que tu suis.`}
-              detail="Suis une œuvre depuis sa fiche pour voir ses sorties ici."
+              titre={`Rien ne sort en ${libelleMois(mois).toLowerCase()} pour ta collection ni tes envies.`}
+              detail="Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici."
             />
           )}
 

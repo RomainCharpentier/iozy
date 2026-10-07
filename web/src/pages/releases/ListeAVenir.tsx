@@ -42,7 +42,7 @@ export function ListeAVenir({
         <h2 id="a-venir-titre" className="font-display text-lg font-bold tracking-[-0.02em] text-textPrimary">
           À venir
         </h2>
-        <p className="text-sm text-textDim">Tout ce qui sort dans l'année pour les œuvres que tu suis.</p>
+        <p className="text-sm text-textDim">Tout ce qui sort dans l'année pour ta collection et tes envies.</p>
       </div>
 
       {query.isError && <ErrorBanner message={query.error.message} />}

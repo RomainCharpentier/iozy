@@ -57,8 +57,8 @@ class VideoGameReleasesTest {
         assertThat(silksong.source()).isEqualTo("IGDB");
         assertThat(silksong.label()).isEmpty();
         ReleaseEntry tunic = entries.stream().filter(e -> e.entityId().equals(wanted.id())).findFirst().orElseThrow();
-        // Followed but not owned: to buy. The wish is no longer a state of the work on the calendar.
-        assertThat(tunic.relation()).isEqualTo(ReleaseEntry.Relation.MISSING);
+        // Not owned, wanted as a whole: it shows as wanted.
+        assertThat(tunic.relation()).isEqualTo(ReleaseEntry.Relation.WANTED);
     }
 
     @Test

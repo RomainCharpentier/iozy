@@ -1,5 +1,5 @@
-import { get, buildQuery } from './client'
-import type { CollectionProgressDto, CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, ReleaseCalendarDto, StatsSummaryDto, YearlyRecapDto } from '@/common/types/api'
+import { get, post, buildQuery } from './client'
+import type { CollectionProgressDto, CollectionValueDto, DiscoveryCandidateDto, LatestReleasesDto, MonthlyPointDto, ReleaseCalendarDto, ReleaseRefreshStatusDto, StatsSummaryDto, YearlyRecapDto } from '@/common/types/api'
 
 export function getStats(): Promise<StatsSummaryDto> {
   return get<StatsSummaryDto>('/insights/stats')
@@ -41,4 +41,19 @@ export function discover(entityTypeCode: string): Promise<DiscoveryCandidateDto[
 /** The releases between two days inclusive (one year at most), all categories together (batch 146). */
 export function getReleaseCalendar(from: string, to: string): Promise<ReleaseCalendarDto> {
   return get<ReleaseCalendarDto>(`/insights/releases${buildQuery({ from, to })}`)
+}
+
+/** The releases with the latest dates, future or past, newest first - no period to give. */
+export function getLatestReleases(limit: number): Promise<LatestReleasesDto> {
+  return get<LatestReleasesDto>(`/insights/releases/latest${buildQuery({ limit: String(limit) })}`)
+}
+
+/** When the release dates were last refreshed, and whether a pass is running. */
+export function getReleaseRefreshStatus(): Promise<ReleaseRefreshStatusDto> {
+  return get<ReleaseRefreshStatusDto>('/insights/releases/refresh')
+}
+
+/** Starts a refresh now, in the background (202). 409 when one is already running. */
+export function startReleaseRefresh(): Promise<ReleaseRefreshStatusDto> {
+  return post<ReleaseRefreshStatusDto>('/insights/releases/refresh')
 }
