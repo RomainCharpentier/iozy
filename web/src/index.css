@@ -260,8 +260,24 @@
    reason. It stays an explicit and switchable choice, not a follow of
    `prefers-color-scheme` (same logic as the old forced `html{color-scheme:dark}`,
    which is removed in favor of this really bi-theme mechanism). */
+/* The native controls (the drop-down list of a <select>, scrollbars, date fields)
+   follow the theme of the APP, not the one of the system: with a light system and the dark
+   theme chosen here, a list that opens in the system's colors showed light text on a
+   light background. Dark is the only theme carried by an attribute (see lib/theme.ts). */
 html {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* The choices of a drop-down list take the colors of the surface they open over:
+   some browsers draw them with their own background and keep the text color of the
+   field, which is unreadable on the other theme. */
+select option {
+  background-color: var(--color-surface);
+  color: var(--color-textPrimary);
 }
 
 body {
