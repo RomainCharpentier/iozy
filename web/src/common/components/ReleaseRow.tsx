@@ -29,17 +29,22 @@ const PASTILLES: Record<string, string> = {
  *                   the list is already grouped by day
  * @param typeLabel  the category, written when nothing more precise says what
  *                   is coming out (a game, a work dated by hand)
+ * @param dense      a compact row for a list that must hold many of them (the
+ *                   ten latest of Discover): a small cover, no card of its own, a
+ *                   thin divider under it - the list decides the columns
  */
 export function ReleaseRow({
   entry,
   typeLabel,
   date,
   retour,
+  dense = false,
 }: {
   entry: ReleaseEntryDto
   typeLabel?: string
   date?: string
   retour: Retour
+  dense?: boolean
 }) {
   const sousTitre = entry.label || typeLabel || ''
   const dateAffichee = date ? libelleDateCourte(entry.date) : null
@@ -49,7 +54,11 @@ export function ReleaseRow({
     <Link
       to={`/entity/${entry.entityId}`}
       state={{ retour }}
-      className="flex w-full items-center gap-3 rounded-2xl border border-surface2 bg-surface p-3 text-left shadow-token-sm transition-transform hover:-translate-y-0.5"
+      className={
+        dense
+          ? 'flex w-full items-center gap-2.5 rounded-lg border-b border-surface2 px-1.5 py-1.5 text-left transition-colors hover:bg-surface2'
+          : 'flex w-full items-center gap-3 rounded-2xl border border-surface2 bg-surface p-3 text-left shadow-token-sm transition-transform hover:-translate-y-0.5'
+      }
     >
       {dateAffichee && (
         <span className="w-14 shrink-0 text-xs font-semibold text-textDim" aria-label={`Le ${dateAffichee}`}>
@@ -58,15 +67,15 @@ export function ReleaseRow({
       )}
       <Jaquette
         src={entry.coverImageUrl}
-        className="h-[58px] w-10 shrink-0 rounded-md object-cover"
-        repli={<span className="h-[58px] w-10 shrink-0 rounded-md bg-surface2" />}
+        className={dense ? 'h-10 w-7 shrink-0 rounded object-cover' : 'h-[58px] w-10 shrink-0 rounded-md object-cover'}
+        repli={<span className={dense ? 'h-10 w-7 shrink-0 rounded bg-surface2' : 'h-[58px] w-10 shrink-0 rounded-md bg-surface2'} />}
       />
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className={dense ? 'flex min-w-0 flex-1 flex-col' : 'flex min-w-0 flex-1 flex-col gap-0.5'}>
         <TexteCoupe texte={entry.entityTitle} className="truncate text-sm font-semibold text-textPrimary" />
         {sousTitre && <TexteCoupe texte={sousTitre} className="truncate text-xs text-textDim" />}
       </span>
       {pastille ? (
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${pastille}`}>{relation}</span>
+        <span className={`shrink-0 rounded-full text-[11px] font-bold ${dense ? 'px-2 py-0.5' : 'px-2.5 py-1'} ${pastille}`}>{relation}</span>
       ) : (
         <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-textDim">
           <Check size={12} aria-hidden="true" />

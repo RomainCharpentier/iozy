@@ -119,12 +119,6 @@ export function yearMonthLocal(date: Date): string {
   return isoLocal(date).slice(0, 7)
 }
 
-/** From today to three months later, day for day, in local dates - the window of the Discover preview. */
-export function periodeAVenir(aujourdHui: Date, mois = 3): { from: string; to: string } {
-  const fin = new Date(aujourdHui.getFullYear(), aujourdHui.getMonth() + mois, aujourdHui.getDate())
-  return { from: isoLocal(aujourdHui), to: isoLocal(fin) }
-}
-
 /**
  * What a release represents for the collection, said as an action or a
  * state - "à acheter" is what you do with a missing volume, not a statement
@@ -145,4 +139,19 @@ export const LIBELLES_RELATION: Record<string, string> = {
 export function periodeSurUnAn(aujourdHui: Date): { from: string; to: string } {
   const veille = new Date(aujourdHui.getFullYear() + 1, aujourdHui.getMonth(), aujourdHui.getDate() - 1)
   return { from: isoLocal(aujourdHui), to: isoLocal(veille) }
+}
+
+/**
+ * "à l'instant", "il y a 5 min", "il y a 3 h", "hier", "il y a 12 jours" - how long ago
+ * an instant was. A date in the future (a clock that is a little ahead) reads as now.
+ */
+export function libelleIlYA(isoInstant: string, now: Date): string {
+  const secondes = Math.max(0, Math.floor((now.getTime() - new Date(isoInstant).getTime()) / 1000))
+  const minutes = Math.floor(secondes / 60)
+  if (minutes < 1) return "à l'instant"
+  if (minutes < 60) return `il y a ${minutes} min`
+  const heures = Math.floor(minutes / 60)
+  if (heures < 24) return `il y a ${heures} h`
+  const jours = Math.floor(heures / 24)
+  return jours === 1 ? 'hier' : `il y a ${jours} jours`
 }

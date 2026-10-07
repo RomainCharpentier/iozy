@@ -219,8 +219,8 @@ describe('ReleasesPage', () => {
     servir({ from: '2000-01-01', to: '2000-01-31', entries: [] })
     rendre('/releases?mois=2000-01')
 
-    expect(await screen.findByText('Rien ne sort en janvier 2000 pour les œuvres que tu suis.')).toBeInTheDocument()
-    expect(screen.getByText("Suis une œuvre depuis sa fiche pour voir ses sorties ici.")).toBeInTheDocument()
+    expect(await screen.findByText('Rien ne sort en janvier 2000 pour ta collection ni tes envies.')).toBeInTheDocument()
+    expect(screen.getByText("Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici.")).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Grille de janvier 2000' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /sortie/ })).not.toBeInTheDocument()
     expect(await screen.findByText("Rien d'annoncé pour l'année qui vient.")).toBeInTheDocument()

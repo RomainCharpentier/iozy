@@ -5,6 +5,7 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.insights.ReleaseRefreshSource;
 import com.iozycore.core.metadata.QuotaExceededException;
 import com.iozycore.manga.metadata.RelatedSeriesService;
 import com.iozycore.manga.metadata.StoredVolumeSearch;
@@ -59,9 +60,9 @@ class MangaReleaseRefreshTest {
         serie("Moins ancienne", "Auteur E", "RELEASING");
         cache.store("moins ancienne", "auteur e", TONIGHT.minus(Duration.ofDays(10)));
 
-        MangaReleaseRefresh.Summary summary = refresh(10).refresh();
+        ReleaseRefreshSource.Result summary = refresh(10).refresh();
 
-        assertThat(summary).isEqualTo(new MangaReleaseRefresh.Summary(3, 3, false));
+        assertThat(summary).isEqualTo(new ReleaseRefreshSource.Result(3, 3, false));
         assertThat(provider.titles).containsExactly("Jamais lue", "Ancienne", "Moins ancienne");
         assertThat(cache.fetchedAt("jamais lue", "auteur b")).contains(Instant.now().getEpochSecond() / 100);
     }
@@ -72,7 +73,7 @@ class MangaReleaseRefreshTest {
             serie("Série " + i, "Auteur " + i, "RELEASING");
         }
 
-        MangaReleaseRefresh.Summary summary = refresh(2).refresh();
+        ReleaseRefreshSource.Result summary = refresh(2).refresh();
 
         assertThat(summary.stale()).isEqualTo(5);
         assertThat(summary.refreshed()).isEqualTo(2);
@@ -88,9 +89,9 @@ class MangaReleaseRefreshTest {
         // The first re-read ("Jamais lue", never read so first in line) succeeds; the second hits an exhausted quota.
         provider.failAfter = 1;
 
-        MangaReleaseRefresh.Summary summary = refresh(10).refresh();
+        ReleaseRefreshSource.Result summary = refresh(10).refresh();
 
-        assertThat(summary).isEqualTo(new MangaReleaseRefresh.Summary(2, 1, true));
+        assertThat(summary).isEqualTo(new ReleaseRefreshSource.Result(2, 1, true));
         assertThat(provider.titles).containsExactly("Jamais lue", "Ancienne");
         // "Ancienne" keeps its result from twenty days ago: an outage erases nothing.
         assertThat(cache.find(EntityTypeFixtures.MANGA.id(), "ancienne", "auteur a")).isPresent()
@@ -104,7 +105,7 @@ class MangaReleaseRefreshTest {
                 tomeSearchService, new RelatedSeriesService(List.of()), 10, Duration.ofDays(7),
                 Clock.fixed(TONIGHT, ZoneOffset.UTC));
 
-        assertThat(refresh.refresh()).isEqualTo(new MangaReleaseRefresh.Summary(0, 0, false));
+        assertThat(refresh.refresh()).isEqualTo(new ReleaseRefreshSource.Result(0, 0, false));
     }
 
     // ------------------------------------------------------------ Factory

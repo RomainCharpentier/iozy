@@ -8652,3 +8652,56 @@ cités dans les quatre README (14 faux positifs examinés : routes, URL, types
 MIME) ; les classes de test citées et les sections visées par `docs/` existent.
 Pas d'e2e ni de vérification en direct : ni `web/` ni l'API n'ont changé. Le
 scénario web du README racine n'a pas été rejoué à l'écran.
+
+### Lot 152 — « Dernières sorties » : les 10 dernières, sans période, et un batch qui se souvient
+
+Onglet Découvrir > Sorties. Le panneau montrait les 3 premières sorties des 3
+mois à venir et restait vide en local : le batch de nuit (04h30) ne tourne pas
+quand la machine est éteinte, et aucune œuvre n'était « suivie ».
+
+- **Les 10 dernières, sans période** : `GET /api/insights/releases/latest?limit=10`
+  (1 à 50). `ReleaseCalendarService.latest` ouvre la période en grand côté
+  serveur (les sources ne s'en servent que comme filtre) ; la limite d'un an ne
+  vaut plus que pour le calendrier à l'écran. Passé et futur mélangés, date
+  décroissante, sorties « au mois » comprises (elles se rangent au 1er du mois).
+  Côté web, un seul appel : plus de fenêtres par années.
+- **Possessions et envies au calendrier** : une œuvre entre au calendrier si elle
+  est suivie, possédée (possession active) ou voulue. C'est un revirement du lot
+  de V35 (« seule l'œuvre suivie entre ») : tomes possédés et aucun suivi
+  donnaient un calendrier vide. La relation affichée suit : Possédé, Envie
+  (envie de l'œuvre entière) ou À acheter (suivie seulement). Textes de
+  `/releases` et du panneau mis d'accord (« ta collection et tes envies »).
+- **Le batch se souvient** : table `release_refresh_run` (migration V36, cœur,
+  sans propriétaire). `ReleaseRefreshService` (cœur) lance les
+  `ReleaseRefreshSource` (point d'extension ; `MangaReleaseRefresh` l'implémente),
+  à 04h30 et sur demande, et enregistre chaque passage (début, fin, origine,
+  séries à relire, relues, arrêt sur source muette, erreur). Un seul passage à la
+  fois. `RELEASES_REFRESH_ENABLED=false` coupe seulement la nuit.
+  `GET/POST /api/insights/releases/refresh` : état et lancement en arrière-plan
+  (202, 409 si déjà en cours ; refusé au visiteur comme toute écriture).
+- **Écran** : le panneau dit « Sorties mises à jour il y a 3 jours » (ou jamais),
+  combien de séries restent à relire, et si une source s'est tue ; bouton
+  « Mettre à jour maintenant », qui recharge le panneau à la fin du passage.
+  Pas de rattrapage automatique au démarrage : on choisit de lancer ou non.
+- **Densité** : variante `dense` de `ReleaseRow` (jaquette 40×28, filet fin, plus
+  de carte) ; la liste passe sur deux colonnes dès 768 px (5 + 5), car les
+  lignes pleine largeur laissaient un grand vide entre titre et relation.
+
+Vérifié : 18 parcours e2e verts (`releases.spec.ts` étendu : l'œuvre est
+seulement possédée, pas suivie ; le panneau dit « jamais mises à jour » puis le
+bouton laisse une date). Mesure en direct sur la pile jetable (12 œuvres datées
+de −200 à +40 jours plus une de 2099 et une au mois) : au bureau, 2 colonnes
+de 5 lignes de 53 px, soit environ 265 px de haut ; sur mobile 390 px, une
+colonne de 10 × 53 px, aucun débordement horizontal ; ordre décroissant ; thèmes
+clair et sombre relus. Backend : tests du service de calendrier, du service de
+rafraîchissement, de la persistance (Testcontainers), du contrat HTTP et
+`ModulesTest`. Web : 429+ tests, `typecheck`, `check:frontieres`,
+`check:contrast`, `build`.
+
+Pièges : (1) l'API de la pile de dev tournait sur une image de deux semaines :
+« No static resource api/insights/releases/latest » veut dire qu'il faut
+`docker compose build iozycore-api` puis `up -d --no-deps --force-recreate
+iozycore-api` (sessions perdues, V36 appliquée à la base de dev). (2) Playwright
+1.63 demandait un Chromium absent : `npx playwright install chromium`. (3) Le
+batch ne relit que 10 séries par passage : sur une grande collection, plusieurs
+lancements manuels sont nécessaires, la ligne dit combien il en reste.

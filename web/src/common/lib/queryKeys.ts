@@ -43,8 +43,12 @@ export const queryKeys = {
      *  (`insights.progress`) therefore also carry the progress of a work,
      *  without having to list them a second time. */
     progressOf: (entityId: string) => ['insights', 'progress', entityId] as const,
-    /** The release calendar of a period - one month on screen, three for the Discover preview. */
+    /** The release calendar of a period - one month on screen, one year for the lists. */
     releases: (from: string, to: string) => ['insights', 'releases', from, to] as const,
+    /** The latest releases of the Discover preview. Under 'releases': the same invalidations reach it. */
+    latestReleases: ['insights', 'releases', 'latest'] as const,
+    /** When the release dates were last refreshed, and whether a pass is running. */
+    releaseRefresh: ['insights', 'release-refresh'] as const,
   },
   metadata: {
     search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,

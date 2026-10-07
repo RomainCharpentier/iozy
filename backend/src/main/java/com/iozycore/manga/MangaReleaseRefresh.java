@@ -5,18 +5,15 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.domain.shared.TexteRecherche;
+import com.iozycore.core.insights.ReleaseRefreshSource;
 import com.iozycore.manga.metadata.RelatedSeriesService;
 import com.iozycore.manga.metadata.SeriesStatus;
 import com.iozycore.manga.metadata.StoredVolumeSearch;
 import com.iozycore.manga.metadata.StoredVolumeSearchKey;
 import com.iozycore.manga.metadata.TomeSearchService;
 import com.iozycore.manga.metadata.VolumeSearchCacheRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -31,8 +28,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * At night, the release calendar re-reads the series of ONGOING mangas so
- * that announced volumes end up being there (batch 146).
+ * The release calendar re-reads the series of ONGOING mangas so that announced
+ * volumes end up being there (batch 146). It is a {@link ReleaseRefreshSource}:
+ * the core runs it at night and when a person asks, and records each pass.
  *
  * <h2>Why a re-read, and why at night</h2>
  * The result of a volume search is stored once and for all
@@ -58,10 +56,8 @@ import java.util.stream.Collectors;
  * {@link TomeSearchService#refreshUnlessUnavailable}.
  */
 @Component
-@ConditionalOnProperty(prefix = "iozycore.releases.refresh", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class MangaReleaseRefresh {
+public class MangaReleaseRefresh implements ReleaseRefreshSource {
 
-    private static final Logger log = LoggerFactory.getLogger(MangaReleaseRefresh.class);
     private static final String MANGA = "MANGA";
 
     private final EntityTypeRepository entityTypeRepository;
@@ -96,27 +92,11 @@ public class MangaReleaseRefresh {
         this.clock = clock;
     }
 
-    /** What a night did: how many series were to be re-read, how many were, and whether a source went silent. */
-    public record Summary(int stale, int refreshed, boolean stoppedOnUnavailableProvider) {
-    }
-
-    @Scheduled(cron = "${iozycore.releases.refresh.cron:0 30 4 * * *}")
-    public void nightly() {
-        try {
-            Summary summary = refresh();
-            log.info("Release calendar: {} series to re-read, {} re-read{}", summary.stale(), summary.refreshed(),
-                    summary.stoppedOnUnavailableProvider() ? ", stopped on a silent provider" : "");
-        } catch (RuntimeException e) {
-            // A night job that throws would silence the scheduler for this run only,
-            // but without a line to say it: here it is.
-            log.warn("Release calendar: the night re-read failed: {}", e.getMessage());
-        }
-    }
-
-    public Summary refresh() {
+    @Override
+    public Result refresh() {
         Optional<EntityType> manga = entityTypeRepository.findByCode(MANGA);
         if (manga.isEmpty()) {
-            return new Summary(0, 0, false);
+            return new Result(0, 0, false);
         }
         EntityType type = manga.get();
         Map<String, Instant> fetchedAtByKey = volumeSearchCacheRepository.findKeysByEntityTypeId(type.id()).stream()
@@ -151,11 +131,11 @@ public class MangaReleaseRefresh {
             boolean done = tomeSearchService.refreshUnlessUnavailable(type, entity.title(), authorOf(entity), excluded,
                     totalVolumesOf(entity));
             if (!done) {
-                return new Summary(stale.size(), refreshed, true);
+                return new Result(stale.size(), refreshed, true);
             }
             refreshed++;
         }
-        return new Summary(stale.size(), refreshed, false);
+        return new Result(stale.size(), refreshed, false);
     }
 
     private static String authorOf(Entity entity) {

@@ -44,9 +44,7 @@ test('date a work on its detail page, then find it again in the calendar and on 
   await page.getByRole('button', { name: 'Ajouter à ma collection' }).click()
   await expect(page).toHaveURL(/\/entity\/[0-9a-f-]{36}$/)
 
-  //     Follow the work: it is THIS state that puts it in the calendar - owning is not enough.
-  await page.getByRole('button', { name: 'Suivre cette œuvre' }).click()
-  await expect(page.getByText('Suivie', { exact: true })).toBeVisible()
+  //     The work is only owned, not followed: owning is enough to put it in the calendar.
 
   // --- 2. The date is entered with the rest of the detail page, in a single "Éditer"
   await page.getByRole('button', { name: 'Éditer', exact: true }).click()
@@ -94,6 +92,14 @@ test('date a work on its detail page, then find it again in the calendar and on 
   const onglet = page.getByRole('tab', { name: 'Sorties' })
   if (await onglet.isVisible()) await onglet.click()
   await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
+
+  //     The panel says the dates were never refreshed (a fresh instance), and refreshing on demand
+  //     leaves a date behind. The test stack has no provider and no manga: the pass is instant and empty.
+  await expect(page.getByText("Les sorties n'ont jamais été mises à jour.")).toBeVisible()
+  await page.getByRole('button', { name: 'Mettre à jour maintenant' }).click()
+  await expect(page.getByText("Sorties mises à jour à l'instant")).toBeVisible()
+  await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
+
   await page.getByRole('link', { name: 'Tout voir' }).last().click()
   await expect(page).toHaveURL(/\/releases/)
 })

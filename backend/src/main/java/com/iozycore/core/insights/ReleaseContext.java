@@ -64,9 +64,10 @@ public record ReleaseContext(EntityType entityType, LocalDate from, LocalDate to
 
     /** The relation of a whole work to the collection - owned first, wanted otherwise. */
     public Optional<ReleaseEntry.Relation> relationOf(UUID entityId) {
-        // A work of the context is followed by construction: its release is
-        // owned, or to buy. The wish no longer exists at its level (one state at
-        // a time), only at the volume - see the universes.
-        return Optional.of(isOwned(entityId) ? ReleaseEntry.Relation.OWNED : ReleaseEntry.Relation.MISSING);
+        // A work of the context is followed, owned or wanted: its release is owned,
+        // wanted as a whole, or to buy (followed only). A wish for a single volume is
+        // a state of that volume - see the universes.
+        return Optional.of(isOwned(entityId) ? ReleaseEntry.Relation.OWNED
+                : isWanted(entityId) ? ReleaseEntry.Relation.WANTED : ReleaseEntry.Relation.MISSING);
     }
 }

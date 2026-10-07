@@ -356,6 +356,35 @@ export interface ReleaseEntryDto {
   source: string
 }
 
+/** The latest releases, newest first - the server picks them, no period to give. */
+export interface LatestReleasesDto {
+  entries: ReleaseEntryDto[]
+}
+
+/** One pass of the refresh of the release dates (the night job, or a manual launch). */
+export interface ReleaseRefreshRunDto {
+  /** ISO instants. */
+  startedAt: string
+  finishedAt: string
+  origin: 'SCHEDULED' | 'MANUAL'
+  /** Series that were due for a re-read at the start of the pass. */
+  stale: number
+  refreshed: number
+  /** Series still due after the pass. */
+  remaining: number
+  /** A provider went silent (quota, outage) and the pass stopped early. */
+  stoppedOnUnavailableProvider: boolean
+  /** What went wrong when the pass failed, otherwise null. */
+  error: string | null
+}
+
+export interface ReleaseRefreshStatusDto {
+  /** False when no universe can refresh its dates: nothing to launch. */
+  available: boolean
+  running: boolean
+  lastRun: ReleaseRefreshRunDto | null
+}
+
 export interface ReleaseCalendarDto {
   from: string
   to: string

@@ -2,7 +2,9 @@ package com.iozycore.core.api.insights;
 
 import com.iozycore.core.insights.ReleaseCalendar;
 import com.iozycore.core.insights.ReleaseEntry;
+import com.iozycore.core.insights.ReleaseRefreshRun;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +41,38 @@ public final class ReleaseCalendarDtos {
             return new ReleaseEntryResponse(entry.date().iso(), entry.date().precision().name(), entry.entityId(),
                     entry.entityTitle(), entry.entityTypeId(), entry.label(), entry.volumeNumber(), entry.editionName(),
                     entry.coverImageUrl(), entry.relation().name(), entry.source());
+        }
+    }
+
+    /** The latest releases, newest first - no period: the server picks them. */
+    public record LatestReleasesResponse(List<ReleaseEntryResponse> entries) {
+        public static LatestReleasesResponse from(List<ReleaseEntry> entries) {
+            return new LatestReleasesResponse(entries.stream().map(ReleaseEntryResponse::from).toList());
+        }
+    }
+
+    /**
+     * Whether the calendar's dates can be refreshed, whether a pass is running, and the last one.
+     *
+     * @param available false when no universe can refresh its dates: there is nothing to launch
+     * @param running   a pass is running now
+     * @param lastRun   the most recent pass, or null if there never was one
+     */
+    public record ReleaseRefreshStatusResponse(boolean available, boolean running, LastRunResponse lastRun) {
+    }
+
+    /**
+     * @param origin    SCHEDULED (the night job) or MANUAL
+     * @param stale     series that were due for a re-read at the start of the pass
+     * @param refreshed series re-read by the pass
+     * @param remaining series still due after it
+     * @param error     what went wrong when the pass failed, otherwise null
+     */
+    public record LastRunResponse(Instant startedAt, Instant finishedAt, String origin, int stale, int refreshed,
+                                  int remaining, boolean stoppedOnUnavailableProvider, String error) {
+        public static LastRunResponse from(ReleaseRefreshRun run) {
+            return new LastRunResponse(run.startedAt(), run.finishedAt(), run.origin().name(), run.stale(),
+                    run.refreshed(), run.remaining(), run.stoppedOnUnavailableProvider(), run.error());
         }
     }
 }
