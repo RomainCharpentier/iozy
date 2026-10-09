@@ -375,7 +375,10 @@ public class TomeSearchService {
         List<VolumeCandidate> merged = mergeVolumes(existing, additional);
         if (!providerUnavailable) {
             volumeSearchCache.put(cacheKey, merged);
-            volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged, CHAIN_VERSION);
+            // Without an author, memory only - same rule as searchVolumes (Batch 126).
+            if (!normalizedAuthor.isBlank()) {
+                volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged, CHAIN_VERSION);
+            }
         }
         return new VolumeSearchResult(merged, providerUnavailable);
     }
