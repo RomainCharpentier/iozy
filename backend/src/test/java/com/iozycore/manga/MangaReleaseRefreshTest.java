@@ -95,7 +95,7 @@ class MangaReleaseRefreshTest {
         assertThat(provider.titles).containsExactly("Jamais lue", "Ancienne");
         // "Ancienne" keeps its result from twenty days ago: an outage erases nothing.
         assertThat(cache.find(EntityTypeFixtures.MANGA.id(), "ancienne", "auteur a")).isPresent()
-                .get().satisfies(volumes -> assertThat(volumes).extracting(VolumeCandidate::title).containsExactly("Ancienne 1"));
+                .get().satisfies(stored -> assertThat(stored.volumes()).extracting(VolumeCandidate::title).containsExactly("Ancienne 1"));
         assertThat(cache.find(EntityTypeFixtures.MANGA.id(), "jamais lue", "auteur b")).isPresent();
     }
 
@@ -225,7 +225,7 @@ class MangaReleaseRefreshTest {
         private final Map<String, StoredVolumeSearch> store = new HashMap<>();
 
         void store(String title, String author, Instant fetchedAt, VolumeCandidate... volumes) {
-            store.put(StoredVolumeSearch.key(title, author), new StoredVolumeSearch(title, author, List.of(volumes), fetchedAt));
+            store.put(StoredVolumeSearch.key(title, author), new StoredVolumeSearch(title, author, List.of(volumes), fetchedAt, 1));
         }
 
         /** The hundreds of seconds of the stored instant - enough to say "now" without freezing the clock of save(). */
@@ -235,14 +235,14 @@ class MangaReleaseRefreshTest {
         }
 
         @Override
-        public Optional<List<VolumeCandidate>> find(UUID entityTypeId, String seriesTitle, String author) {
-            return Optional.ofNullable(store.get(StoredVolumeSearch.key(seriesTitle, author))).map(StoredVolumeSearch::volumes);
+        public Optional<StoredVolumeSearch> find(UUID entityTypeId, String seriesTitle, String author) {
+            return Optional.ofNullable(store.get(StoredVolumeSearch.key(seriesTitle, author)));
         }
 
         @Override
-        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes) {
+        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion) {
             store.put(StoredVolumeSearch.key(seriesTitle, author),
-                    new StoredVolumeSearch(seriesTitle, author, volumes, Instant.now()));
+                    new StoredVolumeSearch(seriesTitle, author, volumes, Instant.now(), chainVersion));
         }
 
         @Override

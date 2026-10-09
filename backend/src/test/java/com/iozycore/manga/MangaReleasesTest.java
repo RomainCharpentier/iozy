@@ -189,16 +189,16 @@ class MangaReleasesTest {
 
         void store(String normalizedTitle, String normalizedAuthor, VolumeCandidate... volumes) {
             store.put(StoredVolumeSearch.key(normalizedTitle, normalizedAuthor),
-                    new StoredVolumeSearch(normalizedTitle, normalizedAuthor, List.of(volumes), Instant.now()));
+                    new StoredVolumeSearch(normalizedTitle, normalizedAuthor, List.of(volumes), Instant.now(), 1));
         }
 
         @Override
-        public Optional<List<VolumeCandidate>> find(UUID entityTypeId, String seriesTitle, String author) {
-            return Optional.ofNullable(store.get(StoredVolumeSearch.key(seriesTitle, author))).map(StoredVolumeSearch::volumes);
+        public Optional<StoredVolumeSearch> find(UUID entityTypeId, String seriesTitle, String author) {
+            return Optional.ofNullable(store.get(StoredVolumeSearch.key(seriesTitle, author)));
         }
 
         @Override
-        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes) {
+        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion) {
             store(seriesTitle, author, volumes.toArray(VolumeCandidate[]::new));
         }
 

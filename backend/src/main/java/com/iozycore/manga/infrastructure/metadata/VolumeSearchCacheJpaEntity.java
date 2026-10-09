@@ -34,18 +34,22 @@ public class VolumeSearchCacheJpaEntity {
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
 
+    @Column(name = "chain_version", nullable = false)
+    private int chainVersion;
+
     protected VolumeSearchCacheJpaEntity() {
         // required by JPA
     }
 
     public VolumeSearchCacheJpaEntity(UUID id, UUID entityTypeId, String seriesTitle, String author,
-                                       List<VolumeCandidate> volumes, Instant fetchedAt) {
+                                       List<VolumeCandidate> volumes, Instant fetchedAt, int chainVersion) {
         this.id = id;
         this.entityTypeId = entityTypeId;
         this.seriesTitle = seriesTitle;
         this.author = author;
         this.volumes = volumes;
         this.fetchedAt = fetchedAt;
+        this.chainVersion = chainVersion;
     }
 
     public UUID getId() { return id; }
@@ -54,4 +58,5 @@ public class VolumeSearchCacheJpaEntity {
     public String getAuthor() { return author; }
     public List<VolumeCandidate> getVolumes() { return volumes; }
     public Instant getFetchedAt() { return fetchedAt; }
+    public int getChainVersion() { return chainVersion; }
 }
