@@ -181,6 +181,47 @@ class TomeSearchServiceTest {
     }
 
     @Test
+    void a_durable_row_older_than_the_expiry_is_read_again_from_the_provider() {
+        // A row written once was served forever, even after the providers or the
+        // parsing changed (V33 and V34 had to empty the table by hand).
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        durableStorage.storeFetchedAt(MANGA.id(), "death note", "ohba",
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")),
+                java.time.Instant.now().minus(java.time.Duration.ofDays(31)));
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1"),
+                        new VolumeCandidate("Kana", 2, null, "Death Note - Tome 2")));
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(provider.callCount).isEqualTo(1);
+        assertThat(result.volumes()).hasSize(2);
+        assertThat(result.providerUnavailable()).isFalse();
+        assertThat(durableStorage.find(MANGA.id(), "death note", "ohba")).hasValueSatisfying(
+                volumes -> assertThat(volumes).hasSize(2)); // the row is written again, fresh
+    }
+
+    @Test
+    void an_expired_row_is_refused_not_served_when_the_provider_is_silent() {
+        // Serving the old row would show a number nobody believes anymore; an empty
+        // list without the flag would say "no volume". Only "try again later" is true.
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        durableStorage.storeFetchedAt(MANGA.id(), "death note", "ohba",
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")),
+                java.time.Instant.now().minus(java.time.Duration.ofDays(31)));
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(new SourceUnavailableException("503"));
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(provider.callCount).isEqualTo(1);
+        assertThat(result.volumes()).isEmpty();
+        assertThat(result.providerUnavailable()).isTrue();
+        assertThat(service.isVolumeSearchKnownEmpty(MANGA, "Death Note", "Ohba")).isFalse();
+    }
+
+    @Test
     void force_refresh_bypasses_both_caches_and_overwrites_the_durable_storage() {
         FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
@@ -384,6 +425,13 @@ class TomeSearchServiceTest {
      * this storage properly, without needing a real database for this unit test. */
     private static final class FakeVolumeSearchCacheRepository implements VolumeSearchCacheRepository {
         private final Map<String, List<VolumeCandidate>> store = new java.util.HashMap<>();
+        private final Map<String, java.time.Instant> fetchedAt = new java.util.HashMap<>();
+
+        /** Puts a row as if it had been written at {@code at}. */
+        void storeFetchedAt(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, java.time.Instant at) {
+            store.put(entityTypeId + "|" + seriesTitle + "|" + author, volumes);
+            fetchedAt.put(entityTypeId + "|" + seriesTitle + "|" + author, at);
+        }
 
         @Override
         public Optional<List<VolumeCandidate>> find(UUID entityTypeId, String seriesTitle, String author) {
