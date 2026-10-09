@@ -260,6 +260,20 @@ class TomeSearchServiceTest {
     }
 
     @Test
+    void a_deep_search_without_an_author_is_never_stored_durably() {
+        // Same rule as the quick search (Batch 126): a bare title does not name a work.
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Doubt - Tome 1")));
+        provider.additionalResults = List.of(new VolumeCandidate("Perfect Edition", 1, null, "Doubt Perfect Edition - Tome 1"));
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        service.searchAdditionalEditions(MANGA, "Doubt", null);
+
+        assertThat(durableStorage.find(MANGA.id(), "doubt", "")).isEmpty();
+    }
+
+    @Test
     void force_refresh_bypasses_both_caches_and_overwrites_the_durable_storage() {
         FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
