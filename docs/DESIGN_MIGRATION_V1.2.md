@@ -8779,3 +8779,55 @@ dans un script Bash, les antislashs d'une expression régulière arrivent perdus
 
 
 Revue du lot : deux défauts de correction trouvés et corrigés. (1) « Précédent » et « Passer » restaient actifs pendant l'enregistrement : un clic juste après « C'est bien ça » détachait le rappel, le tome était écrit mais pas marqué ; ils sont grisés tant que l'ajout est en route. (2) Quand seules les éditions manquaient, le récapitulatif disait « Rien de coché à ajouter » ; il dit « Choisis une édition pour ajouter ». 442 tests web.
+
+### Lot 154 — Le cache durable des tomes se périme
+
+Défaut : une ligne de `volume_search_cache` écrite une fois était servie pour
+toujours, même après un changement de fournisseur ou de parseur. Chaque
+correction demandait une migration qui vidait la table (V33, V34) ou des lignes
+supprimées à la main. Ça contredisait « ne jamais montrer un chiffre qu'on ne
+croit pas ».
+
+- **Une ligne a un âge et une version**. `fetched_at` existait depuis V3 ; V37
+  ajoute `chain_version`. `TomeSearchService` ne sert une ligne que si elle a
+  moins de **30 jours** et qu'elle a été écrite par la chaîne actuelle
+  (`CHAIN_VERSION`, 1). Sinon les fournisseurs sont relus. Les 30 jours : la passe
+  de nuit relit déjà les séries en cours au bout de 7 jours (lot 146), les
+  30 jours rattrapent le reste pour environ une recherche par série et par mois.
+- **Changer la chaîne = augmenter `CHAIN_VERSION`**, plus de migration qui vide la
+  table. Les lignes d'avant V37 ont la version 0 : chacune est relue à la
+  prochaine ouverture de sa série.
+- **Une ligne périmée n'est jamais resservie.** Si les fournisseurs se taisent,
+  la réponse est vide avec le drapeau « réessaie plus tard » (`providerUnavailable`,
+  `quotaExceeded` côté API), comme pour une série jamais cherchée. Le brief
+  demandait de lever `SourceUnavailableException` ; rien ne l'attrape au-dessus du
+  service, ce serait une 500 et une panne ferait échouer la recherche. Le drapeau
+  existant dit la même chose sans casser l'écran.
+- Une ligne périmée compte comme « on ne sait pas » pour la mention « aucune
+  édition française » (`isVolumeSearchKnownEmpty`).
+- **Recherche approfondie** : sans base fraîche, elle relance d'abord la recherche
+  rapide (avec `totalVolumes`, donc avec les sondes du lot 125), sinon la ligne ne
+  garderait que les éditions rares pendant 30 jours. Elle n'écrit plus de ligne
+  durable sans auteur (règle du lot 126, qu'elle oubliait).
+
+Vérifié : test rouge d'abord (une ligne de 31 jours servie sans appel), puis
+`TomeSearchServiceTest` (21), `ModulesTest`, suite backend complète (1223 verts)
+et 19 parcours e2e. En direct sur la pile e2e jetable : V37 appliquée (colonne à
+0 par défaut), trois lignes semées ; la fraîche est servie telle quelle, celle de
+31 jours et celle de version 0 sont refusées (`quotaExceeded: true`, la pile n'a
+pas de clé) et restent intactes en base. Pile détruite ensuite (`down -v`).
+
+Pas vérifié : la relecture réussie avec une vraie clé (couverte par les tests
+unitaires seulement), V37 sur une base qui a des données réelles.
+
+Laissé de côté, à reprendre si besoin :
+- le calendrier (`MangaReleases`) lit `volume_search_cache` sans regarder l'âge
+  ni la version : il peut montrer des dates d'une ligne que la fiche refuse ;
+- la passe de nuit choisit par `fetched_at` seul, sans priorité aux lignes d'une
+  ancienne version ;
+- après le déploiement, toutes les lignes sont en version 0 : la mention
+  « aucune édition française » disparaît jusqu'à ce que la série soit rouverte ;
+- pendant une panne, une ligne périmée relance les fournisseurs à chaque
+  ouverture (un résultat vide n'entre pas dans le cache partiel d'une heure) ;
+- le cache mémoire de 24 h peut prolonger une ligne lue à 29 jours jusqu'à
+  31 jours.
