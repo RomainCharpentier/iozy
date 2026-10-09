@@ -253,9 +253,10 @@ class TomeSearchServiceTest {
         provider.additionalResults = List.of(new VolumeCandidate("Perfect Edition", 1, null, "Death Note Perfect Edition - Tome 1"));
         TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
 
-        VolumeSearchResult result = service.searchAdditionalEditions(MANGA, "Death Note", "Ohba");
+        VolumeSearchResult result = service.searchAdditionalEditions(MANGA, "Death Note", "Ohba", List.of(), 3);
 
         assertThat(provider.callCount).isEqualTo(1);
+        assertThat(provider.probedNumbers).containsExactly(2, 3); // the gaps are probed, as on a normal opening
         assertThat(result.volumes()).extracting(VolumeCandidate::edition).containsExactlyInAnyOrder("Kana", "Perfect Edition");
     }
 
@@ -425,6 +426,7 @@ class TomeSearchServiceTest {
         Map<String, List<VolumeCandidate>> editionResults = Map.of();
         RuntimeException editionFailure;
         final List<String> editionCalls = new ArrayList<>();
+        final List<Integer> probedNumbers = new ArrayList<>();
 
         FakeVolumeSearchProvider(List<VolumeCandidate> results) {
             this.results = results;
@@ -460,6 +462,13 @@ class TomeSearchServiceTest {
                 throw additionalFailure;
             }
             return additionalResults;
+        }
+
+        @Override
+        public List<VolumeCandidate> probeVolume(String seriesTitle, String author, int volumeNumber,
+                                                 List<String> excludedTitleFragments) {
+            probedNumbers.add(volumeNumber);
+            return List.of();
         }
 
         @Override
