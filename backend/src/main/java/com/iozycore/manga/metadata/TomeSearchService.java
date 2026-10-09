@@ -340,6 +340,13 @@ public class TomeSearchService {
     /** Variant with exclusion of known spin-offs (see
      * {@link #searchVolumes(EntityType, String, String, boolean, List)}). */
     public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author, List<String> excludedTitleFragments) {
+        return searchAdditionalEditions(entityType, seriesTitle, author, excludedTitleFragments, null);
+    }
+
+    /** @param totalVolumes passed to the quick search when there is no fresh base (see {@link #searchVolumes}),
+     *                     so that its gap probes run as on a normal opening */
+    public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author,
+                                                       List<String> excludedTitleFragments, Integer totalVolumes) {
         String normalizedTitle = normalize(seriesTitle);
         String normalizedAuthor = normalize(author == null ? "" : author);
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
@@ -354,7 +361,7 @@ public class TomeSearchService {
             // No fresh base to merge onto (never searched, or expired): run the
             // quick search first, otherwise the stored row would hold the deep
             // editions alone and hide the common ones until it expires.
-            VolumeSearchResult base = searchVolumes(entityType, seriesTitle, author, false, excludedTitleFragments);
+            VolumeSearchResult base = searchVolumes(entityType, seriesTitle, author, false, excludedTitleFragments, totalVolumes);
             existing = base.volumes();
             providerUnavailable = base.providerUnavailable();
         }
