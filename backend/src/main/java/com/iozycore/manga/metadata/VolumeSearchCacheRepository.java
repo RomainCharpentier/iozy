@@ -14,13 +14,15 @@ import java.util.UUID;
  */
 public interface VolumeSearchCacheRepository {
 
-    Optional<List<VolumeCandidate>> find(UUID entityTypeId, String seriesTitle, String author);
+    /** The stored row of this key, with its freshness and chain version: the caller decides if it can still be served. */
+    Optional<StoredVolumeSearch> find(UUID entityTypeId, String seriesTitle, String author);
 
     /** Replaces the existing row for this key if there is one (upsert) -
      * this is the entry point of the manual refresh ("Actualiser" button
      * on the client side): a new Google Books search overwrites the old
-     * stored result instead of being added to it. */
-    void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes);
+     * stored result instead of being added to it. The row is stamped with the
+     * current time and with {@code chainVersion}. */
+    void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion);
 
     /** Forgets the row of this key, if it exists - see TomeSearchService.searchVolumes (Batch 126). */
     void delete(UUID entityTypeId, String seriesTitle, String author);
