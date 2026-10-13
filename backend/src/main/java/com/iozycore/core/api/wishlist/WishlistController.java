@@ -14,6 +14,7 @@ import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.ownership.OwnershipStatus;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.core.metadata.MetadataDetailsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,7 @@ public class WishlistController {
     private final CatalogEntityResolver catalogEntityResolver;
     private final TomeResolver tomeResolver;
     private final WorkFollowing workFollowing;
+    private final MetadataDetailsService metadataDetailsService;
 
     public WishlistController(WishlistEntryRepository wishlistEntryRepository,
                                OwnershipRepository ownershipRepository,
@@ -45,7 +47,8 @@ public class WishlistController {
                                EntityTypeRepository entityTypeRepository,
                                CatalogEntityResolver catalogEntityResolver,
                                TomeResolver tomeResolver,
-                               WorkFollowing workFollowing) {
+                               WorkFollowing workFollowing,
+                               MetadataDetailsService metadataDetailsService) {
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.ownershipRepository = ownershipRepository;
         this.entityRepository = entityRepository;
@@ -53,6 +56,7 @@ public class WishlistController {
         this.catalogEntityResolver = catalogEntityResolver;
         this.tomeResolver = tomeResolver;
         this.workFollowing = workFollowing;
+        this.metadataDetailsService = metadataDetailsService;
     }
 
     @Operation(summary = "Add to the wishes the item really wanted: a volume (variantId, or volumeNumber "
@@ -172,7 +176,8 @@ public class WishlistController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Type de collection introuvable : " + request.entityTypeId()));
         return catalogEntityResolver
-                .resolveOrCreate(request.entityTypeId(), request.title(), request.attributes())
+                .resolveOrCreate(request.entityTypeId(), request.title(),
+                        metadataDetailsService.complete(request.entityTypeId(), request.attributes()))
                 .entity()
                 .id();
     }

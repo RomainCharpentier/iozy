@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,12 +39,11 @@ import org.springframework.beans.factory.annotation.Value;
  * optional so as not to block local development, but its absence
  * is logged as a warning.
  * <p>
- * Accepted limit: the search endpoint returns no image and no
- * number of players/duration - only id/title/year are available at this
- * stage. Getting the rest would need a second call per result
- * to /xmlapi2/thing?id=... (see BggThingFetcher, used by
- * discovery rather than systematically here so as not to multiply
- * network calls on a simple search).
+ * The search endpoint returns no image and no number of players or
+ * duration - only id/title/year. The rest needs a second call per game to
+ * /xmlapi2/thing (see BggThingFetcher). It is made in {@link #details}, for
+ * the one game being added or opened (batch 160), never for every result:
+ * that would cost ten calls per keystroke.
  */
 @Component
 public class BggMetadataProvider implements MetadataProvider {
@@ -54,9 +54,15 @@ public class BggMetadataProvider implements MetadataProvider {
     @Value("${bgg.application-token:}")
     private String applicationToken;
 
+    private final BggThingFetcher thingFetcher;
+
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
+
+    public BggMetadataProvider(BggThingFetcher thingFetcher) {
+        this.thingFetcher = thingFetcher;
+    }
 
     @Override
     public boolean supports(EntityType entityType) {
@@ -88,6 +94,48 @@ public class BggMetadataProvider implements MetadataProvider {
             log.warn("Call to BGG failed for '{}': {}", query, e.getMessage());
             return List.of();
         }
+    }
+
+    /**
+     * The cover, players, playing time and designers of the game whose
+     * {@code bggId} is in {@code attributes}. The keys are the ones the board
+     * game type already declares (minPlayers, maxPlayers,
+     * averageDurationMinutes), and the cover goes under the shared
+     * {@code coverImageUrl}, read by the collection, the wishes and the share
+     * page alike.
+     *
+     * @throws com.iozycore.core.metadata.SourceUnavailableException when BGG did not answer
+     */
+    @Override
+    public Map<String, Object> details(Map<String, Object> attributes) {
+        Object bggId = attributes == null ? null : attributes.get("bggId");
+        if (bggId == null || bggId.toString().isBlank()) {
+            return Map.of();
+        }
+        return detailsOf(thingFetcher.fetchThing(bggId.toString().trim()));
+    }
+
+    static Map<String, Object> detailsOf(BggThing thing) {
+        Map<String, Object> details = new LinkedHashMap<>();
+        if (thing.imageUrl() != null) {
+            details.put("coverImageUrl", thing.imageUrl());
+        }
+        if (thing.yearPublished() != null) {
+            details.put("yearPublished", thing.yearPublished());
+        }
+        if (thing.minPlayers() != null) {
+            details.put("minPlayers", thing.minPlayers());
+        }
+        if (thing.maxPlayers() != null) {
+            details.put("maxPlayers", thing.maxPlayers());
+        }
+        if (thing.playingTimeMinutes() != null) {
+            details.put("averageDurationMinutes", thing.playingTimeMinutes());
+        }
+        if (!thing.designers().isEmpty()) {
+            details.put("designers", String.join(", ", thing.designers()));
+        }
+        return details;
     }
 
     /**
