@@ -19,6 +19,10 @@ export function useReleaseRefresh() {
     queryKey: queryKeys.insights.releaseRefresh,
     queryFn: getReleaseRefreshStatus,
     refetchInterval: (query) => (query.state.data?.running ? POLL_MS : false),
+    // A pass lasts long enough to switch tabs: without this, the polling
+    // stopped with the focus and the line said "en cours" until a reload.
+    // It only runs while a pass runs.
+    refetchIntervalInBackground: true,
   })
 
   const launch = useMutation({
