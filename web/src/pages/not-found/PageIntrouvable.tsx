@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Compass } from 'lucide-react'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
+import { useAuth } from '@/common/hooks/useAuth'
 
 /**
  * What is shown for a URL that the application does not know.
@@ -16,6 +17,9 @@ import { EnTeteSection } from '@/common/components/EnTeteSection'
  * thing - going back to the collection.
  */
 export function PageIntrouvable() {
+  // A visitor has no collection: their home is the catalog, and the link
+  // must name the place it really leads to.
+  const { estInvite } = useAuth()
   return (
     <div className="flex flex-col gap-5">
       <EnTeteSection
@@ -24,11 +28,11 @@ export function PageIntrouvable() {
         sousTitre="L'adresse est peut-être erronée, ou cet écran a été retiré depuis que tu l'as mis en signet."
       />
       <Link
-        to="/"
+        to={estInvite ? '/add' : '/'}
         className="btn-primaire w-fit"
       >
         <Compass size={16} />
-        Retour à ma collection
+        {estInvite ? 'Retour au catalogue' : 'Retour à ma collection'}
       </Link>
     </div>
   )

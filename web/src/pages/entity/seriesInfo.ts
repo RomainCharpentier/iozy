@@ -18,8 +18,40 @@ export function totalVolumesFrom(attributes: Record<string, unknown> | undefined
 export function isSeriesOngoing(attributes: Record<string, unknown> | undefined): boolean | null {
   const value = attributes?.[SERIES_STATUS_ATTRIBUTE_KEY]
   if (typeof value !== 'string') return null
-  const normalized = value.toLowerCase()
+  const normalized = normaliserStatut(value)
   if (normalized === 'finished') return false
-  if (normalized === 'publishing' || normalized === 'currently_publishing') return true
+  // AniList writes RELEASING (see SeriesStatus on the backend side, which
+  // reads the three vocabularies the same way).
+  if (normalized === 'publishing' || normalized === 'currentlypublishing' || normalized === 'releasing') return true
   return null
+}
+
+/** Letters only, lower case: "currently_publishing", "On Hiatus" and
+ *  "NOT_YET_RELEASED" become comparable - the rule of SeriesStatus. */
+function normaliserStatut(value: string): string {
+  return value.toLowerCase().replace(/[^a-z]/g, '')
+}
+
+const LIBELLES_STATUT: Record<string, string> = {
+  finished: 'Terminée',
+  publishing: 'En cours',
+  currentlypublishing: 'En cours',
+  releasing: 'En cours',
+  onhiatus: 'En pause',
+  hiatus: 'En pause',
+  discontinued: 'Arrêtée',
+  cancelled: 'Arrêtée',
+  notyetpublished: 'À paraître',
+  notyetreleased: 'À paraître',
+}
+
+/**
+ * The publication status as a reader says it, in French. The stored value
+ * stays the provider's own ("FINISHED", "Publishing", "on_hiatus"): only its
+ * display is translated. A value no provider is known to write is shown as
+ * it is rather than hidden - it is still what the source said.
+ */
+export function libelleStatutSerie(value: unknown): string | null {
+  if (typeof value !== 'string' || value.trim() === '') return null
+  return LIBELLES_STATUT[normaliserStatut(value)] ?? value
 }

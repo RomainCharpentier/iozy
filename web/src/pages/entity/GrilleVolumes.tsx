@@ -71,7 +71,11 @@ export function GrilleVolumes({
   videMessage,
 }: {
   volumes: VolumeAffiche[]
-  mode: 'navigation' | 'selection'
+  /** `consultation`: the catalog seen by a visitor. The volumes of the
+   *  edition, and nothing personal - no owned/missing filters, no dimmed
+   *  "missing" tile, no gesture. Someone with no collection is not missing
+   *  anything; showing every volume as a hole would invent a collection. */
+  mode: 'navigation' | 'selection' | 'consultation'
   onActiver: (cle: string) => void
   /** The two gestures of a volume, in browse mode. Absent in selection
    *  mode, where checking IS the gesture. */
@@ -106,7 +110,9 @@ export function GrilleVolumes({
     possedes,
   }
 
+  const consultation = mode === 'consultation'
   const visibles = volumes.filter((volume) => {
+    if (consultation) return true
     if (filtre === 'possedes') return volume.possede
     if (filtre === 'manquants') return !volume.possede
     return true
@@ -126,6 +132,7 @@ export function GrilleVolumes({
             A real group of radio buttons despite the look: three views that
             exclude each other, which `aria-pressed` would not say - it would announce
             three independent switches of which two are "inactive". */}
+        {!consultation && (
         <div
           role="radiogroup"
           aria-label="Filtrer les tomes"
@@ -160,22 +167,28 @@ export function GrilleVolumes({
             )
           })}
         </div>
+        )}
       </div>
 
       {visibles.length === 0 ? (
         <p className="py-6 text-sm text-faint">
           {videMessage ??
-            (filtre === 'possedes'
+            (consultation
+              ? 'Aucun tome connu pour cette édition.'
+              : filtre === 'possedes'
               ? "Aucun tome de cette édition dans ta collection pour l'instant."
               : 'Aucun tome manquant — cette édition est complète.')}
         </p>
       ) : (
         <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(78px,1fr))]">
-          {visibles.map((volume) => (
+          {visibles.map((volume) =>
+            consultation ? (
+              <TuileConsultation key={volume.cle} volume={volume} />
+            ) : (
             <TuileVolume
               key={volume.cle}
               volume={volume}
-              mode={mode}
+              mode={mode === 'selection' ? 'selection' : 'navigation'}
               onActiver={() => {
                 // An owned volume is only removed on the second gesture: the first
                 // arms it (a second tap on the same tile disarms it).
@@ -199,7 +212,8 @@ export function GrilleVolumes({
               }
               onGarder={() => setArmee(null)}
             />
-          ))}
+            ),
+          )}
           {/* The label is WRITTEN, not only in a `title`: "ajouter"
               must always say where, and a bare "+" at the end of a volume grid
               was confused with an add to the collection while it feeds the
@@ -216,6 +230,31 @@ export function GrilleVolumes({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * A volume of the catalog, for a visitor: its cover, or its number - not a
+ * button, since there is nothing to do with it. Never dimmed: dimming says
+ * "missing from your collection", and there is no collection here.
+ */
+function TuileConsultation({ volume }: { volume: VolumeAffiche }) {
+  return (
+    <div
+      role="img"
+      aria-label={`Tome ${volume.numero}`}
+      className="relative flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-lg bg-handle shadow-token-sm"
+    >
+      <Jaquette src={volume.jaquetteUrl} repli={null} className="absolute inset-0 h-full w-full object-cover" />
+      <span
+        aria-hidden="true"
+        className={`relative font-display text-[17px] font-medium tracking-[0.01em] ${
+          volume.jaquetteUrl ? 'sr-only' : 'text-white/90'
+        }`}
+      >
+        {String(volume.numero).padStart(2, '0')}
+      </span>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { AlignLeft, Download, PenLine, UserRound } from 'lucide-react'
 import { tonDe } from './useTeinteJaquette'
 import { CLES_SOURCE, libelleDe, type BrouillonAttributs } from './useBrouillonInspecteur'
+import { libelleStatutSerie } from './seriesInfo'
 
 /**
  * The footer of the "multi-éditions" mockup: a single panel split into
@@ -261,7 +262,9 @@ export function ColonneSource({
         if (valeur === null || valeur === undefined || valeur === '') return null
         return (
           <RangeeInspecteur key={cle} libelle={libelle} compact>
-            {String(valeur)}
+            {/* The status is the provider's word ("FINISHED"): translated
+                for reading, never rewritten in the attributes. */}
+            {cle === 'seriesStatus' ? libelleStatutSerie(valeur) : String(valeur)}
           </RangeeInspecteur>
         )
       })}
