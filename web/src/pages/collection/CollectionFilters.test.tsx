@@ -28,10 +28,15 @@ function panneau(props: Partial<Parameters<typeof CollectionFilters>[0]> = {}) {
   const onTagChange = vi.fn()
   const onStatusChange = vi.fn()
   const onReset = vi.fn()
+  const onVue = vi.fn()
   render(
     <CollectionFilters
       open
       onClose={vi.fn()}
+      vue="groupee"
+      onVue={onVue}
+      tri="recent"
+      onTri={vi.fn()}
       status="ALL"
       onStatusChange={onStatusChange}
       tags={[LU, A_RELIRE]}
@@ -41,7 +46,7 @@ function panneau(props: Partial<Parameters<typeof CollectionFilters>[0]> = {}) {
       {...props}
     />,
   )
-  return { onTagChange, onStatusChange, onReset }
+  return { onTagChange, onStatusChange, onReset, onVue }
 }
 
 describe('the Tag section', () => {
@@ -93,13 +98,13 @@ describe('"Réinitialiser"', () => {
   it('stays absent when nothing filters', () => {
     panneau()
 
-    expect(screen.queryByRole('button', { name: 'Réinitialiser' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Effacer les filtres' })).not.toBeInTheDocument()
   })
 
   it('appears for a tag alone, without a state filter', async () => {
     const { onReset } = panneau({ tagId: LU.id })
 
-    await userEvent.click(screen.getByRole('button', { name: 'Réinitialiser' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Effacer les filtres' }))
 
     expect(onReset).toHaveBeenCalled()
   })
@@ -107,6 +112,19 @@ describe('"Réinitialiser"', () => {
   it('appears for a state filter alone, without a tag', () => {
     panneau({ status: 'INCOMPLETE' })
 
-    expect(screen.getByRole('button', { name: 'Réinitialiser' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Effacer les filtres' })).toBeInTheDocument()
+  })
+})
+
+// Grouping left the toolbar for this panel (UI review of 2026-10-13): if the
+// panel stops offering it, the shelf can no longer be ungrouped from anywhere.
+describe('the Regrouper section', () => {
+  it('switches the shelf to one item per tile', async () => {
+    const { onVue } = panneau()
+
+    expect(screen.getByRole('radio', { name: 'Groupés' })).toHaveAttribute('aria-checked', 'true')
+    await userEvent.click(screen.getByRole('radio', { name: 'Un par un' }))
+
+    expect(onVue).toHaveBeenCalledWith('plate')
   })
 })

@@ -291,23 +291,17 @@ export function ShelfPage() {
         }
       />
 
-      <div className="mt-3">
+      {/* Calm toolbar, ONE row on desktop: the four readings, one
+          "Affichage" entry (grouping, sort and filters, badge if a filter is
+          active) and "Plus d'outils". Grouping, sort and Valeur used to be
+          visible buttons too: eight controls, three rows on a phone, about 40%
+          of the screen before the first cover (UI review of 2026-10-13). */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <BarreVues
           filtre={preferences.filtre}
           onFiltre={(filtre) => preferences.definir({ filtre })}
-          vue={preferences.vue}
-          onVue={(vue) => preferences.definir({ vue })}
-          tri={preferences.tri}
-          onTri={(tri) => preferences.definir({ tri })}
           comptes={!isLoading ? comptes : null}
         />
-      </div>
-
-      {/* Calm toolbar: one single Filtres entry (badge if active), two
-          visible shortcuts, the rest in "Plus d'outils" (see the
-          V1.2 mockup - "the library stays dominant, the toolbar stays
-          calm"). */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={filtres.ouvrir}
@@ -319,25 +313,12 @@ export function ShelfPage() {
           }`}
         >
           <SlidersHorizontal size={15} />
-          Filtres
+          Affichage
           {filtres.nombreActifs > 0 && (
             <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
               {filtres.nombreActifs}
             </span>
           )}
-        </button>
-        {/* "Valeur" led to a screen titled "Statistiques", where it
-            then had to find the section - three words for a single
-            idea (UX-6). The button now takes the user TO the section that bears
-            this name, exactly as "Partager" scrolls down to the sharing
-            from My collection. */}
-        <button
-          type="button"
-          onClick={() => navigate('/stats', { state: { focusValeur: true } })}
-          className="flex min-h-11 items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-        >
-          <BarChart3 size={15} />
-          Valeur
         </button>
         <button
           type="button"
@@ -402,6 +383,10 @@ export function ShelfPage() {
       <CollectionFilters
         open={filtres.ouverts}
         onClose={filtres.fermer}
+        vue={preferences.vue}
+        onVue={(vue) => preferences.definir({ vue })}
+        tri={preferences.tri}
+        onTri={(tri) => preferences.definir({ tri })}
         status={filtres.status}
         onStatusChange={filtres.definirStatus}
         tags={filtres.tags}
@@ -433,6 +418,22 @@ export function ShelfPage() {
                 <X size={16} />
               </button>
             </div>
+            {/* "Valeur" leads TO the section that bears this name, not to a
+                screen titled "Statistiques" where it then had to be found
+                (UX-6). It was a visible button until the UI review of
+                2026-10-13: a figure one checks now and then, not a way of
+                reading the shelf. */}
+            <button
+              type="button"
+              onClick={() => {
+                setHubMenuOpen(false)
+                navigate('/stats', { state: { focusValeur: true } })
+              }}
+              className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover"
+            >
+              <BarChart3 size={17} />
+              Valeur de la collection
+            </button>
             {/* "Catégories de collection" here rather than only under
                 Administration: a category STRUCTURES this
                 screen (one rail per type), so this is where one realizes
