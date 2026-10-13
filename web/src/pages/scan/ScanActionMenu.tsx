@@ -109,8 +109,8 @@ export function ScanActionMenu({
             {busy ? 'Ajout en cours...' : 'Ajouter à ma collection'}
           </button>
 
-          {/* The volume is only guessed from the title, with no guarantee (see
-                  parseVolumeNumberFromTitle) - the detailed add is the way out
+          {/* The volume is only guessed from the title, with no guarantee (read by the backend
+                  from the book title) - the detailed add is the way out
                   when the scan could not tell, or when the proposed edition is wrong. */}
           <button
             type="button"

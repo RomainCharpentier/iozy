@@ -8863,3 +8863,44 @@ ferait perdre sa navigation par mois. Le sélecteur demande maintenant le niveau
 **Vérification** : e2e 19 parcours verts sur 19, `typecheck` propre, `lint` sans
 nouvel avertissement (19 déjà présents), 460 tests unitaires verts (avec
 `NODE_OPTIONS=--no-experimental-webstorage`). Aucun code de l'app touché.
+
+### Lot 156 — Un tome scanné rejoint sa série
+
+Trouvé par un test exploratoire sur la pile e2e : sur `/scan`, l'ISBN
+9782723488525 puis « Ajouter à ma collection » créait une œuvre « One Piece -
+Édition originale Tome 01 », avec un tome 1 en édition « Shônen Manga ». Le tome 2
+aurait créé une autre série. Open Library décrit **un tome** : son titre est
+celui du tome, et sa liste d'éditeurs commence par le label de collection
+(« Shônen Manga », puis « GLENAT », « Glénat Manga »). Le même titre partait
+aussi vers l'aperçu (`/apercu?titre=…`) et vers la recherche « déjà connu ».
+
+**Décision : le backend lit le titre du livre, une seule fois.** Les deux
+fournisseurs ISBN (Google Books, Open Library) passent par `IsbnBookTitle`, qui
+applique les règles de `ListingTextParser`, déjà utilisées pour les codes-barres
+d'une photo de pile et le titre d'une annonce. Le candidat garde la série comme
+titre (« One Piece ») et dit à part, dans `volume`, le tome décrit : titre de la
+source, numéro (1), édition nommée dans le titre telle qu'elle est écrite
+(« Édition originale », pas « Originale Edition »). `volume` est hors des
+`attributes`, car ceux-ci sont copiés sur la fiche de l'œuvre : un numéro de
+tome y aurait atterri sur la série.
+
+- Un nom fait **seulement** de mots de collection (shōnen, seinen, shōjo, josei,
+  kodomo, manga, collection) n'est ni un éditeur ni une édition : on prend le
+  premier éditeur qui n'en est pas un. « Glénat Manga » reste un éditeur.
+- Pas de numéro dans le titre : pas de numéro. Plusieurs numéros (un coffret) :
+  pas de numéro non plus. Un titre que les règles videraient reste tel quel.
+- Le scan lit `volume.number` et `volume.edition` (repli sur l'éditeur comme
+  avant). L'ajout rapide déduplique déjà par titre : le tome rejoint la série
+  « One Piece » si elle existe.
+- La photo de pile reçoit toujours le titre de la source : c'est là qu'elle
+  relit le numéro.
+
+**Vérification** : un test Open Library sur la vraie réponse de cet ISBN (série,
+numéro, édition, éditeur), un test de `ScanPage` (l'ajout envoie « One Piece »,
+tome 1, « Édition originale » ; deux mutations attrapées). Backend : 1220 tests
+verts. Web : 461 tests verts, `typecheck` propre, `lint` sans nouvel
+avertissement (19 déjà présents). e2e : 19 parcours verts. En direct sur la pile
+e2e (API :8090) : l'ISBN du tome 1 puis celui de « One Piece, tome 3 » donnent une
+seule œuvre « One Piece » avec « Tome 1 — Édition originale » et « Tome 3 —
+Glénat » ; l'écran `/scan` affiche « One Piece », « Tome 1 · Édition originale »
+et « Déjà connu d'IozyCore ». Pile jetable, laissée en place.

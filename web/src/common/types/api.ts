@@ -200,6 +200,13 @@ export interface MetadataCandidateDto {
   title: string
   imageUrl: string | null
   attributes: Record<string, unknown>
+  /** The volume this candidate describes (a book found by its ISBN) - null or
+   * absent for a whole work. `title` names the series either way. */
+  volume?: {
+    sourceTitle: string
+    number: number | null
+    edition: string | null
+  } | null
 }
 
 /** A precise volume of a real edition of a series (see VolumeCandidate
