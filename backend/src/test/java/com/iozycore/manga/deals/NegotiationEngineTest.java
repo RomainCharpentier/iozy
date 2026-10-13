@@ -62,4 +62,17 @@ class NegotiationEngineTest {
         // the one above, where nothing at all could be estimated.
         assertThat(recommendation.priceDataAvailable()).isTrue();
     }
+
+    @Test
+    void without_a_market_reference_the_advice_gives_amounts_but_never_judges_the_price() {
+        // Same numbers as the skip case above: 70 against an estimated 50.
+        NegotiationRecommendation farAbove = engine.recommend(new BigDecimal("70"), new BigDecimal("50"), false);
+        NegotiationRecommendation inBand = engine.recommend(new BigDecimal("51"), new BigDecimal("50"), false);
+
+        assertThat(farAbove.advice()).isNotEqualTo(NegotiationAdvice.SKIP_LISTING);
+        assertThat(farAbove.recommendedOffer()).isEqualByComparingTo(new BigDecimal("47.50"));
+        assertThat(farAbove.maxPrice()).isEqualByComparingTo(new BigDecimal("52.50"));
+        assertThat(inBand.rationale()).doesNotContain("fourchette correcte").contains("pas un avis sur le prix");
+        assertThat(farAbove.rationale()).isEqualTo(inBand.rationale());
+    }
 }
