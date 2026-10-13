@@ -9151,3 +9151,63 @@ statistiques gardé avec des champs vides), l'import qui range la jaquette sous
 `coverImageUrl` et importe un jeu sans image, et le réimport qui complète la
 jaquette d'un jeu existant. Pas de vérification en direct contre BGG dans ce
 lot.
+
+### Lot 162 — Cinq corrections issues de la revue UI/UX du 2026-10-13
+
+Une revue d'ensemble, faite en direct sur l'instance locale (connexion, mode
+visiteur, Ma collection, fiche, Découvrir ; bureau 1280 px et mobile 375 px,
+thèmes clair et sombre), a donné cinq priorités. Un commit par point.
+
+1. **Tuiles de tomes** (`GrilleVolumes`). Sans jaquette, un tome possédé et un
+   tome manquant étaient deux blocs gris. Possédé : tuile pleine (`surface2`),
+   chiffre `textPrimary`. Manquant : emplacement vide à bord pointillé, chiffre
+   `faint`. Voulu : pointillé `accent`, chiffre `accentText`. Le chiffre blanc
+   à 90 % sur `handle` tombait à environ 1,6:1 en thème clair ; il passe à
+   environ 14:1. Seule la jaquette d'un tome manquant est encore atténuée, plus
+   la tuile entière. `check:contrast` ne voyait pas le défaut : il ne teste pas
+   les couleurs semi-transparentes.
+2. **Barre de Ma collection** (`BarreVues`, `CollectionFilters`, `ShelfPage`,
+   `CategoryPage`). Huit contrôles sur trois lignes, environ 40 % d'un écran de
+   téléphone avant la première jaquette. Il reste le segment Tout / Possédés /
+   Suivies / Envies, « Affichage » et « ⋯ ». Grouper et Trier passent en tête
+   du panneau, renommé « Affichage » ; « Valeur de la collection » passe dans
+   le menu « ⋯ ». Le bouton du panneau devient « Effacer les filtres » : il
+   portait le même nom que celui de l'écran vide.
+3. **Fiche** (`InspecteurFiche`, `FicheHero`, `EntityDetailPage`). En lecture,
+   la colonne Personnel ne montre que les relevés qui ont une valeur ; sans
+   aucun, une phrase et un bouton qui ouvre le mode édition. La colonne Source
+   devient une ligne repliée « Détails techniques » ; en mode édition, elle
+   redevient une colonne ouverte. « Évaluer » devient un bouton secondaire,
+   « Évaluer une annonce ».
+4. **Découvrir** (`DiscoverTierPreview`, `DiscoverySection`,
+   `ReleaseRefreshLine`). Une carte d'univers n'apparaît que si quelque chose
+   y est classé : « Rien de classé » ne se répète plus trois fois. Le panneau
+   Tier Lists gagne un en-tête et « Tout voir », comme ses voisins (Découvrir
+   ne menait pas à `/tier-lists`). Les découvertes en attente deviennent une
+   carte avec son bouton. La ligne des sorties dit « Les sources de sorties
+   n'ont pas encore été consultées » : l'ancienne phrase contredisait une
+   sortie listée juste dessous. L'ordre de la page ne change pas (choix
+   documenté dans `DiscoverPage`).
+5. **Accrocs** (`navItems`, `TabBar`, `DesktopHeader`, `AideFlottante`). En
+   visiteur, l'onglet Catalogue s'allume sur une fiche ; les deux barres lisent
+   une seule fonction, `destinationsPour`. Le bouton « Aide » est un rond de
+   44 px sur téléphone (le mot reste lu par les lecteurs d'écran), et la fiche
+   lui garde de la place en bas à toutes les largeurs.
+
+**Constats de la revue écartés à la vérification** : les lignes du catalogue
+et le logo ont bien un nom accessible (l'outil de lecture le tronquait), et les
+jaquettes « cassées » étaient en cours de chargement.
+
+**Hors lot** : la carte d'édition affiche encore « Détails à renseigner » avec
+une jauge vide alors que des tomes sont possédés. Et sous Node 26, 38 tests web
+échouent avant ce lot : le `localStorage` propre à Node masque celui de jsdom.
+Contournement : `NODE_OPTIONS=--no-experimental-webstorage npm test`.
+
+**Vérification** : web, 491 tests verts avec ce contournement (dont de
+nouveaux tests pour le regroupement dans le panneau, la Source repliée et
+l'onglet du visiteur ; mutation vérifiée sur ce dernier), `typecheck` propre,
+`lint` sans nouvel avertissement, `check:contrast` et `check:frontieres` verts.
+En direct sur l'instance locale, en lecture seule (thème et regroupement remis
+comme avant) : Berserk et Monster en clair et en sombre, Ma collection et
+Découvrir à 1280 px et 375 px, sans débordement horizontal. L'onglet du
+visiteur n'a été vérifié que par test. Pas de test e2e lancé.
