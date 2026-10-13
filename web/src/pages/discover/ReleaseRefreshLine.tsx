@@ -7,7 +7,9 @@ import { useReleaseRefresh } from './useReleaseRefresh'
 
 /** What the last pass left behind, said in one line - nothing is promised that the pass did not do. */
 function resume(run: ReleaseRefreshRunDto | null, now: Date): string {
-  if (!run) return "Les sorties n'ont jamais été mises à jour."
+  // "jamais été mises à jour" sat above a listed release (a date typed on a
+  // detail page): it is the SOURCES that were never read, not the calendar.
+  if (!run) return "Les sources de sorties n'ont pas encore été consultées."
   const parties = [`Sorties mises à jour ${libelleIlYA(run.startedAt, now)}`]
   if (run.error) parties.push('la dernière mise à jour a échoué')
   else if (run.stoppedOnUnavailableProvider) parties.push('interrompue : une source ne répond plus')

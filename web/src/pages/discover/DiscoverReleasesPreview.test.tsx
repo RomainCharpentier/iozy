@@ -124,7 +124,7 @@ describe('DiscoverReleasesPreview - the refresh of the dates', () => {
     insights.getReleaseRefreshStatus.mockResolvedValue(etat({ lastRun: null }))
     render(<DiscoverReleasesPreview />, { wrapper: enrobage })
 
-    expect(await screen.findByText("Les sorties n'ont jamais été mises à jour.")).toBeInTheDocument()
+    expect(await screen.findByText("Les sources de sorties n'ont pas encore été consultées.")).toBeInTheDocument()
   })
 
   it('says how many series are still waiting, and when a source went silent or the pass failed', async () => {

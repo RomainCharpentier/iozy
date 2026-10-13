@@ -90,7 +90,6 @@ export function DiscoverPage() {
 
       <div className="flex flex-col gap-8 min-[1100px]:grid min-[1100px]:grid-cols-[1.65fr_1fr] min-[1100px]:items-start min-[1100px]:gap-0">
         <section className={`flex-col gap-3 min-[1100px]:flex ${tab === 'tiers' ? 'flex' : 'hidden'}`}>
-          <h2 className="sr-only">Tier Lists</h2>
           <DiscoverTierPreview />
         </section>
 
