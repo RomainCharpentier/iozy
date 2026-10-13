@@ -244,13 +244,13 @@ function TuileConsultation({ volume }: { volume: VolumeAffiche }) {
     <div
       role="img"
       aria-label={`Tome ${volume.numero}`}
-      className="relative flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-lg bg-handle shadow-token-sm"
+      className="relative flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-lg bg-surface2 ring-1 ring-lineStrong ring-inset shadow-token-sm"
     >
       <Jaquette src={volume.jaquetteUrl} repli={null} className="absolute inset-0 h-full w-full object-cover" />
       <span
         aria-hidden="true"
         className={`relative font-display text-[17px] font-medium tracking-[0.01em] ${
-          volume.jaquetteUrl ? 'sr-only' : 'text-white/90'
+          volume.jaquetteUrl ? 'sr-only' : 'text-textDim'
         }`}
       >
         {String(volume.numero).padStart(2, '0')}
@@ -288,6 +288,16 @@ function TuileVolume({
   // and fading it would make it less visible than what has not yet been
   // decided. Three states, three treatments.
   const attenue = !selection && !volume.possede && !volume.voulu
+  // Without a cover, the tile itself must say the state, by its shape and
+  // not by a faded gray: an owned volume is a FILLED tile, a missing one an
+  // empty slot with a dashed edge, a wanted one the same slot in accent.
+  // The number keeps a theme text color checked by check:contrast - a white
+  // on a translucent gray fell to about 1.6:1 in the light theme.
+  const enCreux = !selection && !volume.possede
+  const forme = enCreux
+    ? `border-[1.5px] border-dashed ${volume.voulu ? 'border-accent' : 'border-lineStrong'}`
+    : 'bg-surface2 ring-1 ring-lineStrong ring-inset shadow-token-sm'
+  const couleurNumero = !enCreux ? 'text-textPrimary' : volume.voulu ? 'text-accentText' : 'text-faint'
 
   return (
     <div className="group relative">
@@ -307,18 +317,24 @@ function TuileVolume({
                 volume.possede ? ', possédé' : volume.voulu ? ', dans mes envies' : ', manquant'
               }`
         }
-        className={`relative flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-lg bg-handle transition ${
-          attenue ? 'opacity-[.42] grayscale-[1] contrast-[.92] ring-1 ring-line ring-inset' : 'shadow-token-sm'
-        } ${volume.voulu && !selection ? 'ring-2 ring-accent ring-inset' : ''} ${
+        className={`relative flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-lg transition ${forme} ${
           volume.actif ? 'outline-2 outline-offset-2 outline-accent' : armee ? 'outline-2 outline-offset-2 outline-danger' : ''
         }`}
       >
-        <Jaquette src={volume.jaquetteUrl} repli={null} className="absolute inset-0 h-full w-full object-cover" />
+        {/* Only the COVER of a missing volume is dimmed, never the tile: dimming
+            the whole button also dimmed its number below the contrast floor. */}
+        <Jaquette
+          src={volume.jaquetteUrl}
+          repli={null}
+          className={`absolute inset-0 h-full w-full object-cover ${
+            attenue ? 'opacity-[.42] grayscale-[1] contrast-[.92]' : ''
+          }`}
+        />
         {/* The number stays in the tree even under a cover: it is what
             carries the information, and without a cover it is all there is. */}
         <span
           className={`relative font-display text-[17px] font-medium tracking-[0.01em] ${
-            volume.jaquetteUrl ? 'sr-only' : 'text-white/90'
+            volume.jaquetteUrl ? 'sr-only' : couleurNumero
           }`}
         >
           {String(volume.numero).padStart(2, '0')}
