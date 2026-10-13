@@ -23,7 +23,7 @@
 >
 > Trois issues possibles — le rattraper, le geler explicitement, le retirer du
 > dépôt — et leurs conséquences respectives sont pesées dans
-> `../docs/AUDIT_TECHNIQUE.md`, constat **C4**. Aucune n'a été prise : c'est
+> Aucune n'a été prise : c'est
 > une décision de produit, pas une décision technique.
 
 ## Le projet
