@@ -122,11 +122,15 @@ public final class EditionMention {
      * @param hint  the label read, formatted ("Perfect Edition") — {@code null}
      *              if the title names no recognisable edition
      * @param reste the title without this mention, ready for the series search
+     * @param ecrit the mention as the title writes it ("Édition originale"),
+     *              {@code null} with the hint. A book source names its edition
+     *              this way, and rewriting it "Originale Edition" would
+     *              create an edition name that nobody uses.
      */
-    public record Lecture(String hint, String reste) {
+    public record Lecture(String hint, String reste, String ecrit) {
 
         static Lecture aucune(String titre) {
-            return new Lecture(null, titre == null ? "" : titre);
+            return new Lecture(null, titre == null ? "" : titre, null);
         }
 
         public boolean trouvee() {
@@ -168,14 +172,15 @@ public final class EditionMention {
         // 3. A rank used alone: "Naruto Perfect tomes 1 à 3".
         Matcher rang = RANG_SEUL.matcher(titre);
         if (rang.find()) {
-            return new Lecture(capitaliser(rang.group(1)), retirer(titre, rang.start(), rang.end()));
+            return new Lecture(capitaliser(rang.group(1)), retirer(titre, rang.start(), rang.end()), rang.group(1));
         }
 
         return Lecture.aucune(titre);
     }
 
     private static Lecture retenir(String titre, Matcher m, String qualifiant) {
-        return new Lecture(capitaliser(qualifiant) + " Edition", retirer(titre, m.start(), m.end()));
+        return new Lecture(capitaliser(qualifiant) + " Edition", retirer(titre, m.start(), m.end()),
+                titre.substring(m.start(), m.end()));
     }
 
     private static String retirer(String titre, int debut, int fin) {

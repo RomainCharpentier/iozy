@@ -339,6 +339,21 @@ public final class ListingTextParser {
         return EditionMention.lire(sansTomes).hint();
     }
 
+    /**
+     * Like {@link #probableEdition}, but the mention as the title writes it
+     * ("Édition originale" rather than "Originale Edition").
+     *
+     * <p>For a book source: its title is the name of a real print run, so
+     * its wording is the name of the edition, not a hint to confirm.
+     */
+    public static String editionAsWritten(String title) {
+        if (title == null || title.isBlank()) {
+            return null;
+        }
+        String sansTomes = NOMBRE_DE_TOMES.matcher(extraire(title).reste()).replaceAll(" ");
+        return EditionMention.lire(sansTomes).ecrit();
+    }
+
     private static void ajouterSiValide(Set<Integer> numeros, String brut) {
         if (!brut.matches("\\d{1,3}")) {
             return;
