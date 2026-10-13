@@ -45,16 +45,6 @@ export function DiscoverySection() {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-[11px] font-semibold tracking-wide text-textDim uppercase">Découvertes</h2>
-        {!demandees && types.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setDemandees(true)}
-            className="flex min-h-11 items-center gap-1.5 text-sm font-semibold text-accentText"
-          >
-            <Sparkles size={14} />
-            Voir des suggestions
-          </button>
-        )}
       </div>
 
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
@@ -65,11 +55,21 @@ export function DiscoverySection() {
         </div>
       )}
 
+      {/* The waiting state is an invitation with its button inside, not a
+          lone sentence with a link at the other end of the row: on a wide
+          screen the two were 900 px apart and the section read as empty
+          (UI review of 2026-10-13). */}
       {!demandees && types.length > 0 && (
-        <p className="text-sm text-textDim">
-          À partir de ce que tu possèdes, pour {types.map((t) => t.label).join(', ')}. Les sources ne sont
-          interrogées que si tu le demandes.
-        </p>
+        <div className={`${CLASSE_CARTE} flex flex-wrap items-center justify-between gap-3`}>
+          <p className="min-w-0 flex-1 basis-64 text-sm text-textDim">
+            Des œuvres proches de ce que tu possèdes, pour {types.map((t) => t.label).join(', ')}. Les sources ne
+            sont interrogées que si tu le demandes.
+          </p>
+          <button type="button" onClick={() => setDemandees(true)} className="btn-secondaire shrink-0">
+            <Sparkles size={14} />
+            Voir des suggestions
+          </button>
+        </div>
       )}
 
       {demandees && (
