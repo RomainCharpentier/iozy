@@ -8863,3 +8863,59 @@ ferait perdre sa navigation par mois. Le sélecteur demande maintenant le niveau
 **Vérification** : e2e 19 parcours verts sur 19, `typecheck` propre, `lint` sans
 nouvel avertissement (19 déjà présents), 460 tests unitaires verts (avec
 `NODE_OPTIONS=--no-experimental-webstorage`). Aucun code de l'app touché.
+
+### Lot 156 — Le résultat d'une analyse d'achat ne dit plus qu'une chose sur le prix
+
+Test exploratoire du 2026-10-13 : un compte possède Pluto 1 à 6 sur 8 (édition
+« Standard », prix neuf connu), l'annonce saisie à la main vend les tomes 7 et 8
+pour 12 € plus 4 € de port, sans aucun prix relevé. Le même écran disait :
+« Utile pour toi — prix impossible à situer » et « Référence insuffisante »,
+un badge « Cher · 39/100 » avec « Confiance Haute », « Le prix demandé se situe
+déjà dans une fourchette correcte », puis « 2/8 volumes · 6 manquants » et
+« 6/8 tomes manquants pour compléter cette édition » pour un lot qui complète
+justement l'édition. Et le port tapé par l'utilisateur s'affichait « 4,00 € estimés ».
+
+**D'où venait chaque phrase.** Trois calculs jugeaient le prix, chacun sur sa
+source : la section Prix sur les seuls prix relevés comparables
+(`MarketReference`), la négociation sur une valeur estimée (prix neuf décoté,
+ou estimation IA), le badge sur la note globale du moteur (`VerdictScorer`),
+dont les libellés « Prix correct » et « Cher » sont des mots de prix alors que la
+note mêle prix, état, édition et complétude. La complétude, elle, ne comptait
+que les tomes du lot : 39/100 venait surtout de ces « 6 manquants » et de leur
+coût pour compléter.
+
+**Décision : la section Prix est le seul juge du prix.** Les estimations restent
+utiles, mais elles ne prononcent plus de verdict.
+
+- **Négociation** (`NegotiationEngine`) : sans référence utilisable, les trois
+  montants restent (offre, cible, maximum), avec une seule phrase qui dit leur
+  base : « un repère pour négocier, pas un avis sur le prix demandé ». Plus de
+  « fourchette correcte », plus de « passer l'annonce » tirés d'un prix neuf.
+  Conséquence voulue : sans référence, le moteur ne rabaisse plus la note en
+  « Cher » sur la foi d'une estimation ; l'écart à la valeur estimée reste
+  compté dans la note par son propre critère.
+- **Note globale** : quand l'évaluation personnalisée existe, l'écran affiche
+  « Note globale 53/100 · prix, état, édition et complétude réunis », sans mot de
+  prix. Une analyse ancienne sans évaluation garde son badge : c'était son seul
+  verdict. L'historique (liste) garde aussi ses badges.
+- **Confiance** : plafonnée à « Moyenne » tant qu'aucun prix comparable n'est
+  relevé. Dix critères calculés ne sont pas dix critères connus.
+- **Complétude** : comptée sur ce que l'utilisateur tiendrait après l'achat, le
+  lot plus ses tomes déjà possédés. La ligne dit « Édition complète avec ce lot
+  (2 dans le lot + 6 déjà possédés) », ou « 5/8 volumes avec ce lot et ta
+  collection · 3 manquants » ; l'avertissement ajoute « en comptant ceux que tu
+  possèdes ». Les critères complétude et coût pour compléter de la note lisent
+  le même calcul. Une analyse enregistrée avant ce lot s'affiche comme avant.
+- **Port saisi** : « 4,00 € (montant saisi) » au lieu de « estimés ».
+- Au passage, la fin anglaise « cost unknown » de l'avertissement de complétude
+  devient « coût inconnu ».
+
+**Vérification** : en direct sur une pile e2e à part (API :8091, web :5175, la
+pile :8090 servait à une autre session), même scénario : un seul verdict de prix
+(« Référence insuffisante »), note 53/100 confiance moyenne, phrase de
+négociation neutre, « Édition complète avec ce lot (2 dans le lot + 6 déjà
+possédés) », port « 4,00 € (montant saisi) ». `market_price_observation` : 0
+avant, 0 après ; pile détruite ensuite. Tests : 5 nouveaux tests web (4 tombent
+sur l'ancien code), 3 tests moteur ; 465 tests unitaires verts (avec
+`NODE_OPTIONS=--no-experimental-webstorage`), `typecheck` propre, `lint` sans
+nouvel avertissement (19 déjà présents), suite backend complète verte.
