@@ -64,7 +64,8 @@ test('date a work on its detail page, then find it again in the calendar and on 
   const mois = iso(SORTIE).slice(0, 7)
   await page.goto(`/releases?mois=${mois}`)
   const titreDuMois = libelle({ month: 'long', year: 'numeric' })
-  await expect(page.getByRole('heading', { name: titreDuMois.charAt(0).toUpperCase() + titreDuMois.slice(1) })).toBeVisible()
+  //     Level 2 only: the "À venir" list next to the grid also titles its months (level 3, under its own h2).
+  await expect(page.getByRole('heading', { level: 2, name: titreDuMois.charAt(0).toUpperCase() + titreDuMois.slice(1) })).toBeVisible()
   const jour = libelle({ weekday: 'long', day: 'numeric', month: 'long' })
   await expect(page.getByRole('heading', { level: 3, name: jour })).toBeVisible()
   const ligne = page.getByRole('link', { name: new RegExp(oeuvre) })
