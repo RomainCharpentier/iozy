@@ -8928,3 +8928,43 @@ champs SOURCE, aide sans lecture, note « 7,5/10 », lien retour de `/scan`, auc
 longue passe de sorties (elle finit en 30 ms sur la pile e2e) et la panne du
 fournisseur de jaquettes ; les deux sont couverts par un test qui échouait avant
 la correction. Pile jetable démontée ensuite.
+
+### Lot 159 — Découvrir distingue « la source n'a pas répondu » de « rien à proposer »
+
+Suite du lot 158. Un fournisseur en panne renvoyait une liste vide, comme « rien
+trouvé », et `GET /api/insights/discover` renvoyait une liste nue : le panneau
+Découvertes devait nommer les deux causes à la fois. Le serveur dit maintenant
+laquelle.
+
+- **Point d'extension** : `DiscoverySource.discover` renvoie un `Discovery`
+  (cœur) : les suggestions, `sourceAnswered` (faux dès qu'un appel à la source
+  est resté sans réponse) et `emptyReason` quand l'univers n'a rien eu à
+  demander : `NOTHING_OWNED`, `NO_RATED_WORK`, `NO_KNOWN_AUTHOR`,
+  `NOT_LINKED_TO_SOURCE`. Les univers dépendent toujours du cœur seul
+  (`ModulesTest` vert).
+- **Réponse HTTP** : `{ candidates, sourceAnswered, emptyReason }` au lieu d'une
+  liste. Seul le web la lit (iOS est hors service).
+- **Manga** : `MetadataProvider` gagne `searchOrThrow`, qui lève
+  `SourceUnavailableException` au lieu de rendre une liste vide. Jikan,
+  MyAnimeList, AniList et la recherche par titre de Google Books l'implémentent ;
+  leur `search` garde son comportement (liste vide et `WARN`). Une recherche par
+  auteur compte comme répondue si un fournisseur a répondu, même à vide. Le
+  cache d'une demi-heure ne garde qu'un résultat non vide **et complet**.
+- **Jeux vidéo et jeux de société** : `IgdbSimilarGamesFetcher`,
+  `BggThingFetcher` et `BggHotListFetcher` (utilisés seulement par Découvrir)
+  lèvent `SourceUnavailableException` sur une panne. Un jeu sans réponse est
+  sauté et le résultat le dit. Sans liste « hot » de BGG, rien n'est proposable.
+- **Panneau** : liste vide et source muette → « Manga : la source n'a pas
+  répondu. » avec « Réessayer ». Liste vide et source qui a répondu → « Manga :
+  rien à proposer. » suivi de la raison (« Aucune œuvre notée : note celles que
+  tu aimes, leurs auteurs serviront de piste. », etc.), sans bouton. Liste non
+  vide mais incomplète → « Liste incomplète : la source n'a pas toujours
+  répondu. » avec « Réessayer ».
+
+**Vérification** : serveur, suite complète verte (1 238 tests), dont 22 tests de
+découverte sans réseau (faux écrits à la main, nouveau `BoardGameDiscoveryTest`).
+Web : 71 fichiers de tests verts (`NODE_OPTIONS=--no-experimental-webstorage`),
+dont les deux phrases et la liste incomplète ; `typecheck` propre ; `lint` sans
+avertissement dans les fichiers du lot. e2e : `suggestions.spec.ts` vert sur la
+vraie API (aucune note sur le compte e2e → « rien à proposer », raison
+`NO_RATED_WORK`, aucune annonce de panne).
