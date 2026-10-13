@@ -8841,3 +8841,22 @@ n'est pas installé sur la machine (`npx playwright install` à faire une fois).
 Piège : sous Node 26, `localStorage` natif masque celui de jsdom et 38 tests
 tombent avant même ce lot. `NODE_OPTIONS=--no-experimental-webstorage npm test`
 rend la suite verte.
+
+### Lot 155 — Le parcours « sorties » retrouve son titre de mois
+
+`releases.spec.ts` échouait depuis le lot 152 : sur `/releases?mois=`, « Novembre
+2026 » est à la fois le titre du mois de la grille (niveau 2) et un intertitre du
+panneau « À venir » (niveau 3, sous son propre titre « À venir »). Le sélecteur
+`getByRole('heading', { name })` trouvait donc deux titres.
+
+**Décision : le test, pas l'écran.** Le plan des titres est juste : deux titres
+de niveau 2 (le mois affiché, « À venir »), et sous « À venir » un niveau 3 par
+mois, dans un `aside` nommé. Un lecteur d'écran qui parcourt les titres entend
+deux fois « Novembre 2026 », mais à deux niveaux et dans deux zones différentes,
+ce qui est le comportement attendu. Retirer les intertitres du panneau lui
+ferait perdre sa navigation par mois. Le sélecteur demande maintenant le niveau
+2, comme le fait déjà la ligne suivante pour le jour (niveau 3).
+
+**Vérification** : e2e 19 parcours verts sur 19, `typecheck` propre, `lint` sans
+nouvel avertissement (19 déjà présents), 460 tests unitaires verts (avec
+`NODE_OPTIONS=--no-experimental-webstorage`). Aucun code de l'app touché.
