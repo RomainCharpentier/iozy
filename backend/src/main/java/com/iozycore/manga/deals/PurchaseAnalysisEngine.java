@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -144,7 +145,14 @@ public class PurchaseAnalysisEngine {
                 anyObservedMarketData = true;
             }
 
-            CollectionStatus completeness = completenessCalculator.compute(item.includedVolumes(), edition, perVolumeMarketPrice);
+            // Completeness is what the user would hold AFTER this purchase: the lot plus the
+            // volumes they already own. Counting the lot alone told someone who owns 1-6 of 8
+            // that buying 7-8 left "6 missing", while the block above said the lot fills
+            // exactly their gaps. Without a known collection (no owned volume), it is the lot alone.
+            Set<Integer> heldAfterPurchase = new HashSet<>(item.includedVolumes());
+            heldAfterPurchase.addAll(ctx.alreadyOwnedVolumes());
+            boolean countsOwnedVolumes = !ctx.alreadyOwnedVolumes().isEmpty();
+            CollectionStatus completeness = completenessCalculator.compute(heldAfterPurchase, edition, perVolumeMarketPrice);
             completenessStatuses.add(completeness);
             if (completeness.isKnown()) {
                 if (completeness.missingCount() > 0) {
@@ -152,6 +160,7 @@ public class PurchaseAnalysisEngine {
                             completeness.missingCount() + "/" + completeness.totalVolumes()
                                     + (completeness.missingCount() > 1 ? " tomes manquants" : " tome manquant")
                                     + " pour compléter cette édition"
+                                    + (countsOwnedVolumes ? ", en comptant ceux que tu possèdes" : "")
                                     + (completeness.estimatedCostToComplete() != null
                                             ? " (~" + String.format(Locale.FRANCE, "%,.2f €", completeness.estimatedCostToComplete())
                                                     + switch (completeness.costToCompleteBasis()) {
@@ -160,7 +169,7 @@ public class PurchaseAnalysisEngine {
                                                         case OBSERVED_MARKET -> ", d'après des prix relevés";
                                                     }
                                                     + ")"
-                                            : ", cost unknown")
+                                            : ", coût inconnu")
                                     + ".",
                             completeness.costToCompleteBasis() == PriceBasis.OBSERVED_MARKET ? ConfidenceLevel.MEDIUM : ConfidenceLevel.LOW));
                 }
@@ -269,14 +278,21 @@ public class PurchaseAnalysisEngine {
                     ConfidenceLevel.LOW));
         }
 
-        NegotiationRecommendation negotiation = negotiationEngine.recommend(listing.askingPrice(), finalFairValue);
-
         // The market reference is computed BEFORE the verdict: the factor
         // REAL_MARKET_ALIGNMENT needs to know whether a structurally
         // COMPARABLE observation exists, not only whether an observation exists. Without that, it
         // said "price really observed, high confidence" under a Price block
         // saying "none on a comparable lot" (see scoreRealMarketAlignment).
         MarketReference reference = referenceDeLot(itemContexts, today, currentListingIdentity);
+
+        // One price verdict per screen, and it is the Price section's: only a usable reference
+        // may judge the price. The negotiation still gives amounts from the estimated value,
+        // but it no longer says "a correct range" or "skip it" when that section says the
+        // price cannot be placed.
+        boolean priceCanBePlaced = DealAssessmentPolicy.positionOf(listing.askingPrice(), reference)
+                != PricePosition.REFERENCE_UNAVAILABLE;
+        NegotiationRecommendation negotiation = negotiationEngine.recommend(
+                listing.askingPrice(), finalFairValue, priceCanBePlaced);
 
         VerdictScorer.Input verdictInput = new VerdictScorer.Input(
                 totalRealCost, finalFairValue, finalNewValue, discountPercent, anyObservedMarketData,

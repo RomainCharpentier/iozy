@@ -26,6 +26,19 @@ public class NegotiationEngine {
      *                    neither a market observation nor a retail price allowed computing one
      */
     public NegotiationRecommendation recommend(BigDecimal askingPrice, BigDecimal fairValue) {
+        return recommend(askingPrice, fairValue, true);
+    }
+
+    /**
+     * @param marketBased true when the price of this lot can be placed against comparable observed
+     *                    prices (see {@link DealAssessmentPolicy#positionOf(BigDecimal, MarketReference)}).
+     *                    When false, the fair value is only an estimate (new price minus a discount, or
+     *                    an AI guess). The three amounts stay useful to negotiate, but the advice must
+     *                    not judge the price: the Price section of the same screen says it cannot be
+     *                    placed, and a sentence here saying "a correct range" or "skip it" would
+     *                    contradict it with a guess. So no band wording and no skip.
+     */
+    public NegotiationRecommendation recommend(BigDecimal askingPrice, BigDecimal fairValue, boolean marketBased) {
         if (fairValue == null) {
             return NegotiationRecommendation.unavailable(
                     "Aucun prix relevé ni prix neuf connu pour cette édition - impossible d'estimer une valeur juste.");
@@ -35,6 +48,16 @@ public class NegotiationEngine {
         BigDecimal targetMin = round(fairValue.multiply(BigDecimal.ONE.subtract(BAND)));
         BigDecimal targetMax = maxPrice;
         BigDecimal skipThreshold = round(maxPrice.multiply(SKIP_THRESHOLD_MULTIPLIER));
+
+        if (!marketBased) {
+            BigDecimal offer = askingPrice.compareTo(targetMin) <= 0 ? askingPrice : targetMin;
+            NegotiationAdvice advice = askingPrice.compareTo(maxPrice) <= 0
+                    ? NegotiationAdvice.ACCEPTABLE_AS_IS
+                    : NegotiationAdvice.NEGOTIATE;
+            return new NegotiationRecommendation(offer, targetMin, targetMax, maxPrice, advice,
+                    "Montants calculés sur une valeur estimée (prix neuf ou estimation), faute de prix relevé "
+                            + "sur un lot comparable : un repère pour négocier, pas un avis sur le prix demandé.", true);
+        }
 
         if (askingPrice.compareTo(targetMin) <= 0) {
             return new NegotiationRecommendation(askingPrice, targetMin, targetMax, maxPrice,
