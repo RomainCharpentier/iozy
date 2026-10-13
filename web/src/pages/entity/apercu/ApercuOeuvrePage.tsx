@@ -19,6 +19,7 @@ import { FicheHero } from '@/pages/entity/FicheHero'
 import { retourDepuis } from '@/common/lib/retour'
 import { useCollecteParTome } from '@/common/lib/typeDeCollection'
 import { usePropositionTomes } from '@/pages/entity/usePropositionTomes'
+import { useAuth } from '@/common/hooks/useAuth'
 
 /**
  * The preview of a work one does not own: the same page as its detail page, but
@@ -43,11 +44,18 @@ import { usePropositionTomes } from '@/pages/entity/usePropositionTomes'
  * No ranking, no rating, no reading, no tag, no relationship: these things
  * attach to a detail page, and there is none yet. Inventing them as
  * read-only would suggest that they can be filled in here.
+ *
+ * <h2>For a visitor: a read-only preview</h2>
+ * An ISBN found from the catalog leads here. A visitor sees the work as the
+ * source describes it, and nothing more: no volumes to check (that search
+ * asks providers for every edition, and its only purpose is to add), no
+ * sentence about "ta collection", which they do not have.
  */
 export function ApercuOeuvrePage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const titleComposition = useTitleComposition()
+  const { estInvite } = useAuth()
   const entityTypeId = params.get('type') ?? ''
   const titre = params.get('titre') ?? ''
 
@@ -80,22 +88,23 @@ export function ApercuOeuvrePage() {
   // We redo the search to find the metadata of the work (author,
   // cover, year, ids). Same cache key as the search screen:
   // going back there right after does not restart anything.
-  const rechercheQuery = useQuery({
-    queryKey: queryKeys.metadata.search(entityTypeId, titre),
-    queryFn: () => searchMetadata(entityTypeId, titre),
-    enabled: entityTypeId !== '' && titre !== '',
-  })
-
   // The candidate already in hand, when it was just clicked: a shortcut,
   // never a dependency - on reload it is absent and the search
-  // above finds it again. This is what sets this screen apart from the old
+  // below finds it again. This is what sets this screen apart from the old
   // draft, which only existed through its `location.state`.
   const etatRecu = useLocation().state
   const candidatRecu = (etatRecu as { candidat?: MetadataCandidateDto } | null)?.candidat ?? null
+  // A visitor who arrives with the candidate in hand does not need the search:
+  // it only goes out to a provider again to find what is already here.
+  const rechercheQuery = useQuery({
+    queryKey: queryKeys.metadata.search(entityTypeId, titre),
+    queryFn: () => searchMetadata(entityTypeId, titre),
+    enabled: entityTypeId !== '' && titre !== '' && !(estInvite && candidatRecu),
+  })
   // The search the user comes from, with what was typed in it (see retourFiche).
   // Absent from a received link or an F5: the back link then aims at the bare search,
   // which remains a valid destination.
-  const retour = retourDepuis(etatRecu) ?? { to: '/add', libelle: 'Recherche' }
+  const retour = retourDepuis(etatRecu) ?? { to: '/add', libelle: 'Catalogue' }
   // A game has no volume: the welcome sentence cannot ask to check
   // some (see lib/typeDeCollection).
   const parTome = useCollecteParTome(entityTypeId)
@@ -128,7 +137,7 @@ export function ApercuOeuvrePage() {
     entityTypeId,
     titre,
     attributs,
-    actif: entityTypeId !== '' && titre !== '',
+    actif: entityTypeId !== '' && titre !== '' && !estInvite,
     // As long as the search has not answered, `attributs` is empty: adding
     // now would create a work without a cover or author.
     attributsEnCours: !candidatRecu && rechercheQuery.isLoading,
@@ -145,7 +154,7 @@ export function ApercuOeuvrePage() {
       <div className="flex flex-col gap-4">
         <p className="text-textDim">Aucune œuvre à afficher.</p>
         <Link to={retour.to} className="w-fit text-sm font-semibold text-accentText">
-          Retour à la recherche
+          Retour au catalogue
         </Link>
       </div>
     )
@@ -187,9 +196,11 @@ export function ApercuOeuvrePage() {
       {/* Say that this work is not yet one's own, rather than letting the
           absence of progress suggest it. */}
       <p className="pt-4 text-sm text-textDim">
-        {parTome
-          ? "Cette œuvre n'est pas encore dans ta collection — coche les tomes que tu possèdes pour l'y ajouter."
-          : "Cette œuvre n'est pas encore dans ta collection."}
+        {estInvite
+          ? "Cette œuvre n'est pas encore dans le catalogue. Voici ce qu'en dit la source."
+          : parTome
+            ? "Cette œuvre n'est pas encore dans ta collection — coche les tomes que tu possèdes pour l'y ajouter."
+            : "Cette œuvre n'est pas encore dans ta collection."}
       </p>
 
       {proposition.section}
@@ -198,9 +209,11 @@ export function ApercuOeuvrePage() {
         <InspecteurFiche
           teinte={teinte}
           personnel={
-            <p className="text-[13.5px] text-faint">
-              Classement, note, lectures et tags apparaîtront ici une fois l'œuvre dans ta collection.
-            </p>
+            estInvite ? undefined : (
+              <p className="text-[13.5px] text-faint">
+                Classement, note, lectures et tags apparaîtront ici une fois l'œuvre dans ta collection.
+              </p>
+            )
           }
           oeuvre={
             <div className="flex flex-col">

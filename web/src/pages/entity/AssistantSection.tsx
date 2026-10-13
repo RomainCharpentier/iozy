@@ -33,7 +33,15 @@ import { formaterEuros } from '@/common/lib/formats'
  * Completeness goes through the SAME cache key as the page and "Mes tomes"
  * (React Query shares the request), the experiences are already loaded.
  */
-export type QuestionAssistant = 'missing' | 'reading'
+export type QuestionAssistant = 'missing' | 'reading' | QuestionCatalogue
+
+/**
+ * The questions a VISITOR can ask: about the work, never about a collection.
+ * "Que me manque-t-il ?" and "Où en suis-je ?" need someone who owns and
+ * reads; a visit session has no owner, so these answers would be about
+ * nobody.
+ */
+export type QuestionCatalogue = 'volumes' | 'status' | 'editions' | 'author'
 
 
 /** The answer, placed just under the section bar. Separate from the buttons
@@ -46,6 +54,7 @@ export function ReponseAssistant({
   variants,
   experiences,
   activeGroup,
+  missingKnownVolumes,
   question,
 }: {
   entityId: string
@@ -55,7 +64,11 @@ export function ReponseAssistant({
   /** null when no edition is displayed (type without volumes, series without
    *  any volume): "what am I missing" then has nothing to count on. */
   activeGroup: EditionProgressDto | null
-  question: QuestionAssistant
+  /** The volumes the grid shows as missing - THE SAME list, computed once by
+   *  the page from its tiles. When the total of the edition is unknown, it is
+   *  all the help can honestly say, and it must not contradict the grid. */
+  missingKnownVolumes: number[]
+  question: 'missing' | 'reading'
 }) {
   const navigate = useNavigate()
   // Owned and cataloged counts come from the server with the group (see
@@ -85,6 +98,7 @@ export function ReponseAssistant({
         <MissingAnswer
           editionName={editionName}
           ownedCount={owned.length}
+          missingKnownVolumes={missingKnownVolumes}
           isLoading={completenessQuery.isLoading}
           isError={completenessQuery.isError}
           totalVolumes={completenessQuery.data?.totalVolumes ?? null}
@@ -137,6 +151,7 @@ function plural(count: number, singular: string, pluralForm = `${singular}s`): s
 function MissingAnswer({
   editionName,
   ownedCount,
+  missingKnownVolumes,
   isLoading,
   isError,
   totalVolumes,
@@ -148,6 +163,7 @@ function MissingAnswer({
 }: {
   editionName: string
   ownedCount: number
+  missingKnownVolumes: number[]
   isLoading: boolean
   isError: boolean
   totalVolumes: number | null
@@ -173,6 +189,26 @@ function MissingAnswer({
   if (isLoading) return <p className="text-textDim">Calcul en cours...</p>
   if (isError) return <p className="text-textDim">Impossible de calculer la complétude pour le moment.</p>
 
+  if (totalVolumes === null && missingKnownVolumes.length > 0) {
+    // The grid says "Manquants N": the help says the same N, and says why it
+    // cannot say more. Answering only "I cannot tell" next to a counter was
+    // a contradiction on the same screen.
+    return (
+      <>
+        <p>
+          Parmi les tomes connus du catalogue, il te manque{' '}
+          <strong className="font-semibold">
+            {missingKnownVolumes.length} {plural(missingKnownVolumes.length, 'tome')}
+          </strong>{' '}
+          : {formatVolumeRanges(missingKnownVolumes)}.
+        </p>
+        <p className="text-xs text-textDim">
+          Le nombre total de tomes de l'édition « {editionName} » n'est pas renseigné : la série peut en compter
+          d'autres. Tu peux le renseigner depuis la ligne d'édition, en haut de cette fiche.
+        </p>
+      </>
+    )
+  }
   if (totalVolumes === null) {
     return (
       <p className="text-textDim">
@@ -228,6 +264,101 @@ function MissingAnswer({
         Évaluer une annonce de cette série
       </button>
     </>
+  )
+}
+
+/**
+ * The answers for a visitor: what the catalog knows about the work, nothing
+ * about anyone's collection. Computed from what the page already shows - the
+ * same tiles, the same edition cards - so the help never says something the
+ * screen contradicts.
+ */
+export function ReponseCatalogue({
+  question,
+  editionName,
+  totalVolumes,
+  shownVolumes,
+  editions,
+  seriesStatus,
+  ongoing,
+  years,
+  creator,
+  creatorLabel,
+}: {
+  question: QuestionCatalogue
+  editionName: string
+  totalVolumes: number | null
+  /** The volume numbers the grid shows for the displayed edition. */
+  shownVolumes: number[]
+  editions: { nom: string; editeur: string | null; total: number | null }[]
+  /** The status in French (see libelleStatutSerie), null when unknown. */
+  seriesStatus: string | null
+  ongoing: boolean | null
+  years: string | null
+  creator: string | null
+  creatorLabel: string
+}) {
+  const edition = editionName || 'non précisée'
+  return (
+    <div
+      aria-live="polite"
+      className="flex flex-col gap-2 rounded-[20px] border border-surface2 bg-surface p-5 text-sm text-textPrimary shadow-token-sm"
+    >
+      {question === 'volumes' &&
+        (totalVolumes !== null ? (
+          <p>
+            L'édition « {edition} » compte{' '}
+            <strong className="font-semibold">
+              {totalVolumes} {plural(totalVolumes, 'tome')}
+            </strong>
+            .
+          </p>
+        ) : (
+          <>
+            <p>Le nombre total de tomes de l'édition « {edition} » n'est pas connu.</p>
+            {shownVolumes.length > 0 && (
+              <p className="text-xs text-textDim">
+                Le catalogue en décrit {shownVolumes.length} : {plural(shownVolumes.length, 'tome', 'tomes')}{' '}
+                {formatVolumeRanges(shownVolumes)}.
+              </p>
+            )}
+          </>
+        ))}
+      {question === 'status' &&
+        (ongoing === false ? (
+          <p>Oui, la série est terminée{years ? ` (${years})` : ''}.</p>
+        ) : ongoing === true ? (
+          <p>Non, elle est encore en cours de publication{years ? ` (${years})` : ''}.</p>
+        ) : seriesStatus ? (
+          <p>Statut indiqué par la source : {seriesStatus}.</p>
+        ) : (
+          <p className="text-textDim">La source ne donne pas le statut de publication de cette série.</p>
+        ))}
+      {question === 'editions' && (
+        <ul className="flex flex-col gap-1">
+          {editions.map((e) => {
+            const details = [e.editeur, e.total !== null ? `${e.total} ${plural(e.total, 'tome')}` : null].filter(Boolean)
+            return (
+              <li key={e.nom || '(non précisée)'}>
+                <span className="font-semibold">{e.nom || 'Édition non précisée'}</span>
+                {details.length > 0 ? ` — ${details.join(', ')}` : ''}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {question === 'author' && (
+        <p>
+          {creator ? (
+            <>
+              {creatorLabel} : <strong className="font-semibold">{creator}</strong>.
+            </>
+          ) : (
+            "La source ne nomme pas l'auteur de cette œuvre."
+          )}
+        </p>
+      )}
+    </div>
   )
 }
 

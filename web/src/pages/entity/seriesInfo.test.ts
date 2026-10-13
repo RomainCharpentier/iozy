@@ -11,7 +11,7 @@
  * from being shown with a guessed denominator.
  */
 import { describe, expect, it } from 'vitest'
-import { isSeriesOngoing, totalVolumesFrom } from './seriesInfo'
+import { isSeriesOngoing, libelleStatutSerie, totalVolumesFrom } from './seriesInfo'
 
 describe('totalVolumesFrom', () => {
   it('returns the total when the source has closed it', () => {
@@ -42,5 +42,27 @@ describe('isSeriesOngoing', () => {
     expect(isSeriesOngoing({ seriesStatus: 'discontinued' })).toBeNull()
     expect(isSeriesOngoing({})).toBeNull()
     expect(isSeriesOngoing(undefined)).toBeNull()
+  })
+})
+
+describe('libelleStatutSerie', () => {
+  it('translates the words of the three sources, without rewriting them', () => {
+    // Shown as "FINISHED" in the SOURCE column: a provider's word, in English.
+    expect(libelleStatutSerie('FINISHED')).toBe('Terminée')
+    expect(libelleStatutSerie('Finished')).toBe('Terminée')
+    expect(libelleStatutSerie('RELEASING')).toBe('En cours')
+    expect(libelleStatutSerie('currently_publishing')).toBe('En cours')
+    expect(libelleStatutSerie('on_hiatus')).toBe('En pause')
+    expect(libelleStatutSerie('NOT_YET_RELEASED')).toBe('À paraître')
+  })
+
+  it('keeps an unknown word as it is, and says nothing when there is none', () => {
+    expect(libelleStatutSerie('Something else')).toBe('Something else')
+    expect(libelleStatutSerie(undefined)).toBeNull()
+    expect(libelleStatutSerie('')).toBeNull()
+  })
+
+  it('reads the AniList word for an ongoing series', () => {
+    expect(isSeriesOngoing({ seriesStatus: 'RELEASING' })).toBe(true)
   })
 })

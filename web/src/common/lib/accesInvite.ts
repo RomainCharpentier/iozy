@@ -31,8 +31,12 @@ const RESERVEES_AUX_COMPTES = [
   // Writing in the collection. `/add` is no longer here: it became the entry
   // of the CATALOG, and the add actions it still carries are hidden from a
   // visitor screen by screen (see SearchPage).
+  //
+  // `/apercu` is not here either: it is where an ISBN found from the catalog
+  // leads. Listed here, the guard sent the visitor back to `/add` without a
+  // word, and the work just found was lost. The preview hides its add
+  // actions from a visitor itself (see ApercuOeuvrePage).
   '/scan',
-  '/apercu',
   '/import-bgg',
   '/import-photo',
   // Analyzing a listing: each step is a POST, and some of them go out to a

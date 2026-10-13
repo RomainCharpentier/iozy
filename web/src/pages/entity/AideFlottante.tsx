@@ -94,8 +94,10 @@ export function AideFlottante({
   return (
     // A generous `bottom` below the breakpoint: the thumb bar
     // (TabBar, fixed) already takes the bottom of the screen, and the button
-    // would sit on top of it.
-    <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-2.5 md:right-7 md:bottom-7">
+    // would sit on top of it. The bar grows with the bottom safe area
+    // (`max(0.5rem, env(...))`, see TabBar): the button follows the same rule,
+    // or a phone with a home indicator would put it on the bar.
+    <div className="fixed right-4 bottom-[calc(5.5rem+max(0.5rem,env(safe-area-inset-bottom)))] z-40 flex flex-col items-end gap-2.5 md:right-7 md:bottom-7">
       {ouvert && (
         <div
           ref={panneauRef}
@@ -147,7 +149,7 @@ export function AideFlottante({
         type="button"
         onClick={() => (ouvert ? fermer() : setOuvert(true))}
         aria-expanded={ouvert}
-        className="flex items-center gap-2.5 rounded-full bg-surface py-[11px] pr-4 pl-3.5 text-[13px] font-medium whitespace-nowrap text-textDim shadow-token-elevated ring-1 ring-line transition-transform ring-inset hover:-translate-y-px hover:text-accentText"
+        className="flex min-h-11 items-center gap-2.5 rounded-full bg-surface py-[11px] pr-4 pl-3.5 text-[13px] font-medium whitespace-nowrap text-textDim shadow-token-elevated ring-1 ring-line transition-transform ring-inset hover:-translate-y-px hover:text-accentText"
       >
         <Sparkles size={17} className="text-accent" />
         Aide

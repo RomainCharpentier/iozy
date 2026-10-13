@@ -8779,3 +8779,65 @@ dans un script Bash, les antislashs d'une expression régulière arrivent perdus
 
 
 Revue du lot : deux défauts de correction trouvés et corrigés. (1) « Précédent » et « Passer » restaient actifs pendant l'enregistrement : un clic juste après « C'est bien ça » détachait le rappel, le tome était écrit mais pas marqué ; ils sont grisés tant que l'ajout est en route. (2) Quand seules les éditions manquaient, le récapitulatif disait « Rien de coché à ajouter » ; il dit « Choisis une édition pour ajouter ». 442 tests web.
+
+### Lot 154 — Le mode visiteur consulte un catalogue, pas une collection vide
+
+Test exploratoire du mode visiteur (agent-browser, 1440×900 puis 390×844) : cinq
+défauts reproduits. Le fil conducteur : un visiteur n'a ni collection, ni envies,
+ni lectures. La fiche le traitait comme un compte qui possède zéro tome.
+
+- **ISBN trouvé, puis perdu** : le scan menait à `/apercu`, route réservée aux
+  comptes ; le garde renvoyait aussitôt vers `/add`, sans un mot. `/apercu` sort
+  de `accesInvite`. L'aperçu bascule déjà sur la fiche du catalogue quand le
+  titre y existe ; sinon il s'affiche en lecture seule : pas de proposition de
+  tomes (une recherche par édition chez les fournisseurs, qui ne sert qu'à
+  ajouter), pas de phrase sur « ta collection », et pas de nouvelle recherche
+  quand le candidat arrive avec la navigation.
+- **Scan sous Manga seulement** : la recherche par code-barres ne connaît que
+  les livres. Sous « Jeu vidéo », il partait avec le mauvais type et répondait
+  « Aucune correspondance » pour un ISBN valide. Le libellé perd
+  « (mangas uniquement) », devenu inutile.
+- **Liste vide** : le catalogue dit maintenant « Aucune œuvre ne correspond à
+  cette recherche. », « Aucune œuvre de ce type dans le catalogue. » ou « Aucune
+  œuvre ne correspond à ces filtres. ». Le message n'apparaît qu'une fois la
+  requête répondue pour le titre tapé (pas pendant le délai de frappe ni le
+  chargement), et seulement quand aucune recherche externe ne parle déjà.
+- **Fiche visiteur** : `GrilleVolumes` gagne un mode `consultation` (tuiles non
+  grisées, pas de filtres Tous/Manquants/Possédés, aucun geste, « Tome N »), et
+  `CartesEditions` un drapeau `consultation` (éditeur et nombre de tomes, pas de
+  jauge ; « Nombre de tomes non renseigné » au lieu de « Détails à renseigner »).
+  « Suivre cette édition », l'état « Possédée / Suivie » et la proposition de
+  tomes d'une fiche sans tome sont masqués au visiteur.
+- **Aide** : en visiteur, des questions sur l'œuvre, présentes seulement si la
+  donnée existe (« Combien de tomes compte cette édition ? », « Cette série
+  est-elle terminée ? », « Quelles éditions sont connues ? », « Qui est le
+  mangaka ? »), calculées sur les mêmes tuiles et cartes que la page. Pour un
+  compte, « Que me manque-t-il ? » avec un total inconnu répond les mêmes tomes
+  que le filtre « Manquants » de la grille, au lieu de dire qu'il ne peut rien
+  dire à côté d'un compteur.
+- **Navigation** : le lien de retour vers le Catalogue s'appelle « Catalogue »
+  (il disait « Recherche ») ; la page introuvable mène un visiteur « Retour au
+  catalogue », vers `/add`.
+- **Statut source** : `libelleStatutSerie` traduit à l'affichage les mots des
+  trois sources (FINISHED → Terminée, RELEASING/Publishing → En cours, on_hiatus →
+  En pause, discontinued → Arrêtée, not_yet_released → À paraître) ; la valeur
+  stockée ne change pas. `isSeriesOngoing` lit aussi le RELEASING d'AniList,
+  comme `SeriesStatus` côté serveur.
+- **Aide sur mobile** : le bouton flottant couvrait le bas de la carte Source.
+  Une marge en fin de fiche (mobile seulement), une cible de 44 px, et une
+  position qui suit la zone de sécurité comme la barre du bas.
+
+Vérifié en direct (visiteur, desktop et 390×844) : filtres, recherche trouvée et
+vide, catégorie vide, ISBN 9782723488525 → aperçu conservé, rechargement direct de
+l'aperçu, fiche, aide, retour, 404, thème, aucun débordement, aucune requête
+d'écriture, aucune erreur console. Web : 460 tests, mutations vérifiées (scan
+Manga, filtres en consultation, aide alignée), `typecheck`, `build`,
+`check:contrast`, `check:frontieres` ; `lint` sans nouvel avertissement (19 déjà
+présents). Pas touché au backend. **Non vérifié en direct** : la fiche d'un
+compte connecté (aucun compte de test sur l'instance de dev) ; la règle de
+l'aide est couverte par un test. **e2e non lancés** : le navigateur de Playwright
+n'est pas installé sur la machine (`npx playwright install` à faire une fois).
+
+Piège : sous Node 26, `localStorage` natif masque celui de jsdom et 38 tests
+tombent avant même ce lot. `NODE_OPTIONS=--no-experimental-webstorage npm test`
+rend la suite verte.

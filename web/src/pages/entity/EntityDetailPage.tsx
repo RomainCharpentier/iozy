@@ -13,7 +13,7 @@ import { getEntityProgress } from '@/common/api/insights'
 import { findEdition } from '@/common/api/purchaseAnalysis'
 import { getEntityTierSummary } from '@/common/api/tierLists'
 import { followEdition, listFollowedEdition, unfollowEdition } from '@/common/api/followedEdition'
-import { isSeriesOngoing } from './seriesInfo'
+import { isSeriesOngoing, libelleStatutSerie } from './seriesInfo'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { indicesDe } from '@/common/lib/indicesOeuvre'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
@@ -38,7 +38,7 @@ import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeDateDeSortie, Ra
 import { RELEASE_DATE_ATTRIBUTE_KEY } from '@/common/lib/releaseDate'
 import { CLES_SOURCE, libelleDe, useBrouillonInspecteur } from './useBrouillonInspecteur'
 import { AideFlottante } from './AideFlottante'
-import { ReponseAssistant, type QuestionAssistant } from './AssistantSection'
+import { ReponseAssistant, ReponseCatalogue, type QuestionAssistant } from './AssistantSection'
 import { useAuth } from '@/common/hooks/useAuth'
 import { AddVolumeSection } from './AddVolumeSection'
 import { TierSummarySection } from './TierSummarySection'
@@ -430,7 +430,10 @@ export function EntityDetailPage() {
     // while the progress is in flight, where `groupes` is still
     // empty - without this guard, a series that has twelve volumes would trigger a
     // volume search at providers on every opening of a detail page.
-    actif: !!entity && isManga && progressQuery.isSuccess && groupes.length === 0,
+    //
+    // Never for a visitor: this is the "quels tomes possèdes-tu ?" of an ADD,
+    // and the volume search behind it asks providers for every edition.
+    actif: !!entity && isManga && progressQuery.isSuccess && groupes.length === 0 && !estInvite,
   })
 
   const editionInfoQuery = useQuery({
@@ -469,6 +472,7 @@ export function EntityDetailPage() {
 
   const auteur = creatorFrom(entity.attributes)
   const ongoing = isSeriesOngoing(entity.attributes)
+  const statutSerie = libelleStatutSerie(entity.attributes.seriesStatus)
   const startYear = typeof entity.attributes.startYear === 'string' ? entity.attributes.startYear : null
   const endYear = typeof entity.attributes.endYear === 'string' ? entity.attributes.endYear : null
   const annees = startYear ? (endYear ? `${startYear} → ${endYear}` : ongoing ? `Depuis ${startYear}` : startYear) : null
@@ -623,7 +627,7 @@ export function EntityDetailPage() {
             <BoutonSuivreHero suivie={suivie} onBasculer={() => suivis.basculer(entityId)} disabled={suivis.isPending} />
           )
         }
-        etat={etatCollection}
+        etat={estInvite ? null : etatCollection}
         modeEdition={modeEdition}
         onBasculerMode={estInvite ? undefined : basculerModeEdition}
         editions={
@@ -633,8 +637,10 @@ export function EntityDetailPage() {
               editionAffichee={groupeActif?.editionName ?? ''}
               editionSuivie={editionSuivie}
               onAfficher={(nom) => setEditionAffichee(nom)}
-              onSuivre={(nom) => suivreMutation.mutate(nom)}
-              onNePlusSuivre={() => nePlusSuivreMutation.mutate()}
+              // Following an edition is a personal choice: absent for a visitor.
+              onSuivre={estInvite ? undefined : (nom) => suivreMutation.mutate(nom)}
+              onNePlusSuivre={estInvite ? undefined : () => nePlusSuivreMutation.mutate()}
+              consultation={estInvite}
               onAjouterEdition={() => setAjoutTomeOuvert(true)}
               modeEdition={modeEdition}
             />
@@ -708,6 +714,9 @@ export function EntityDetailPage() {
             onBasculerEnvie={basculerEnvieDuTome}
             modeEdition={modeEdition}
             onAjouterTome={() => setAjoutTomeOuvert(true)}
+            // A visitor sees the volumes of the edition, not holes in a
+            // collection they do not have, and no "Je l'ai" / "Je le veux".
+            consultation={estInvite}
           />
 
           <div className="pt-4 empty:hidden">
@@ -1079,6 +1088,11 @@ export function EntityDetailPage() {
         </div>
       )}
 
+      {/* Room for the floating "Aide" on a phone: at the bottom of the page,
+          it covered the end of the SOURCE card. On a wide screen it sits in
+          the margin, beside the content. */}
+      <div aria-hidden="true" className="h-14 md:hidden" />
+
       <AideFlottante
         titreSerie={entity.title}
         /* The questions depend on what the type ALLOWS. "Que me
@@ -1088,21 +1102,46 @@ export function EntityDetailPage() {
            manga vocabulary in front of a work that has neither volume nor edition.
            And "mes lectures" only applies to what is read - the type
            declares its own experiences itself (see EntityType.allowedExperienceTypes). */
-        questions={[
-          ...(groupeActif ? [{ cle: 'missing' as const, libelle: 'Que me manque-t-il ?' }] : []),
-          { cle: 'reading' as const, libelle: libelleQuestionExperiences(entityType?.allowedExperienceTypes ?? []) },
-        ]}
+        /* A visitor has no collection and no readings: their questions are
+           about the work, and only those the data can answer. */
+        questions={
+          estInvite
+            ? [
+                ...(groupeActif ? [{ cle: 'volumes' as const, libelle: 'Combien de tomes compte cette édition ?' }] : []),
+                ...(statutSerie ? [{ cle: 'status' as const, libelle: 'Cette série est-elle terminée ?' }] : []),
+                ...(groupes.length > 0 ? [{ cle: 'editions' as const, libelle: 'Quelles éditions sont connues ?' }] : []),
+                ...(auteur ? [{ cle: 'author' as const, libelle: isManga ? 'Qui est le mangaka ?' : "Qui est l'auteur ?" }] : []),
+              ]
+            : [
+                ...(groupeActif ? [{ cle: 'missing' as const, libelle: 'Que me manque-t-il ?' }] : []),
+                { cle: 'reading' as const, libelle: libelleQuestionExperiences(entityType?.allowedExperienceTypes ?? []) },
+              ]
+        }
         question={question}
         onQuestion={setQuestion}
         reponse={
-          question ? (
+          question === 'missing' || question === 'reading' ? (
             <ReponseAssistant
               entityId={entityId}
               entityTitle={entity.title}
               variants={entity.variants}
               experiences={experiences}
               activeGroup={groupeActif ?? null}
+              missingKnownVolumes={tuiles.filter((t) => t.status !== 'owned').map((t) => t.volumeNumber)}
               question={question}
+            />
+          ) : question ? (
+            <ReponseCatalogue
+              question={question}
+              editionName={groupeActif?.editionName ?? ''}
+              totalVolumes={totalTomes}
+              shownVolumes={tuiles.map((t) => t.volumeNumber)}
+              editions={editionsAffichees}
+              seriesStatus={statutSerie}
+              ongoing={ongoing}
+              years={annees}
+              creator={auteur}
+              creatorLabel={isManga ? 'Mangaka' : 'Auteur'}
             />
           ) : null
         }

@@ -38,6 +38,7 @@ export function CartesEditions({
   onAjouterEdition,
   modeEdition,
   sensProgression = 'possession',
+  consultation = false,
 }: {
   editions: EditionAffichee[]
   editionAffichee: string
@@ -60,6 +61,10 @@ export function CartesEditions({
    *  when adding, checked volumes. Same drawing, two meanings - and the meaning must
    *  be told to the screen reader, for whom "3/27" is not enough. */
   sensProgression?: 'possession' | 'selection'
+  /** The catalog seen by a visitor: what the edition IS (publisher, number of
+   *  volumes), never a gauge. "0 tome" there would be the progress of a
+   *  collection that does not exist. */
+  consultation?: boolean
 }) {
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-[18px]">
@@ -134,8 +139,9 @@ export function CartesEditions({
                 <span className="text-[12.5px] text-faint">
                   {[edition.editeur, edition.total !== null ? `${edition.total} tomes` : null]
                     .filter(Boolean)
-                    .join(' · ') || 'Détails à renseigner'}
+                    .join(' · ') || (consultation ? 'Nombre de tomes non renseigné' : 'Détails à renseigner')}
                 </span>
+                {!consultation && (
                 <span className="flex w-full items-center gap-2.5">
                   <span className="h-[5px] flex-1 overflow-hidden rounded-full bg-line">
                     {pourcentage !== null && (
@@ -171,6 +177,7 @@ export function CartesEditions({
                     </span>
                   </span>
                 </span>
+                )}
               </button>
 
               {/* "Suivre" only makes sense on a NAMED edition: the group
