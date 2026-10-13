@@ -11,7 +11,7 @@ import { MemoryRouter } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ReponseAssistant, ReponseCatalogue } from './AssistantSection'
-import type { EditionProgressDto } from '@/common/types/api'
+import type { EditionProgressDto, ExperienceResponse } from '@/common/types/api'
 
 const completude = vi.hoisted(() => ({ getCompleteness: vi.fn() }))
 vi.mock('@/common/api/purchaseAnalysis', () => completude)
@@ -85,5 +85,43 @@ describe('the help of a visitor', () => {
     render(<ReponseCatalogue {...base} question="status" />)
 
     expect(screen.getByText('Oui, la série est terminée (2020).')).toBeInTheDocument()
+  })
+})
+
+describe('"Où en suis-je ?"', () => {
+  function lecture(id: string, rating: number | null): ExperienceResponse {
+    return { id, entityId: 'e1', variantId: null, experienceType: 'READ', occurredAt: '2026-10-01', rating, comment: null }
+  }
+
+  function rendre(experiences: ExperienceResponse[]) {
+    render(
+      <ReponseAssistant
+        entityId="e1"
+        entityTitle="Blue Lock"
+        variants={[]}
+        experiences={experiences}
+        activeGroup={GLENAT}
+        missingKnownVolumes={[]}
+        question="reading"
+      />,
+      { wrapper: enrobage },
+    )
+  }
+
+  it('points to the place where a reading is added today', () => {
+    // "Mon suivi" and its "Expériences" entry are gone: readings are added
+    // under the single "Éditer" of the page.
+    rendre([])
+
+    expect(screen.getByText(/Aucune lecture enregistrée/)).toHaveTextContent(
+      'Tu peux en ajouter une avec « Éditer », en haut de la fiche.',
+    )
+    expect(screen.queryByText(/Mon suivi/)).not.toBeInTheDocument()
+  })
+
+  it('writes the average rating with a decimal comma', () => {
+    rendre([lecture('x1', 7), lecture('x2', 8)])
+
+    expect(screen.getByText(/Note moyenne/)).toHaveTextContent('Note moyenne : 7,5/10 sur 2 lectures notées.')
   })
 })
