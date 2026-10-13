@@ -12,6 +12,12 @@
  * the same file. A test that writes in it (preferences, title language)
  * resets it itself - declaring it here would hide the dependency.
  *
+ * <h2>Web Storage, taken back from Node</h2>
+ * Node 25 and later ship their own `localStorage` and `sessionStorage`. Without
+ * `--localstorage-file` they are undefined, and they hide those of jsdom. So we
+ * put jsdom's back on the global. On older Node, they are already there and
+ * this changes nothing.
+ *
  * <h2>ResizeObserver, for lack of layout</h2>
  * jsdom does not implement it, and every screen that displays a title goes
  * through `TexteCoupe`, which uses it to know whether the text overflows.
@@ -26,6 +32,16 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
+
+declare const jsdom: { window: Window }
+
+for (const key of ['localStorage', 'sessionStorage'] as const) {
+  Object.defineProperty(globalThis, key, {
+    value: jsdom.window[key],
+    configurable: true,
+    writable: true,
+  })
+}
 
 if (!('ResizeObserver' in globalThis)) {
   globalThis.ResizeObserver = class {
