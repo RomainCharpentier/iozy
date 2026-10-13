@@ -1122,10 +1122,11 @@ export function EntityDetailPage() {
         </div>
       )}
 
-      {/* Room for the floating "Aide" on a phone: at the bottom of the page,
-          it covered the end of the SOURCE card. On a wide screen it sits in
-          the margin, beside the content. */}
-      <div aria-hidden="true" className="h-14 md:hidden" />
+      {/* Room for the floating "Aide": at the bottom of the page it covered
+          the end of the inspector. On a wide screen too - at 1280 px the
+          content reaches the edge, and the button sat on the panel's corner
+          (UI review of 2026-10-13). */}
+      <div aria-hidden="true" className="h-14" />
 
       <AideFlottante
         titreSerie={entity.title}

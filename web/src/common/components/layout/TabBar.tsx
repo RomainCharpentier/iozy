@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ScanLine } from 'lucide-react'
-import { NAV_ITEMS } from './navItems'
-import { estReserveeAuxComptes } from '@/common/lib/accesInvite'
+import { destinationsPour } from './navItems'
 import { useAuth } from '@/common/hooks/useAuth'
 
 /**
@@ -29,7 +28,7 @@ export function TabBar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { estInvite } = useAuth()
-  const destinations = estInvite ? NAV_ITEMS.filter((item) => !estReserveeAuxComptes(item.to)) : NAV_ITEMS
+  const destinations = destinationsPour(estInvite)
 
   return (
     <nav className="barre-verre fixed inset-x-0 bottom-0 z-10 flex items-stretch gap-1 border-t border-line px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
