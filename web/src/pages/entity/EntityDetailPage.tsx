@@ -494,6 +494,11 @@ export function EntityDetailPage() {
   // single piece. For a manga, the series is a GROUP: we do not want
   // "Naruto", we want volume 47 - and it is the grid that says it.
   const remarques = typeof entity.attributes.note === 'string' ? entity.attributes.note : ''
+  // While reading, the PERSONAL column only shows what exists: five stacked
+  // "Aucune" / "Pas encore" lines said five times that nothing was there
+  // (UI review of 2026-10-13). Edit mode still shows every readout.
+  const persoVide =
+    generalRank === null && meilleureNote === null && !remarques && experiences.length === 0 && entity.tagIds.length === 0
 
   /**
    * A single "Éditer" for the whole page (user request of
@@ -747,7 +752,15 @@ export function EntityDetailPage() {
           teinte={teinte}
           // Nothing personal for a visitor (see InspecteurFiche).
           personnel={
-            estInvite ? undefined : <>
+            estInvite ? undefined : !modeEdition && persoVide ? (
+              <div className="flex flex-col items-start gap-2.5">
+                <span className="text-[13.5px] text-textDim">Rien de personnel pour l&apos;instant.</span>
+                <button type="button" onClick={basculerModeEdition} className="btn-secondaire">
+                  Noter, classer, ajouter un tag
+                </button>
+              </div>
+            ) : <>
+              {(modeEdition || generalRank) && (
               <ReleveInspecteur
                 libelle="Tier list">
                 {generalRank ? (
@@ -761,9 +774,11 @@ export function EntityDetailPage() {
                   <span className="text-[13.5px] text-faint">Non classée</span>
                 )}
               </ReleveInspecteur>
+              )}
               {/* The rating LIVES on an experience (see Experience.rating): it is
                   the same editor that carries it, and offering two entry points
                   for the same data would amount to inventing a second one. */}
+              {(modeEdition || meilleureNote !== null) && (
               <ReleveInspecteur
                 libelle="Ma note">
                 {meilleureNote !== null ? (
@@ -774,6 +789,8 @@ export function EntityDetailPage() {
                   <span className="text-[13.5px] text-faint">Pas encore notée</span>
                 )}
               </ReleveInspecteur>
+              )}
+              {(modeEdition || remarques) && (
               <ReleveInspecteur libelle="Mes remarques">
                 {modeEdition ? (
                   <textarea
@@ -790,6 +807,8 @@ export function EntityDetailPage() {
                   <span className="text-[13.5px] text-faint">Aucune</span>
                 )}
               </ReleveInspecteur>
+              )}
+              {(modeEdition || experiences.length > 0) && (
               <ReleveInspecteur
                 libelle={libelleSectionExperiences(entityType?.allowedExperienceTypes ?? [])}>
                 {experiences.length === 0 ? (
@@ -810,8 +829,10 @@ export function EntityDetailPage() {
                   </span>
                 )}
               </ReleveInspecteur>
+              )}
               {/* The tags floated under the three readouts, without a heading: they
                   therefore had nothing to carry their own entry point. */}
+              {(modeEdition || entity.tagIds.length > 0) && (
               <ReleveInspecteur
                 libelle="Tags">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -828,6 +849,7 @@ export function EntityDetailPage() {
                   )}
                 </div>
               </ReleveInspecteur>
+              )}
             </>
           }
           oeuvre={
@@ -932,6 +954,7 @@ export function EntityDetailPage() {
             </div>
             )
           }
+          sourceRepliee={!modeEdition}
           source={
             <>
               <ColonneSource attributs={entity.attributes} brouillon={modeEdition ? brouillon.attributs : undefined} />
