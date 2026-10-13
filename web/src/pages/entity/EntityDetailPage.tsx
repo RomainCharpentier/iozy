@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, mergeVariantAttributes, quickAdd, renameEntity } from '@/common/api/entities'
 import { deleteOwnership, listOwnerships } from '@/common/api/ownerships'
-import { rechercherOeuvrePossedee, searchVolumes } from '@/common/api/metadata'
+import { detailsOeuvre, rechercherOeuvrePossedee, searchVolumes } from '@/common/api/metadata'
 import { findBestCoverMatch, rattraperJaquettes, variantsMissingCover } from '@/common/lib/backfillCovers'
 import { listExperiences } from '@/common/api/experiences'
 import { listTags } from '@/common/api/tags'
@@ -26,7 +26,7 @@ import { libelleExperienceType, libelleSectionExperiences } from '@/common/lib/e
 import { buildTiles } from './tomeTiles'
 import { numeroDe, variantLabel } from '@/common/lib/attributsTome'
 import type { OwnershipResponse } from '@/common/types/api'
-import { attributsARecharger, candidatCorrespondant } from './rechargerSource'
+import { attributsARecharger, avecDetails, candidatCorrespondant, identifiantsSource } from './rechargerSource'
 import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from './useTeinteJaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '@/common/components/layout/AppShell'
@@ -315,10 +315,21 @@ export function EntityDetailPage() {
       }
 
       if (candidats) {
-        const candidat = candidatCorrespondant(candidats, oeuvre)
+        let candidat = candidatCorrespondant(candidats, oeuvre)
         if (!candidat) {
           sansCorrespondance = true
         } else {
+          // What the search does not give (a board game's cover, players,
+          // designers: batch 160). A silent source answers {} and the search
+          // result is used alone, as before.
+          const identifiants = identifiantsSource({ ...oeuvre.attributes, ...candidat.attributes })
+          if (Object.keys(identifiants).length > 0) {
+            try {
+              candidat = avecDetails(candidat, await detailsOeuvre(oeuvre.entityTypeId, identifiants))
+            } catch {
+              fournisseurMuet = true
+            }
+          }
           const aEcrire = attributsARecharger(candidat, oeuvre)
           if (Object.keys(aEcrire).length > 0) {
             // origine=source: the server keeps the keys entered by hand

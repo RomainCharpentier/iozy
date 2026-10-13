@@ -4,6 +4,7 @@ import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.metadata.BarcodeLookup;
 import com.iozycore.core.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataDetailsService;
 import com.iozycore.core.metadata.MetadataSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,10 +33,13 @@ public class MetadataController {
 
     private final MetadataSearchService metadataSearchService;
     private final EntityTypeRepository entityTypeRepository;
+    private final MetadataDetailsService metadataDetailsService;
 
-    public MetadataController(MetadataSearchService metadataSearchService, EntityTypeRepository entityTypeRepository) {
+    public MetadataController(MetadataSearchService metadataSearchService, EntityTypeRepository entityTypeRepository,
+                              MetadataDetailsService metadataDetailsService) {
         this.metadataSearchService = metadataSearchService;
         this.entityTypeRepository = entityTypeRepository;
+        this.metadataDetailsService = metadataDetailsService;
     }
 
     @Operation(summary = "Search metadata candidates to pre-fill the quick add (path 1). "
@@ -51,6 +57,19 @@ public class MetadataController {
         }
 
         return metadataSearchService.search(entityType, query, includeOwned);
+    }
+
+    @Operation(summary = "The details of ONE work that only a second call to its source knows (a board game's "
+            + "cover, players, designers). The work is named by its source ids as query parameters, for "
+            + "instance bggId=822. Answers {} when the source has nothing more or did not answer: "
+            + "the caller keeps what the search gave.")
+    @GetMapping("/details")
+    public Map<String, Object> details(@RequestParam UUID entityTypeId, @RequestParam Map<String, String> ids) {
+        EntityType entityType = entityTypeRepository.findById(entityTypeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
+        Map<String, Object> attributes = new HashMap<>(ids);
+        attributes.remove("entityTypeId");
+        return metadataDetailsService.details(entityType, attributes);
     }
 
     @Operation(summary = "Find the metadata of an item from a scanned barcode (ISBN for mangas)")

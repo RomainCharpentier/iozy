@@ -9065,3 +9065,59 @@ dont les deux phrases et la liste incomplète ; `typecheck` propre ; `lint` sans
 avertissement dans les fichiers du lot. e2e : `suggestions.spec.ts` vert sur la
 vraie API (aucune note sur le compte e2e → « rien à proposer », raison
 `NO_RATED_WORK`, aucune annonce de panne).
+
+### Lot 160 — Un jeu de société ajouté reçoit sa jaquette et ses détails BGG
+
+Vu en semant des données de test : tout jeu de société arrivait sans jaquette.
+La recherche BGG (`/xmlapi2/search`) ne donne qu'un identifiant, un titre et une
+année. Carcassonne ajouté depuis la recherche n'avait que `bggId: 822` et
+`yearPublished: 2000`. Le reste (image, joueurs, durée, auteurs) demande un
+second appel par jeu à `/xmlapi2/thing`, que seul Découvrir faisait.
+
+- **Point d'extension** : `MetadataProvider.details(attributes)` (cœur), vide
+  par défaut. La source retrouve son propre identifiant dans les attributs
+  (`bggId` pour BGG) et rend des clés d'attributs. `MetadataDetailsService` les
+  demande aux sources du type ; une source muette ne donne rien (`WARN`) et
+  n'interrompt jamais l'ajout. Ce qui est déjà dans les attributs l'emporte
+  toujours : un détail ne remplit qu'une clé absente.
+- **Quand** : une fois par jeu ajouté (`POST /entities/quick-add`,
+  `POST /wishlist` pour une œuvre sans fiche), à l'ouverture de l'aperçu et sur
+  « Recharger depuis la source ». Jamais pour chaque résultat de recherche : ce
+  serait dix appels par frappe. L'appel se fait avant la transaction, pour
+  qu'une source lente ne tienne pas une connexion à la base.
+- **BGG** : `BggThingFetcher.fetchThing` lit l'image (la grande, pas la
+  vignette 200×150), les joueurs, la durée et les auteurs. Les réponses sont
+  gardées un jour, pas les silences : aperçu, ajout puis rechargement coûtent un
+  seul appel. Découvrir profite du même cache. Un champ que BGG laisse à `0` ou
+  un auteur `(Uncredited)` ne compte pas comme une réponse. L'absence de jeton
+  (`bgg.application-token`) est signalée une fois au premier appel.
+- **Clés** : la jaquette sous `coverImageUrl`, la clé commune que lisent la
+  collection, les envies et la page de partage. Les joueurs et la durée sous les
+  clés que le type déclarait déjà sans que rien ne les remplisse : `minPlayers`,
+  `maxPlayers`, `averageDurationMinutes`. Les auteurs sous `designers`, repris
+  comme ligne « Auteur » de la fiche et de l'aperçu.
+- **Route** : `GET /api/metadata/details?entityTypeId=…&bggId=822`. Elle répond
+  `{}` quand la source n'a rien de plus ou s'est tue : l'écran garde le résultat
+  de la recherche. En `GET`, elle reste ouverte au visiteur, en lecture seule.
+- **Web** : l'aperçu demande les détails de l'œuvre ouverte et les montre ;
+  « Recharger depuis la source » complète le candidat trouvé avant de calculer
+  ce qu'il faut écrire. Les règles de rechargement ne changent pas : la jaquette
+  ne s'écrit que si elle manque, les champs saisis à la main restent intacts.
+  Libellés français des nouvelles clés dans l'inspecteur.
+
+**Hors lot** : l'import d'une collection BGG ne passe pas par ces routes et
+n'appelle pas `/thing` pour chaque jeu importé (des centaines d'appels d'un
+coup). La réponse de `/collection` contient déjà l'image : la lire serait le
+bon chemin.
+
+**Vérification** : serveur, suite complète verte (1 254 tests), dont des tests
+de contrat HTTP sans réseau (faux fournisseur) pour l'ajout, l'envie, la source
+muette et la priorité des attributs déjà fournis. Web : 486 tests verts,
+`typecheck` propre, `lint` sans avertissement dans les fichiers du lot. En
+direct, sur une pile jetable (base vide, port 8095, vrai jeton BGG) ensuite
+supprimée : la recherche « Carcassonne » rend 10 résultats sans appel `/thing` ;
+l'ajout donne jaquette, 2 à 5 joueurs, 45 min et Klaus-Jürgen Wrede ; Azul ajouté
+en envie reçoit les siens ; l'aperçu fait un seul appel `/details` et affiche
+l'auteur ; sur un Catan privé de ses détails, « Recharger depuis la source »
+annonce « 5 informations mises à jour » et rend jaquette, joueurs, durée et
+auteur.

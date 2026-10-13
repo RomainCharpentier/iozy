@@ -3,6 +3,7 @@ package com.iozycore.core.metadata;
 import com.iozycore.core.domain.catalog.EntityType;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A MetadataProvider knows how to query one precise external source
@@ -48,5 +49,24 @@ public interface MetadataProvider {
      */
     default boolean catalogsOriginalTitles() {
         return true;
+    }
+
+    /**
+     * What only a second call to this source knows about ONE work it already
+     * identified: the cover, the number of players, the designers. Some
+     * sources (BGG) give almost nothing at search time, and asking for the
+     * details of every result would cost one call per result and per keystroke.
+     * This is asked once, for the work being added or opened.
+     *
+     * <p>The source finds its own id in {@code attributes} ("bggId" for BGG).
+     * The keys returned are attribute keys, the cover under
+     * {@code coverImageUrl}. The default has nothing more to say: the search
+     * result is already complete.
+     *
+     * @return the details, empty when the id is not there or the source has no more
+     * @throws SourceUnavailableException when the source did not answer
+     */
+    default Map<String, Object> details(Map<String, Object> attributes) {
+        return Map.of();
     }
 }

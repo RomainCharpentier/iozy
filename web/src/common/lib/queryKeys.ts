@@ -56,6 +56,8 @@ export const queryKeys = {
      *  Keyed by the list of queried titles: changing the search changes the
      *  question, and two results pages do not have the same answer. */
     sansTomes: (entityTypeId: string, titres: string) => ['metadata', 'sansTomes', entityTypeId, titres] as const,
+    /** The details of one work, keyed by its source ids (see detailsOeuvre). */
+    details: (entityTypeId: string, identifiants: string) => ['metadata', 'details', entityTypeId, identifiants] as const,
   },
   entityTypes: {
     all: ['entityTypes'] as const,

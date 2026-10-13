@@ -6,9 +6,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static com.iozycore.integration.http.FakeMetadataProviders.CLE_IDENTIFIANT_DE_TEST;
+import static com.iozycore.integration.http.FakeMetadataProviders.COUVERTURE_DES_DETAILS;
 import static com.iozycore.integration.http.FakeMetadataProviders.DECLENCHE_PANNE;
 import static com.iozycore.integration.http.FakeMetadataProviders.DECLENCHE_PARTIEL;
 import static com.iozycore.integration.http.FakeMetadataProviders.DECLENCHE_VIDE;
@@ -16,6 +20,7 @@ import static com.iozycore.integration.http.FakeMetadataProviders.HOTE_DE_TEST;
 import static com.iozycore.integration.http.FakeMetadataProviders.UNIVERS_DE_TEST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -132,6 +137,90 @@ class MetadataHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(get(META + "/search")
                         .param("entityTypeId", MALFORME).param("query", "x"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ═══════════════════════════════════════════ GET /metadata/details
+
+    @Test
+    void gives_the_details_of_one_work_named_by_its_source_id() throws Exception {
+        mockMvc.perform(get(META + "/details")
+                        .param("entityTypeId", universDeTest().toString())
+                        .param(CLE_IDENTIFIANT_DE_TEST, "fake-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverImageUrl").value(COUVERTURE_DES_DETAILS))
+                .andExpect(jsonPath("$.minPlayers").value(2))
+                .andExpect(jsonPath("$.entityTypeId").doesNotExist());
+    }
+
+    @Test
+    void a_silent_source_gives_no_details_rather_than_an_error() throws Exception {
+        mockMvc.perform(get(META + "/details")
+                        .param("entityTypeId", universDeTest().toString())
+                        .param(CLE_IDENTIFIANT_DE_TEST, DECLENCHE_PANNE))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{}"));
+        mockMvc.perform(get(META + "/details").param("entityTypeId", UUID.randomUUID().toString()))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ═══════════════════════════ Details asked once, when a work is added
+
+    private String ajoutRapide(String titre, Map<String, Object> attributs) throws Exception {
+        Map<String, Object> corps = new HashMap<>();
+        corps.put("entityTypeId", universDeTest().toString());
+        corps.put("title", titre + " " + UUID.randomUUID());
+        corps.put("condition", "USED");
+        corps.put("attributes", attributs);
+        String reponse = mockMvc.perform(post("/api/entities/quick-add")
+                        .contentType("application/json").content(json(corps)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return com.jayway.jsonpath.JsonPath.read(reponse, "$.entityId");
+    }
+
+    @Test
+    void an_added_work_gets_the_details_its_search_result_did_not_have() throws Exception {
+        String id = ajoutRapide("Carcassonne", Map.of(CLE_IDENTIFIANT_DE_TEST, "fake-1"));
+
+        mockMvc.perform(get("/api/entities/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.attributes.coverImageUrl").value(COUVERTURE_DES_DETAILS))
+                .andExpect(jsonPath("$.attributes.minPlayers").value(2));
+    }
+
+    @Test
+    void what_the_add_already_carries_wins_over_the_details() throws Exception {
+        String id = ajoutRapide("Azul", Map.of(CLE_IDENTIFIANT_DE_TEST, "fake-1",
+                "coverImageUrl", "https://" + HOTE_DE_TEST + "/choisie.jpg"));
+
+        mockMvc.perform(get("/api/entities/" + id))
+                .andExpect(jsonPath("$.attributes.coverImageUrl").value("https://" + HOTE_DE_TEST + "/choisie.jpg"))
+                .andExpect(jsonPath("$.attributes.minPlayers").value(2));
+    }
+
+    @Test
+    void a_silent_source_never_fails_the_add() throws Exception {
+        String id = ajoutRapide("Dune", Map.of(CLE_IDENTIFIANT_DE_TEST, DECLENCHE_PANNE));
+
+        mockMvc.perform(get("/api/entities/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.attributes." + CLE_IDENTIFIANT_DE_TEST).value(DECLENCHE_PANNE))
+                .andExpect(jsonPath("$.attributes.coverImageUrl").doesNotExist());
+    }
+
+    @Test
+    void a_work_wanted_before_being_owned_gets_its_details_too() throws Exception {
+        Map<String, Object> corps = new HashMap<>();
+        corps.put("entityTypeId", universDeTest().toString());
+        corps.put("title", "Cascadia " + UUID.randomUUID());
+        corps.put("attributes", Map.of(CLE_IDENTIFIANT_DE_TEST, "fake-1"));
+        String reponse = mockMvc.perform(post("/api/wishlist").contentType("application/json").content(json(corps)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(reponse, "$.entityId");
+
+        mockMvc.perform(get("/api/entities/" + id))
+                .andExpect(jsonPath("$.attributes.coverImageUrl").value(COUVERTURE_DES_DETAILS));
     }
 
     // ═══════════════════════════════════════ GET /metadata/lookup-barcode

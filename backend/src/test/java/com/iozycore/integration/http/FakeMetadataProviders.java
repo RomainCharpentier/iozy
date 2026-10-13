@@ -63,6 +63,12 @@ public class FakeMetadataProviders {
     public static final String DECLENCHE_PANNE = "source-en-panne";
     public static final String DECLENCHE_PARTIEL = "partiel";
 
+    /** The attribute under which the fake search source keeps its own id (BGG keeps "bggId"). */
+    public static final String CLE_IDENTIFIANT_DE_TEST = "testId";
+
+    /** The cover that only the details call gives. */
+    public static final String COUVERTURE_DES_DETAILS = "https://" + HOTE_DE_TEST + "/details.jpg";
+
     private static boolean estUniversDeTest(EntityType type) {
         return type != null && UNIVERS_DE_TEST.equals(type.code());
     }
@@ -88,6 +94,19 @@ public class FakeMetadataProviders {
                 return List.of(new MetadataCandidate("SOURCE_DE_TEST", "fake-1", "Résultat de test : " + query,
                         "https://" + HOTE_DE_TEST + "/couverture.jpg",
                         java.util.Map.of("mangaka", "Autrice de test")));
+            }
+
+            /** Details only for a work carrying its test id, like BGG with bggId. */
+            @Override
+            public java.util.Map<String, Object> details(java.util.Map<String, Object> attributes) {
+                Object id = attributes.get(CLE_IDENTIFIANT_DE_TEST);
+                if (id == null) {
+                    return java.util.Map.of();
+                }
+                if (id.toString().contains(DECLENCHE_PANNE)) {
+                    throw new com.iozycore.core.metadata.SourceUnavailableException("Source de test indisponible");
+                }
+                return java.util.Map.of("coverImageUrl", COUVERTURE_DES_DETAILS, "minPlayers", 2);
             }
         };
     }

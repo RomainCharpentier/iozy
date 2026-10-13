@@ -2,12 +2,13 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { searchMetadata } from '@/common/api/metadata'
+import { detailsOeuvre, searchMetadata } from '@/common/api/metadata'
 import { searchEntities } from '@/common/api/entities'
 import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/coverImage'
 import { creatorFrom } from '@/pages/entity/creatorInfo'
+import { avecDetails, identifiantsSource } from '@/pages/entity/rechargerSource'
 import { isSeriesOngoing } from '@/pages/entity/seriesInfo'
 import { useTeinteJaquette } from '@/pages/entity/useTeinteJaquette'
 import { resolvePrimaryTitle, useTitleComposition } from '@/common/lib/titleLanguage'
@@ -121,10 +122,23 @@ export function ApercuOeuvrePage() {
       (c) => memeTitre(resolvePrimaryTitle(c, titleComposition, undefined)) || memeTitre(c.title),
     ) ??
     null
-  const attributs = candidat
-    ? candidat.imageUrl
-      ? { ...candidat.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidat.imageUrl }
-      : candidat.attributes
+  // What the search does not give, asked once for the opened work: a board
+  // game's cover, players and designers (batch 160). Never asked for every
+  // result of the search. Until it answers, or if the source is silent, the
+  // search result is shown alone.
+  const identifiants = candidat ? identifiantsSource(candidat.attributes) : {}
+  const cleIdentifiants = JSON.stringify(identifiants)
+  const detailsQuery = useQuery({
+    queryKey: queryKeys.metadata.details(entityTypeId, cleIdentifiants),
+    queryFn: ({ signal }) => detailsOeuvre(entityTypeId, identifiants, signal),
+    enabled: entityTypeId !== '' && cleIdentifiants !== '{}',
+    staleTime: Infinity,
+  })
+  const complet = candidat && detailsQuery.data ? avecDetails(candidat, detailsQuery.data) : candidat
+  const attributs = complet
+    ? complet.imageUrl
+      ? { ...complet.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: complet.imageUrl }
+      : complet.attributes
     : {}
 
   const couvertureUrl = coverImageUrlFrom(attributs)
