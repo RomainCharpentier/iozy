@@ -97,9 +97,61 @@ class PurchaseAnalysisEngineTest {
         assertThat(completeness.costToCompleteBasis()).isEqualTo(PriceBasis.THEORETICAL_ONLY);
 
         // 17 * 6.90 = 117.30 new value, fair value at GOOD condition (45% off) = 64.515 -
-        // asking 90 EUR is far beyond what a realistic offer could close to, hence a skip.
-        assertThat(analysis.negotiation().advice()).isEqualTo(NegotiationAdvice.SKIP_LISTING);
+        // asking 90 EUR is far beyond it. With no comparable observed price, that gap comes from an
+        // estimate: the score says it, the negotiation gives amounts but no "skip" judgement.
+        assertThat(analysis.negotiation().advice()).isEqualTo(NegotiationAdvice.NEGOTIATE);
+        assertThat(analysis.negotiation().maxPrice()).isEqualByComparingTo(new BigDecimal("67.74"));
         assertThat(analysis.verdict()).isIn(Verdict.EXPENSIVE, Verdict.AVOID);
+    }
+
+    /**
+     * The exploratory test of 2026-10-13: the user owns Pluto 1-6 of 8, the listing sells 7-8,
+     * nobody recorded a price. One screen said "price impossible to place", "Expensive" with a
+     * "high confidence", "already in a correct range", and "6 volumes missing to complete this
+     * edition" - four answers, for a lot that completes the edition at a price no one can judge.
+     */
+    @Test
+    void a_lot_that_completes_the_owned_edition_without_a_price_reference_says_one_thing() {
+        MangaEdition edition = MangaEdition.create("Pluto", "Standard", EditionTier.STANDARD, "Kana",
+                8, new BigDecimal("9.00"), false, false, null);
+        ListingItem item = item("Pluto", Set.of(7, 8));
+        Listing listing = new Listing(UUID.randomUUID(), ListingPlatform.OTHER, null, "Pluto 7-8", null,
+                new BigDecimal("12"), new BigDecimal("4"), ShippingEstimateKind.ESTIMATED, BigDecimal.ZERO,
+                Condition.VERY_GOOD, false, List.of(item), List.of(), Instant.now());
+
+        PurchaseAnalysis analysis = engine.analyze(listing,
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(),
+                        Set.of(1, 2, 3, 4, 5, 6))),
+                defaults);
+
+        assertThat(analysis.assessment().pricePosition()).isEqualTo(PricePosition.REFERENCE_UNAVAILABLE);
+        // The series detail counts what the user owns: this lot completes the edition.
+        CollectionStatus completeness = analysis.itemBreakdown().get(0).completeness();
+        assertThat(completeness.missingCount()).isZero();
+        assertThat(analysis.itemBreakdown().get(0).editionWarnings())
+                .noneMatch(w -> w.message().contains("manquant"));
+        // No price judgement drawn from an estimate.
+        assertThat(analysis.negotiation().rationale())
+                .doesNotContain("fourchette correcte")
+                .contains("pas un avis sur le prix");
+        assertThat(analysis.overallConfidence()).isNotEqualTo(ConfidenceLevel.HIGH);
+    }
+
+    @Test
+    void the_missing_volumes_warning_counts_the_owned_volumes_and_says_so() {
+        MangaEdition edition = MangaEdition.create("Pluto", "Standard", EditionTier.STANDARD, "Kana",
+                8, new BigDecimal("9.00"), false, false, null);
+        ListingItem item = item("Pluto", Set.of(7, 8));
+        Listing listing = listing(new BigDecimal("12"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, item);
+
+        PurchaseAnalysis analysis = engine.analyze(listing,
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(), Set.of(1, 2, 3))),
+                defaults);
+
+        assertThat(analysis.itemBreakdown().get(0).completeness().missingVolumeNumbers()).containsExactly(4, 5, 6);
+        assertThat(analysis.itemBreakdown().get(0).editionWarnings())
+                .anyMatch(w -> w.message().startsWith("3/8 tomes manquants")
+                        && w.message().contains("en comptant ceux que tu possèdes"));
     }
 
     @Test
