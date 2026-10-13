@@ -5,6 +5,7 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import type { BggImportResult } from '@/common/types/api'
 
 /** Moved from Ma collection (UX audit: a one-off import has no business
  * on the screen consulted at every session, see "fonctionnalités à
@@ -65,12 +66,24 @@ export function ImportBggPage() {
       </form>
 
       {importMutation.isError && <ErrorBanner message={importMutation.error.message} />}
-      {importMutation.isSuccess && (
-        <p className="text-sm text-textDim">
-          {importMutation.data.created} créé(s), {importMutation.data.matchedExisting} déjà possédé(s) sur{' '}
-          {importMutation.data.totalFound} trouvé(s).
-        </p>
-      )}
+      {importMutation.isSuccess && <p className="text-sm text-textDim">{resumeImport(importMutation.data)}</p>}
     </div>
   )
+}
+
+function pluriel(n: number, singulier: string, pluriel: string): string {
+  return `${n} ${n > 1 ? pluriel : singulier}`
+}
+
+/** What the import did. An unknown user or a silent BGG is an error (the
+ *  server says so); here BGG answered, and an empty answer is said as such,
+ *  never as "0 créé(s) sur 0 trouvé(s)". */
+function resumeImport(resultat: BggImportResult): string {
+  if (resultat.totalFound === 0) return 'BoardGameGeek a répondu : aucun jeu marqué « possédé » sur ce compte.'
+  const parties = [
+    pluriel(resultat.created, 'jeu ajouté', 'jeux ajoutés'),
+    pluriel(resultat.matchedExisting, 'déjà présent', 'déjà présents'),
+  ]
+  if (resultat.failed > 0) parties.push(pluriel(resultat.failed, 'en échec', 'en échec'))
+  return `${parties.join(', ')}, sur ${pluriel(resultat.totalFound, 'jeu trouvé', 'jeux trouvés')} sur BoardGameGeek.`
 }

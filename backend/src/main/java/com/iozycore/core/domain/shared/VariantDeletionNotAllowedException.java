@@ -18,7 +18,9 @@ import java.util.UUID;
 public class VariantDeletionNotAllowedException extends RuntimeException {
 
     public VariantDeletionNotAllowedException(UUID variantId, long ownershipCount, long experienceCount) {
-        super("Impossible de supprimer le tome %s : %d ownership(s) et %d expérience(s) le référencent encore"
-                .formatted(variantId, ownershipCount, experienceCount));
+        // The web shows this message as is: French words only, no id.
+        super("Impossible de supprimer ce tome : il a encore " + EntityDeletionNotAllowedException.list(
+                EntityDeletionNotAllowedException.count(ownershipCount, "exemplaire", "exemplaires"),
+                EntityDeletionNotAllowedException.count(experienceCount, "expérience", "expériences")) + ".");
     }
 }

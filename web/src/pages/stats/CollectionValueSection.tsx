@@ -41,7 +41,11 @@ export function CollectionValueSection() {
           <ul className="mt-2 flex flex-col gap-0.5 text-sm text-textDim">
             {byType.map((type) => (
               <li key={type.entityTypeLabel}>
-                {type.entityTypeLabel} : {formaterEuros(type.knownValue)} ({type.pricedCount}/{type.totalCount})
+                {/* No price known for this type: "0,00 €" would read as a real
+                    value of zero. */}
+                {type.pricedCount === 0
+                  ? `${type.entityTypeLabel} : prix neuf inconnu (${type.totalCount} possession${type.totalCount > 1 ? 's' : ''})`
+                  : `${type.entityTypeLabel} : ${formaterEuros(type.knownValue)} (${type.pricedCount}/${type.totalCount})`}
               </li>
             ))}
           </ul>

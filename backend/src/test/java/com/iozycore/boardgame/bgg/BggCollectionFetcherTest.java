@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class BggCollectionFetcherTest {
 
@@ -45,5 +46,25 @@ class BggCollectionFetcherTest {
                 "<items totalitems=\"0\" termsofuse=\"https://boardgamegeek.com/xmlapi/termsofuse\"></items>");
 
         assertThat(items).isEmpty();
+    }
+
+    @Test
+    void an_unknown_user_is_said_as_such_and_not_read_as_an_empty_collection() {
+        BggCollectionFetcher fetcher = new BggCollectionFetcher();
+
+        assertThatThrownBy(() -> fetcher.parse(
+                "<errors><error><message>Invalid username specified</message></error></errors>"))
+                .isInstanceOf(BggCollectionFetcher.BggCollectionUnavailableException.class)
+                .hasMessage("Ce pseudo n'existe pas sur BoardGameGeek.");
+    }
+
+    @Test
+    void any_other_bgg_error_is_reported_and_not_read_as_an_empty_collection() {
+        BggCollectionFetcher fetcher = new BggCollectionFetcher();
+
+        assertThatThrownBy(() -> fetcher.parse(
+                "<errors><error><message>Rate limit exceeded</message></error></errors>"))
+                .isInstanceOf(BggCollectionFetcher.BggCollectionUnavailableException.class)
+                .hasMessageStartingWith("BoardGameGeek a refusé la demande");
     }
 }
