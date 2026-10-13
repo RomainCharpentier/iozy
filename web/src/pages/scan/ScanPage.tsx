@@ -13,6 +13,7 @@ import type { EtatRetour } from '@/common/lib/retour'
 import type { MetadataCandidateDto } from '@/common/types/api'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
+import { LienRetour } from '@/common/components/LienRetour'
 import { ApiError } from '@/common/api/client'
 import { invaliderApresPossession } from '@/common/lib/invalidations'
 
@@ -54,9 +55,15 @@ function libelleEntree(entry: ScanEntry): string {
 
 /** The screen title, defined once: it is rendered in the three
   * states of the page (loading, no Manga type, normal screen) and two
-  * copies of the same h1 would end up drifting apart. */
+  * copies of the same h1 would end up drifting apart. The back link comes
+  * with it, as on the two other import screens (/import-bgg, /import-photo). */
 function TitreScan() {
-  return <EnTeteSection niveau={1} titre="Scan rapide" />
+  return (
+    <>
+      <LienRetour parDefaut={{ to: '/add', libelle: 'Catalogue' }} />
+      <EnTeteSection niveau={1} titre="Scan rapide" />
+    </>
+  )
 }
 
 /** Best-effort, never authoritative: the barcode lookup (see
