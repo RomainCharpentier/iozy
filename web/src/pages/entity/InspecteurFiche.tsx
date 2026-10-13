@@ -249,7 +249,12 @@ export function ColonneSource({
       <div className="flex flex-col">
         {brouillon.clesSource.map((cle) => (
           <RangeeInspecteur key={cle} libelle={libelleDe(cle)} compact saisie saisi={brouillon.saisi(cle)}>
-            <ChampInspecteur id={`source-${cle}`} valeur={brouillon.valeur(cle)} onChange={(v) => brouillon.saisir(cle, v)} />
+            <ChampInspecteur
+              id={`source-${cle}`}
+              valeur={brouillon.valeur(cle)}
+              onChange={(v) => brouillon.saisir(cle, v)}
+              ariaLabel={libelleDe(cle)}
+            />
           </RangeeInspecteur>
         ))}
       </div>

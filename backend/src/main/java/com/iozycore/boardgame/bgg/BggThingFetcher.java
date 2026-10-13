@@ -1,5 +1,6 @@
 package com.iozycore.boardgame.bgg;
 
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +38,11 @@ public class BggThingFetcher {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-    /** Categories + mechanics combined (the distinction does not matter for a simple similarity computation). */
+    /**
+     * Categories + mechanics combined (the distinction does not matter for a simple similarity computation).
+     *
+     * @throws SourceUnavailableException when BGG did not answer - never an empty set in that case
+     */
     public Set<String> fetchCategoriesAndMechanics(String bggId) {
         try {
             HttpRequest request = BggAuthorization.applyToken(HttpRequest.newBuilder()
@@ -48,14 +53,14 @@ public class BggThingFetcher {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("BGG answered {} for /thing?id={}", response.statusCode(), bggId);
-                return Set.of();
+                throw new SourceUnavailableException("BGG answered " + response.statusCode() + " for /thing?id=" + bggId);
             }
 
             return parse(response.body());
+        } catch (SourceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
-            log.warn("BGG /thing call failed for id {}: {}", bggId, e.getMessage());
-            return Set.of();
+            throw new SourceUnavailableException("BGG /thing call failed for id " + bggId + ": " + e.getMessage(), e);
         }
     }
 

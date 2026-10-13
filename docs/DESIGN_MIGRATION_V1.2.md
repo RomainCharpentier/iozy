@@ -8960,3 +8960,108 @@ avant, 0 après ; pile détruite ensuite. Tests : 5 nouveaux tests web (4 tomben
 sur l'ancien code), 3 tests moteur ; 465 tests unitaires verts (avec
 `NODE_OPTIONS=--no-experimental-webstorage`), `typecheck` propre, `lint` sans
 nouvel avertissement (19 déjà présents), suite backend complète verte.
+
+### Lot 158 — Douze petits défauts du test exploratoire du 13 octobre
+
+Le parcours complet à l'agent-browser (bureau et 390×844) a relevé douze défauts
+visibles, chacun petit. Ce lot les corrige tous ; deux plus gros (le scan ISBN qui
+crée une série par tome, les verdicts de l'analyse d'achat) ont leur propre lot.
+
+- **Profil, « Titres »** : le chiffre était `totalEntities`, la taille du
+  catalogue **partagé** (14), à côté de la valeur du compte (13 œuvres dans Ma
+  collection). Il s'appelle maintenant « Œuvres au catalogue », comme sur l'écran
+  Statistiques. Afficher les titres du compte demanderait un champ de plus côté
+  serveur ; le nom juste suffit.
+- **Suppression bloquée** : le message du serveur montrait l'identifiant et des
+  mots anglais (« 6 ownership(s) »). Il dit maintenant « Impossible de supprimer
+  cette fiche : elle a encore 6 exemplaires, 1 expérience et 1 édition. », sans
+  nommer ce qui vaut zéro. Même forme pour un tome.
+- **Mode Éditer, colonne SOURCE** : les six champs n'avaient pas de nom
+  accessible, et le premier libellé était la clé brute « malId ». Chaque champ
+  porte le libellé de sa ligne ; « malId » devient « Identifiant MyAnimeList »
+  (et « Identifiant IGDB », « Identifiant BGG »).
+- **Import BGG** : BGG répond 200 avec `<errors>` pour un pseudo inconnu, lu
+  comme une collection vide (« 0 créé(s) … sur 0 trouvé(s) »). Le serveur en fait
+  une erreur claire (« Ce pseudo n'existe pas sur BoardGameGeek. ») ; une vraie
+  collection vide se dit « aucun jeu marqué « possédé » sur ce compte », et le
+  compte final s'écrit en français (« 2 jeux ajoutés, 1 déjà présent »).
+- **Découvrir, suggestions** : un fournisseur en panne renvoie une liste vide,
+  comme « rien trouvé ». Le serveur ne sait pas encore les distinguer : le
+  panneau nomme donc les deux causes (« soit rien ne donne de piste, soit la
+  source n'a pas répondu ») et propose « Réessayer ». Distinguer vraiment les deux
+  demande de changer le contrat `DiscoverySource` dans le cœur et les trois
+  univers : c'est une suite, pas ce lot.
+- **Aide « Où en suis-je ? »** : elle renvoyait vers « Expériences », dans « Mon
+  suivi », qui n'existe plus. Elle dit « avec « Éditer », en haut de la fiche ».
+- **Note moyenne** : « 7.0/10 » devient « 7,0/10 » (`formaterDecimal`).
+- **Jaquettes manquantes** : après une panne, le compte était remis au total,
+  d'où « 9/9 séries traitées, réessaie plus tard pour les autres ». Il ne compte
+  que les séries finies avant la panne : « Le fournisseur a cessé de répondre
+  après 8 séries sur 9 : réessaie plus tard pour l'autre. »
+- **Mise à jour des sorties** : l'interrogation toutes les 2 s s'arrêtait quand
+  l'onglet perdait le focus (`refetchIntervalInBackground` vaut faux par défaut),
+  et la ligne restait sur « en cours » jusqu'au rechargement. Elle continue
+  maintenant en arrière-plan, seulement pendant une passe.
+- **/scan** : un lien de retour vers le Catalogue, comme `/import-bgg` et
+  `/import-photo`.
+- **Tutoiement** : « puis vous confirmez » et trois autres « vous » (analyse
+  d'annonce, envies) passent au « tu ». Un test lit toutes les sources à la
+  recherche de « vous », « votre », « vos », sauf le message écrit au vendeur.
+- **Valeur par type** : un type sans aucun prix connu affichait « 0,00 € (0/1) ».
+  Il dit « prix neuf inconnu (1 possession) ».
+- **Tier list sur mobile** : le titre d'une tuile sans jaquette était coupé au
+  milieu d'un mot par le bord. Il se coupe dans les mots si besoin et finit par
+  des points de suspension (5 lignes au plus) ; le titre complet reste dans le
+  nom du bouton.
+
+**Vérification** : web 71 fichiers de tests verts (`NODE_OPTIONS=--no-experimental-webstorage`),
+mutations vérifiées sur six règles, `typecheck` propre, `lint` sans avertissement
+dans les fichiers du lot. Serveur : suite complète verte (1 222 tests). e2e : 19
+parcours sur 19 (`suggestions.spec.ts` suit la nouvelle phrase). En direct sur la
+pile e2e (web :5174) : message de suppression (409), héros du Profil, noms des six
+champs SOURCE, aide sans lecture, note « 7,5/10 », lien retour de `/scan`, aucun
+« vous » sur l'analyse d'annonce, valeur par type, pseudo BGG inconnu (vrai appel
+à BGG), tuile de tier list à 390 px sans débordement. **Pas vu en direct** : une
+longue passe de sorties (elle finit en 30 ms sur la pile e2e) et la panne du
+fournisseur de jaquettes ; les deux sont couverts par un test qui échouait avant
+la correction. Pile jetable démontée ensuite.
+
+### Lot 159 — Découvrir distingue « la source n'a pas répondu » de « rien à proposer »
+
+Suite du lot 158. Un fournisseur en panne renvoyait une liste vide, comme « rien
+trouvé », et `GET /api/insights/discover` renvoyait une liste nue : le panneau
+Découvertes devait nommer les deux causes à la fois. Le serveur dit maintenant
+laquelle.
+
+- **Point d'extension** : `DiscoverySource.discover` renvoie un `Discovery`
+  (cœur) : les suggestions, `sourceAnswered` (faux dès qu'un appel à la source
+  est resté sans réponse) et `emptyReason` quand l'univers n'a rien eu à
+  demander : `NOTHING_OWNED`, `NO_RATED_WORK`, `NO_KNOWN_AUTHOR`,
+  `NOT_LINKED_TO_SOURCE`. Les univers dépendent toujours du cœur seul
+  (`ModulesTest` vert).
+- **Réponse HTTP** : `{ candidates, sourceAnswered, emptyReason }` au lieu d'une
+  liste. Seul le web la lit (iOS est hors service).
+- **Manga** : `MetadataProvider` gagne `searchOrThrow`, qui lève
+  `SourceUnavailableException` au lieu de rendre une liste vide. Jikan,
+  MyAnimeList, AniList et la recherche par titre de Google Books l'implémentent ;
+  leur `search` garde son comportement (liste vide et `WARN`). Une recherche par
+  auteur compte comme répondue si un fournisseur a répondu, même à vide. Le
+  cache d'une demi-heure ne garde qu'un résultat non vide **et complet**.
+- **Jeux vidéo et jeux de société** : `IgdbSimilarGamesFetcher`,
+  `BggThingFetcher` et `BggHotListFetcher` (utilisés seulement par Découvrir)
+  lèvent `SourceUnavailableException` sur une panne. Un jeu sans réponse est
+  sauté et le résultat le dit. Sans liste « hot » de BGG, rien n'est proposable.
+- **Panneau** : liste vide et source muette → « Manga : la source n'a pas
+  répondu. » avec « Réessayer ». Liste vide et source qui a répondu → « Manga :
+  rien à proposer. » suivi de la raison (« Aucune œuvre notée : note celles que
+  tu aimes, leurs auteurs serviront de piste. », etc.), sans bouton. Liste non
+  vide mais incomplète → « Liste incomplète : la source n'a pas toujours
+  répondu. » avec « Réessayer ».
+
+**Vérification** : serveur, suite complète verte (1 238 tests), dont 22 tests de
+découverte sans réseau (faux écrits à la main, nouveau `BoardGameDiscoveryTest`).
+Web : 71 fichiers de tests verts (`NODE_OPTIONS=--no-experimental-webstorage`),
+dont les deux phrases et la liste incomplète ; `typecheck` propre ; `lint` sans
+avertissement dans les fichiers du lot. e2e : `suggestions.spec.ts` vert sur la
+vraie API (aucune note sur le compte e2e → « rien à proposer », raison
+`NO_RATED_WORK`, aucune annonce de panne).

@@ -2,8 +2,6 @@ package com.iozycore.core.insights;
 
 import com.iozycore.core.domain.catalog.EntityType;
 
-import java.util.List;
-
 /**
  * Extension point of the core: a universe offers its discoveries.
  *
@@ -18,6 +16,11 @@ public interface DiscoverySource {
 
     boolean supports(EntityType entityType);
 
-    /** The suggestions for this type - never what is already owned, never an outage disguised as an empty list. */
-    List<DiscoveryCandidate> discover(EntityType entityType);
+    /**
+     * The suggestions for this type - never what is already owned. Must never
+     * throw because the source is silent: it says so in
+     * {@link Discovery#sourceAnswered()} instead, so that an outage is never
+     * shown as "nothing to offer".
+     */
+    Discovery discover(EntityType entityType);
 }

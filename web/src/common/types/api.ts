@@ -193,6 +193,17 @@ export interface DiscoveryCandidateDto {
   reason: string
 }
 
+/** Why a universe had nothing to ask its source (see Discovery.EmptyReason on the server). */
+export type DiscoveryEmptyReason = 'NOTHING_OWNED' | 'NO_RATED_WORK' | 'NO_KNOWN_AUTHOR' | 'NOT_LINKED_TO_SOURCE'
+
+export interface DiscoveryDto {
+  candidates: DiscoveryCandidateDto[]
+  /** False when the external source did not answer: an empty list then means "try again". */
+  sourceAnswered: boolean
+  /** Why nothing was asked of the source; null when it was asked. */
+  emptyReason: DiscoveryEmptyReason | null
+}
+
 // --- Metadata ---
 export interface MetadataCandidateDto {
   source: 'JIKAN' | 'MYANIMELIST' | 'ANILIST' | 'BGG' | 'IGDB' | 'OPEN_LIBRARY' | 'GOOGLE_BOOKS'
