@@ -117,7 +117,25 @@ function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
   if (discoveryQuery.isLoading) return <p className="text-sm text-textDim">Chargement des suggestions {entityType.label}…</p>
   if (!discoveryQuery.data || discoveryQuery.data.length === 0) {
     // A silence would read as a failure: say that there is nothing, and for whom.
-    return <p className="text-sm text-textDim">{entityType.label} : rien à proposer pour l'instant.</p>
+    // The server cannot yet tell "nothing found" from "the source did not
+    // answer" (a provider in outage returns an empty list): both are said,
+    // never only "rien à proposer", which hid an outage.
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <p className="text-sm text-textDim">
+          {entityType.label} : aucune suggestion. Soit rien de ce que tu possèdes ne donne de piste, soit la source
+          n'a pas répondu.
+        </p>
+        <button
+          type="button"
+          onClick={() => discoveryQuery.refetch()}
+          disabled={discoveryQuery.isFetching}
+          className="min-h-11 text-sm font-semibold text-accentText disabled:opacity-50"
+        >
+          {discoveryQuery.isFetching ? 'Nouvelle tentative…' : 'Réessayer'}
+        </button>
+      </div>
+    )
   }
 
   return (
