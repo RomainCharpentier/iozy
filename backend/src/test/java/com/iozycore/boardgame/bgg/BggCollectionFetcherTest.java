@@ -39,6 +39,47 @@ class BggCollectionFetcherTest {
     }
 
     @Test
+    void reads_the_cover_players_and_playing_time_given_by_the_collection() {
+        BggCollectionFetcher fetcher = new BggCollectionFetcher();
+
+        List<BggCollectionItem> items = fetcher.parse("""
+                <items totalitems="2" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
+                  <item objectid="230802" subtype="boardgame" collid="2001">
+                    <name sortindex="1">Azul</name>
+                    <yearpublished>2017</yearpublished>
+                    <image>https://cf.geekdo-images.com/azul/pic6973671.png</image>
+                    <thumbnail>https://cf.geekdo-images.com/azul/pic6973671_t.png</thumbnail>
+                    <stats minplayers="2" maxplayers="4" minplaytime="30" maxplaytime="45" playingtime="45" numowned="120000">
+                      <rating value="N/A"><average value="7.7"/></rating>
+                    </stats>
+                    <status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0" wanttobuy="0" wishlist="0" preordered="0" lastmodified="2024-01-01 10:00:00"/>
+                  </item>
+                  <item objectid="999" subtype="boardgame" collid="2002">
+                    <name sortindex="1">Prototype</name>
+                    <stats minplayers="0" maxplayers="0" playingtime="0" numowned="1"/>
+                    <status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0" wanttobuy="0" wishlist="0" preordered="0" lastmodified="2024-01-01 10:00:00"/>
+                  </item>
+                </items>
+                """);
+
+        assertThat(items).hasSize(2);
+        BggCollectionItem azul = items.get(0);
+        // The full image, not the thumbnail.
+        assertThat(azul.imageUrl()).isEqualTo("https://cf.geekdo-images.com/azul/pic6973671.png");
+        assertThat(azul.minPlayers()).isEqualTo(2);
+        assertThat(azul.maxPlayers()).isEqualTo(4);
+        assertThat(azul.playingTimeMinutes()).isEqualTo(45);
+
+        // No image and "0" everywhere: the game is kept, the fields stay empty.
+        BggCollectionItem prototype = items.get(1);
+        assertThat(prototype.title()).isEqualTo("Prototype");
+        assertThat(prototype.imageUrl()).isNull();
+        assertThat(prototype.minPlayers()).isNull();
+        assertThat(prototype.maxPlayers()).isNull();
+        assertThat(prototype.playingTimeMinutes()).isNull();
+    }
+
+    @Test
     void returns_an_empty_list_when_nothing_is_owned() {
         BggCollectionFetcher fetcher = new BggCollectionFetcher();
 

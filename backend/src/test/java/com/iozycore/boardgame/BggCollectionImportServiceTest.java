@@ -80,6 +80,56 @@ class BggCollectionImportServiceTest {
         assertThat(entityRepository.count()).isEqualTo(1); // still only one Catan in the Catalog
     }
 
+    @Test
+    void stores_the_collection_cover_and_details_and_imports_a_game_without_them() {
+        StubBggCollectionFetcher fetcher = new StubBggCollectionFetcher(List.of(
+                new BggCollectionItem("230802", "Azul", "2017",
+                        "https://cf.geekdo-images.com/azul/pic.png", 2, 4, 45),
+                new BggCollectionItem("999", "Prototype", null)
+        ));
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        BggCollectionImportService importService = new BggCollectionImportService(
+                fetcher, quickAddService(entityRepository), new InMemoryEntityTypeRepository());
+
+        BggCollectionImportService.ImportResult result = importService.importOwnedGames("someuser");
+
+        assertThat(result.created()).isEqualTo(2);
+        assertThat(result.failed()).isEqualTo(0);
+        Map<String, Object> azul = entityRepository.byTitle("Azul").attributes();
+        assertThat(azul).containsEntry("coverImageUrl", "https://cf.geekdo-images.com/azul/pic.png")
+                .containsEntry("minPlayers", 2)
+                .containsEntry("maxPlayers", 4)
+                .containsEntry("averageDurationMinutes", 45)
+                .containsEntry("bggId", "230802");
+        assertThat(entityRepository.byTitle("Prototype").attributes())
+                .containsOnlyKeys("bggId");
+    }
+
+    @Test
+    void re_importing_gives_a_cover_to_a_game_imported_without_one() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        QuickAddService quickAddService = quickAddService(entityRepository);
+        new BggCollectionImportService(
+                new StubBggCollectionFetcher(List.of(new BggCollectionItem("13", "Catan", "1995"))),
+                quickAddService, new InMemoryEntityTypeRepository()).importOwnedGames("someuser");
+
+        new BggCollectionImportService(
+                new StubBggCollectionFetcher(List.of(new BggCollectionItem("13", "Catan", "1995",
+                        "https://cf.geekdo-images.com/catan/pic.jpg", 3, 4, 120))),
+                quickAddService, new InMemoryEntityTypeRepository()).importOwnedGames("someuser");
+
+        assertThat(entityRepository.count()).isEqualTo(1);
+        assertThat(entityRepository.byTitle("Catan").attributes())
+                .containsEntry("coverImageUrl", "https://cf.geekdo-images.com/catan/pic.jpg");
+    }
+
+    private static QuickAddService quickAddService(InMemoryEntityRepository entityRepository) {
+        return new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
+                new CatalogEntityResolver(entityRepository),
+                new TomeResolver(entityRepository, List.of(), List.of(new MangaEditionLinker(new InMemoryMangaEditionRepository()))), new InMemoryWishlistEntryRepository(), event -> {
+        });
+    }
+
     private static class StubBggCollectionFetcher extends BggCollectionFetcher {
         private final List<BggCollectionItem> items;
 
@@ -147,6 +197,10 @@ class BggCollectionImportServiceTest {
 
         int count() {
             return store.size();
+        }
+
+        Entity byTitle(String title) {
+            return store.values().stream().filter(e -> e.title().equals(title)).findFirst().orElseThrow();
         }
     }
 

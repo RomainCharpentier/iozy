@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -58,9 +59,7 @@ public class BggCollectionImportService {
 
         for (BggCollectionItem item : items) {
             try {
-                Map<String, Object> attributes = item.yearPublished() != null
-                        ? Map.of("yearPublished", item.yearPublished(), "bggId", item.externalId())
-                        : Map.of("bggId", item.externalId());
+                Map<String, Object> attributes = attributesOf(item);
 
                 QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
                         boardGameTypeId, item.title(), OwnershipCondition.USED, attributes);
@@ -79,5 +78,28 @@ public class BggCollectionImportService {
         }
 
         return new ImportResult(items.size(), created, matchedExisting, failed);
+    }
+
+    /**
+     * Same keys as BggMetadataProvider.details, so an imported game looks like
+     * one added by hand. Only what the collection answer gave: no /thing call.
+     */
+    static Map<String, Object> attributesOf(BggCollectionItem item) {
+        Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("bggId", item.externalId());
+        putIfPresent(attributes, "yearPublished", item.yearPublished());
+        if (item.imageUrl() != null && !item.imageUrl().isBlank()) {
+            attributes.put("coverImageUrl", item.imageUrl());
+        }
+        putIfPresent(attributes, "minPlayers", item.minPlayers());
+        putIfPresent(attributes, "maxPlayers", item.maxPlayers());
+        putIfPresent(attributes, "averageDurationMinutes", item.playingTimeMinutes());
+        return attributes;
+    }
+
+    private static void putIfPresent(Map<String, Object> attributes, String key, Object value) {
+        if (value != null) {
+            attributes.put(key, value);
+        }
     }
 }

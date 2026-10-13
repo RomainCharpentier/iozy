@@ -9121,3 +9121,33 @@ en envie reçoit les siens ; l'aperçu fait un seul appel `/details` et affiche
 l'auteur ; sur un Catan privé de ses détails, « Recharger depuis la source »
 annonce « 5 informations mises à jour » et rend jaquette, joueurs, durée et
 auteur.
+
+### Lot 161 — Un jeu importé depuis BGG reçoit sa jaquette sans appel par jeu
+
+Suite du lot 160, resté « hors lot » : l'import d'une collection BGG créait des
+jeux sans jaquette. Appeler `/xmlapi2/thing` pour chaque jeu importé ferait des
+centaines d'appels d'un coup. Or la réponse de `/xmlapi2/collection` contient
+déjà l'image de chaque jeu.
+
+- **Lecture** : `BggCollectionFetcher` lit `<image>` (la grande, pas
+  `<thumbnail>`). La requête passe à `stats=1` : chaque jeu porte alors
+  `<stats minplayers maxplayers playingtime>`, lus au passage. Toujours un seul
+  appel pour toute la collection. Un champ que BGG laisse à `0` ne compte pas.
+- **Clés** : les mêmes que le lot 160, pour qu'un jeu importé ressemble à un jeu
+  ajouté à la main : `coverImageUrl`, `minPlayers`, `maxPlayers`,
+  `averageDurationMinutes`, en plus de `bggId` et `yearPublished`.
+- **Sans image** : le jeu est importé quand même, sans ces clés. Aucun échec
+  d'import n'en dépend.
+- **Réimport** : une fiche déjà présente ne reçoit que les clés qui lui
+  manquent (règle existante de `CatalogEntityResolver`). Réimporter la même
+  collection donne donc une jaquette aux jeux importés avant ce lot, sans
+  toucher à ce qui a été saisi à la main.
+- `BggCollectionItem` gagne ces champs ; un constructeur à trois arguments reste
+  pour la liste « hot », qui n'a ni image ni statistiques.
+
+**Vérification** : serveur, suite complète verte (1 257 tests), dont la lecture
+d'une réponse `/collection` inline (image, joueurs, durée ; jeu sans image ni
+statistiques gardé avec des champs vides), l'import qui range la jaquette sous
+`coverImageUrl` et importe un jeu sans image, et le réimport qui complète la
+jaquette d'un jeu existant. Pas de vérification en direct contre BGG dans ce
+lot.
