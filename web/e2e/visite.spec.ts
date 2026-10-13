@@ -12,10 +12,11 @@ import { TYPE_MANGA, serieAvecEdition } from './amorcage'
  * screen, facing a collection that really exists.
  *
  * <p>The account of the suite owns a volume: this is precisely what the
- * visitor must not see. And the refusal to write is checked in the two places
- * where it lives - on the screen, in one sentence, with no round trip; and on
- * the server, with 403, with the CSRF token that any legitimate write carries,
- * so that the refusal really comes from the visit and from nothing else.
+ * visitor must not see - and the visitor is not shown a collection of their
+ * own either (no "missing" volume, no "Je l'ai"). The refusal to write is
+ * checked on the server, with 403, with the CSRF token that any legitimate
+ * write carries, so that the refusal really comes from the visit and from
+ * nothing else.
  */
 
 const ORIGINE = 'http://localhost:5174'
@@ -55,23 +56,29 @@ test('visit without an account: the catalog, nothing personal, and no write', as
   await expect(pageVisiteur.getByText('Pas encore possédé')).toHaveCount(0)
   await ligne.click()
 
-  // --- The detail page: the volumes of the catalog, and none is "possédé"
+  // --- The detail page: the volumes of the catalog, and nothing personal
   await expect(pageVisiteur).toHaveURL(new RegExp(`/entity/${entityId}$`))
   await expect(pageVisiteur.getByRole('heading', { name: titre })).toBeVisible()
-  // Volume 1 is indeed the account's one - and the visitor sees it MISSING:
-  // the progress is theirs, that is nobody's, not the host's.
-  await expect(pageVisiteur.getByRole('button', { name: 'Tome 1, manquant' })).toBeVisible()
-  await expect(pageVisiteur.getByRole('button', { name: /^Tome \d+, possédé$/ })).toHaveCount(0)
-  await expect(pageVisiteur.getByText('0 tome possédé sur 3')).toBeAttached()
+  // Volume 1 is the account's one. The visitor sees the three volumes of the
+  // edition, neither owned nor MISSING: a visitor has no collection, so
+  // nothing can be missing from it.
+  for (const numero of [1, 2, 3]) {
+    await expect(pageVisiteur.getByRole('img', { name: `Tome ${numero}`, exact: true })).toBeVisible()
+  }
+  await expect(pageVisiteur.getByText(/manquant|possédé/i)).toHaveCount(0)
+  await expect(pageVisiteur.getByRole('radiogroup', { name: 'Filtrer les tomes' })).toHaveCount(0)
+  // The edition card says what the edition is, with no progress gauge.
+  await expect(pageVisiteur.getByText('3 tomes')).toBeVisible()
+  // No gesture that a visitor could not finish: no "Je l'ai", no "Je le veux".
+  await expect(pageVisiteur.getByTitle("J'ai le tome 2")).toHaveCount(0)
+  await expect(pageVisiteur.getByTitle('Je veux le tome 2')).toHaveCount(0)
   await expect(pageVisiteur.getByRole('button', { name: 'Éditer' })).toHaveCount(0)
 
-  // --- A write gesture: refused in one sentence, with no round trip
-  await pageVisiteur.getByRole('button', { name: 'Tome 2, manquant' }).locator('..').hover()
-  await pageVisiteur.getByTitle("J'ai le tome 2").click()
-  await expect(
-    pageVisiteur.getByText('Tu visites cette collection en lecture seule. Il faut un compte pour y changer quoi que ce soit.'),
-  ).toBeVisible()
-  await expect(pageVisiteur.getByRole('button', { name: 'Tome 2, manquant' })).toBeVisible()
+  // The help asks about the work, never about a collection.
+  await pageVisiteur.getByRole('button', { name: 'Aide' }).click()
+  await expect(pageVisiteur.getByRole('button', { name: 'Que me manque-t-il ?' })).toHaveCount(0)
+  await pageVisiteur.getByRole('button', { name: 'Combien de tomes compte cette édition ?' }).click()
+  await expect(pageVisiteur.getByText(/L'édition « Deluxe » compte\s+3 tomes/)).toBeVisible()
 
   // --- The screens reserved for accounts send back to the catalog
   for (const chemin of ['/', '/profile', '/profile/import', '/administration/comptes']) {

@@ -8835,8 +8835,11 @@ Manga, filtres en consultation, aide alignée), `typecheck`, `build`,
 `check:contrast`, `check:frontieres` ; `lint` sans nouvel avertissement (19 déjà
 présents). Pas touché au backend. **Non vérifié en direct** : la fiche d'un
 compte connecté (aucun compte de test sur l'instance de dev) ; la règle de
-l'aide est couverte par un test. **e2e non lancés** : le navigateur de Playwright
-n'est pas installé sur la machine (`npx playwright install` à faire une fois).
+l'aide est couverte par un test. e2e : `visite.spec.ts` réécrit pour la nouvelle
+règle (trois tomes en consultation, aucun « manquant » ni « possédé », pas de
+« J'ai le tome 2 », aide sur l'œuvre) ; le refus côté serveur (403) reste vérifié.
+19 parcours verts sur 19 (sur `main`, avec la correction de `releases.spec.ts`
+du lot 155, qui échouait sans lien avec ce lot).
 
 Piège : sous Node 26, `localStorage` natif masque celui de jsdom et 38 tests
 tombent avant même ce lot. `NODE_OPTIONS=--no-experimental-webstorage npm test`
