@@ -4,10 +4,15 @@ import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.shared.TexteRecherche;
+import com.iozycore.core.insights.Discovery;
+import com.iozycore.core.insights.Discovery.EmptyReason;
 import com.iozycore.core.insights.DiscoveryCandidate;
 import com.iozycore.core.insights.DiscoverySource;
 import com.iozycore.core.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.videogame.igdb.IgdbSimilarGamesFetcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -25,10 +30,15 @@ import java.util.stream.Collectors;
  * second signal. Same accepted limit: only games whose igdbId was
  * captured (added through search) are examined - a game added by hand
  * is not taken into account.
+ *
+ * <p>A game whose similar games IGDB did not send is skipped, and the result
+ * says the source was silent (batch 159): the panel then offers to try again
+ * instead of saying there is nothing to offer.
  */
 @Component
 public class VideoGameDiscovery implements DiscoverySource {
 
+    private static final Logger log = LoggerFactory.getLogger(VideoGameDiscovery.class);
     private static final int MAX_OWNED_GAMES_EXAMINED = 5;
     private static final int MAX_SUGGESTIONS = 8;
 
@@ -46,8 +56,11 @@ public class VideoGameDiscovery implements DiscoverySource {
     }
 
     @Override
-    public List<DiscoveryCandidate> discover(EntityType entityType) {
+    public Discovery discover(EntityType entityType) {
         List<Entity> ownedGames = entityRepository.findAllByType(entityType.id());
+        if (ownedGames.isEmpty()) {
+            return Discovery.nothingToAsk(EmptyReason.NOTHING_OWNED);
+        }
         List<String> ownedIgdbIds = ownedGames.stream()
                 .map(e -> e.attributes().get("igdbId"))
                 .filter(id -> id instanceof String s && !s.isBlank())
@@ -55,7 +68,7 @@ public class VideoGameDiscovery implements DiscoverySource {
                 .limit(MAX_OWNED_GAMES_EXAMINED)
                 .toList();
         if (ownedIgdbIds.isEmpty()) {
-            return List.of();
+            return Discovery.nothingToAsk(EmptyReason.NOT_LINKED_TO_SOURCE);
         }
 
         Set<String> ownedTitles = ownedGames.stream()
@@ -63,8 +76,17 @@ public class VideoGameDiscovery implements DiscoverySource {
                 .collect(Collectors.toSet());
 
         List<DiscoveryCandidate> suggestions = new ArrayList<>();
+        boolean allCallsAnswered = true;
         for (String igdbId : ownedIgdbIds) {
-            for (MetadataCandidate similar : igdbSimilarGamesFetcher.fetchSimilarGames(igdbId)) {
+            List<MetadataCandidate> similarGames;
+            try {
+                similarGames = igdbSimilarGamesFetcher.fetchSimilarGames(igdbId);
+            } catch (SourceUnavailableException e) {
+                log.warn("Discover: {}", e.getMessage());
+                allCallsAnswered = false;
+                continue;
+            }
+            for (MetadataCandidate similar : similarGames) {
                 if (suggestions.size() >= MAX_SUGGESTIONS) {
                     break;
                 }
@@ -76,6 +98,6 @@ public class VideoGameDiscovery implements DiscoverySource {
                         "Similaire à un jeu que tu possèdes"));
             }
         }
-        return suggestions;
+        return Discovery.asked(suggestions, allCallsAnswered);
     }
 }

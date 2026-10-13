@@ -1,5 +1,6 @@
 package com.iozycore.boardgame.bgg;
 
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +39,7 @@ public class BggHotListFetcher {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
+    /** @throws SourceUnavailableException when BGG did not answer - never an empty list in that case */
     public List<BggCollectionItem> fetchHotBoardGames() {
         try {
             HttpRequest request = BggAuthorization.applyToken(HttpRequest.newBuilder()
@@ -48,14 +50,14 @@ public class BggHotListFetcher {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("BGG answered {} for /hot", response.statusCode());
-                return List.of();
+                throw new SourceUnavailableException("BGG answered " + response.statusCode() + " for /hot");
             }
 
             return parse(response.body());
+        } catch (SourceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
-            log.warn("BGG /hot call failed: {}", e.getMessage());
-            return List.of();
+            throw new SourceUnavailableException("BGG /hot call failed: " + e.getMessage(), e);
         }
     }
 

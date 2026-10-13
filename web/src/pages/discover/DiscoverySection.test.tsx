@@ -1,7 +1,8 @@
 /**
- * <b>An empty list of suggestions never hides a silent source.</b> A provider
- * in outage answers an empty list, exactly like "nothing to offer": the panel
- * said "rien à proposer", and the outage was invisible.
+ * <b>An empty list of suggestions never hides a silent source, and never
+ * invents one.</b> The panel used to say "rien à proposer" during an outage,
+ * then named both causes at once (batch 158). Now the server says which one it
+ * is (batch 159), and the panel says only that one.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
@@ -24,14 +25,41 @@ function enrobage({ children }: { children: ReactNode }) {
 }
 
 describe('the discoveries of a universe', () => {
-  it('names the silent source as a possible cause, and offers to try again', async () => {
-    insights.discover.mockResolvedValue([])
+  it('says the source did not answer, and offers to try again', async () => {
+    insights.discover.mockResolvedValue({ candidates: [], sourceAnswered: false, emptyReason: null })
     render(<DiscoverySection />, { wrapper: enrobage })
 
     await userEvent.click(await screen.findByRole('button', { name: 'Voir des suggestions' }))
 
-    expect(await screen.findByText(/^Manga : aucune suggestion/)).toHaveTextContent("la source n'a pas répondu")
+    expect(await screen.findByText(/^Manga : la source n'a pas répondu/)).toBeInTheDocument()
+    expect(screen.queryByText(/rien à proposer/)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }))
     expect(insights.discover).toHaveBeenCalledTimes(2)
+  })
+
+  it('says there is nothing to offer, with the reason, and no outage', async () => {
+    insights.discover.mockResolvedValue({ candidates: [], sourceAnswered: true, emptyReason: 'NO_RATED_WORK' })
+    render(<DiscoverySection />, { wrapper: enrobage })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Voir des suggestions' }))
+
+    expect(await screen.findByText(/^Manga : rien à proposer/)).toHaveTextContent('Aucune œuvre notée')
+    expect(screen.queryByText(/n'a pas répondu/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Réessayer' })).not.toBeInTheDocument()
+  })
+
+  it('says a list is incomplete when part of the source was silent', async () => {
+    insights.discover.mockResolvedValue({
+      candidates: [{ source: 'JIKAN', externalId: '2', title: 'Bakuman', imageUrl: null, reason: 'Même auteur : Ohba' }],
+      sourceAnswered: false,
+      emptyReason: null,
+    })
+    render(<DiscoverySection />, { wrapper: enrobage })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Voir des suggestions' }))
+
+    expect(await screen.findByText('Bakuman')).toBeInTheDocument()
+    expect(screen.getByText(/Liste incomplète/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument()
   })
 })
