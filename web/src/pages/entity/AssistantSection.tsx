@@ -6,7 +6,7 @@ import type { EditionProgressDto, ExperienceResponse, VariantDto } from '@/commo
 import type { PriceBasis } from '@/common/types/purchaseAnalysis'
 import { editionDe, numeroDe } from '@/common/lib/attributsTome'
 import { libelleBaseLong } from '@/common/lib/basePrix'
-import { formaterEuros } from '@/common/lib/formats'
+import { formaterDecimal, formaterEuros } from '@/common/lib/formats'
 
 /**
  * The assistant's answers: two FIXED questions, whose answer is
@@ -402,8 +402,9 @@ function ReadingAnswer({
   if (experiences.length === 0) {
     return (
       <p className="text-textDim">
-        Aucune lecture enregistrée pour cette série. Tu peux en ajouter une depuis « Expériences », dans « Mon
-        suivi ».
+        {/* "Mon suivi" is gone: readings are added under the single
+            "Éditer" of the page, at the top of the detail page. */}
+        Aucune lecture enregistrée pour cette série. Tu peux en ajouter une avec « Éditer », en haut de la fiche.
       </p>
     )
   }
@@ -443,7 +444,7 @@ function ReadingAnswer({
       )}
       {averageRating !== null && (
         <p className="text-xs text-textDim">
-          Note moyenne : {averageRating.toFixed(1)}/10 sur {ratings.length} {plural(ratings.length, 'lecture notée', 'lectures notées')}.
+          Note moyenne : {formaterDecimal(averageRating)}/10 sur {ratings.length} {plural(ratings.length, 'lecture notée', 'lectures notées')}.
         </p>
       )}
       {withoutVolume.length > 0 && (
