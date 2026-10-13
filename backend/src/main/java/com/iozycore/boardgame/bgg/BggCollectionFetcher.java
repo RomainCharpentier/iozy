@@ -101,12 +101,27 @@ public class BggCollectionFetcher {
     }
 
     List<BggCollectionItem> parse(String xmlBody) {
+        Document document;
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); // XXE prevention
-            Document document = factory.newDocumentBuilder()
+            document = factory.newDocumentBuilder()
                     .parse(new org.xml.sax.InputSource(new java.io.StringReader(xmlBody)));
-
+        } catch (Exception e) {
+            throw new BggCollectionUnavailableException("Réponse BGG illisible : " + e.getMessage());
+        }
+        // BGG answers 200 with <errors> for an unknown user: read as an
+        // empty list, it became "0 found" instead of saying what happened.
+        Element root = document.getDocumentElement();
+        if ("errors".equals(root.getTagName()) || "error".equals(root.getTagName())) {
+            String error = firstElementText(root, "message");
+            if (error != null && error.toLowerCase(java.util.Locale.ROOT).contains("invalid username")) {
+                throw new BggCollectionUnavailableException("Ce pseudo n'existe pas sur BoardGameGeek.");
+            }
+            throw new BggCollectionUnavailableException("BoardGameGeek a refusé la demande"
+                    + (error != null ? " : " + error : "."));
+        }
+        try {
             NodeList items = document.getElementsByTagName("item");
             List<BggCollectionItem> result = new ArrayList<>();
 
