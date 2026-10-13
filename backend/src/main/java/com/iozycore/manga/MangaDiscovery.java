@@ -6,11 +6,17 @@ import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.experience.Experience;
 import com.iozycore.core.domain.experience.ExperienceRepository;
 import com.iozycore.core.domain.shared.TexteRecherche;
+import com.iozycore.core.insights.Discovery;
+import com.iozycore.core.insights.Discovery.EmptyReason;
 import com.iozycore.core.insights.DiscoveryCandidate;
 import com.iozycore.core.insights.DiscoverySource;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
+import com.iozycore.core.metadata.QuotaExceededException;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.core.metadata.TtlCache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -44,17 +50,25 @@ import java.util.stream.Collectors;
  * key that carries exactly what they depend on: the favourite mangaka and
  * the owned titles. An empty result is not kept - a provider that
  * was coughing must not leave the panel empty for another half hour.
+ *
+ * <h2>Silent or empty: the panel is told which (batch 159)</h2>
+ * Each provider is asked through {@link MetadataProvider#searchOrThrow}, so an
+ * outage is not read as "no other work by this author". A search counts as
+ * answered when one provider answered, even with nothing. If one search got
+ * no answer at all, the result says the source was silent and is not kept:
+ * a partial list must not hide the missing author for half an hour.
  */
 @Component
 public class MangaDiscovery implements DiscoverySource {
 
+    private static final Logger log = LoggerFactory.getLogger(MangaDiscovery.class);
     private static final int MAX_SUGGESTIONS = 8;
     private static final Duration RETENUE = Duration.ofMinutes(30);
 
     private final EntityRepository entityRepository;
     private final ExperienceRepository experienceRepository;
     private final List<MetadataProvider> metadataProviders;
-    private final TtlCache<String, List<DiscoveryCandidate>> memoire = new TtlCache<>(RETENUE, 64);
+    private final TtlCache<String, Discovery> memoire = new TtlCache<>(RETENUE, 64);
 
     public MangaDiscovery(EntityRepository entityRepository, ExperienceRepository experienceRepository,
                           List<MetadataProvider> metadataProviders) {
@@ -69,10 +83,10 @@ public class MangaDiscovery implements DiscoverySource {
     }
 
     @Override
-    public List<DiscoveryCandidate> discover(EntityType mangaType) {
+    public Discovery discover(EntityType mangaType) {
         List<Entity> ownedManga = entityRepository.findAllByType(mangaType.id());
         if (ownedManga.isEmpty()) {
-            return List.of();
+            return Discovery.nothingToAsk(EmptyReason.NOTHING_OWNED);
         }
         Set<String> ownedTitles = ownedManga.stream()
                 .map(e -> TexteRecherche.normaliser(e.title()))
@@ -90,16 +104,26 @@ public class MangaDiscovery implements DiscoverySource {
                 .distinct()
                 .limit(3)
                 .toList();
+        if (favoriteMangaka.isEmpty()) {
+            boolean anyRated = ownedManga.stream().anyMatch(entity -> meilleuresNotes.containsKey(entity.id()));
+            return Discovery.nothingToAsk(anyRated ? EmptyReason.NO_KNOWN_AUTHOR : EmptyReason.NO_RATED_WORK);
+        }
 
         String cle = favoriteMangaka + "|" + ownedTitles.hashCode();
-        Optional<List<DiscoveryCandidate>> retenues = memoire.get(cle);
-        if (retenues.isPresent()) {
-            return retenues.get();
+        Optional<Discovery> retenue = memoire.get(cle);
+        if (retenue.isPresent()) {
+            return retenue.get();
         }
 
         List<DiscoveryCandidate> suggestions = new ArrayList<>();
+        boolean allSearchesAnswered = true;
         for (String mangaka : favoriteMangaka) {
-            for (MetadataCandidate candidate : searchWithFallback(mangaType, mangaka)) {
+            Optional<List<MetadataCandidate>> answer = searchWithFallback(mangaType, mangaka);
+            if (answer.isEmpty()) {
+                allSearchesAnswered = false;
+                continue;
+            }
+            for (MetadataCandidate candidate : answer.get()) {
                 if (suggestions.size() >= MAX_SUGGESTIONS) {
                     break;
                 }
@@ -111,10 +135,11 @@ public class MangaDiscovery implements DiscoverySource {
                         "Même auteur : " + mangaka));
             }
         }
-        if (!suggestions.isEmpty()) {
-            memoire.put(cle, List.copyOf(suggestions));
+        Discovery discovery = Discovery.asked(suggestions, allSearchesAnswered);
+        if (allSearchesAnswered && !suggestions.isEmpty()) {
+            memoire.put(cle, discovery);
         }
-        return suggestions;
+        return discovery;
     }
 
     /** The best rating of each work, in ONE read - and not one per work. */
@@ -126,17 +151,27 @@ public class MangaDiscovery implements DiscoverySource {
         return notes;
     }
 
-    /** The providers that cover this type, in order, and the first non-empty result. */
-    private List<MetadataCandidate> searchWithFallback(EntityType entityType, String query) {
+    /**
+     * The providers that cover this type, in order, and the first non-empty
+     * result. Empty when no provider answered at all; an empty list when one
+     * answered and none found anything.
+     */
+    private Optional<List<MetadataCandidate>> searchWithFallback(EntityType entityType, String query) {
+        boolean answered = false;
         for (MetadataProvider provider : metadataProviders) {
             if (!provider.supports(entityType)) {
                 continue;
             }
-            List<MetadataCandidate> results = provider.search(query);
-            if (!results.isEmpty()) {
-                return results;
+            try {
+                List<MetadataCandidate> results = provider.searchOrThrow(query);
+                answered = true;
+                if (!results.isEmpty()) {
+                    return Optional.of(results);
+                }
+            } catch (SourceUnavailableException | QuotaExceededException e) {
+                log.warn("Discover: no answer from a manga provider for '{}': {}", query, e.getMessage());
             }
         }
-        return List.of();
+        return answered ? Optional.of(List.of()) : Optional.empty();
     }
 }

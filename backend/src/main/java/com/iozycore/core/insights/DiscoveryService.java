@@ -32,7 +32,7 @@ public class DiscoveryService {
      * code, or a type that nobody covers, is a request we do not
      * know how to serve.
      */
-    public List<DiscoveryCandidate> discover(String entityTypeCode) {
+    public Discovery discover(String entityTypeCode) {
         return entityTypeRepository.findByCode(entityTypeCode)
                 .flatMap(type -> sources.stream()
                         .filter(source -> source.supports(type))

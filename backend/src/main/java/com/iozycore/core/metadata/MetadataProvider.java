@@ -18,6 +18,22 @@ public interface MetadataProvider {
     List<MetadataCandidate> search(String query);
 
     /**
+     * The same search, for a caller that must tell "nothing found" from "no
+     * answer" (Discover, for instance): an outage throws instead of returning
+     * an empty list.
+     *
+     * <p>The default trusts {@link #search}: a provider that does not override
+     * it counts as having answered. Override it in any provider that a caller
+     * relies on for this distinction.
+     *
+     * @throws SourceUnavailableException when the source did not answer
+     * @throws QuotaExceededException     when the source refused for quota
+     */
+    default List<MetadataCandidate> searchOrThrow(String query) {
+        return search(query);
+    }
+
+    /**
      * True if this source catalogs the works under their ORIGINAL title
      * (Japanese/English/romaji for a manga), like Jikan/MyAnimeList - the
      * common case, hence this default.

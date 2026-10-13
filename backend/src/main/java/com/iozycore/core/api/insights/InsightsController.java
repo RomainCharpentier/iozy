@@ -1,7 +1,6 @@
 package com.iozycore.core.api.insights;
 
 import com.iozycore.core.insights.CollectionValue;
-import com.iozycore.core.insights.DiscoveryCandidate;
 import com.iozycore.core.insights.CollectionProgress;
 import com.iozycore.core.insights.DiscoveryService;
 import com.iozycore.core.insights.ReleaseCalendarService;
@@ -101,11 +100,13 @@ public class InsightsController {
 
     @Operation(summary = "Heuristic discovery (no AI): mangas by the same author as your "
             + "best rated mangas, trending board games sharing categories with yours, "
-            + "or video games similar to yours (IGDB). Expected entityTypeCode: MANGA, BOARD_GAME or VIDEO_GAME")
+            + "or video games similar to yours (IGDB). Expected entityTypeCode: MANGA, BOARD_GAME or VIDEO_GAME. "
+            + "sourceAnswered is false when the external source did not answer; emptyReason says why "
+            + "nothing was asked of it (NOTHING_OWNED, NO_RATED_WORK, NO_KNOWN_AUTHOR, NOT_LINKED_TO_SOURCE)")
     @GetMapping("/discover")
-    public List<DiscoveryCandidate> discover(@RequestParam String entityTypeCode) {
+    public DiscoveryResponse discover(@RequestParam String entityTypeCode) {
         try {
-            return discoveryService.discover(entityTypeCode);
+            return DiscoveryResponse.from(discoveryService.discover(entityTypeCode));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
