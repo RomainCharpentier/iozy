@@ -95,7 +95,7 @@ export function WishlistToggle({
         void basculer()
       }}
       // The visible label says the STATE; the accessible name says the ACTION, without
-      // which a screen reader announces "Dans vos envies" on a button that,
+      // which a screen reader announces "Dans tes envies" on a button that,
       // in fact, removes.
       aria-label={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
       className={`${base} ${taille} ${couleur}`}
@@ -104,7 +104,7 @@ export function WishlistToggle({
       {/* Inline on a phone, the heart is enough: the text took the place of the
           title next to which it lives. The accessible name always says the action. */}
       <span className={variant === 'inline' ? 'hidden sm:inline' : undefined}>
-        {dedans ? 'Dans vos envies' : 'Ajouter aux envies'}
+        {dedans ? 'Dans tes envies' : 'Ajouter aux envies'}
       </span>
     </button>
   )

@@ -202,7 +202,7 @@ export function ListingDetectionPanel({
           Envoyer mes photos
         </button>
         <span className="text-xs text-textDim">
-          IozyCore y lit les séries et les tomes, puis vous confirmez.
+          IozyCore y lit les séries et les tomes, puis tu confirmes.
         </span>
         {refusees && (
           <span className="text-xs text-textDim" role="status">
@@ -211,7 +211,7 @@ export function ListingDetectionPanel({
         )}
         {envoiPhotos.isError && (
           <span className="text-xs text-dangerText" role="alert">
-            La détection a échoué. Vous pouvez ajouter les tomes à la main juste en dessous.
+            La détection a échoué. Tu peux ajouter les tomes à la main juste en dessous.
           </span>
         )}
         <input
@@ -354,7 +354,7 @@ export function ListingDetectionPanel({
           <h3 className="text-sm font-semibold text-textPrimary">Éléments détectés</h3>
           <span className="text-xs text-textDim">
             {groupes.length === 0
-              ? 'IozyCore propose, vous confirmez.'
+              ? 'IozyCore propose, tu confirmes.'
               : aVerifier > 0
                 ? `${aVerifier} tome${aVerifier > 1 ? 's' : ''} à vérifier avant de l'ajouter au lot`
                 : 'Tout ce qui a été détecté est déjà dans le lot.'}
@@ -416,7 +416,7 @@ export function ListingDetectionPanel({
 
       {(mutation.isError || envoiPhotos.isError) && (
         <p className="text-xs text-dangerText" role="alert">
-          La détection a échoué. Vous pouvez ajouter les tomes à la main juste en dessous.
+          La détection a échoué. Tu peux ajouter les tomes à la main juste en dessous.
         </p>
       )}
 
@@ -569,7 +569,7 @@ function GroupeSerie({
               {LIBELLES_CONFIANCE[groupe.confiance]}
             </span>
             {groupe.catalogStatus === 'NOT_IN_CATALOG' && (
-              <span className="text-warning">pas encore dans votre catalogue</span>
+              <span className="text-warning">pas encore dans ton catalogue</span>
             )}
           </span>
         </div>
