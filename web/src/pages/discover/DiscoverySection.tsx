@@ -7,7 +7,7 @@ import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { CLASSE_CARTE } from '@/common/components/Carte'
-import type { DiscoveryCandidateDto, EntityTypeDto } from '@/common/types/api'
+import type { DiscoveryCandidateDto, DiscoveryEmptyReason, EntityTypeDto } from '@/common/types/api'
 
 /**
  * "Découvertes" panel of Découvrir: what each universe knows how to offer
@@ -30,6 +30,11 @@ import type { DiscoveryCandidateDto, EntityTypeDto } from '@/common/types/api'
  * <p>On demand: each universe queries an external source, and a screen
  * that launched them all on opening would cost several seconds to whoever
  * only came to rank a Tier List.
+ *
+ * <h2>Silent source or nothing to offer (batch 159)</h2>
+ * The server says which one it is (`sourceAnswered`, `emptyReason`). "La source
+ * n'a pas répondu" and "Réessayer" appear only for an outage; "rien à proposer"
+ * comes with its reason when the universe knows it.
  */
 export function DiscoverySection() {
   const [demandees, setDemandees] = useState(false)
@@ -40,16 +45,6 @@ export function DiscoverySection() {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-[11px] font-semibold tracking-wide text-textDim uppercase">Découvertes</h2>
-        {!demandees && types.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setDemandees(true)}
-            className="flex min-h-11 items-center gap-1.5 text-sm font-semibold text-accentText"
-          >
-            <Sparkles size={14} />
-            Voir des suggestions
-          </button>
-        )}
       </div>
 
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
@@ -60,11 +55,21 @@ export function DiscoverySection() {
         </div>
       )}
 
+      {/* The waiting state is an invitation with its button inside, not a
+          lone sentence with a link at the other end of the row: on a wide
+          screen the two were 900 px apart and the section read as empty
+          (UI review of 2026-10-13). */}
       {!demandees && types.length > 0 && (
-        <p className="text-sm text-textDim">
-          À partir de ce que tu possèdes, pour {types.map((t) => t.label).join(', ')}. Les sources ne sont
-          interrogées que si tu le demandes.
-        </p>
+        <div className={`${CLASSE_CARTE} flex flex-wrap items-center justify-between gap-3`}>
+          <p className="min-w-0 flex-1 basis-64 text-sm text-textDim">
+            Des œuvres proches de ce que tu possèdes, pour {types.map((t) => t.label).join(', ')}. Les sources ne
+            sont interrogées que si tu le demandes.
+          </p>
+          <button type="button" onClick={() => setDemandees(true)} className="btn-secondaire shrink-0">
+            <Sparkles size={14} />
+            Voir des suggestions
+          </button>
+        </div>
       )}
 
       {demandees && (
@@ -115,16 +120,46 @@ function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
 
   if (discoveryQuery.isError) return <ErrorBanner message={discoveryQuery.error.message} />
   if (discoveryQuery.isLoading) return <p className="text-sm text-textDim">Chargement des suggestions {entityType.label}…</p>
-  if (!discoveryQuery.data || discoveryQuery.data.length === 0) {
-    // A silence would read as a failure: say that there is nothing, and for whom.
-    return <p className="text-sm text-textDim">{entityType.label} : rien à proposer pour l'instant.</p>
+  if (!discoveryQuery.data) return null
+  const { candidates, sourceAnswered, emptyReason } = discoveryQuery.data
+
+  const retryButton = (
+    <button
+      type="button"
+      onClick={() => discoveryQuery.refetch()}
+      disabled={discoveryQuery.isFetching}
+      className="min-h-11 text-sm font-semibold text-accentText disabled:opacity-50"
+    >
+      {discoveryQuery.isFetching ? 'Nouvelle tentative…' : 'Réessayer'}
+    </button>
+  )
+
+  if (candidates.length === 0) {
+    // A silence would read as a failure: say that there is nothing, and why.
+    // An outage is never said as "rien à proposer", and the reverse.
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <p className="text-sm text-textDim">
+          {sourceAnswered
+            ? `${entityType.label} : rien à proposer. ${emptyReasonText(emptyReason)}`
+            : `${entityType.label} : la source n'a pas répondu. Les suggestions reviendront quand elle répondra.`}
+        </p>
+        {!sourceAnswered && retryButton}
+      </div>
+    )
   }
 
   return (
     <div className="flex flex-col gap-2">
       <h3 className="text-sm font-medium text-textDim">{entityType.label}</h3>
+      {!sourceAnswered && (
+        <div className="flex flex-wrap items-center gap-x-3">
+          <p className="text-sm text-textDim">Liste incomplète : la source n'a pas toujours répondu.</p>
+          {retryButton}
+        </div>
+      )}
       <ul className="flex flex-col gap-2">
-        {discoveryQuery.data.map((candidate) => {
+        {candidates.map((candidate) => {
           const key = `${candidate.source}-${candidate.externalId}`
           const isAdded = key in added
           return (
@@ -155,4 +190,20 @@ function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
       </ul>
     </div>
   )
+}
+
+/** Why the universe had nothing to suggest, in words the user can act on. */
+function emptyReasonText(reason: DiscoveryEmptyReason | null): string {
+  switch (reason) {
+    case 'NOTHING_OWNED':
+      return "Tu n'as encore rien dans cette catégorie."
+    case 'NO_RATED_WORK':
+      return "Aucune œuvre notée : note celles que tu aimes, leurs auteurs serviront de piste."
+    case 'NO_KNOWN_AUTHOR':
+      return "Tes œuvres notées n'ont pas d'auteur renseigné."
+    case 'NOT_LINKED_TO_SOURCE':
+      return "Aucune n'a été ajoutée depuis la recherche : sans ce lien, la source n'a pas de piste."
+    case null:
+      return "La source a répondu, sans rien de nouveau pour toi."
+  }
 }

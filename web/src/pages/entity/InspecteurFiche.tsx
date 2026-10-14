@@ -1,8 +1,9 @@
 import { RELEASE_DATE_ATTRIBUTE_KEY, formatReleaseDate } from '@/common/lib/releaseDate'
-import type { ReactNode } from 'react'
-import { AlignLeft, Download, PenLine, UserRound } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { AlignLeft, ChevronDown, Download, PenLine, UserRound } from 'lucide-react'
 import { tonDe } from './useTeinteJaquette'
 import { CLES_SOURCE, libelleDe, type BrouillonAttributs } from './useBrouillonInspecteur'
+import { libelleStatutSerie } from './seriesInfo'
 
 /**
  * The footer of the "multi-éditions" mockup: a single panel split into
@@ -21,12 +22,20 @@ import { CLES_SOURCE, libelleDe, type BrouillonAttributs } from './useBrouillonI
  * that the previous batches spent their time fixing. Here the
  * columns of one grid stretch together, and inner rules
  * (not gaps) separate them.
+ *
+ * <h2>The SOURCE column folds away while reading</h2>
+ * A MyAnimeList id or a "statut source" is not what a collector reads every
+ * day, and it took a third of the panel (UI review of 2026-10-13). Outside
+ * edit mode the column leaves the grid and becomes one "Détails techniques"
+ * row at the bottom of the panel, closed by default. In edit mode it is a
+ * column again, open: this is where one completes what the source did not give.
  */
 export function InspecteurFiche({
   teinte,
   personnel,
   oeuvre,
   source,
+  sourceRepliee = false,
 }: {
   teinte: [number, number, number]
   /** Absent for a visitor: they have no rating, no readings, no ranking, and
@@ -34,7 +43,10 @@ export function InspecteurFiche({
   personnel?: ReactNode
   oeuvre: ReactNode
   source: ReactNode
+  /** True outside edit mode: SOURCE becomes a closed disclosure row. */
+  sourceRepliee?: boolean
 }) {
+  const [sourceOuverte, setSourceOuverte] = useState(false)
   return (
     <div
       className="overflow-hidden rounded-2xl shadow-token-sm ring-1 ring-line ring-inset"
@@ -58,16 +70,42 @@ export function InspecteurFiche({
         <ColonneInspecteur titre="Œuvre" icone={<AlignLeft size={16} className="text-textDim" />} souligne="bg-line">
           {oeuvre}
         </ColonneInspecteur>
-        <ColonneInspecteur
-          titre="Source"
-          icone={<Download size={16} className="text-faint" />}
-          souligne="bg-line"
-          fond={tonDe(teinte, 5)}
-          derniere
-        >
-          {source}
-        </ColonneInspecteur>
+        {!sourceRepliee && (
+          <ColonneInspecteur
+            titre="Source"
+            icone={<Download size={16} className="text-faint" />}
+            souligne="bg-line"
+            fond={tonDe(teinte, 5)}
+            derniere
+          >
+            {source}
+          </ColonneInspecteur>
+        )}
       </div>
+      {sourceRepliee && (
+        <div className="border-t border-line" style={{ background: tonDe(teinte, 5) }}>
+          <button
+            type="button"
+            onClick={() => setSourceOuverte((ouverte) => !ouverte)}
+            aria-expanded={sourceOuverte}
+            aria-controls="inspecteur-source"
+            className="flex min-h-11 w-full items-center gap-2.5 px-5 text-left text-[12.5px] font-medium text-textDim transition-colors hover:text-textPrimary"
+          >
+            <Download size={15} className="text-faint" aria-hidden="true" />
+            Détails techniques
+            <ChevronDown
+              size={15}
+              aria-hidden="true"
+              className={`ml-auto transition-transform ${sourceOuverte ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {sourceOuverte && (
+            <div id="inspecteur-source" className="flex flex-col gap-3.5 px-5 pb-[18px] sm:max-w-[520px]">
+              {source}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -248,7 +286,12 @@ export function ColonneSource({
       <div className="flex flex-col">
         {brouillon.clesSource.map((cle) => (
           <RangeeInspecteur key={cle} libelle={libelleDe(cle)} compact saisie saisi={brouillon.saisi(cle)}>
-            <ChampInspecteur id={`source-${cle}`} valeur={brouillon.valeur(cle)} onChange={(v) => brouillon.saisir(cle, v)} />
+            <ChampInspecteur
+              id={`source-${cle}`}
+              valeur={brouillon.valeur(cle)}
+              onChange={(v) => brouillon.saisir(cle, v)}
+              ariaLabel={libelleDe(cle)}
+            />
           </RangeeInspecteur>
         ))}
       </div>
@@ -261,7 +304,9 @@ export function ColonneSource({
         if (valeur === null || valeur === undefined || valeur === '') return null
         return (
           <RangeeInspecteur key={cle} libelle={libelle} compact>
-            {String(valeur)}
+            {/* The status is the provider's word ("FINISHED"): translated
+                for reading, never rewritten in the attributes. */}
+            {cle === 'seriesStatus' ? libelleStatutSerie(valeur) : String(valeur)}
           </RangeeInspecteur>
         )
       })}

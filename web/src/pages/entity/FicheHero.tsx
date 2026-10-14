@@ -170,7 +170,7 @@ export function FicheHero({
             </div>
 
             {(onEvaluer || actionEnvies || actionSuivre || onBasculerMode) && (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               {onBasculerMode && (
                 <button
                   type="button"
@@ -184,14 +184,19 @@ export function FicheHero({
                   {modeEdition ? 'Terminer' : 'Éditer'}
                 </button>
               )}
+              {/* A secondary button, named in full: a bare "Évaluer" in the
+                  accent color read as THE action of the page, while it is an
+                  occasional tool about a listing found elsewhere. On an owned
+                  series, the frequent gestures are on the volume tiles
+                  (UI review of 2026-10-13). */}
               {onEvaluer && (
                 <button
                   type="button"
                   onClick={onEvaluer}
-                  className="btn-primaire"
+                  className="flex h-11 items-center gap-1.5 rounded-xl bg-softBtn px-3.5 text-[13px] font-semibold whitespace-nowrap text-textDim transition-colors hover:text-textPrimary"
                 >
-                  <Scale size={16} />
-                  Évaluer
+                  <Scale size={14} />
+                  Évaluer une annonce
                 </button>
               )}
               {actionEnvies}

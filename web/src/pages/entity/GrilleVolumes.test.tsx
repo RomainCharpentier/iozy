@@ -95,3 +95,29 @@ describe('add a missing volume', () => {
     expect(onActiver).toHaveBeenCalledWith('1')
   })
 })
+
+describe('the volumes of the catalog, for a visitor', () => {
+  it('shows the volumes without any personal state or gesture', () => {
+    // A visitor owns nothing: "Manquants 2" and two dimmed "missing" tiles
+    // would invent a collection, and "Je le veux" an action they cannot do.
+    render(
+      <GrilleVolumes
+        volumes={[volume(1, false), volume(2, false)]}
+        mode="consultation"
+        onActiver={vi.fn()}
+        onJeLAi={vi.fn()}
+        onJeLeVeux={vi.fn()}
+        filtre="tous"
+        onFiltre={() => {}}
+      />,
+    )
+
+    expect(screen.getByRole('img', { name: 'Tome 1' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Tome 2' })).toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'Filtrer les tomes' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/manquant/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/possédé/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.queryByText('Je le veux')).not.toBeInTheDocument()
+  })
+})

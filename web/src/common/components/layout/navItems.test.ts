@@ -12,7 +12,7 @@
  * each real route of the app, that <b>exactly one</b> entry lights up.
  */
 import { describe, expect, it } from 'vitest'
-import { NAV_ITEMS } from './navItems'
+import { NAV_ITEMS, destinationsPour } from './navItems'
 
 /** The real routes, with the destination that must light up on each. */
 const ROUTES: [chemin: string, destination: string][] = [
@@ -75,5 +75,27 @@ describe('the list itself', () => {
     for (const item of NAV_ITEMS) {
       expect(item.activeWhen(item.to)).toBe(true)
     }
+  })
+})
+
+// A visitor has no "Ma collection": the work pages they open from the Catalogue
+// must light the Catalogue, or the bar shows no current place at all.
+describe('the navigation of a visitor', () => {
+  function allumeesPourVisiteur(pathname: string): string[] {
+    return destinationsPour(true)
+      .filter((item) => item.activeWhen(pathname))
+      .map((item) => item.to)
+  }
+
+  it('lights the Catalogue on a work page', () => {
+    expect(allumeesPourVisiteur('/entity/42')).toEqual(['/add'])
+  })
+
+  it('leaves an account on "Ma collection" there', () => {
+    expect(
+      destinationsPour(false)
+        .filter((item) => item.activeWhen('/entity/42'))
+        .map((item) => item.to),
+    ).toEqual(['/'])
   })
 })

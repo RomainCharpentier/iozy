@@ -33,13 +33,18 @@ import java.util.List;
  * prepared on the server side) before answering 200 with the real
  * data - a retry with a short delay is the behaviour recommended
  * by BGG itself, not an error to handle as such.
+ * <p>
+ * Each item already carries its cover ({@code <image>}) and, with stats=1,
+ * its players and playing time. They are read here so that an import of
+ * hundreds of games does not make one /thing call per game. All of them are
+ * optional: a game without them is imported anyway.
  */
 @Component
 public class BggCollectionFetcher {
 
     private static final Logger log = LoggerFactory.getLogger(BggCollectionFetcher.class);
     private static final String COLLECTION_URL =
-            "https://boardgamegeek.com/xmlapi2/collection?username=%s&own=1&stats=0";
+            "https://boardgamegeek.com/xmlapi2/collection?username=%s&own=1&stats=1";
     private static final int MAX_ATTEMPTS = 5;
     private static final Duration RETRY_DELAY = Duration.ofSeconds(2);
 
@@ -101,12 +106,27 @@ public class BggCollectionFetcher {
     }
 
     List<BggCollectionItem> parse(String xmlBody) {
+        Document document;
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); // XXE prevention
-            Document document = factory.newDocumentBuilder()
+            document = factory.newDocumentBuilder()
                     .parse(new org.xml.sax.InputSource(new java.io.StringReader(xmlBody)));
-
+        } catch (Exception e) {
+            throw new BggCollectionUnavailableException("Réponse BGG illisible : " + e.getMessage());
+        }
+        // BGG answers 200 with <errors> for an unknown user: read as an
+        // empty list, it became "0 found" instead of saying what happened.
+        Element root = document.getDocumentElement();
+        if ("errors".equals(root.getTagName()) || "error".equals(root.getTagName())) {
+            String error = firstElementText(root, "message");
+            if (error != null && error.toLowerCase(java.util.Locale.ROOT).contains("invalid username")) {
+                throw new BggCollectionUnavailableException("Ce pseudo n'existe pas sur BoardGameGeek.");
+            }
+            throw new BggCollectionUnavailableException("BoardGameGeek a refusé la demande"
+                    + (error != null ? " : " + error : "."));
+        }
+        try {
             NodeList items = document.getElementsByTagName("item");
             List<BggCollectionItem> result = new ArrayList<>();
 
@@ -121,7 +141,12 @@ public class BggCollectionFetcher {
                 String year = firstElementText(item, "yearpublished");
 
                 if (title != null) {
-                    result.add(new BggCollectionItem(objectId, title, year));
+                    Element stats = firstElement(item, "stats");
+                    result.add(new BggCollectionItem(objectId, title, year,
+                            firstElementText(item, "image"),
+                            stats == null ? null : positiveNumber(stats.getAttribute("minplayers")),
+                            stats == null ? null : positiveNumber(stats.getAttribute("maxplayers")),
+                            stats == null ? null : positiveNumber(stats.getAttribute("playingtime"))));
                 }
             }
             return result;
@@ -137,6 +162,24 @@ public class BggCollectionFetcher {
         }
         Element status = (Element) statusNodes.item(0);
         return "1".equals(status.getAttribute("own"));
+    }
+
+    private Element firstElement(Element parent, String tagName) {
+        NodeList nodes = parent.getElementsByTagName(tagName);
+        return nodes.getLength() == 0 ? null : (Element) nodes.item(0);
+    }
+
+    /** BGG writes "0" when nobody filled the field in: that is no answer. */
+    private static Integer positiveNumber(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            int number = Integer.parseInt(value.trim());
+            return number > 0 ? number : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String firstElementText(Element parent, String tagName) {

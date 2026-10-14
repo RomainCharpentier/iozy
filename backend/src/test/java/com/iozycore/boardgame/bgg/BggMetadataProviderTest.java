@@ -1,11 +1,13 @@
 package com.iozycore.boardgame.bgg;
 
 import com.iozycore.core.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class BggMetadataProviderTest {
 
@@ -21,7 +23,7 @@ class BggMetadataProviderTest {
 
     @Test
     void parses_id_title_and_year_from_a_bgg_response() throws Exception {
-        BggMetadataProvider provider = new BggMetadataProvider();
+        BggMetadataProvider provider = new BggMetadataProvider(new BggThingFetcher());
 
         List<MetadataCandidate> candidates = provider.parse(SAMPLE_RESPONSE);
 
@@ -35,12 +37,67 @@ class BggMetadataProviderTest {
 
     @Test
     void returns_an_empty_list_when_there_are_no_items() throws Exception {
-        BggMetadataProvider provider = new BggMetadataProvider();
+        BggMetadataProvider provider = new BggMetadataProvider(new BggThingFetcher());
 
         List<MetadataCandidate> candidates = provider.parse(
                 "<items total=\"0\" termsofuse=\"https://boardgamegeek.com/xmlapi/termsofuse\"></items>");
 
         assertThat(candidates).isEmpty();
+    }
+
+    @Test
+    void details_put_the_cover_under_the_shared_key_and_players_under_the_type_keys() {
+        CountingThingFetcher fetcher = new CountingThingFetcher(new BggThing(
+                "https://cf.geekdo-images.com/original/pic.png", "2000", 2, 5, 45,
+                List.of("Klaus-Jürgen Wrede", "Someone Else"), java.util.Set.of("Medieval")));
+
+        java.util.Map<String, Object> details = new BggMetadataProvider(fetcher)
+                .details(java.util.Map.of("bggId", "822", "yearPublished", "2000"));
+
+        assertThat(fetcher.askedIds).containsExactly("822");
+        assertThat(details)
+                .containsEntry("coverImageUrl", "https://cf.geekdo-images.com/original/pic.png")
+                .containsEntry("minPlayers", 2)
+                .containsEntry("maxPlayers", 5)
+                .containsEntry("averageDurationMinutes", 45)
+                .containsEntry("designers", "Klaus-Jürgen Wrede, Someone Else")
+                .doesNotContainKey("categoriesAndMechanics");
+    }
+
+    @Test
+    void details_of_a_game_without_bgg_id_cost_no_call() {
+        CountingThingFetcher fetcher = new CountingThingFetcher(null);
+
+        assertThat(new BggMetadataProvider(fetcher).details(java.util.Map.of("yearPublished", "2000"))).isEmpty();
+        assertThat(fetcher.askedIds).isEmpty();
+    }
+
+    @Test
+    void details_say_when_bgg_is_silent_instead_of_answering_nothing() {
+        BggThingFetcher silent = new BggThingFetcher() {
+            @Override
+            public BggThing fetchThing(String bggId) {
+                throw new SourceUnavailableException("BGG answered 503 for /thing?id=" + bggId);
+            }
+        };
+
+        assertThatThrownBy(() -> new BggMetadataProvider(silent).details(java.util.Map.of("bggId", "822")))
+                .isInstanceOf(SourceUnavailableException.class);
+    }
+
+    private static class CountingThingFetcher extends BggThingFetcher {
+        private final BggThing answer;
+        final List<String> askedIds = new java.util.ArrayList<>();
+
+        CountingThingFetcher(BggThing answer) {
+            this.answer = answer;
+        }
+
+        @Override
+        public BggThing fetchThing(String bggId) {
+            askedIds.add(bggId);
+            return answer;
+        }
     }
 
     private static MetadataCandidate jeu(String titre) {

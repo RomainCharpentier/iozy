@@ -58,7 +58,7 @@ class EntityDeletionServiceTest {
 
         assertThatThrownBy(() -> service.delete(entity.id()))
                 .isInstanceOf(EntityDeletionNotAllowedException.class)
-                .hasMessageContaining("1 ownership");
+                .hasMessage("Impossible de supprimer cette fiche : elle a encore 1 exemplaire.");
         assertThat(entityRepository.findById(entity.id())).isPresent();
     }
 
@@ -70,7 +70,7 @@ class EntityDeletionServiceTest {
 
         assertThatThrownBy(() -> service.delete(entity.id()))
                 .isInstanceOf(EntityDeletionNotAllowedException.class)
-                .hasMessageContaining("1 expérience");
+                .hasMessage("Impossible de supprimer cette fiche : elle a encore 1 expérience.");
     }
 
     @Test
@@ -84,7 +84,7 @@ class EntityDeletionServiceTest {
 
         assertThatThrownBy(() -> service.delete(entity.id()))
                 .isInstanceOf(EntityDeletionNotAllowedException.class)
-                .hasMessageContaining("1 édition");
+                .hasMessage("Impossible de supprimer cette fiche : elle a encore 1 édition.");
         assertThat(entityRepository.findById(entity.id())).isPresent();
     }
 

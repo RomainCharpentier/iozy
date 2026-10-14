@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.BarcodeMetadataProvider;
 import com.iozycore.core.metadata.MetadataCandidate;
+import com.iozycore.manga.metadata.IsbnBookTitle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -106,12 +109,12 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
         if (authors.isArray() && !authors.isEmpty()) {
             attributes.put("mangaka", authors.get(0).path("name").asText(null));
         }
-        JsonNode publishers = book.path("publishers");
-        if (publishers.isArray() && !publishers.isEmpty()) {
-            attributes.put("publisher", publishers.get(0).path("name").asText(null));
-        }
+        // All the names, in order: the first one is often a collection label
+        // ("Shônen Manga"), the publisher comes after (see IsbnBookTitle).
+        List<String> publishers = new ArrayList<>();
+        book.path("publishers").forEach(p -> publishers.add(p.path("name").asText(null)));
 
-        return Optional.of(new MetadataCandidate("OPEN_LIBRARY", isbn, title, imageUrl, attributes));
+        return Optional.of(IsbnBookTitle.candidate("OPEN_LIBRARY", isbn, title, imageUrl, attributes, publishers));
     }
 
     /** Removes the spaces/hyphens that a scan can sometimes include. */

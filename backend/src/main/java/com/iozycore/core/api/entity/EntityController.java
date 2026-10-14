@@ -10,6 +10,7 @@ import com.iozycore.core.application.VariantDeletionService;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.metadata.catalog.CatalogSearchService;
 import com.iozycore.core.metadata.CoverImageCheck;
+import com.iozycore.core.metadata.MetadataDetailsService;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,7 @@ public class EntityController {
     private final CatalogSearchService catalogue;
     /** The universes that can say whether a cover is usable (Batch 133). */
     private final List<CoverImageCheck> coverChecks;
+    private final MetadataDetailsService metadataDetailsService;
 
     public EntityController(EntityRepository entityRepository,
                              EntityTypeRepository entityTypeRepository,
@@ -45,7 +47,8 @@ public class EntityController {
                              EntityDeletionService entityDeletionService,
                              VariantDeletionService variantDeletionService,
                              CatalogSearchService catalogue,
-                             List<CoverImageCheck> coverChecks) {
+                             List<CoverImageCheck> coverChecks,
+                             MetadataDetailsService metadataDetailsService) {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.quickAddService = quickAddService;
@@ -53,6 +56,7 @@ public class EntityController {
         this.variantDeletionService = variantDeletionService;
         this.catalogue = catalogue;
         this.coverChecks = coverChecks;
+        this.metadataDetailsService = metadataDetailsService;
     }
 
     @Operation(summary = "Quick add (path 1): creates an Entity and its initial Ownership, "
@@ -66,8 +70,13 @@ public class EntityController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "EntityType inconnu : " + request.entityTypeId()));
 
+        // The details of the work (a board game's cover, players...) are asked
+        // here, before the transaction opens: a slow source must not hold a
+        // database connection. A silent source gives nothing and the add goes on.
+        Map<String, Object> attributes =
+                metadataDetailsService.complete(request.entityTypeId(), request.attributesOrEmpty());
         QuickAddResult result = quickAddService.addNewEntityWithOwnership(
-                request.entityTypeId(), request.title(), request.condition(), request.attributesOrEmpty(),
+                request.entityTypeId(), request.title(), request.condition(), attributes,
                 request.volumeNumber(), request.edition(), request.volumeImageUrl(), request.purchasePrice(),
                 request.acquiredAt());
         return new QuickAddResponse(

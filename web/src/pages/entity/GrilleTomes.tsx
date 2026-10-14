@@ -35,6 +35,7 @@ export function GrilleTomes({
   onBasculerEnvie,
   modeEdition,
   onAjouterTome,
+  consultation = false,
 }: {
   titre: string
   /** True when the work has more than one edition. This is the only case where one
@@ -56,6 +57,9 @@ export function GrilleTomes({
   onBasculerEnvie: (numero: number) => void
   modeEdition: boolean
   onAjouterTome: () => void
+  /** A visitor: the volumes of the edition, without any personal state or
+   *  gesture (see GrilleVolumes, mode `consultation`). */
+  consultation?: boolean
 }) {
   // The key is the number: a detail page grid only shows ONE edition at a
   // time, so the number is already unique there (unlike the add screen,
@@ -86,7 +90,7 @@ export function GrilleTomes({
           ) : undefined
         }
         volumes={volumes}
-        mode="navigation"
+        mode={consultation ? 'consultation' : 'navigation'}
         filtre={filtre}
         onFiltre={onFiltre}
         onActiver={(cle) => onChoisirTome(Number(cle))}

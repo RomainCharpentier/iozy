@@ -71,7 +71,7 @@ beforeEach(() => {
 
 /** Opens the panel and chooses a tag - the complete gesture, from the screen. */
 async function filtrerSur(nomDuTag: string) {
-  await userEvent.click(screen.getByRole('button', { name: /Filtres/ }))
+  await userEvent.click(screen.getByRole('button', { name: /Affichage/ }))
   await userEvent.click(await screen.findByRole('radio', { name: nomDuTag }))
 }
 
@@ -87,14 +87,14 @@ describe('the tag filter', () => {
     expect(screen.getByRole('button', { name: /Berserk/ })).toBeInTheDocument()
   })
 
-  it('counts in the badge of the Filtres button', async () => {
+  it('counts in the badge of the Affichage button', async () => {
     render(<ShelfPage />, { wrapper: enrobage })
 
     await filtrerSur('Lu')
 
     // The badge announced "1" hard-coded, whatever the number of filters
     // set: it now counts.
-    expect(screen.getByRole('button', { name: /Filtres/ })).toHaveTextContent('1')
+    expect(screen.getByRole('button', { name: /Affichage/ })).toHaveTextContent('1')
   })
 
   it('is released when going back to "Tous"', async () => {

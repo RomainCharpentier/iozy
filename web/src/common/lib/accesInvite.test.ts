@@ -39,6 +39,12 @@ describe('what a visit cannot reach', () => {
     expect(estReserveeAuxComptes('/collection/manga')).toBe(false)
   })
 
+  it('leaves the preview open, where an ISBN found from the catalog leads', () => {
+    // Closed, the guard sent the visitor back to `/add` without a word, and
+    // the work the lookup had just found was lost.
+    expect(estReserveeAuxComptes('/apercu')).toBe(false)
+  })
+
   it('closes "Ma collection", which is a PERSONAL space', () => {
     // It only shows what one owns or wishes: it would be empty for a visitor,
     // and its title would speak of a collection that they do not have.

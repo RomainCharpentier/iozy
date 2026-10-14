@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
@@ -77,6 +78,16 @@ public class AniListMetadataProvider implements MetadataProvider {
     @Override
     public List<MetadataCandidate> search(String query) {
         try {
+            return searchOrThrow(query);
+        } catch (SourceUnavailableException e) {
+            log.warn(e.getMessage());
+            return List.of();
+        }
+    }
+
+    @Override
+    public List<MetadataCandidate> searchOrThrow(String query) {
+        try {
             String body = objectMapper.writeValueAsString(Map.of("query", QUERY, "variables", Map.of("q", query)));
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(ENDPOINT))
@@ -87,13 +98,13 @@ public class AniListMetadataProvider implements MetadataProvider {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("AniList answered {} for the query '{}'", response.statusCode(), query);
-                return List.of();
+                throw new SourceUnavailableException("AniList answered " + response.statusCode() + " for the query '" + query + "'");
             }
             return parse(response.body());
+        } catch (SourceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
-            log.warn("AniList call failed for '{}': {}", query, e.getMessage());
-            return List.of();
+            throw new SourceUnavailableException("AniList call failed for '" + query + "': " + e.getMessage(), e);
         }
     }
 

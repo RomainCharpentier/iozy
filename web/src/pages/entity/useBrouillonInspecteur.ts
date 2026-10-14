@@ -58,7 +58,7 @@ export interface BrouillonEdition {
  *  Closed and ORDERED list: it is the order of the mockup, not the unpredictable
  *  one of the keys of the attribute bag. */
 export const CLES_SOURCE: { cle: string; libelle: string }[] = [
-  { cle: 'malId', libelle: 'malId' },
+  { cle: 'malId', libelle: 'Identifiant MyAnimeList' },
   { cle: 'titleRomaji', libelle: 'Titre romaji' },
   { cle: 'titleJapanese', libelle: 'Titre japonais' },
   { cle: 'seriesStatus', libelle: 'Statut source' },
@@ -122,15 +122,20 @@ const LIBELLES: Record<string, string> = {
   totalVolumes: 'Nb de tomes source',
   volumeNumber: 'Numéro de tome',
   averageDurationHours: 'Durée moyenne (h)',
+  minPlayers: 'Joueurs min.',
+  maxPlayers: 'Joueurs max.',
+  averageDurationMinutes: 'Durée moyenne (min)',
+  designers: 'Auteurs',
+  yearPublished: 'Année de publication',
   startYear: 'Année de début',
   endYear: 'Année de fin',
   mediaType: 'Type de média',
   titleEnglish: 'Titre anglais',
   titleRomaji: 'Titre romaji',
   titleJapanese: 'Titre japonais',
-  malId: 'malId',
-  igdbId: 'igdbId',
-  bggId: 'bggId',
+  malId: 'Identifiant MyAnimeList',
+  igdbId: 'Identifiant IGDB',
+  bggId: 'Identifiant BGG',
 }
 
 export function libelleDe(cle: string): string {

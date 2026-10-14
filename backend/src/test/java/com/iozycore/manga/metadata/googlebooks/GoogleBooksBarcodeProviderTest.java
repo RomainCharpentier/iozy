@@ -34,7 +34,8 @@ class GoogleBooksBarcodeProviderTest {
         Optional<MetadataCandidate> candidate = provider.parse(SAMPLE_RESPONSE, "9782723492607");
 
         assertThat(candidate).isPresent();
-        assertThat(candidate.get().title()).isEqualTo("Death Note, Tome 1");
+        assertThat(candidate.get().title()).isEqualTo("Death Note");
+        assertThat(candidate.get().volume().number()).isEqualTo(1);
         assertThat(candidate.get().source()).isEqualTo("GOOGLE_BOOKS");
         assertThat(candidate.get().imageUrl()).startsWith("https://");
         assertThat(candidate.get().attributes()).containsEntry("mangaka", "Tsugumi Ohba");

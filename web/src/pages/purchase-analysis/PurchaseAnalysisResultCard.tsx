@@ -20,7 +20,8 @@ const WARNING_ICONS: Record<WarningSeverity, typeof Info> = { INFO: Info, CAUTIO
  * "2,83 €" and "à partir de 2,83 €" do not tell the same story; an unreadable
  * delivery must above all not look like free delivery;
  * and an amount that the user has just entered must never be displayed
- * "non communiquée" - it has precisely just been communicated.
+ * "non communiquée" - it has precisely just been communicated. Nor "estimés":
+ * the user typed it, nobody guessed it.
  */
 function libelleLivraison(listing: PurchaseAnalysisDto['listing']): string {
   switch (listing.shippingKind) {
@@ -31,7 +32,7 @@ function libelleLivraison(listing: PurchaseAnalysisDto['listing']): string {
     case 'EXACT':
       return euros(listing.shippingFee)
     case 'ESTIMATED':
-      return `${euros(listing.shippingFee)} estimés`
+      return `${euros(listing.shippingFee)} (montant saisi)`
     default:
       return 'non communiquée'
   }
@@ -129,7 +130,20 @@ export function PurchaseAnalysisResultCard({
       )}
 
       <div className="flex flex-col gap-1.5">
-        <VerdictBadge verdict={analysis.verdict} score={analysis.verdictScore} />
+        {/* One price verdict per screen, and it is the Price section's. The engine's
+            labels ("Prix correct", "Cher") are price words, but its score also weighs
+            condition, edition and completeness, and it judges the price on an estimate:
+            next to "Référence insuffisante" it said "Cher" about the same lot. With the
+            assessment present, the score stays, as a note, without a price word. An old
+            analysis with no assessment keeps its badge: it was its only verdict. */}
+        {analysis.assessment ? (
+          <p className="text-sm text-textPrimary">
+            Note globale <span className="font-semibold">{analysis.verdictScore}/100</span>
+            <span className="text-textDim"> · prix, état, édition et complétude réunis</span>
+          </p>
+        ) : (
+          <VerdictBadge verdict={analysis.verdict} score={analysis.verdictScore} />
+        )}
         <p className="text-xs text-textDim">
           Confiance {CONFIDENCE_LABELS[analysis.overallConfidence]} · basée sur {Object.keys(analysis.factorBreakdown).length}/10
           critères disponibles - une donnée manquante n'est jamais devinée, seulement exclue du calcul.

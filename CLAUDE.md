@@ -10,7 +10,7 @@ Monorepo : `backend/` (Spring Boot, la référence), `web/` (React, le client vi
 - `backend/README.md`, `web/README.md` : section « Le projet » en tête, pensée pour reprendre le code.
 - `docs/CONCEPTION.md` : vision et modèle. Le code fait foi en cas de divergence.
 - `docs/DESIGN_MIGRATION_V1.2.md` : journal des lots de l'interface web.
-- `docs/AUDIT_TECHNIQUE.md`, `DEPLOIEMENT.md`, `EXPLOITATION.md`, `USER_JOURNEYS.md`, `LISTING_RECOGNITION.md`, `LISTING_SOURCES.md`.
+- `docs/DEPLOIEMENT.md`, `EXPLOITATION.md`, `USER_JOURNEYS.md`, `LISTING_RECOGNITION.md`, `LISTING_SOURCES.md`.
 - `design_handoff_v2/` : maquettes de référence du design.
 
 ## Règles qui valent partout

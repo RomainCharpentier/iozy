@@ -442,8 +442,8 @@ c'est normal (les deux sont agrégées, jamais l'une à la place de l'autre).
 > **Hors service depuis le 2026-08-29.** L'API demande une session, ce client
 > n'en ouvre aucune : tous ses appels reçoivent 401. Ce qu'il faudrait pour le
 > remettre en marche (trois points, plus courts qu'il n'y paraît) et les trois
-> issues possibles sont détaillés dans `ios/README.md` et dans
-> `docs/AUDIT_TECHNIQUE.md`, constat C4. La décision n'est pas technique.
+> issues possibles sont détaillés dans `ios/README.md`. La décision n'est pas
+> technique.
 
 Direction visuelle : fond sombre, accent vert-jaune vif, grille de
 couvertures en dégradé plutôt que des listes système (façon

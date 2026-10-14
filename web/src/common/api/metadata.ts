@@ -55,6 +55,22 @@ export function rechercherOeuvrePossedee(
   )
 }
 
+/**
+ * What only a second call to the source knows about ONE work: a board game's
+ * cover, players and designers, which BGG does not give at search time
+ * (batch 160). The work is named by its source ids (`{ bggId: '822' }`).
+ *
+ * `{}` when the source has nothing more or did not answer: the caller keeps
+ * what the search gave, nothing fails.
+ */
+export function detailsOeuvre(
+  entityTypeId: string,
+  identifiants: Record<string, string>,
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  return get<Record<string, unknown>>(`/metadata/details${buildQuery({ ...identifiants, entityTypeId })}`, signal)
+}
+
 /** 404 = the databases answered and do not know this code: this is not an
  * error (as on the iOS side), hence `null` rather than an exception. A 503 - a database
  * did not answer - comes up on the contrary, because the screen must say it

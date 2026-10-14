@@ -7,8 +7,13 @@ import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.shared.TexteRecherche;
+import com.iozycore.core.insights.Discovery;
+import com.iozycore.core.insights.Discovery.EmptyReason;
 import com.iozycore.core.insights.DiscoveryCandidate;
 import com.iozycore.core.insights.DiscoverySource;
+import com.iozycore.core.metadata.SourceUnavailableException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -16,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -27,10 +33,16 @@ import java.util.stream.Collectors;
  * <p>Accepted limit: only games whose bggId was captured (search,
  * or BGG collection import) are examined - a game added by hand without
  * going through these flows is not taken into account.
+ *
+ * <p>BGG is asked several times (the categories of each owned game, the hot
+ * list, the categories of each hot game). A call with no answer is skipped,
+ * and the result says the source was silent (batch 159). Without the hot list
+ * or without any category of the owned games, nothing can be suggested at all.
  */
 @Component
 public class BoardGameDiscovery implements DiscoverySource {
 
+    private static final Logger log = LoggerFactory.getLogger(BoardGameDiscovery.class);
     private static final int MAX_OWNED_GAMES_EXAMINED = 5;
     private static final int MAX_HOT_GAMES_EXAMINED = 12;
     private static final int MAX_SUGGESTIONS = 8;
@@ -52,8 +64,11 @@ public class BoardGameDiscovery implements DiscoverySource {
     }
 
     @Override
-    public List<DiscoveryCandidate> discover(EntityType entityType) {
+    public Discovery discover(EntityType entityType) {
         List<Entity> ownedGames = entityRepository.findAllByType(entityType.id());
+        if (ownedGames.isEmpty()) {
+            return Discovery.nothingToAsk(EmptyReason.NOTHING_OWNED);
+        }
         List<String> ownedBggIds = ownedGames.stream()
                 .map(e -> e.attributes().get("bggId"))
                 .filter(id -> id instanceof String s && !s.isBlank())
@@ -61,24 +76,36 @@ public class BoardGameDiscovery implements DiscoverySource {
                 .limit(MAX_OWNED_GAMES_EXAMINED)
                 .toList();
         if (ownedBggIds.isEmpty()) {
-            return List.of();
+            return Discovery.nothingToAsk(EmptyReason.NOT_LINKED_TO_SOURCE);
         }
 
+        boolean allCallsAnswered = true;
         Map<String, Integer> favoriteCategoryFrequency = new HashMap<>();
         for (String bggId : ownedBggIds) {
-            for (String category : bggThingFetcher.fetchCategoriesAndMechanics(bggId)) {
+            Optional<Set<String>> categories = categoriesOf(bggId);
+            if (categories.isEmpty()) {
+                allCallsAnswered = false;
+                continue;
+            }
+            for (String category : categories.get()) {
                 favoriteCategoryFrequency.merge(category, 1, Integer::sum);
             }
         }
         if (favoriteCategoryFrequency.isEmpty()) {
-            return List.of();
+            return Discovery.asked(List.of(), allCallsAnswered);
         }
 
         Set<String> ownedTitles = ownedGames.stream()
                 .map(e -> TexteRecherche.normaliser(e.title()))
                 .collect(Collectors.toSet());
 
-        List<BggCollectionItem> hotGames = bggHotListFetcher.fetchHotBoardGames();
+        List<BggCollectionItem> hotGames;
+        try {
+            hotGames = bggHotListFetcher.fetchHotBoardGames();
+        } catch (SourceUnavailableException e) {
+            log.warn("Discover: {}", e.getMessage());
+            return Discovery.asked(List.of(), false);
+        }
         List<DiscoveryCandidate> suggestions = new ArrayList<>();
         int examined = 0;
         for (BggCollectionItem hotGame : hotGames) {
@@ -89,8 +116,12 @@ public class BoardGameDiscovery implements DiscoverySource {
                 continue;
             }
             examined++;
-            Set<String> categories = bggThingFetcher.fetchCategoriesAndMechanics(hotGame.externalId());
-            Set<String> shared = new HashSet<>(categories);
+            Optional<Set<String>> categories = categoriesOf(hotGame.externalId());
+            if (categories.isEmpty()) {
+                allCallsAnswered = false;
+                continue;
+            }
+            Set<String> shared = new HashSet<>(categories.get());
             shared.retainAll(favoriteCategoryFrequency.keySet());
             if (!shared.isEmpty()) {
                 suggestions.add(new DiscoveryCandidate(
@@ -98,6 +129,16 @@ public class BoardGameDiscovery implements DiscoverySource {
                         "En commun : " + String.join(", ", shared)));
             }
         }
-        return suggestions;
+        return Discovery.asked(suggestions, allCallsAnswered);
+    }
+
+    /** The categories and mechanics of a game, empty when BGG did not answer. */
+    private Optional<Set<String>> categoriesOf(String bggId) {
+        try {
+            return Optional.of(bggThingFetcher.fetchCategoriesAndMechanics(bggId));
+        } catch (SourceUnavailableException e) {
+            log.warn("Discover: {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 }

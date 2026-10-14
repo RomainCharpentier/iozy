@@ -114,6 +114,12 @@ public class VerdictScorer {
         }
 
         ConfidenceLevel overallConfidence = overallConfidence(factors.size());
+        if (!input.anyComparableObservation() && overallConfidence == ConfidenceLevel.HIGH) {
+            // Ten factors computed is not ten factors known. Without a comparable observed price,
+            // the price factors rest on estimates, and the Price section of the same screen says
+            // the price cannot be placed: "high confidence" next to it would contradict it.
+            overallConfidence = ConfidenceLevel.MEDIUM;
+        }
         return new Outcome(verdict, rawScore, factors, overallConfidence);
     }
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.core.metadata.QuotaExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,6 +111,21 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
 
     @Override
     public List<MetadataCandidate> search(String query) {
+        try {
+            return searchOrThrow(query);
+        } catch (QuotaExceededException e) {
+            // Best-effort by nature (completes Jikan/MyAnimeList, never their
+            // only source) - no user alarm needed here.
+            log.warn("Google Books quota exceeded for the title search '{}'", query);
+            return List.of();
+        } catch (SourceUnavailableException e) {
+            log.warn(e.getMessage());
+            return List.of();
+        }
+    }
+
+    @Override
+    public List<MetadataCandidate> searchOrThrow(String query) {
         if (query == null || query.isBlank()) {
             return List.of();
         }
@@ -118,14 +134,10 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
             String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
             return parse(body);
-        } catch (QuotaExceededException e) {
-            // Best-effort by nature (completes Jikan/MyAnimeList, never their
-            // only source) - no user alarm needed here.
-            log.warn("Google Books quota exceeded for the title search '{}'", query);
-            return List.of();
+        } catch (QuotaExceededException | SourceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
-            log.warn("Google Books title search failed for '{}': {}", query, e.getMessage());
-            return List.of();
+            throw new SourceUnavailableException("Google Books title search failed for '" + query + "': " + e.getMessage(), e);
         }
     }
 

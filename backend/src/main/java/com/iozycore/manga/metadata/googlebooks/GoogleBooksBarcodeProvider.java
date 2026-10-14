@@ -7,6 +7,7 @@ import com.iozycore.core.metadata.BarcodeMetadataProvider;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.BarcodeLookup;
 import com.iozycore.core.metadata.QuotaExceededException;
+import com.iozycore.manga.metadata.IsbnBookTitle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -129,11 +131,10 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
             attributes.put("mangaka", authors.get(0).asText(null));
         }
         String publisher = volumeInfo.path("publisher").asText(null);
-        if (publisher != null) {
-            attributes.put("publisher", publisher);
-        }
+        List<String> publishers = publisher == null ? List.of() : List.of(publisher);
 
-        return Optional.of(new MetadataCandidate("GOOGLE_BOOKS", isbn, title, imageUrl, attributes));
+        // The title names the volume, not the series (see IsbnBookTitle).
+        return Optional.of(IsbnBookTitle.candidate("GOOGLE_BOOKS", isbn, title, imageUrl, attributes, publishers));
     }
 
     /** Removes the spaces/hyphens that a scan can sometimes include. */

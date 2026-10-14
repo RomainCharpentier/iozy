@@ -17,7 +17,7 @@
  * lying.
  */
 import { describe, expect, it } from 'vitest'
-import { attributsARecharger, candidatCorrespondant } from './rechargerSource'
+import { attributsARecharger, avecDetails, candidatCorrespondant, identifiantsSource } from './rechargerSource'
 import type { MetadataCandidateDto } from '@/common/types/api'
 
 function candidat(title: string, attributes: Record<string, unknown> = {}, imageUrl: string | null = null): MetadataCandidateDto {
@@ -127,5 +127,46 @@ describe('the cover, a special case', () => {
     const source = candidat('Naruto', { coverImageUrl: 'https://source/attribut.jpg' }, null)
 
     expect(attributsARecharger(source, { title: 'Naruto', attributes: {} })).toEqual({})
+  })
+})
+
+describe('complete a candidate with the details of its work (batch 160)', () => {
+  const carcassonne: MetadataCandidateDto = {
+    source: 'BGG',
+    externalId: '822',
+    title: 'Carcassonne',
+    imageUrl: null,
+    attributes: { bggId: '822', yearPublished: '2000' },
+  }
+
+  it('gives the cover of the details to a candidate that had none, so the reload writes it', () => {
+    const complet = avecDetails(carcassonne, {
+      coverImageUrl: 'https://cf.geekdo-images.com/carcassonne.png',
+      minPlayers: 2,
+      designers: 'Klaus-Jürgen Wrede',
+    })
+
+    expect(complet.imageUrl).toBe('https://cf.geekdo-images.com/carcassonne.png')
+    expect(attributsARecharger(complet, { title: 'Carcassonne', attributes: { bggId: '822' } })).toEqual({
+      minPlayers: 2,
+      designers: 'Klaus-Jürgen Wrede',
+      yearPublished: '2000',
+      coverImageUrl: 'https://cf.geekdo-images.com/carcassonne.png',
+    })
+  })
+
+  it('never lets a detail replace what the search already gave', () => {
+    const complet = avecDetails(
+      { ...carcassonne, imageUrl: 'https://search.example/cover.jpg' },
+      { coverImageUrl: 'https://details.example/cover.jpg', yearPublished: '1999' },
+    )
+
+    expect(complet.imageUrl).toBe('https://search.example/cover.jpg')
+    expect(complet.attributes.yearPublished).toBe('2000')
+  })
+
+  it('names the work by its source ids only', () => {
+    expect(identifiantsSource({ bggId: '822', yearPublished: '2000', note: 'à moi' })).toEqual({ bggId: '822' })
+    expect(identifiantsSource({ bggId: '  ' })).toEqual({})
   })
 })

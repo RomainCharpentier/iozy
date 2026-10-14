@@ -3,8 +3,7 @@ package com.iozycore.videogame.igdb;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.metadata.MetadataCandidate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +26,6 @@ import java.util.Map;
 @Component
 public class IgdbSimilarGamesFetcher {
 
-    private static final Logger log = LoggerFactory.getLogger(IgdbSimilarGamesFetcher.class);
     private static final String GAMES_URL = "https://api.igdb.com/v4/games";
     private static final String SIMILAR_GAMES_BODY =
             "fields similar_games.name,similar_games.cover.url; where id = %s;";
@@ -45,6 +43,11 @@ public class IgdbSimilarGamesFetcher {
         this.tokenProvider = tokenProvider;
     }
 
+    /**
+     * @throws SourceUnavailableException when IGDB did not answer - never an
+     *         empty list in that case, so that Discover can tell an outage from
+     *         a game with no similar games
+     */
     public List<MetadataCandidate> fetchSimilarGames(String igdbId) {
         try {
             String accessToken = tokenProvider.getAccessToken();
@@ -59,17 +62,17 @@ public class IgdbSimilarGamesFetcher {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("IGDB answered {} for /games?similar_games id={}", response.statusCode(), igdbId);
-                return List.of();
+                throw new SourceUnavailableException(
+                        "IGDB answered " + response.statusCode() + " for /games?similar_games id=" + igdbId);
             }
 
             return parse(response.body());
+        } catch (SourceUnavailableException e) {
+            throw e;
         } catch (IgdbUnavailableException e) {
-            log.warn("IGDB unavailable for the games similar to id {}: {}", igdbId, e.getMessage());
-            return List.of();
+            throw new SourceUnavailableException("IGDB unavailable for the games similar to id " + igdbId + ": " + e.getMessage(), e);
         } catch (Exception e) {
-            log.warn("IGDB similar_games call failed for id {}: {}", igdbId, e.getMessage());
-            return List.of();
+            throw new SourceUnavailableException("IGDB similar_games call failed for id " + igdbId + ": " + e.getMessage(), e);
         }
     }
 
