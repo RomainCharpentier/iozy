@@ -72,7 +72,7 @@ Deux trous que `@TenantId` ne bouche pas :
 - `findById` JPA charge par clé primaire **sans requête**, donc sans filtre. Utilise les `findOneById` dérivés.
 - `deleteById` et les `deleteBy…` en masse ignorent le filtre. Lis d'abord (filtré), supprime ensuite ce qui a été trouvé.
 
-Le seul franchissement légitime est le lien de partage (`AuNomDe.executer(proprietaire, …)` dans `PublicShareController`). `JdbcDonneesParProprietaire` (suppression de compte) est le seul code qui passe en SQL par-dessus la cloison.
+Le seul franchissement légitime est le lien de partage (`readOnBehalfOf.run(proprietaire, …)` dans `SharedSpaceQuery`, port `ReadOnBehalfOf` implémenté sur `AuNomDe`). `JdbcDonneesParProprietaire` (suppression de compte) est le seul code qui passe en SQL par-dessus la cloison.
 
 ## Sécurité et sessions
 

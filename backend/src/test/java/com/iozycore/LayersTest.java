@@ -31,7 +31,6 @@ class LayersTest {
             "MangaMetadataController",
             "MetadataController",
             "OwnershipController",
-            "PublicShareController",
             "RelationshipController",
             "ShareController",
             "TagController",
@@ -69,6 +68,14 @@ class LayersTest {
                 .should().dependOnClassesThat()
                 .resideInAnyPackage("org.springframework.web..", "org.springframework.http..",
                         "com.iozycore..api..")
+                .check(classes);
+    }
+
+    @Test
+    void use_cases_know_no_infrastructure() {
+        noClasses()
+                .that().resideInAPackage("com.iozycore..application..")
+                .should().dependOnClassesThat().resideInAPackage("com.iozycore..infrastructure..")
                 .check(classes);
     }
 }

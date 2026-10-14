@@ -1,7 +1,7 @@
 package com.iozycore.integration;
 
 import com.iozycore.core.api.dto.ShareDtos.ShareResponse;
-import com.iozycore.core.api.dto.ShareDtos.SharedSpaceResponse;
+import com.iozycore.core.application.share.SharedSpace;
 import com.iozycore.core.api.dto.ShareDtos.UpdateShareRequest;
 import com.iozycore.core.api.share.PublicShareController;
 import com.iozycore.core.api.share.ShareController;
@@ -92,7 +92,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         unePossession("Naruto");
         uneEnvie("Berserk");
 
-        SharedSpaceResponse partage = publicShareController.shared(unLien());
+        SharedSpace partage = publicShareController.shared(unLien());
 
         assertThat(partage.collection()).isNotNull();
         assertThat(partage.wishlist()).isNotNull();
@@ -107,7 +107,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         String token = unLien();
         shareController.update(new UpdateShareRequest(true, false, null));
 
-        SharedSpaceResponse partage = publicShareController.shared(token);
+        SharedSpace partage = publicShareController.shared(token);
 
         assertThat(partage.collection()).isNotEmpty();
         // null, not an empty list: the section is not computed, it
@@ -122,7 +122,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         String token = unLien();
         shareController.update(new UpdateShareRequest(false, true, null));
 
-        SharedSpaceResponse partage = publicShareController.shared(token);
+        SharedSpace partage = publicShareController.shared(token);
 
         assertThat(partage.wishlist()).isNotEmpty();
         assertThat(partage.collection()).isNull();
@@ -167,7 +167,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         wishlistEntryRepository.save(WishlistEntry.add(entityId, LocalDate.now()));
         String titre = entityRepository.findById(entityId).orElseThrow().title();
 
-        SharedSpaceResponse partage = publicShareController.shared(unLien());
+        SharedSpace partage = publicShareController.shared(unLien());
 
         // Owning a volume and wanting the next one are two different
         // intentions: we do not deduplicate between the sections.
@@ -182,7 +182,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         String titre = entityRepository.findById(entityId).orElseThrow().title();
         assertThat(ownershipRepository.findAll()).noneMatch(o -> o.entityId().equals(entityId));
 
-        SharedSpaceResponse partage = publicShareController.shared(unLien());
+        SharedSpace partage = publicShareController.shared(unLien());
 
         // Wanting is not owning: assuming that a wish has a copy
         // would make the most common case disappear.
@@ -194,7 +194,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         UUID entityId = uneOeuvre("Ashita no Joe");
         String titre = entityRepository.findById(entityId).orElseThrow().title();
 
-        SharedSpaceResponse partage = publicShareController.shared(unLien());
+        SharedSpace partage = publicShareController.shared(unLien());
 
         // The collection shows what one OWNS, never the simple catalogue.
         assertThat(partage.collection()).allSatisfy(universe ->

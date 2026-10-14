@@ -540,8 +540,9 @@ d'isolation et à connaître avant d'écrire un dépôt :
 
 **Le seul franchissement légitime** est le lien de partage : son destinataire
 n'a pas de compte, et ce qu'il doit voir appartient à quelqu'un d'autre. Il
-passe par `AuNomDe.executer(proprietaire, …)`, écrit en toutes lettres dans
-`PublicShareController`.
+passe par `readOnBehalfOf.run(proprietaire, …)`, écrit en toutes lettres dans
+le cas d'usage `SharedSpaceQuery`. Le port `ReadOnBehalfOf` est implémenté en
+infrastructure sur `AuNomDe`.
 
 ## Renommer le projet
 
