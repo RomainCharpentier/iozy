@@ -57,7 +57,8 @@ MSYS_NO_PATHCONV=1 docker run --rm \
 
 - Agrégats : constructeur privé, factory statique (`create()`, `acquire()`…), `reconstitute()` pour recharger. Référence : `Ownership.java`.
 - **Migrations Flyway** : `V{n}__description.sql`. **Ne modifie jamais une migration déjà livrée**, pas même un commentaire. Une colonne de plus = migration + `{Xxx}JpaEntity` + mapper de l'adaptateur + DTO.
-- Pas de logique métier dans les contrôleurs REST.
+- Pas de logique métier dans les contrôleurs REST : un contrôleur traduit le HTTP et appelle un cas d'usage (`core/application`, modèle : `WishlistService`), jamais un dépôt. Le cas d'usage lève `IllegalArgumentException` (400) ou `IllegalStateException` (409), jamais une exception HTTP. `LayersTest` (ArchUnit) le vérifie ; sa liste `NOT_MIGRATED_YET` ne fait que rétrécir.
+- Doubles de test partagés (dépôts en mémoire) : `src/test/java/com/iozycore/core/testing`. Réutilise-les plutôt que d'en réécrire un par test.
 - **Tests sans Mockito** : dépôts en mémoire écrits à la main pour la logique applicative ; Testcontainers (vrai PostgreSQL) pour JPA/SQL ; fixtures inline pour le parsing de sources externes. **Jamais d'appel réseau réel dans un test.**
 - Une source externe en panne renvoie une liste vide pour cette source (log `WARN`), jamais une erreur.
 - Le code, les commentaires et les logs s'écrivent en anglais ; les messages d'erreur d'API que le web affiche restent en français.
