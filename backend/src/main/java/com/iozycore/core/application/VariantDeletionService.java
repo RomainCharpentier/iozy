@@ -49,7 +49,7 @@ public class VariantDeletionService {
 
     public void delete(UUID entityId, UUID variantId) {
         Entity entity = entityRepository.findById(entityId)
-                .orElseThrow(() -> new IllegalArgumentException("Entity introuvable : " + entityId));
+                .orElseThrow(() -> new NotFoundException("Entity introuvable : " + entityId));
 
         long ownershipCount = ownershipRepository.findByEntityId(entityId).stream()
                 .filter(ownership -> ownership.variantId().map(variantId::equals).orElse(false))
@@ -64,7 +64,7 @@ public class VariantDeletionService {
         Variant tomeSupprime = entity.variants().stream()
                 .filter(v -> v.id().equals(variantId))
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> new NotFoundException("Variant introuvable : " + variantId));
 
         entity.removeVariant(variantId);
         entityRepository.save(entity);

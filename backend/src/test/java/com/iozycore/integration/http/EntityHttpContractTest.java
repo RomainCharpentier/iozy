@@ -170,7 +170,12 @@ class EntityHttpContractTest extends HttpContractTestBase {
 
     @Test
     void returns_404_when_the_entity_does_not_exist() throws Exception {
-        mockMvc.perform(get("/api/entities/{id}", ABSENT)).andExpect(status().isNotFound());
+        // reason() is only set by sendError: it proves the 404 goes through the
+        // standard Spring error envelope, whose message the web client ignores
+        // for a 404 in favor of its own sentence.
+        mockMvc.perform(get("/api/entities/{id}", ABSENT))
+                .andExpect(status().isNotFound())
+                .andExpect(status().reason("Entity introuvable : " + ABSENT));
     }
 
     @Test

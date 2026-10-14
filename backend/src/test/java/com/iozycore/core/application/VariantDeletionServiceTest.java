@@ -122,7 +122,7 @@ class VariantDeletionServiceTest {
     @Test
     void deleting_a_variant_of_an_unknown_entity_fails_loudly() {
         assertThatThrownBy(() -> service.delete(UUID.randomUUID(), UUID.randomUUID()))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test

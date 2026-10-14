@@ -1,7 +1,7 @@
 package com.iozycore.core.api.metadata;
 
+import com.iozycore.core.application.EntityTypeLookup;
 import com.iozycore.core.domain.catalog.EntityType;
-import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.metadata.BarcodeLookup;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataDetailsService;
@@ -34,7 +34,7 @@ import java.util.UUID;
 public class MetadataController {
 
     private final MetadataSearchService metadataSearchService;
-    private final EntityTypeRepository entityTypeRepository;
+    private final EntityTypeLookup entityTypeLookup;
     private final MetadataDetailsService metadataDetailsService;
 
     @Operation(summary = "Search metadata candidates to pre-fill the quick add (path 1). "
@@ -44,8 +44,7 @@ public class MetadataController {
     @GetMapping("/search")
     public List<MetadataCandidate> search(@RequestParam UUID entityTypeId, @RequestParam String query,
                                            @RequestParam(required = false, defaultValue = "false") boolean includeOwned) {
-        EntityType entityType = entityTypeRepository.findById(entityTypeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
+        EntityType entityType = entityTypeLookup.require(entityTypeId);
 
         if (query == null || query.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'query' est requis");
@@ -60,8 +59,7 @@ public class MetadataController {
             + "the caller keeps what the search gave.")
     @GetMapping("/details")
     public Map<String, Object> details(@RequestParam UUID entityTypeId, @RequestParam Map<String, String> ids) {
-        EntityType entityType = entityTypeRepository.findById(entityTypeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
+        EntityType entityType = entityTypeLookup.require(entityTypeId);
         Map<String, Object> attributes = new HashMap<>(ids);
         attributes.remove("entityTypeId");
         return metadataDetailsService.details(entityType, attributes);
@@ -70,8 +68,7 @@ public class MetadataController {
     @Operation(summary = "Find the metadata of an item from a scanned barcode (ISBN for mangas)")
     @GetMapping("/lookup-barcode")
     public MetadataCandidate lookupBarcode(@RequestParam UUID entityTypeId, @RequestParam String barcode) {
-        EntityType entityType = entityTypeRepository.findById(entityTypeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
+        EntityType entityType = entityTypeLookup.require(entityTypeId);
 
         BarcodeLookup lookup = metadataSearchService.lookupDetailedByBarcode(entityType, barcode);
         if (lookup.candidate() != null) {

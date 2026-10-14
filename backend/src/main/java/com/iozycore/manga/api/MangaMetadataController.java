@@ -1,17 +1,9 @@
 package com.iozycore.manga.api;
 
-import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
-import com.iozycore.core.domain.catalog.EntityType;
-import com.iozycore.core.domain.catalog.EntityTypeRepository;
-import com.iozycore.core.domain.catalog.Variant;
-import com.iozycore.core.domain.ownership.Ownership;
-import com.iozycore.core.domain.ownership.OwnershipRepository;
-import com.iozycore.manga.metadata.FrenchTitleService;
-import com.iozycore.manga.metadata.RelatedSeriesService;
-import com.iozycore.manga.metadata.TomeSearchService;
+import com.iozycore.manga.application.VolumeLookup;
+import com.iozycore.manga.application.VolumeLookup.FoundVolumes;
+import com.iozycore.manga.application.VolumeLookup.VolumeQuery;
 import com.iozycore.manga.metadata.VolumeCandidate;
-import com.iozycore.manga.metadata.VolumeSearchResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -40,12 +30,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MangaMetadataController {
 
-    private final FrenchTitleService frenchTitleService;
-    private final TomeSearchService tomeSearchService;
-    private final RelatedSeriesService relatedSeriesService;
-    private final EntityTypeRepository entityTypeRepository;
-    private final EntityRepository entityRepository;
-    private final OwnershipRepository ownershipRepository;
+    private final VolumeLookup volumeLookup;
 
     @Operation(summary = "Best-effort search of a French edition title (Open Library, then Google Books as "
             + "fallback) for an already chosen title (mangas) - neither Jikan nor MyAnimeList know it. Triggered "
@@ -66,15 +51,7 @@ public class MangaMetadataController {
                                             @RequestParam(required = false) String author,
                                             @RequestParam(required = false) String malId,
                                             @RequestParam(required = false) String titleRomaji) {
-        EntityType entityType = entityTypeRepository.findById(entityTypeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
-
-        if (query == null || query.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'query' est requis");
-        }
-
-        List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, query, titleRomaji);
-        return frenchTitleService.findFrenchTitle(entityType, query, author, excludedTitleFragments, malId)
+        return volumeLookup.frenchTitle(entityTypeId, query, author, malId, titleRomaji)
                 .map(FrenchTitleResponse::new)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Aucun titre français trouvé pour : " + query));
@@ -134,36 +111,17 @@ public class MangaMetadataController {
                                     @RequestParam(required = false) String originalTitle,
                                     @RequestParam(required = false) String titleRomaji,
                                     @RequestParam(required = false) Integer totalVolumes) {
-        EntityType entityType = entityTypeRepository.findById(entityTypeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
-
-        if (title == null || title.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'title' est requis");
-        }
-
-        List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, originalTitle, titleRomaji);
-        // Reloading from the source is an ADMINISTRATOR action (user
-        // request of 2026-09-04): they answer for the uniform data
-        // of the instance, and for the provider quotas. For an ordinary
-        // account the request is served from the cache, without refusal:
-        // the cover catch-up (backfillCovers) forces as a second
-        // intention, and a 403 would pass for a silent provider there.
-        boolean rechargement = forceRefresh && estAdministrateur();
-        VolumeSearchResult searchResult = deepSearch
-                ? tomeSearchService.searchAdditionalEditions(entityType, title, author, excludedTitleFragments, totalVolumes)
-                : tomeSearchService.searchVolumes(entityType, title, author, rechargement, excludedTitleFragments, totalVolumes);
-        Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
-
-        // Sorted by number, and the sort is STABLE: editions keep the order
-        // of their first appearance (the provider's one first), only
-        // the volumes are sorted. Google Books already returned its volumes in order,
-        // BnF returns them in the order of its catalog - seen on Boruto
-        // (09, 03, 02, 08, 01, 18, 17) the day it came first.
-        List<VolumeCandidateResponse> candidates = searchResult.volumes().stream()
-                .sorted(java.util.Comparator.comparingInt(VolumeCandidate::volumeNumber))
-                .map(candidate -> VolumeCandidateResponse.from(candidate, ownedKeys.contains(variantKey(candidate.edition(), candidate.volumeNumber()))))
+        // Reloading from the source is an ADMINISTRATOR action (user request of
+        // 2026-09-04): they answer for the shared data and for the provider quotas.
+        // For an ordinary account the request is served from the cache, without
+        // refusal: a 403 would pass for a silent provider in the cover catch-up.
+        boolean reload = forceRefresh && estAdministrateur();
+        FoundVolumes found = volumeLookup.volumes(new VolumeQuery(entityTypeId, title, author, deepSearch,
+                malId, originalTitle, titleRomaji, totalVolumes), reload);
+        List<VolumeCandidateResponse> candidates = found.volumes().stream()
+                .map(volume -> VolumeCandidateResponse.from(volume.candidate(), volume.alreadyOwned()))
                 .collect(Collectors.toList());
-        return new VolumesResponse(candidates, searchResult.providerUnavailable());
+        return new VolumesResponse(candidates, found.quotaExceeded());
     }
 
     public record SeriesSansTomesRequest(UUID entityTypeId, List<SerieInterrogee> series) {
@@ -194,54 +152,8 @@ public class MangaMetadataController {
             + "(cache only, no call to an external provider)")
     @PostMapping("/volumes/known-empty")
     public List<SerieInterrogee> volumesKnownEmpty(@RequestBody SeriesSansTomesRequest request) {
-        EntityType entityType = entityTypeRepository.findById(request.entityTypeId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "EntityType inconnu : " + request.entityTypeId()));
-        if (request.series() == null) {
-            return List.of();
-        }
-        return request.series().stream()
-                .filter(serie -> serie.title() != null && !serie.title().isBlank())
-                .filter(serie -> tomeSearchService.isVolumeSearchKnownEmpty(entityType, serie.title(), serie.author()))
-                .collect(Collectors.toList());
-    }
-
-    /** "edition|volume" keys (normalised) of the Variant objects of the series {@code title}
-     * (if it already exists) referenced by at least one active Ownership -
-     * empty if the series was never added, which is the most
-     * frequent case (we look for volumes before even knowing if we already own any). */
-    private Set<String> alreadyOwnedVariantKeys(UUID entityTypeId, String title) {
-        Optional<Entity> existingEntity = entityRepository.findByTypeAndTitle(entityTypeId, title.trim());
-        if (existingEntity.isEmpty()) {
-            return Set.of();
-        }
-        Entity entity = existingEntity.get();
-        Set<UUID> activeVariantIds = ownershipRepository.findByEntityId(entity.id()).stream()
-                .filter(Ownership::isActive)
-                .map(Ownership::variantId)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toSet());
-
-        return entity.variants().stream()
-                .filter(variant -> activeVariantIds.contains(variant.id()))
-                .map(this::variantKey)
-                .collect(Collectors.toSet());
-    }
-
-    private String variantKey(Variant variant) {
-        Object volumeNumber = variant.attributes().get("volumeNumber");
-        Object edition = variant.attributes().get("edition");
-        if (!(volumeNumber instanceof Number number)) {
-            return "unknown|" + variant.id(); // volume without a usable number - will never match a VolumeCandidate, no side effect
-        }
-        return variantKey(edition == null ? "" : edition.toString(), number.intValue());
-    }
-
-    /** The same identity as that of a {@link VolumeCandidate} - this is
-     *  precisely what lets us say "this volume, you already have it". */
-    private String variantKey(String edition, int volumeNumber) {
-        return VolumeCandidate.key(edition, volumeNumber);
+        return volumeLookup.knownEmpty(request.entityTypeId(), request.series(),
+                SerieInterrogee::title, SerieInterrogee::author);
     }
 
     /** Same rule as ImportController: only an administrator reloads from the source. */

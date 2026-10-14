@@ -9,7 +9,6 @@ import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.catalog.Relationship;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -95,7 +94,7 @@ class RelationshipReversibilityIntegrationTest extends PostgresIntegrationTest {
                 new CreateRelationshipRequest(source, cible, "ADAPTED_INTO"));
 
         assertThatThrownBy(() -> relationshipController.update(creee.id(), new UpdateRelationshipRequest("   ")))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalArgumentException.class);
 
         assertThat(relationshipController.fromEntity(source)).singleElement()
                 .satisfies(r -> assertThat(r.relationshipType()).isEqualTo("ADAPTED_INTO"));

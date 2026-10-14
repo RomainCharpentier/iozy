@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -53,6 +54,10 @@ public class WorkFollowing {
 
     public void unfollow(UUID entityId) {
         followedWorkRepository.deleteByEntityId(entityId);
+    }
+
+    public List<FollowedWork> followedWorks() {
+        return followedWorkRepository.findAll();
     }
 
     public boolean isFollowed(UUID entityId) {

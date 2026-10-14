@@ -1,8 +1,10 @@
 package com.iozycore.core.api;
 
+import com.iozycore.core.application.NotFoundException;
 import com.iozycore.core.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.core.domain.shared.EntityTypeDeletionNotAllowedException;
 import com.iozycore.core.domain.shared.VariantDeletionNotAllowedException;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
@@ -11,11 +13,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.io.IOException;
 import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
 public class ApiExceptionHandler {
+
+    /**
+     * sendError and not a body: Spring Boot then writes its standard error
+     * envelope (timestamp, status, message), exactly what a 404
+     * ResponseStatusException gave. The web client recognizes this envelope and
+     * shows its own message for a 404.
+     */
+    @ExceptionHandler(NotFoundException.class)
+    public void handleNotFound(NotFoundException ex, HttpServletResponse response) throws IOException {
+        response.sendError(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+    }
 
     @ExceptionHandler(EntityDeletionNotAllowedException.class)
     public ResponseEntity<Map<String, String>> handleDeletionNotAllowed(EntityDeletionNotAllowedException ex) {

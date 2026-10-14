@@ -9,7 +9,6 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -112,7 +111,7 @@ class ExperienceReversibilityIntegrationTest extends PostgresIntegrationTest {
                 entityId, null, "READ", LocalDate.now(), 7, null));
 
         assertThatThrownBy(() -> experienceController.update(creee.id(), new UpdateExperienceRequest(42, null)))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalArgumentException.class);
 
         assertThat(experienceController.byEntity(entityId)).singleElement()
                 .satisfies(e -> assertThat(e.rating()).isEqualTo(7));

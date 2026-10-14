@@ -1,18 +1,13 @@
 package com.iozycore.manga.api;
 
-import com.iozycore.core.application.WorkFollowing;
-
 import com.iozycore.manga.api.FollowedEditionDtos.FollowEditionRequest;
 import com.iozycore.manga.api.FollowedEditionDtos.FollowedEditionResponse;
-import com.iozycore.core.domain.catalog.EntityRepository;
-import com.iozycore.manga.domain.followededition.FollowedEdition;
-import com.iozycore.manga.domain.followededition.FollowedEditionRepository;
+import com.iozycore.manga.application.EditionFollowing;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,9 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FollowedEditionController {
 
-    private final FollowedEditionRepository followedEditionRepository;
-    private final EntityRepository entityRepository;
-    private final WorkFollowing workFollowing;
+    private final EditionFollowing editionFollowing;
 
     /**
      * PUT and not POST: following an edition is IDEMPOTENT - there is only
@@ -42,24 +35,14 @@ public class FollowedEditionController {
     @Operation(summary = "Follow an edition of a series (replaces the one already followed, if any)")
     @PutMapping
     public FollowedEditionResponse follow(@RequestBody FollowEditionRequest request) {
-        entityRepository.findById(request.entityId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Entité introuvable : " + request.entityId()));
-        FollowedEdition aEnregistrer = followedEditionRepository.findByEntityId(request.entityId())
-                .map(existante -> existante.suivreALaPlace(request.editionName()))
-                .orElseGet(() -> FollowedEdition.create(request.entityId(), request.editionName()));
-        FollowedEditionResponse reponse = FollowedEditionResponse.from(followedEditionRepository.save(aEnregistrer));
-        // Following an edition means following the series (the Followed state of the core): this is
-        // what makes it enter the release calendar.
-        workFollowing.follow(request.entityId());
-        return reponse;
+        return FollowedEditionResponse.from(editionFollowing.follow(request.entityId(), request.editionName()));
     }
 
     @Operation(summary = "Stop following an edition for this series")
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unfollow(@RequestParam UUID entityId) {
-        followedEditionRepository.deleteByEntityId(entityId);
+        editionFollowing.unfollow(entityId);
     }
 
     /**
@@ -74,7 +57,7 @@ public class FollowedEditionController {
     @Operation(summary = "The followed edition of a series (empty list if none)")
     @GetMapping
     public List<FollowedEditionResponse> byEntity(@RequestParam UUID entityId) {
-        return followedEditionRepository.findByEntityId(entityId).stream()
+        return editionFollowing.of(entityId).stream()
                 .map(FollowedEditionResponse::from)
                 .collect(Collectors.toList());
     }

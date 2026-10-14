@@ -3,7 +3,6 @@ package com.iozycore.core.api.follow;
 import com.iozycore.core.api.dto.FollowedWorkDtos.FollowRequest;
 import com.iozycore.core.api.dto.FollowedWorkDtos.FollowedWorkResponse;
 import com.iozycore.core.application.WorkFollowing;
-import com.iozycore.core.domain.follow.FollowedWorkRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,6 @@ import java.util.UUID;
 public class FollowedWorkController {
 
     private final WorkFollowing workFollowing;
-    private final FollowedWorkRepository followedWorkRepository;
 
     @Operation(summary = "Follow a work (idempotent). Removes the wish for the work: one state at a time.")
     @PutMapping
@@ -50,6 +48,6 @@ public class FollowedWorkController {
     @Operation(summary = "List the followed works of the account")
     @GetMapping
     public List<FollowedWorkResponse> list() {
-        return followedWorkRepository.findAll().stream().map(FollowedWorkResponse::from).toList();
+        return workFollowing.followedWorks().stream().map(FollowedWorkResponse::from).toList();
     }
 }

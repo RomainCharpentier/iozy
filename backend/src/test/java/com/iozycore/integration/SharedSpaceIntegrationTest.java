@@ -147,7 +147,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         unLien();
 
         assertThatThrownBy(() -> shareController.update(new UpdateShareRequest(false, false, null)))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     // ------------------------------------------------- One single shared space

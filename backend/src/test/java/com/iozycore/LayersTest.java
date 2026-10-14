@@ -7,8 +7,6 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Set;
-
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
@@ -16,24 +14,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  * It calls a use case (application service), never a repository. The business
  * rules and the errors they raise live in the use case, so that they hold
  * whatever the caller.
- * <p>
- * {@link #NOT_MIGRATED_YET} lists the controllers that still reach repositories.
- * The list must only shrink: move the logic into a use case, then remove the name.
  */
 class LayersTest {
-
-    private static final Set<String> NOT_MIGRATED_YET = Set.of(
-            "EntityController",
-            "EntityTypeController",
-            "ExperienceController",
-            "FollowedEditionController",
-            "FollowedWorkController",
-            "MangaMetadataController",
-            "MetadataController",
-            "OwnershipController",
-            "RelationshipController",
-            "ShareController",
-            "TagController");
 
     private final JavaClasses classes = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -43,8 +25,6 @@ class LayersTest {
     void controllers_call_use_cases_not_repositories() {
         noClasses()
                 .that().areAnnotatedWith(RestController.class)
-                .and(DescribedPredicate.describe("are migrated",
-                        javaClass -> !NOT_MIGRATED_YET.contains(javaClass.getSimpleName())))
                 .should().dependOnClassesThat(DescribedPredicate.describe("are iozycore repositories",
                         target -> target.getPackageName().startsWith("com.iozycore")
                                 && target.getSimpleName().endsWith("Repository")))

@@ -1,14 +1,11 @@
 package com.iozycore.core.api.tag;
 
-import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.application.TagService;
 import com.iozycore.core.domain.catalog.Tag;
-import com.iozycore.core.domain.catalog.TagRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -43,77 +40,43 @@ public class TagController {
     public record RenommerTagRequest(String label) {
     }
 
-    private final TagRepository tagRepository;
-    private final EntityRepository entityRepository;
+    private final TagService tagService;
 
     @Operation(summary = "Create a Tag (reusable on several Entities)")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Tag create(@RequestBody CreateTagRequest request) {
-        return tagRepository.findByLabel(request.label())
-                .orElseGet(() -> tagRepository.save(new Tag(UUID.randomUUID(), request.label())));
+        return tagService.create(request.label());
     }
 
     @Operation(summary = "List all existing Tags")
     @GetMapping
     public List<Tag> listAll() {
-        return tagRepository.findAll();
+        return tagService.listAll();
     }
 
     @Operation(summary = "Attach an existing Tag to an Entity")
     @PostMapping("/entities/{entityId}/{tagId}")
     public void attachToEntity(@PathVariable UUID entityId, @PathVariable UUID tagId) {
-        Entity entity = entityRepository.findById(entityId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
-        // The Tag must exist too. Without this check, only the foreign key
-        // protected the table: the client got a 409 "Cette donnée entre
-        // en conflit avec une donnée existante" while the tag is ABSENT,
-        // not conflicting - and the line above already returned, for the entity,
-        // the 404 that this case deserves just as much.
-        if (tagRepository.findById(tagId).isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tag introuvable : " + tagId);
-        }
-        entity.addTag(tagId);
-        entityRepository.save(entity);
+        tagService.attach(entityId, tagId);
     }
 
     @Operation(summary = "Rename a Tag - reserved for administrators")
     @PatchMapping("/{tagId}")
     public Tag renommer(@PathVariable UUID tagId, @RequestBody RenommerTagRequest request) {
-        Tag existant = tagRepository.findById(tagId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tag introuvable : " + tagId));
-        String libelle = request.label() == null ? "" : request.label().trim();
-        if (libelle.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le libellé d'un tag ne peut pas être vide.");
-        }
-        // A label is unique in the database: say it here rather than letting
-        // a constraint violation come up, which nobody can read.
-        // Renaming oneself to the identical name stays allowed - it is a
-        // non-change, not a conflict.
-        if (tagRepository.findByLabel(libelle).filter(autre -> !autre.id().equals(tagId)).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Un tag porte déjà ce nom.");
-        }
-        return tagRepository.save(new Tag(existant.id(), libelle));
+        return tagService.rename(tagId, request.label());
     }
 
     @Operation(summary = "Delete a Tag and remove it from all works - reserved for administrators")
     @DeleteMapping("/{tagId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable UUID tagId) {
-        if (tagRepository.findById(tagId).isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tag introuvable : " + tagId);
-        }
-        // The links go with it, through the foreign key: a work only
-        // loses the label, never anything else.
-        tagRepository.supprimer(tagId);
+        tagService.delete(tagId);
     }
 
     @Operation(summary = "Remove a Tag from an Entity")
     @DeleteMapping("/entities/{entityId}/{tagId}")
     public void detachFromEntity(@PathVariable UUID entityId, @PathVariable UUID tagId) {
-        Entity entity = entityRepository.findById(entityId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
-        entity.removeTag(tagId);
-        entityRepository.save(entity);
+        tagService.detach(entityId, tagId);
     }
 }

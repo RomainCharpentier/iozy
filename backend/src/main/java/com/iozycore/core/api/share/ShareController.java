@@ -1,16 +1,14 @@
 package com.iozycore.core.api.share;
 
-import com.iozycore.core.application.auth.UtilisateurCourant;
 import com.iozycore.core.api.dto.ShareDtos.ShareResponse;
 import com.iozycore.core.api.dto.ShareDtos.UpdateShareRequest;
+import com.iozycore.core.application.share.ShareService;
 import com.iozycore.core.domain.share.ShareSettings;
-import com.iozycore.core.domain.share.ShareSettingsRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Space sharing on the owner side: a single link, whose visible
@@ -29,13 +27,12 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class ShareController {
 
-    private final ShareSettingsRepository repository;
-    private final UtilisateurCourant utilisateurCourant;
+    private final ShareService shareService;
 
     @Operation(summary = "Current state of the sharing (token null = no active link)")
     @GetMapping
     public ShareResponse current() {
-        return toResponse(repository.find());
+        return toResponse(shareService.current());
     }
 
     @Operation(summary = "Generate (or regenerate) the link. Regenerating immediately invalidates the old token, and "
@@ -43,37 +40,22 @@ public class ShareController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ShareResponse generate() {
-        return toResponse(repository.save(ShareSettings.withNewToken(utilisateurCourant.proprietaire())));
+        return toResponse(shareService.generate());
     }
 
     @Operation(summary = "Change the visible sections WITHOUT touching the link already handed out. Absent field (null) "
             + "= unchanged. Refuses to uncheck everything: a link that exposes nothing must be deleted, not emptied.")
     @PatchMapping
     public ShareResponse update(@RequestBody UpdateShareRequest request) {
-        ShareSettings settings = repository.find();
-        try {
-            // The construction is INSIDE the try: it is what refuses to uncheck
-            // everything (see ShareSettings), not the save. The invariant lives
-            // in the domain, we do not replay it here - we translate its refusal
-            // into a readable 400 rather than letting a 500 come up.
-            ShareSettings modifiees = settings
-                    .withSections(
-                            request.shareCollection() == null ? settings.shareCollection() : request.shareCollection(),
-                            request.shareWishlist() == null ? settings.shareWishlist() : request.shareWishlist())
-                    .withTierLists(
-                            request.includeTierLists() == null
-                                    ? settings.includeTierLists() : request.includeTierLists());
-            return toResponse(repository.save(modifiees));
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
+        return toResponse(shareService.changeSections(
+                request.shareCollection(), request.shareWishlist(), request.includeTierLists()));
     }
 
     @Operation(summary = "Delete the link - the previous token stops working immediately")
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove() {
-        repository.save(ShareSettings.noLink(utilisateurCourant.proprietaire()));
+        shareService.remove();
     }
 
     private static ShareResponse toResponse(ShareSettings settings) {
