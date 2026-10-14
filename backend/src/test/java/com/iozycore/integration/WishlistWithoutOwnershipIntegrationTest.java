@@ -14,7 +14,6 @@ import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 import java.util.UUID;
@@ -156,13 +155,13 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         int fichesAvant = entityRepository.findAllByType(MANGA).size();
 
         assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null, null, null, null)))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null, MANGA, "   ", null)))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalArgumentException.class);
         // A non-existent collection type is refused with 400, not with 500 by the
         // foreign key constraint (same rule as an unknown entityId).
         assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null, UUID.randomUUID(), "Berserk", null)))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalArgumentException.class);
 
         assertThat(entityRepository.findAllByType(MANGA)).hasSize(fichesAvant);
     }
@@ -247,10 +246,10 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         // overlapping states: the rule holds on the server side, not only in the UI.
         assertThatThrownBy(() -> wishlistController.add(
                 new AddToWishlistRequest(achat.entityId(), achat.variantId(), null, null, null, null, null)))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> wishlistController.add(
                 new AddToWishlistRequest(achat.entityId(), null, 1, "Perfect Edition", null, null, null)))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalStateException.class);
 
         assertThat(wishlistEntryRepository.findAllByEntityId(achat.entityId())).isEmpty();
     }
@@ -265,7 +264,7 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
 
         assertThatThrownBy(() -> wishlistController.add(
                 new AddToWishlistRequest(uneOeuvre, tomeDeLAutre, null, null, null, null, null)))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(IllegalArgumentException.class);
 
         assertThat(wishlistEntryRepository.findAllByEntityId(uneOeuvre)).isEmpty();
     }
