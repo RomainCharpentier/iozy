@@ -115,8 +115,10 @@ public class EntityService {
     /**
      * Completes the attributes of a volume without overwriting those already
      * filled in. A cover that a check finds unusable is left out.
+     * <p>
+     * Not transactional: a cover check can be an HTTP probe (BnF), and it must
+     * not hold a database connection. There is a single save.
      */
-    @Transactional
     public Entity mergeVariantAttributes(UUID entityId, UUID variantId, Map<String, Object> attributes) {
         Entity entity = get(entityId);
         Map<String, Object> kept = attributes;

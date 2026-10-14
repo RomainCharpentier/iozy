@@ -20,7 +20,8 @@ public class EntityTypeLookup {
 
     public EntityType require(UUID entityTypeId) {
         if (entityTypeId == null) {
-            throw new IllegalArgumentException("EntityType inconnu : null");
+            throw new IllegalArgumentException(
+                    "Requête invalide : un identifiant obligatoire est absent ou mal formé.");
         }
         return entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("EntityType inconnu : " + entityTypeId));

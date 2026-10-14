@@ -54,8 +54,12 @@ public class WishlistService {
      * Adds to the wishes the item really wanted: a volume when the type has them,
      * the whole work otherwise. Never creates an ownership. Idempotent: an item
      * already wanted returns its existing entry.
+     * <p>
+     * Not one transaction on purpose: completing a work from an external search
+     * calls the metadata providers, and a transaction would hold a database
+     * connection for the whole round trip. The catalog writes are transactional
+     * on their own (CatalogEntityResolver, TomeResolver).
      */
-    @Transactional
     public WishlistEntry add(AddToWishlist command) {
         UUID entityId = resolveEntityId(command);
         UUID variantId = resolveVariantId(entityId, command);
