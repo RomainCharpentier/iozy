@@ -57,10 +57,9 @@ MSYS_NO_PATHCONV=1 docker run --rm \
 
 - Agrégats : constructeur privé, factory statique (`create()`, `acquire()`…), `reconstitute()` pour recharger. Référence : `Ownership.java`.
 - **Migrations Flyway** : `V{n}__description.sql`. **Ne modifie jamais une migration déjà livrée**, pas même un commentaire. Une colonne de plus = migration + `{Xxx}JpaEntity` + mapper de l'adaptateur + DTO.
-- Pas de logique métier dans les contrôleurs REST : un contrôleur traduit le HTTP et appelle un cas d'usage (`application/` du module, modèle : `WishlistService`), jamais un dépôt. Le cas d'usage ne connaît ni HTTP ni infrastructure ; s'il en a besoin, il passe par un port (exemple : `ReadOnBehalfOf`). `LayersTest` (ArchUnit) vérifie ces règles pour tous les contrôleurs.
-- Erreurs d'un cas d'usage, jamais une exception HTTP : `IllegalArgumentException` → 400, `IllegalStateException` → 409, `NotFoundException` → 404 (envoyé par `sendError`, donc l'enveloppe d'erreur Spring standard, celle dont le web ignore le message pour un 404). Une lecture qui peut ne rien trouver peut aussi renvoyer un `Optional` vide, que le contrôleur traduit.
-- **Lombok**, hors domaine seulement : `@RequiredArgsConstructor` sur les beans Spring (l'ordre des paramètres suit l'ordre des champs, attention aux `new X(…)` des tests), `@Slf4j` pour les loggers, `@Getter` et `@NoArgsConstructor(access = PROTECTED)` sur les entités JPA. Pas de `@Data`, `@Setter` ni `@EqualsAndHashCode` (piégeux avec JPA). Le domaine garde ses factories et ses accesseurs `id()` écrits à la main. Un constructeur qui fait autre chose qu'affecter (`@Value`, calcul, Javadoc utile) reste écrit.
-- Doubles de test partagés (dépôts en mémoire) : `src/test/java/com/iozycore/core/testing`. Réutilise-les plutôt que d'en réécrire un par test.
+- Un contrôleur traduit le HTTP et appelle un cas d'usage, jamais un dépôt (`LayersTest`). Erreurs d'un cas d'usage : `IllegalArgumentException` (400), `IllegalStateException` (409), `NotFoundException` (404).
+- Lombok hors domaine seulement, sans `@Data` ni `@Setter`.
+- Doubles de test partagés : `src/test/java/com/iozycore/core/testing`.
 - **Tests sans Mockito** : dépôts en mémoire écrits à la main pour la logique applicative ; Testcontainers (vrai PostgreSQL) pour JPA/SQL ; fixtures inline pour le parsing de sources externes. **Jamais d'appel réseau réel dans un test.**
 - Une source externe en panne renvoie une liste vide pour cette source (log `WARN`), jamais une erreur.
 - Le code, les commentaires et les logs s'écrivent en anglais ; les messages d'erreur d'API que le web affiche restent en français.

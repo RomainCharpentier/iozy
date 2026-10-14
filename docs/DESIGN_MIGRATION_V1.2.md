@@ -1001,3 +1001,16 @@ Laissé de côté, à reprendre si besoin :
   ouverture (un résultat vide n'entre pas dans le cache partiel d'une heure) ;
 - le cache mémoire de 24 h peut prolonger une ligne lue à 29 jours jusqu'à
   31 jours.
+
+
+### Lot 164 — Les contrôleurs n'appellent plus de dépôt
+
+Chaque contrôleur appelle un cas d'usage (`application/` du module) ; `LayersTest`
+tient la règle. Lombok hors domaine. Doubles de test partagés dans `core/testing`.
+
+Vérifié : suite backend (1305), 17 parcours e2e, erreurs 400/404/409 lues sur la
+pile jetable.
+
+À reprendre : `releases.spec.ts` et `suggestions.spec.ts` échouent, déjà sur
+`main` ; les paquets `manga/deals` et `core/insights` mélangent encore domaine et
+services.
