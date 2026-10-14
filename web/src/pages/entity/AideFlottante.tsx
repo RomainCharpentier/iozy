@@ -94,8 +94,10 @@ export function AideFlottante({
   return (
     // A generous `bottom` below the breakpoint: the thumb bar
     // (TabBar, fixed) already takes the bottom of the screen, and the button
-    // would sit on top of it.
-    <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-2.5 md:right-7 md:bottom-7">
+    // would sit on top of it. The bar grows with the bottom safe area
+    // (`max(0.5rem, env(...))`, see TabBar): the button follows the same rule,
+    // or a phone with a home indicator would put it on the bar.
+    <div className="fixed right-4 bottom-[calc(5.5rem+max(0.5rem,env(safe-area-inset-bottom)))] z-40 flex flex-col items-end gap-2.5 md:right-7 md:bottom-7">
       {ouvert && (
         <div
           ref={panneauRef}
@@ -147,10 +149,13 @@ export function AideFlottante({
         type="button"
         onClick={() => (ouvert ? fermer() : setOuvert(true))}
         aria-expanded={ouvert}
-        className="flex items-center gap-2.5 rounded-full bg-surface py-[11px] pr-4 pl-3.5 text-[13px] font-medium whitespace-nowrap text-textDim shadow-token-elevated ring-1 ring-line transition-transform ring-inset hover:-translate-y-px hover:text-accentText"
+        // A round icon on a phone, the word next to it from md: written out,
+        // it covered a whole volume tile in the zone of the thumb (UI review
+        // of 2026-10-13). The word stays in the tree for screen readers.
+        className="flex h-11 w-11 items-center justify-center gap-2.5 rounded-full bg-surface text-[13px] font-medium whitespace-nowrap text-textDim shadow-token-elevated ring-1 ring-line transition-transform ring-inset hover:-translate-y-px hover:text-accentText md:w-auto md:py-[11px] md:pr-4 md:pl-3.5"
       >
-        <Sparkles size={17} className="text-accent" />
-        Aide
+        <Sparkles size={17} className="text-accent" aria-hidden="true" />
+        <span className="sr-only md:not-sr-only">Aide</span>
       </button>
     </div>
   )

@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { GlobalShortcuts } from './GlobalShortcuts'
-import { NAV_ITEMS, type NavItem } from './navItems'
-import { estReserveeAuxComptes } from '@/common/lib/accesInvite'
+import { destinationsPour, type NavItem } from './navItems'
 import { useAuth } from '@/common/hooks/useAuth'
 
 function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
@@ -43,7 +42,7 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
  * that bounces back to the home page informs nobody (see lib/accesInvite). */
 export function DesktopHeader() {
   const { estInvite } = useAuth()
-  const destinations = estInvite ? NAV_ITEMS.filter((item) => !estReserveeAuxComptes(item.to)) : NAV_ITEMS
+  const destinations = destinationsPour(estInvite)
 
   return (
     <header className="barre-verre sticky top-0 z-10 hidden h-16 shrink-0 border-b border-line md:block">

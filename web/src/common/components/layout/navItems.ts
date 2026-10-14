@@ -1,4 +1,5 @@
 import { Compass, Library, Search } from 'lucide-react'
+import { estReserveeAuxComptes } from '@/common/lib/accesInvite'
 
 export interface NavItem {
   to: string
@@ -79,3 +80,18 @@ export const NAV_ITEMS: NavItem[] = [
       p.startsWith('/purchase-analysis'),
   },
 ]
+
+/**
+ * The destinations one bar shows, read by both bars.
+ *
+ * <p>During a visit without an account, only the destinations that SHOW the
+ * collection remain (see lib/accesInvite). A work page is then reached from
+ * the Catalogue, not from "Ma collection", which the visitor does not have:
+ * without this, no tab at all was lit on it (UI review of 2026-10-13).
+ */
+export function destinationsPour(estInvite: boolean): NavItem[] {
+  if (!estInvite) return NAV_ITEMS
+  return NAV_ITEMS.filter((item) => !estReserveeAuxComptes(item.to)).map((item) =>
+    item.to === '/add' ? { ...item, activeWhen: (p: string) => item.activeWhen(p) || p.startsWith('/entity/') } : item,
+  )
+}

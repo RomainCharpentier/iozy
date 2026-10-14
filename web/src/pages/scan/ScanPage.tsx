@@ -13,6 +13,7 @@ import type { EtatRetour } from '@/common/lib/retour'
 import type { MetadataCandidateDto } from '@/common/types/api'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
+import { LienRetour } from '@/common/components/LienRetour'
 import { ApiError } from '@/common/api/client'
 import { invaliderApresPossession } from '@/common/lib/invalidations'
 
@@ -54,21 +55,15 @@ function libelleEntree(entry: ScanEntry): string {
 
 /** The screen title, defined once: it is rendered in the three
   * states of the page (loading, no Manga type, normal screen) and two
-  * copies of the same h1 would end up drifting apart. */
+  * copies of the same h1 would end up drifting apart. The back link comes
+  * with it, as on the two other import screens (/import-bgg, /import-photo). */
 function TitreScan() {
-  return <EnTeteSection niveau={1} titre="Scan rapide" />
-}
-
-/** Best-effort, never authoritative: the barcode lookup (see
-  * BarcodeLookupField) does not return a structured volumeNumber - the
-  * ISBN providers (Google Books/Open Library) sometimes put "Tome N" or
-  * "T. N" in the title itself, with no guarantee of presence or format.
-  * A volume added without a detected number is still added (attached to
-  * the series), just without a dedicated "Tome N" Variant - to be fixed by hand
-  * from the detail page afterwards if needed (see AddVolumeSection). */
-function parseVolumeNumberFromTitle(title: string): number | undefined {
-  const match = title.match(/\bt(?:ome)?\.?\s*(\d+)\b/i)
-  return match ? Number(match[1]) : undefined
+  return (
+    <>
+      <LienRetour parDefaut={{ to: '/add', libelle: 'Catalogue' }} />
+      <EnTeteSection niveau={1} titre="Scan rapide" />
+    </>
+  )
 }
 
 /** "Quick add by scan" (brainstorm) - scans several barcodes in a
@@ -113,15 +108,22 @@ export function ScanPage() {
         return
       }
 
-      const volumeNumber = parseVolumeNumberFromTitle(candidate.title)
-      // Same fallback as QuickAddPage.pickCandidate: the publisher returned by the
+      // The backend reads the book title ("One Piece - Édition originale Tome 01"):
+      // candidate.title is the series, the volume comes apart. Reading the number
+      // here again from the series title would find nothing. A volume without a
+      // detected number is still added to its series, without a "Tome N" Variant.
+      const volumeNumber = candidate.volume?.number ?? undefined
+      // The edition named in the book title comes first ("Édition originale").
+      // Otherwise, same fallback as QuickAddPage.pickCandidate: the publisher returned by the
       // candidate (Google Books/Open Library on an ISBN scan) serves as the
       // best available edition guess - never filled in for
       // Jikan/MyAnimeList, which do not know French publishers. Without this
       // fallback, a scanned volume kept an empty edition and escaped the
       // detection of mixed editions and the completion suggestions, which
       // both group volumes by this attribute.
-      const edition = typeof candidate.attributes.publisher === 'string' ? candidate.attributes.publisher : undefined
+      const edition =
+        candidate.volume?.edition ??
+        (typeof candidate.attributes.publisher === 'string' ? candidate.attributes.publisher : undefined)
       // Local search, free: used to offer "open the detail page" when
       // the work already has one, rather than leaving the add as the only
       // way out. Finding a page says nothing about ownership.

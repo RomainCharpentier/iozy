@@ -28,7 +28,11 @@ export function DiscoverTierPreview() {
 
   const universes = donnees.univers.filter((u) => u.counts.total > 0)
 
-  const previewedUniverses = universes.slice(0, MAX_UNIVERSE_PREVIEWS)
+  // Only a universe with something ranked earns a card: two cards saying "Rien
+  // de classé pour l'instant" above a "Classer mes éléments" card said the same
+  // thing three times (UI review of 2026-10-13). That last card already opens
+  // the board with the most waiting items, and "Tout voir" leads to the others.
+  const previewedUniverses = universes.filter((u) => u.counts.ranked > 0).slice(0, MAX_UNIVERSE_PREVIEWS)
 
   // The cross-category lists "toutes catégories" (batch 14) count like the
   // others in this preview: they belong to no universe, but
@@ -43,17 +47,36 @@ export function DiscoverTierPreview() {
   // ranking is by nature attached to a universe (see DS v1.1 section 45).
   const busiestUniverse = [...universes].sort((a, b) => b.counts.total - b.counts.ranked - (a.counts.total - a.counts.ranked))[0]
 
+  // The same heading as the two panels next to it: a name, and "Tout voir"
+  // towards the full screen, which Découvrir did not link to at all.
+  const entete = (
+    <div className="flex flex-wrap items-baseline justify-between gap-3">
+      <h2 className="text-[11px] font-semibold tracking-wide text-textDim uppercase">Tier Lists</h2>
+      <button
+        type="button"
+        onClick={() => navigate('/tier-lists', { state: { retour: { to: '/discover', libelle: 'Découvrir' } } })}
+        className="min-h-11 text-sm font-semibold text-accentText"
+      >
+        Tout voir
+      </button>
+    </div>
+  )
+
   if (universes.length === 0 && allCustomLists.length === 0) {
     return (
-      <div className={`${CLASSE_CARTE} text-center`}>
-        <p className="font-display text-base font-semibold text-textPrimary">Rien à classer pour l'instant</p>
-        <p className="mt-1.5 text-sm text-textDim">Ajoute des œuvres à ta collection pour commencer à les classer.</p>
+      <div className="flex flex-col gap-3">
+        {entete}
+        <div className={`${CLASSE_CARTE} text-center`}>
+          <p className="font-display text-base font-semibold text-textPrimary">Rien à classer pour l'instant</p>
+          <p className="mt-1.5 text-sm text-textDim">Ajoute des œuvres à ta collection pour commencer à les classer.</p>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-3">
+      {entete}
       {/* grid-cols-1 is not decorative. Without it, the grid has no
           declared column under 640px: the implicit track is then sized
           on the CONTENT, and the title in `truncate` (therefore nowrap) imposes its
@@ -61,6 +84,7 @@ export function DiscoverTierPreview() {
           pushed the card to 706px in a 375 window and made
           the whole page scroll horizontally. `grid-cols-1` equals
           repeat(1, minmax(0, 1fr)): the track can no longer overflow. */}
+      {previewedUniverses.length > 0 && (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {previewedUniverses.map(({ entityType, board, counts }) => {
           const visual = getEntityTypeVisual(entityType)
@@ -107,6 +131,7 @@ export function DiscoverTierPreview() {
           )
         })}
       </div>
+      )}
 
       {previewedCustom.length > 0 && (
         <div className="flex flex-wrap gap-2">

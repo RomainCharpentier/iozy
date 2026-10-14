@@ -123,11 +123,7 @@ export function TierBoard({
                   <Jaquette
                     src={entry.coverImageUrl}
                     className="h-full w-full object-cover"
-                    repli={
-                      <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
-                        {entry.title}
-                      </span>
-                    }
+                    repli={<RepliTitre titre={entry.title} />}
                   />
                 </button>
               ))}
@@ -167,11 +163,7 @@ export function TierBoard({
                 <Jaquette
                   src={entry.coverImageUrl}
                   className="h-full w-full object-cover"
-                  repli={
-                    <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
-                      {entry.title}
-                    </span>
-                  }
+                  repli={<RepliTitre titre={entry.title} />}
                 />
               </button>
             ))}
@@ -179,5 +171,19 @@ export function TierBoard({
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * The title of a tile without a cover. The tile is 44 px wide on a phone: a
+ * long title used to be cut mid-word by the edge of the tile, with nothing to
+ * say it was cut. It now breaks inside words when it must, and ends with an
+ * ellipsis; the full title stays in the name of the button.
+ */
+function RepliTitre({ titre }: { titre: string }) {
+  return (
+    <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
+      <span className="line-clamp-5 leading-tight [overflow-wrap:anywhere]">{titre}</span>
+    </span>
   )
 }

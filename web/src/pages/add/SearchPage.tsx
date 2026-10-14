@@ -64,7 +64,9 @@ function candidateKey(candidate: MetadataCandidateDto): string {
  * did bring back the screen, but emptied of what had been typed.
  */
 function retourVersRecherche(search: string): EtatRetour {
-  return { retour: { to: `/add${search}`, libelle: 'Recherche' } }
+  // Named after the screen it goes back to: this screen is titled
+  // "Catalogue", and so is its navigation entry.
+  return { retour: { to: `/add${search}`, libelle: 'Catalogue' } }
 }
 
 export function SearchPage() {
@@ -333,6 +335,34 @@ export function SearchPage() {
     groupes.every((g) => !g.requete.isFetching && g.requete.isSuccess && g.requete.data.length === 0) &&
     localMatches.length === 0
   const requiresMatch = !!selectedType?.hasMetadataProvider
+  // The barcode lookup only knows books (Open Library and Google Books answer
+  // by ISBN, see MetadataSearchService.lookupByBarcode): offered under "Jeu
+  // vidéo", it sent a manga ISBN with the wrong type and answered "Aucune
+  // correspondance" to a code that exists.
+  const scanPossible = requiresMatch && selectedType?.code === 'MANGA'
+
+  /**
+   * The catalog list came back EMPTY, and nothing else will fill the screen.
+   *
+   * <p>Only once the query has answered for what is typed now: while the
+   * title is still settling (debounce) or the query runs, it is "loading",
+   * not "nothing". And only when no external search runs: when one does,
+   * its own "Aucun résultat pour ce titre" (or its suggestions) speaks.
+   */
+  const catalogueVide =
+    !searchEnabled &&
+    debouncedTitle === title &&
+    localMatchQuery.isSuccess &&
+    !localMatchQuery.isFetching &&
+    localMatches.length === 0
+  const titreCherche = debouncedTitle.trim() !== ''
+  const messageCatalogueVide = titreCherche
+    ? 'Aucune œuvre ne correspond à cette recherche.'
+    : tagId
+      ? 'Aucune œuvre ne correspond à ces filtres.'
+      : selectedType
+        ? 'Aucune œuvre de ce type dans le catalogue.'
+        : 'Le catalogue est encore vide.'
 
   return (
     <div className="flex flex-col gap-5">
@@ -452,13 +482,13 @@ export function SearchPage() {
           Ce type n'a pas de source externe : saisis le titre, il sera ajouté tel quel.
         </p>
       )}
-      {/* Scan hidden for a type with no provider: the barcode lookup
-          goes through the same external sources as the search (see
-          MetadataSearchService.lookupByBarcode), it cannot find anything here. */}
-      {!requiresMatch ? null : showBarcodeLookup ? (
+      {/* Scan only under Manga: the barcode lookup goes through the book
+          sources (see MetadataSearchService.lookupByBarcode), it cannot find
+          a game, nor anything for a type with no provider. */}
+      {!scanPossible ? null : showBarcodeLookup ? (
         <BarcodeLookupField entityTypeId={entityTypeId ?? ''} onFound={(candidate) => ouvrirApercu(candidate, entityTypeId ?? '')} />
       ) : (
-        entityTypeId && (
+        (
           <button
             type="button"
             onClick={() => setShowBarcodeLookup(true)}
@@ -524,6 +554,15 @@ export function SearchPage() {
             })}
           </div>
         </div>
+      )}
+
+      {catalogueVide && (
+        <EtatVide
+          compact
+          icone={SearchX}
+          titre={messageCatalogueVide}
+          detail={titreCherche ? "Vérifie l'orthographe, ou essaie un autre mot du titre." : undefined}
+        />
       )}
 
       {/* After "Déjà dans ta collection", never before: on a type with no

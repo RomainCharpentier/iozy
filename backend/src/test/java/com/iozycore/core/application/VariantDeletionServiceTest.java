@@ -71,7 +71,7 @@ class VariantDeletionServiceTest {
 
         assertThatThrownBy(() -> service.delete(entity.id(), variant.id()))
                 .isInstanceOf(VariantDeletionNotAllowedException.class)
-                .hasMessageContaining("1 ownership");
+                .hasMessage("Impossible de supprimer ce tome : il a encore 1 exemplaire.");
 
         // Never a partial deletion: the guard blocks BEFORE any call to entity.removeVariant.
         assertThat(entityRepository.findById(entity.id()).orElseThrow().variants()).hasSize(1);
@@ -102,7 +102,7 @@ class VariantDeletionServiceTest {
 
         assertThatThrownBy(() -> service.delete(entity.id(), variant.id()))
                 .isInstanceOf(VariantDeletionNotAllowedException.class)
-                .hasMessageContaining("1 expérience");
+                .hasMessage("Impossible de supprimer ce tome : il a encore 1 expérience.");
     }
 
     @Test

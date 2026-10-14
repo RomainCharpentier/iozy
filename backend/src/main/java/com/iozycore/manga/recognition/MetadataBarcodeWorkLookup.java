@@ -63,8 +63,11 @@ public class MetadataBarcodeWorkLookup implements BarcodeWorkLookup {
         // to take over. The catch could therefore never run, while
         // making it look as if this case was handled here.
         try {
+            // The title of the print run, as the source writes it: the
+            // candidate title names only the series, and BarcodeRecognizer
+            // reads the volume number in this text.
             return metadataSearchService.lookupByBarcode(type.get(), ean.trim())
-                    .map(MetadataCandidate::title)
+                    .map(candidate -> candidate.volume() != null ? candidate.volume().sourceTitle() : candidate.title())
                     .filter(titre -> titre != null && !titre.isBlank());
         } catch (RuntimeException e) {
             // The rest - network down, unreadable response - is one identification

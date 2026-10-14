@@ -1,6 +1,6 @@
 # iOS (SwiftUI + SwiftData)
 
-**Hors service depuis le 2026-08-29.** L'API exige une session et ce client n'en ouvre aucune : tous ses appels reçoivent 401. Ne le « répare » pas au passage d'un autre travail. Trois issues sont possibles (le rattraper, le geler, le retirer), pesées dans `../docs/AUDIT_TECHNIQUE.md` (constat C4). Le choix est une décision de produit qui n'a pas été prise. Demande avant d'y investir.
+**Hors service depuis le 2026-08-29.** L'API exige une session et ce client n'en ouvre aucune : tous ses appels reçoivent 401. Ne le « répare » pas au passage d'un autre travail. Trois issues sont possibles (le rattraper, le geler, le retirer), Le choix est une décision de produit qui n'a pas été prise. Demande avant d'y investir.
 
 Ce qu'il faudrait pour le remettre en marche : les quatre routes `/auth/*`, le cookie `XSRF-TOKEN` renvoyé en `X-XSRF-TOKEN` sur les écritures (les helpers `post`/`patch`/`postEmpty`/`delete` de `APIClient.swift`), un écran de connexion et une porte dans `IozyCoreApp.swift`. Détails dans `README.md`.
 

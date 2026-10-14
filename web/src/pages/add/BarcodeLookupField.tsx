@@ -13,6 +13,8 @@ interface BarcodeLookupFieldProps {
   * No camera scan in v1 (desktop use) - manual entry of the barcode/
   * ISBN instead, which still calls the backend lookup (manga
   * only, as on iOS: Open Library only covers the book ISBN).
+  * The screen only offers this field under Manga (see SearchPage), so the
+  * label no longer needs to say it.
   * A 404 (no match) is not an error, just "nothing found".
   */
 export function BarcodeLookupField({ entityTypeId, onFound }: BarcodeLookupFieldProps) {
@@ -30,7 +32,7 @@ export function BarcodeLookupField({ entityTypeId, onFound }: BarcodeLookupField
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm text-textDim" htmlFor="barcode">
-        Code-barres / ISBN (mangas uniquement)
+        Code-barres / ISBN
       </label>
       <div className="flex gap-2">
         <input

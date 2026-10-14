@@ -165,17 +165,13 @@ export function CategoryPage() {
         {!isLoading && <span className="text-sm text-faint">{affiches}</span>}
       </div>
 
-      <BarreVues
-        filtre={preferences.filtre}
-        onFiltre={(filtre) => preferences.definir({ filtre })}
-        vue={preferences.vue}
-        onVue={(vue) => preferences.definir({ vue })}
-        tri={preferences.tri}
-        onTri={(tri) => preferences.definir({ tri })}
-        comptes={!isLoading ? comptes : null}
-      />
-
-      <div className="flex flex-wrap items-start gap-2">
+      {/* One row, like My collection: grouping and sort live in "Affichage". */}
+      <div className="flex flex-wrap items-center gap-2">
+        <BarreVues
+          filtre={preferences.filtre}
+          onFiltre={(filtre) => preferences.definir({ filtre })}
+          comptes={!isLoading ? comptes : null}
+        />
         <button
           type="button"
           onClick={filtres.ouvrir}
@@ -187,7 +183,7 @@ export function CategoryPage() {
           }`}
         >
           <SlidersHorizontal size={15} />
-          Filtres
+          Affichage
           {filtres.nombreActifs > 0 && (
             <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
               {filtres.nombreActifs}
@@ -242,6 +238,10 @@ export function CategoryPage() {
       <CollectionFilters
         open={filtres.ouverts}
         onClose={filtres.fermer}
+        vue={preferences.vue}
+        onVue={(vue) => preferences.definir({ vue })}
+        tri={preferences.tri}
+        onTri={(tri) => preferences.definir({ tri })}
         status={filtres.status}
         onStatusChange={filtres.definirStatus}
         tags={filtres.tags}

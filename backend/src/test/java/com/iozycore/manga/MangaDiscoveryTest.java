@@ -2,12 +2,15 @@ package com.iozycore.manga;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
-import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.experience.Experience;
 import com.iozycore.core.domain.experience.ExperienceRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.insights.Discovery;
+import com.iozycore.core.insights.Discovery.EmptyReason;
 import com.iozycore.core.metadata.MetadataCandidate;
-import com.iozycore.manga.metadata.jikan.JikanMetadataProvider;
+import com.iozycore.core.metadata.MetadataProvider;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -40,17 +43,110 @@ class MangaDiscoveryTest {
 
         MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository, List.of(jikan));
 
-        List<DiscoveryCandidate> suggestions = service.discover(EntityTypeFixtures.MANGA);
+        Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
 
+        List<DiscoveryCandidate> suggestions = discovery.candidates();
         assertThat(suggestions).extracting(DiscoveryCandidate::title).containsExactly("Bakuman");
         assertThat(suggestions.get(0).reason()).contains("Ohba, Tsugumi");
+        assertThat(discovery.sourceAnswered()).isTrue();
     }
 
     @Test
-    void returns_an_empty_list_when_nothing_is_owned() {
-        MangaDiscovery service = new MangaDiscovery(new InMemoryEntityRepository(), new InMemoryExperienceRepository(), List.of(new StubJikanMetadataProvider(List.of())));
+    void says_nothing_is_owned_without_asking_the_source() {
+        StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of());
+        MangaDiscovery service = new MangaDiscovery(new InMemoryEntityRepository(), new InMemoryExperienceRepository(), List.of(jikan));
 
-        assertThat(service.discover(EntityTypeFixtures.MANGA)).isEmpty();
+        Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
+
+        assertThat(discovery.candidates()).isEmpty();
+        assertThat(discovery.sourceAnswered()).isTrue();
+        assertThat(discovery.emptyReason()).isEqualTo(EmptyReason.NOTHING_OWNED);
+        assertThat(jikan.appels).isZero();
+    }
+
+    // ------------------------------------------ Silent source or nothing to offer (batch 159)
+
+    @Test
+    void says_no_work_is_rated_when_there_is_no_favourite_author() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        Entity pluto = Entity.create(EntityTypeFixtures.MANGA.id(), "Pluto");
+        pluto.setAttribute("mangaka", "Urasawa, Naoki");
+        entityRepository.save(pluto);
+        StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of());
+        MangaDiscovery service = new MangaDiscovery(entityRepository, new InMemoryExperienceRepository(), List.of(jikan));
+
+        Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
+
+        assertThat(discovery.sourceAnswered()).isTrue();
+        assertThat(discovery.emptyReason()).isEqualTo(EmptyReason.NO_RATED_WORK);
+        assertThat(jikan.appels).isZero();
+    }
+
+    @Test
+    void says_the_author_is_unknown_when_rated_works_carry_none() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        Entity pluto = Entity.create(EntityTypeFixtures.MANGA.id(), "Pluto");
+        entityRepository.save(pluto);
+        experienceRepository.save(Experience.record_(pluto.id(), null, "READ", LocalDate.now(), 8, null));
+        MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository,
+                List.of(new StubJikanMetadataProvider(List.of())));
+
+        assertThat(service.discover(EntityTypeFixtures.MANGA).emptyReason()).isEqualTo(EmptyReason.NO_KNOWN_AUTHOR);
+    }
+
+    @Test
+    void says_the_source_did_not_answer_when_every_provider_is_silent() {
+        MangaDiscovery service = serviceWithRatedBerserk(List.of(new SilentProvider(), new SilentProvider()));
+
+        Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
+
+        assertThat(discovery.candidates()).isEmpty();
+        assertThat(discovery.sourceAnswered()).isFalse();
+        assertThat(discovery.emptyReason()).isNull();
+    }
+
+    @Test
+    void an_empty_answer_is_an_answer() {
+        MangaDiscovery service = serviceWithRatedBerserk(List.of(new StubJikanMetadataProvider(List.of())));
+
+        Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
+
+        assertThat(discovery.candidates()).isEmpty();
+        assertThat(discovery.sourceAnswered()).isTrue();
+        assertThat(discovery.emptyReason()).isNull();
+    }
+
+    @Test
+    void a_silent_provider_is_relayed_by_the_next_one() {
+        MangaDiscovery service = serviceWithRatedBerserk(List.of(new SilentProvider(),
+                new StubJikanMetadataProvider(List.of(new MetadataCandidate("MYANIMELIST", "3", "Gigantomakhia", null, Map.of())))));
+
+        Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
+
+        assertThat(discovery.candidates()).extracting(DiscoveryCandidate::title).containsExactly("Gigantomakhia");
+        assertThat(discovery.sourceAnswered()).isTrue();
+    }
+
+    @Test
+    void does_not_keep_a_result_while_the_source_is_silent() {
+        SilentProvider muet = new SilentProvider();
+        MangaDiscovery service = serviceWithRatedBerserk(List.of(muet));
+
+        service.discover(EntityTypeFixtures.MANGA);
+        service.discover(EntityTypeFixtures.MANGA);
+
+        assertThat(muet.appels).isEqualTo(2);
+    }
+
+    private static MangaDiscovery serviceWithRatedBerserk(List<MetadataProvider> providers) {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        Entity berserk = Entity.create(EntityTypeFixtures.MANGA.id(), "Berserk");
+        berserk.setAttribute("mangaka", "Miura, Kentarou");
+        entityRepository.save(berserk);
+        experienceRepository.save(Experience.record_(berserk.id(), null, "READ", LocalDate.now(), 10, null));
+        return new MangaDiscovery(entityRepository, experienceRepository, providers);
     }
 
     // ------------------------------------------ What the volume measurement found (batch 141)
@@ -87,8 +183,8 @@ class MangaDiscoveryTest {
                 List.of(new MetadataCandidate("JIKAN", "3", "Gigantomakhia", null, Map.of())));
         MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository, List.of(jikan));
 
-        List<DiscoveryCandidate> premiere = service.discover(EntityTypeFixtures.MANGA);
-        List<DiscoveryCandidate> seconde = service.discover(EntityTypeFixtures.MANGA);
+        Discovery premiere = service.discover(EntityTypeFixtures.MANGA);
+        Discovery seconde = service.discover(EntityTypeFixtures.MANGA);
 
         assertThat(seconde).isEqualTo(premiere);
         assertThat(jikan.appels).isEqualTo(1);
@@ -111,7 +207,8 @@ class MangaDiscoveryTest {
         assertThat(muet.appels).isEqualTo(2);
     }
 
-    private static class StubJikanMetadataProvider extends JikanMetadataProvider {
+    /** A manga provider that answers, always with the same results. */
+    private static class StubJikanMetadataProvider implements MetadataProvider {
         private final List<MetadataCandidate> results;
         int appels;
 
@@ -120,9 +217,35 @@ class MangaDiscoveryTest {
         }
 
         @Override
+        public boolean supports(EntityType entityType) {
+            return "MANGA".equals(entityType.code());
+        }
+
+        @Override
         public List<MetadataCandidate> search(String query) {
             appels++;
             return results;
+        }
+    }
+
+    /** A manga provider in outage: no answer at all. */
+    private static class SilentProvider implements MetadataProvider {
+        int appels;
+
+        @Override
+        public boolean supports(EntityType entityType) {
+            return "MANGA".equals(entityType.code());
+        }
+
+        @Override
+        public List<MetadataCandidate> search(String query) {
+            return List.of();
+        }
+
+        @Override
+        public List<MetadataCandidate> searchOrThrow(String query) {
+            appels++;
+            throw new SourceUnavailableException("Jikan answered 504");
         }
     }
 

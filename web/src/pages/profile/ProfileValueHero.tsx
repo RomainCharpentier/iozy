@@ -8,7 +8,7 @@ import { formaterEuros } from '@/common/lib/formats'
 /**
  * "Valeur estimée" hero of Profil (see DS v1.1 section 44: "the value dominates, the
  * rest follows"): amount + confidence badge (reliable/partial/unavailable,
- * see section 55) + a preview of 2 real stats (titles, owned volumes - the
+ * see section 55) + a preview of 2 real stats (works in the catalog, owned copies - the
  * mockup shows 3 with "complete series", not taken here: this
  * data exists nowhere on the backend side for now without a full
  * recomputation on the client side, see docs/DESIGN_MIGRATION_V1.2.md). Clickable to
@@ -60,7 +60,10 @@ export function ProfileValueHero() {
         <span className="mt-3 flex gap-7">
           <span className="flex flex-col gap-0.5">
             <span className="font-display text-xl font-bold text-textPrimary">{statsQuery.data.totalEntities}</span>
-            <span className="text-[11px] tracking-wide text-textDim uppercase">Titres</span>
+            {/* totalEntities counts the SHARED catalog, not this account's
+                titles: named as on the Stats screen, so no one reads it as
+                the size of their own collection. */}
+            <span className="text-[11px] tracking-wide text-textDim uppercase">Œuvres au catalogue</span>
           </span>
           <span className="flex flex-col gap-0.5">
             <span className="font-display text-xl font-bold text-textPrimary">{statsQuery.data.totalActiveOwnerships}</span>

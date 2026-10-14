@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, mergeVariantAttributes, quickAdd, renameEntity } from '@/common/api/entities'
 import { deleteOwnership, listOwnerships } from '@/common/api/ownerships'
-import { rechercherOeuvrePossedee, searchVolumes } from '@/common/api/metadata'
+import { detailsOeuvre, rechercherOeuvrePossedee, searchVolumes } from '@/common/api/metadata'
 import { findBestCoverMatch, rattraperJaquettes, variantsMissingCover } from '@/common/lib/backfillCovers'
 import { listExperiences } from '@/common/api/experiences'
 import { listTags } from '@/common/api/tags'
@@ -13,7 +13,7 @@ import { getEntityProgress } from '@/common/api/insights'
 import { findEdition } from '@/common/api/purchaseAnalysis'
 import { getEntityTierSummary } from '@/common/api/tierLists'
 import { followEdition, listFollowedEdition, unfollowEdition } from '@/common/api/followedEdition'
-import { isSeriesOngoing } from './seriesInfo'
+import { isSeriesOngoing, libelleStatutSerie } from './seriesInfo'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { indicesDe } from '@/common/lib/indicesOeuvre'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
@@ -26,7 +26,7 @@ import { libelleExperienceType, libelleSectionExperiences } from '@/common/lib/e
 import { buildTiles } from './tomeTiles'
 import { numeroDe, variantLabel } from '@/common/lib/attributsTome'
 import type { OwnershipResponse } from '@/common/types/api'
-import { attributsARecharger, candidatCorrespondant } from './rechargerSource'
+import { attributsARecharger, avecDetails, candidatCorrespondant, identifiantsSource } from './rechargerSource'
 import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from './useTeinteJaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '@/common/components/layout/AppShell'
@@ -38,7 +38,7 @@ import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeDateDeSortie, Ra
 import { RELEASE_DATE_ATTRIBUTE_KEY } from '@/common/lib/releaseDate'
 import { CLES_SOURCE, libelleDe, useBrouillonInspecteur } from './useBrouillonInspecteur'
 import { AideFlottante } from './AideFlottante'
-import { ReponseAssistant, type QuestionAssistant } from './AssistantSection'
+import { ReponseAssistant, ReponseCatalogue, type QuestionAssistant } from './AssistantSection'
 import { useAuth } from '@/common/hooks/useAuth'
 import { AddVolumeSection } from './AddVolumeSection'
 import { TierSummarySection } from './TierSummarySection'
@@ -315,10 +315,21 @@ export function EntityDetailPage() {
       }
 
       if (candidats) {
-        const candidat = candidatCorrespondant(candidats, oeuvre)
+        let candidat = candidatCorrespondant(candidats, oeuvre)
         if (!candidat) {
           sansCorrespondance = true
         } else {
+          // What the search does not give (a board game's cover, players,
+          // designers: batch 160). A silent source answers {} and the search
+          // result is used alone, as before.
+          const identifiants = identifiantsSource({ ...oeuvre.attributes, ...candidat.attributes })
+          if (Object.keys(identifiants).length > 0) {
+            try {
+              candidat = avecDetails(candidat, await detailsOeuvre(oeuvre.entityTypeId, identifiants))
+            } catch {
+              fournisseurMuet = true
+            }
+          }
           const aEcrire = attributsARecharger(candidat, oeuvre)
           if (Object.keys(aEcrire).length > 0) {
             // origine=source: the server keeps the keys entered by hand
@@ -430,7 +441,10 @@ export function EntityDetailPage() {
     // while the progress is in flight, where `groupes` is still
     // empty - without this guard, a series that has twelve volumes would trigger a
     // volume search at providers on every opening of a detail page.
-    actif: !!entity && isManga && progressQuery.isSuccess && groupes.length === 0,
+    //
+    // Never for a visitor: this is the "quels tomes possèdes-tu ?" of an ADD,
+    // and the volume search behind it asks providers for every edition.
+    actif: !!entity && isManga && progressQuery.isSuccess && groupes.length === 0 && !estInvite,
   })
 
   const editionInfoQuery = useQuery({
@@ -469,6 +483,7 @@ export function EntityDetailPage() {
 
   const auteur = creatorFrom(entity.attributes)
   const ongoing = isSeriesOngoing(entity.attributes)
+  const statutSerie = libelleStatutSerie(entity.attributes.seriesStatus)
   const startYear = typeof entity.attributes.startYear === 'string' ? entity.attributes.startYear : null
   const endYear = typeof entity.attributes.endYear === 'string' ? entity.attributes.endYear : null
   const annees = startYear ? (endYear ? `${startYear} → ${endYear}` : ongoing ? `Depuis ${startYear}` : startYear) : null
@@ -479,6 +494,11 @@ export function EntityDetailPage() {
   // single piece. For a manga, the series is a GROUP: we do not want
   // "Naruto", we want volume 47 - and it is the grid that says it.
   const remarques = typeof entity.attributes.note === 'string' ? entity.attributes.note : ''
+  // While reading, the PERSONAL column only shows what exists: five stacked
+  // "Aucune" / "Pas encore" lines said five times that nothing was there
+  // (UI review of 2026-10-13). Edit mode still shows every readout.
+  const persoVide =
+    generalRank === null && meilleureNote === null && !remarques && experiences.length === 0 && entity.tagIds.length === 0
 
   /**
    * A single "Éditer" for the whole page (user request of
@@ -623,7 +643,7 @@ export function EntityDetailPage() {
             <BoutonSuivreHero suivie={suivie} onBasculer={() => suivis.basculer(entityId)} disabled={suivis.isPending} />
           )
         }
-        etat={etatCollection}
+        etat={estInvite ? null : etatCollection}
         modeEdition={modeEdition}
         onBasculerMode={estInvite ? undefined : basculerModeEdition}
         editions={
@@ -633,8 +653,10 @@ export function EntityDetailPage() {
               editionAffichee={groupeActif?.editionName ?? ''}
               editionSuivie={editionSuivie}
               onAfficher={(nom) => setEditionAffichee(nom)}
-              onSuivre={(nom) => suivreMutation.mutate(nom)}
-              onNePlusSuivre={() => nePlusSuivreMutation.mutate()}
+              // Following an edition is a personal choice: absent for a visitor.
+              onSuivre={estInvite ? undefined : (nom) => suivreMutation.mutate(nom)}
+              onNePlusSuivre={estInvite ? undefined : () => nePlusSuivreMutation.mutate()}
+              consultation={estInvite}
               onAjouterEdition={() => setAjoutTomeOuvert(true)}
               modeEdition={modeEdition}
             />
@@ -708,6 +730,9 @@ export function EntityDetailPage() {
             onBasculerEnvie={basculerEnvieDuTome}
             modeEdition={modeEdition}
             onAjouterTome={() => setAjoutTomeOuvert(true)}
+            // A visitor sees the volumes of the edition, not holes in a
+            // collection they do not have, and no "Je l'ai" / "Je le veux".
+            consultation={estInvite}
           />
 
           <div className="pt-4 empty:hidden">
@@ -727,7 +752,15 @@ export function EntityDetailPage() {
           teinte={teinte}
           // Nothing personal for a visitor (see InspecteurFiche).
           personnel={
-            estInvite ? undefined : <>
+            estInvite ? undefined : !modeEdition && persoVide ? (
+              <div className="flex flex-col items-start gap-2.5">
+                <span className="text-[13.5px] text-textDim">Rien de personnel pour l&apos;instant.</span>
+                <button type="button" onClick={basculerModeEdition} className="btn-secondaire">
+                  Noter, classer, ajouter un tag
+                </button>
+              </div>
+            ) : <>
+              {(modeEdition || generalRank) && (
               <ReleveInspecteur
                 libelle="Tier list">
                 {generalRank ? (
@@ -741,9 +774,11 @@ export function EntityDetailPage() {
                   <span className="text-[13.5px] text-faint">Non classée</span>
                 )}
               </ReleveInspecteur>
+              )}
               {/* The rating LIVES on an experience (see Experience.rating): it is
                   the same editor that carries it, and offering two entry points
                   for the same data would amount to inventing a second one. */}
+              {(modeEdition || meilleureNote !== null) && (
               <ReleveInspecteur
                 libelle="Ma note">
                 {meilleureNote !== null ? (
@@ -754,6 +789,8 @@ export function EntityDetailPage() {
                   <span className="text-[13.5px] text-faint">Pas encore notée</span>
                 )}
               </ReleveInspecteur>
+              )}
+              {(modeEdition || remarques) && (
               <ReleveInspecteur libelle="Mes remarques">
                 {modeEdition ? (
                   <textarea
@@ -770,6 +807,8 @@ export function EntityDetailPage() {
                   <span className="text-[13.5px] text-faint">Aucune</span>
                 )}
               </ReleveInspecteur>
+              )}
+              {(modeEdition || experiences.length > 0) && (
               <ReleveInspecteur
                 libelle={libelleSectionExperiences(entityType?.allowedExperienceTypes ?? [])}>
                 {experiences.length === 0 ? (
@@ -790,8 +829,10 @@ export function EntityDetailPage() {
                   </span>
                 )}
               </ReleveInspecteur>
+              )}
               {/* The tags floated under the three readouts, without a heading: they
                   therefore had nothing to carry their own entry point. */}
+              {(modeEdition || entity.tagIds.length > 0) && (
               <ReleveInspecteur
                 libelle="Tags">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -808,6 +849,7 @@ export function EntityDetailPage() {
                   )}
                 </div>
               </ReleveInspecteur>
+              )}
             </>
           }
           oeuvre={
@@ -912,6 +954,7 @@ export function EntityDetailPage() {
             </div>
             )
           }
+          sourceRepliee={!modeEdition}
           source={
             <>
               <ColonneSource attributs={entity.attributes} brouillon={modeEdition ? brouillon.attributs : undefined} />
@@ -1079,6 +1122,12 @@ export function EntityDetailPage() {
         </div>
       )}
 
+      {/* Room for the floating "Aide": at the bottom of the page it covered
+          the end of the inspector. On a wide screen too - at 1280 px the
+          content reaches the edge, and the button sat on the panel's corner
+          (UI review of 2026-10-13). */}
+      <div aria-hidden="true" className="h-14" />
+
       <AideFlottante
         titreSerie={entity.title}
         /* The questions depend on what the type ALLOWS. "Que me
@@ -1088,21 +1137,46 @@ export function EntityDetailPage() {
            manga vocabulary in front of a work that has neither volume nor edition.
            And "mes lectures" only applies to what is read - the type
            declares its own experiences itself (see EntityType.allowedExperienceTypes). */
-        questions={[
-          ...(groupeActif ? [{ cle: 'missing' as const, libelle: 'Que me manque-t-il ?' }] : []),
-          { cle: 'reading' as const, libelle: libelleQuestionExperiences(entityType?.allowedExperienceTypes ?? []) },
-        ]}
+        /* A visitor has no collection and no readings: their questions are
+           about the work, and only those the data can answer. */
+        questions={
+          estInvite
+            ? [
+                ...(groupeActif ? [{ cle: 'volumes' as const, libelle: 'Combien de tomes compte cette édition ?' }] : []),
+                ...(statutSerie ? [{ cle: 'status' as const, libelle: 'Cette série est-elle terminée ?' }] : []),
+                ...(groupes.length > 0 ? [{ cle: 'editions' as const, libelle: 'Quelles éditions sont connues ?' }] : []),
+                ...(auteur ? [{ cle: 'author' as const, libelle: isManga ? 'Qui est le mangaka ?' : "Qui est l'auteur ?" }] : []),
+              ]
+            : [
+                ...(groupeActif ? [{ cle: 'missing' as const, libelle: 'Que me manque-t-il ?' }] : []),
+                { cle: 'reading' as const, libelle: libelleQuestionExperiences(entityType?.allowedExperienceTypes ?? []) },
+              ]
+        }
         question={question}
         onQuestion={setQuestion}
         reponse={
-          question ? (
+          question === 'missing' || question === 'reading' ? (
             <ReponseAssistant
               entityId={entityId}
               entityTitle={entity.title}
               variants={entity.variants}
               experiences={experiences}
               activeGroup={groupeActif ?? null}
+              missingKnownVolumes={tuiles.filter((t) => t.status !== 'owned').map((t) => t.volumeNumber)}
               question={question}
+            />
+          ) : question ? (
+            <ReponseCatalogue
+              question={question}
+              editionName={groupeActif?.editionName ?? ''}
+              totalVolumes={totalTomes}
+              shownVolumes={tuiles.map((t) => t.volumeNumber)}
+              editions={editionsAffichees}
+              seriesStatus={statutSerie}
+              ongoing={ongoing}
+              years={annees}
+              creator={auteur}
+              creatorLabel={isManga ? 'Mangaka' : 'Auteur'}
             />
           ) : null
         }

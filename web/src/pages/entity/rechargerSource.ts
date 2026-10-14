@@ -50,6 +50,35 @@ function normaliser(titre: string): string {
 }
 
 /**
+ * The source ids a work carries (`{ bggId: '822' }`): what names it for
+ * `detailsOeuvre`. Empty for a work added by hand.
+ */
+export function identifiantsSource(attributes: Record<string, unknown>): Record<string, string> {
+  const identifiants: Record<string, string> = {}
+  for (const cle of CLES_IDENTIFIANT) {
+    const valeur = texte(attributes[cle])
+    if (valeur !== null) identifiants[cle] = valeur
+  }
+  return identifiants
+}
+
+/**
+ * A search candidate completed with the details of its work (batch 160).
+ *
+ * <p>The candidate always wins: a detail only fills what the search left
+ * empty. The cover of the details becomes the `imageUrl` of the candidate, so
+ * every reader of a candidate finds it at the usual place.
+ */
+export function avecDetails(candidat: MetadataCandidateDto, details: Record<string, unknown>): MetadataCandidateDto {
+  const { [COVER_IMAGE_ATTRIBUTE_KEY]: couverture, ...autres } = details
+  return {
+    ...candidat,
+    imageUrl: candidat.imageUrl ?? texte(couverture),
+    attributes: { ...autres, ...candidat.attributes },
+  }
+}
+
+/**
  * Which of these candidates IS this work?
  *
  * The provider id first (malId/igdbId/bggId, already stored since

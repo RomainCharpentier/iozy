@@ -36,10 +36,12 @@ test('spot an almost complete series from Découvrir, and reach its detail page'
 
   // --- 1 bis. The discoveries by universe live here too (batch 142), on
   //     demand: with no rating given, the manga has no favorite author to
-  //     offer, and it says so - a silence would read as a failure.
+  //     offer, and it says so with that reason (batch 159). No provider was
+  //     asked, so no outage is announced and nothing invites to try again.
   await expect(page.getByRole('heading', { name: 'Découvertes' })).toBeVisible()
   await page.getByRole('button', { name: 'Voir des suggestions' }).click()
-  await expect(page.getByText(/^Manga : rien à proposer/)).toBeVisible()
+  await expect(page.getByText(/^Manga : rien à proposer/)).toContainText('Aucune œuvre notée')
+  await expect(page.getByText(/^Manga : la source n'a pas répondu/)).toHaveCount(0)
 
   // --- 2. "Tout voir" leads to the full screen
   await page.getByRole('button', { name: 'Tout voir' }).first().click()

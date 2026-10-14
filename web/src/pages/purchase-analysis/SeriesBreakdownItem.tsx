@@ -77,6 +77,15 @@ export function SeriesBreakdownItem({
 
   const baseCoutRestant = libelleBaseCourt(completeness.costToCompleteBasis)
 
+  // Completeness counts what the user would hold after buying: the lot plus the volumes
+  // they already own (the server adds them since 2026-10). The owned share is what the
+  // edition covers beyond the lot. An analysis saved before counted the lot alone: there
+  // the share is zero and the line reads exactly as it did then.
+  const total = completeness.totalVolumes
+  const includedInEdition = total === null ? 0 : volumes.filter((v) => v >= 1 && v <= total).length
+  const covered = total === null || completeness.missingCount === null ? 0 : total - completeness.missingCount
+  const ownedOutsideLot = Math.max(0, covered - includedInEdition)
+
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-surface p-3">
       <div className="flex items-start justify-between gap-2">
@@ -114,12 +123,17 @@ export function SeriesBreakdownItem({
           completeness.missingCount === 0 ? (
             <span className="flex items-center gap-1.5 text-accentText">
               <CircleCheck size={14} />
-              Édition complète ({includedCount}/{completeness.totalVolumes} volumes)
+              {ownedOutsideLot > 0
+                ? `Édition complète avec ce lot (${includedInEdition} dans le lot + ${ownedOutsideLot} déjà possédé${ownedOutsideLot > 1 ? 's' : ''})`
+                : `Édition complète (${includedCount}/${completeness.totalVolumes} volumes)`}
             </span>
           ) : (
             <span className="flex items-center gap-1.5 text-warning">
               <TriangleAlert size={14} />
-              {includedCount}/{completeness.totalVolumes} volumes · {completeness.missingCount} manquant
+              {ownedOutsideLot > 0
+                ? `${covered}/${completeness.totalVolumes} volumes avec ce lot et ta collection`
+                : `${includedCount}/${completeness.totalVolumes} volumes`}{' '}
+              · {completeness.missingCount} manquant
               {completeness.missingCount! > 1 ? 's' : ''}
               {completeness.estimatedCostToComplete !== null && (
                 <span className="text-textDim">

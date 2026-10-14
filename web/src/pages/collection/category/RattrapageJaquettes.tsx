@@ -49,18 +49,22 @@ export function RattrapageJaquettes({
     setEtat({ running: true, processed: 0, total: aTraiter.length, found: 0, fournisseurMuet: false })
     let found = 0
     let fournisseurMuet = false
+    let processed = 0
     for (let i = 0; i < aTraiter.length; i++) {
       const resultat = await rattraperJaquettes(aTraiter[i], mangaTypeId, searchVolumes, (entityId, variantId, url) =>
         mergeVariantAttributes(entityId, variantId, { coverImageUrl: url }),
       )
       found += resultat.trouvees
       if (resultat.fournisseurMuet) {
+        // The series where the provider went silent is not done: it stays
+        // among those to try again.
         fournisseurMuet = true
         break
       }
-      setEtat({ running: true, processed: i + 1, total: aTraiter.length, found, fournisseurMuet })
+      processed = i + 1
+      setEtat({ running: true, processed, total: aTraiter.length, found, fournisseurMuet })
     }
-    setEtat({ running: false, processed: aTraiter.length, total: aTraiter.length, found, fournisseurMuet })
+    setEtat({ running: false, processed, total: aTraiter.length, found, fournisseurMuet })
     queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
   }
 
@@ -81,10 +85,18 @@ export function RattrapageJaquettes({
           {etat.found > 0
             ? `${etat.found} jaquette${etat.found > 1 ? 's' : ''} retrouvée${etat.found > 1 ? 's' : ''}.`
             : 'Aucune jaquette retrouvée cette fois.'}
-          {etat.fournisseurMuet &&
-            ` Le fournisseur n'a pas répondu - ${etat.processed}/${etat.total} séries traitées, réessaie plus tard pour les autres.`}
+          {etat.fournisseurMuet && ` ${phraseFournisseurMuet(etat.processed, etat.total)}`}
         </p>
       )}
     </div>
   )
+}
+
+/** Only said when the provider stopped answering: how far the run went, and what is left. */
+function phraseFournisseurMuet(processed: number, total: number): string {
+  if (processed === 0) return "Le fournisseur n'a pas répondu : aucune série traitée, réessaie plus tard."
+  const reste = total - processed
+  return `Le fournisseur a cessé de répondre après ${processed} série${processed > 1 ? 's' : ''} sur ${total} : réessaie plus tard pour ${
+    reste > 1 ? `les ${reste} autres` : "l'autre"
+  }.`
 }
