@@ -1,10 +1,8 @@
 package com.iozycore.manga;
 
 import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.experience.Experience;
-import com.iozycore.core.domain.experience.ExperienceRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.insights.Discovery;
 import com.iozycore.core.insights.Discovery.EmptyReason;
@@ -12,12 +10,12 @@ import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import org.junit.jupiter.api.Test;
+import com.iozycore.core.testing.InMemoryEntityRepository;
+import com.iozycore.core.testing.InMemoryExperienceRepository;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +27,7 @@ class MangaDiscoveryTest {
     @Test
     void suggests_other_works_by_the_same_mangaka_excluding_owned_titles() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        CountingExperienceRepository experienceRepository = new CountingExperienceRepository();
 
         Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         deathNote.setAttribute("mangaka", "Ohba, Tsugumi");
@@ -54,7 +52,7 @@ class MangaDiscoveryTest {
     @Test
     void says_nothing_is_owned_without_asking_the_source() {
         StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of());
-        MangaDiscovery service = new MangaDiscovery(new InMemoryEntityRepository(), new InMemoryExperienceRepository(), List.of(jikan));
+        MangaDiscovery service = new MangaDiscovery(new InMemoryEntityRepository(), new CountingExperienceRepository(), List.of(jikan));
 
         Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
 
@@ -73,7 +71,7 @@ class MangaDiscoveryTest {
         pluto.setAttribute("mangaka", "Urasawa, Naoki");
         entityRepository.save(pluto);
         StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of());
-        MangaDiscovery service = new MangaDiscovery(entityRepository, new InMemoryExperienceRepository(), List.of(jikan));
+        MangaDiscovery service = new MangaDiscovery(entityRepository, new CountingExperienceRepository(), List.of(jikan));
 
         Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
 
@@ -85,7 +83,7 @@ class MangaDiscoveryTest {
     @Test
     void says_the_author_is_unknown_when_rated_works_carry_none() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        CountingExperienceRepository experienceRepository = new CountingExperienceRepository();
         Entity pluto = Entity.create(EntityTypeFixtures.MANGA.id(), "Pluto");
         entityRepository.save(pluto);
         experienceRepository.save(Experience.record_(pluto.id(), null, "READ", LocalDate.now(), 8, null));
@@ -141,7 +139,7 @@ class MangaDiscoveryTest {
 
     private static MangaDiscovery serviceWithRatedBerserk(List<MetadataProvider> providers) {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        CountingExperienceRepository experienceRepository = new CountingExperienceRepository();
         Entity berserk = Entity.create(EntityTypeFixtures.MANGA.id(), "Berserk");
         berserk.setAttribute("mangaka", "Miura, Kentarou");
         entityRepository.save(berserk);
@@ -155,7 +153,7 @@ class MangaDiscoveryTest {
     void lit_les_notes_en_une_seule_fois_et_non_une_fois_par_oeuvre() {
         // 300 series = 300 rating requests each time Discover opens.
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        CountingExperienceRepository experienceRepository = new CountingExperienceRepository();
         for (int i = 0; i < 50; i++) {
             Entity serie = Entity.create(EntityTypeFixtures.MANGA.id(), "Série " + i);
             serie.setAttribute("mangaka", "Auteur " + (i % 5));
@@ -167,14 +165,14 @@ class MangaDiscoveryTest {
 
         service.discover(EntityTypeFixtures.MANGA);
 
-        assertThat(experienceRepository.lecturesParOeuvre).isZero();
-        assertThat(experienceRepository.lecturesGlobales).isEqualTo(1);
+        assertThat(experienceRepository.readsByEntity).isZero();
+        assertThat(experienceRepository.globalReads).isEqualTo(1);
     }
 
     @Test
     void retient_les_suggestions_au_lieu_de_retourner_chez_les_fournisseurs_a_chaque_ouverture() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        CountingExperienceRepository experienceRepository = new CountingExperienceRepository();
         Entity berserk = Entity.create(EntityTypeFixtures.MANGA.id(), "Berserk");
         berserk.setAttribute("mangaka", "Miura, Kentarou");
         entityRepository.save(berserk);
@@ -193,7 +191,7 @@ class MangaDiscoveryTest {
     @Test
     void ne_retient_pas_un_resultat_vide_pour_qu_un_fournisseur_muet_soit_reessaye() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        CountingExperienceRepository experienceRepository = new CountingExperienceRepository();
         Entity berserk = Entity.create(EntityTypeFixtures.MANGA.id(), "Berserk");
         berserk.setAttribute("mangaka", "Miura, Kentarou");
         entityRepository.save(berserk);
@@ -249,84 +247,27 @@ class MangaDiscoveryTest {
         }
     }
 
-    private static class InMemoryEntityRepository implements EntityRepository {
-        private final Map<UUID, Entity> store = new HashMap<>();
-
-        @Override
-        public Entity save(Entity entity) {
-            store.put(entity.id(), entity);
-            return entity;
-        }
-
-        @Override
-        public Optional<Entity> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<Entity> findByTypeAndTitle(UUID entityTypeId, String title) {
-            return store.values().stream()
-                    .filter(e -> e.entityTypeId().equals(entityTypeId) && e.title().equalsIgnoreCase(title))
-                    .findFirst();
-        }
-
-        @Override
-        public List<Entity> findAllByType(UUID entityTypeId) {
-            return store.values().stream().filter(e -> e.entityTypeId().equals(entityTypeId)).toList();
-        }
-
-        @Override
-        public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-            return List.of();
-        }
-
-        @Override
-        public boolean existsByType(UUID entityTypeId) {
-            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    private static class InMemoryExperienceRepository implements ExperienceRepository {
-        private final Map<UUID, Experience> store = new HashMap<>();
-        int lecturesParOeuvre;
-        int lecturesGlobales;
-
-        @Override
-        public Experience save(Experience experience) {
-            store.put(experience.id(), experience);
-            return experience;
-        }
-
-        @Override
-        public Optional<Experience> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
+    /** Counts the reads, to check that discovery reads the experiences once, not once per work. */
+    private static class CountingExperienceRepository extends InMemoryExperienceRepository {
+        int readsByEntity;
+        int globalReads;
 
         @Override
         public List<Experience> findByEntityId(UUID entityId) {
-            lecturesParOeuvre++;
-            return store.values().stream().filter(e -> e.entityId().equals(entityId)).toList();
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
+            readsByEntity++;
+            return super.findByEntityId(entityId);
         }
 
         @Override
         public boolean existsByEntityId(UUID entityId) {
-            return !findByEntityId(entityId).isEmpty();
+            readsByEntity++;
+            return super.existsByEntityId(entityId);
         }
 
         @Override
         public List<Experience> findAll() {
-            lecturesGlobales++;
-            return List.copyOf(store.values());
+            globalReads++;
+            return super.findAll();
         }
     }
 }

@@ -1,25 +1,22 @@
 package com.iozycore.core.insights;
 
 import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
-import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
-import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
-import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.domain.follow.FollowedWork;
-import com.iozycore.core.domain.follow.FollowedWorkRepository;
 import org.junit.jupiter.api.Test;
+import com.iozycore.core.testing.InMemoryEntityRepository;
+import com.iozycore.core.testing.InMemoryEntityTypeRepository;
+import com.iozycore.core.testing.InMemoryFollowedWorkRepository;
+import com.iozycore.core.testing.InMemoryOwnershipRepository;
+import com.iozycore.core.testing.InMemoryWishlistEntryRepository;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,11 +32,12 @@ class ReleaseCalendarServiceTest {
     private static final LocalDate OCTOBER_1 = LocalDate.of(2026, 10, 1);
     private static final LocalDate OCTOBER_31 = LocalDate.of(2026, 10, 31);
 
-    private final InMemoryEntityTypeRepository types = new InMemoryEntityTypeRepository();
-    private final InMemoryEntityRepository entities = new InMemoryEntityRepository();
-    private final InMemoryOwnershipRepository ownerships = new InMemoryOwnershipRepository();
-    private final InMemoryWishlistEntryRepository wishlist = new InMemoryWishlistEntryRepository();
-    private final InMemoryFollowedWorkRepository followed = new InMemoryFollowedWorkRepository();
+    private final InMemoryEntityTypeRepository types = new InMemoryEntityTypeRepository(
+            EntityTypeFixtures.MANGA, EntityTypeFixtures.VIDEO_GAME, EntityTypeFixtures.BOARD_GAME);
+    private final CountingEntityRepository entities = new CountingEntityRepository();
+    private final CountingOwnershipRepository ownerships = new CountingOwnershipRepository();
+    private final CountingWishlistEntryRepository wishlist = new CountingWishlistEntryRepository();
+    private final CountingFollowedWorkRepository followed = new CountingFollowedWorkRepository();
 
     private ReleaseCalendarService service(ReleaseSource... sources) {
         return new ReleaseCalendarService(types, entities, ownerships, wishlist, followed, List.of(sources));
@@ -300,185 +298,46 @@ class ReleaseCalendarServiceTest {
         }
     }
 
-    private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
-        private final Map<UUID, EntityType> store = new HashMap<>(Map.of(
-                EntityTypeFixtures.MANGA.id(), EntityTypeFixtures.MANGA,
-                EntityTypeFixtures.VIDEO_GAME.id(), EntityTypeFixtures.VIDEO_GAME,
-                EntityTypeFixtures.BOARD_GAME.id(), EntityTypeFixtures.BOARD_GAME));
+    // The doubles below count the bulk reads: the calendar must read each source once,
+    // whatever the number of followed works.
 
-        @Override
-        public EntityType save(EntityType entityType) {
-            store.put(entityType.id(), entityType);
-            return entityType;
-        }
-
-        @Override
-        public Optional<EntityType> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<EntityType> findByCode(String code) {
-            return store.values().stream().filter(t -> t.code().equals(code)).findFirst();
-        }
-
-        @Override
-        public List<EntityType> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    private static class InMemoryEntityRepository implements EntityRepository {
-        private final Map<UUID, Entity> store = new HashMap<>();
+    private static class CountingEntityRepository extends InMemoryEntityRepository {
         int readsByType;
-
-        @Override
-        public Entity save(Entity entity) {
-            store.put(entity.id(), entity);
-            return entity;
-        }
-
-        @Override
-        public Optional<Entity> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<Entity> findByTypeAndTitle(UUID entityTypeId, String title) {
-            return store.values().stream()
-                    .filter(e -> e.entityTypeId().equals(entityTypeId) && e.title().equalsIgnoreCase(title))
-                    .findFirst();
-        }
 
         @Override
         public List<Entity> findAllByType(UUID entityTypeId) {
             readsByType++;
-            return store.values().stream().filter(e -> e.entityTypeId().equals(entityTypeId)).toList();
-        }
-
-        @Override
-        public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-            return store.values().stream()
-                    .filter(e -> titleQuery == null || e.title().toLowerCase().contains(titleQuery.toLowerCase()))
-                    .filter(e -> entityTypeId == null || entityTypeId.equals(e.entityTypeId()))
-                    .filter(e -> tagId == null || e.tagIds().contains(tagId))
-                    .toList();
-        }
-
-        @Override
-        public boolean existsByType(UUID entityTypeId) {
-            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
+            return super.findAllByType(entityTypeId);
         }
     }
 
-    private static class InMemoryOwnershipRepository implements OwnershipRepository {
-        private final Map<UUID, Ownership> store = new HashMap<>();
+    private static class CountingOwnershipRepository extends InMemoryOwnershipRepository {
         int reads;
-
-        @Override
-        public Ownership save(Ownership ownership) {
-            store.put(ownership.id(), ownership);
-            return ownership;
-        }
-
-        @Override
-        public Optional<Ownership> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<Ownership> findByEntityId(UUID entityId) {
-            return store.values().stream().filter(o -> o.entityId().equals(entityId)).toList();
-        }
 
         @Override
         public List<Ownership> findAll() {
             reads++;
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public boolean existsByEntityId(UUID entityId) {
-            return store.values().stream().anyMatch(o -> o.entityId().equals(entityId));
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
+            return super.findAll();
         }
     }
 
-    private static class InMemoryWishlistEntryRepository implements WishlistEntryRepository {
-        private final Map<UUID, WishlistEntry> store = new HashMap<>();
+    private static class CountingWishlistEntryRepository extends InMemoryWishlistEntryRepository {
         int reads;
-
-        @Override
-        public WishlistEntry save(WishlistEntry entry) {
-            store.put(entry.id(), entry);
-            return entry;
-        }
-
-        @Override
-        public Optional<WishlistEntry> findByEntityId(UUID entityId) {
-            return store.values().stream().filter(e -> e.entityId().equals(entityId)).findFirst();
-        }
-
-        @Override
-        public Optional<WishlistEntry> findByVariantId(UUID variantId) {
-            return store.values().stream().filter(e -> e.variantId().map(variantId::equals).orElse(false)).findFirst();
-        }
-
-        @Override
-        public List<WishlistEntry> findAllByEntityId(UUID entityId) {
-            return store.values().stream().filter(e -> e.entityId().equals(entityId)).toList();
-        }
 
         @Override
         public List<WishlistEntry> findAll() {
             reads++;
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
+            return super.findAll();
         }
     }
 
-    private static class InMemoryFollowedWorkRepository implements FollowedWorkRepository {
-        private final Map<UUID, FollowedWork> store = new HashMap<>();
+    private static class CountingFollowedWorkRepository extends InMemoryFollowedWorkRepository {
         int reads;
-
-        @Override
-        public FollowedWork save(FollowedWork work) {
-            store.put(work.id(), work);
-            return work;
-        }
-
-        @Override
-        public Optional<FollowedWork> findByEntityId(UUID entityId) {
-            return store.values().stream().filter(w -> w.entityId().equals(entityId)).findFirst();
-        }
 
         @Override
         public List<FollowedWork> findAll() {
             reads++;
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void deleteByEntityId(UUID entityId) {
-            store.values().removeIf(w -> w.entityId().equals(entityId));
+            return super.findAll();
         }
     }
 }

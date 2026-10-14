@@ -2,25 +2,19 @@ package com.iozycore.core.application;
 
 import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
-import java.util.LinkedHashMap;
-import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
-import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.manga.domain.MangaEdition;
-import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.core.domain.catalog.Variant;
-import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
-import com.iozycore.core.domain.ownership.OwnershipRepository;
 import org.junit.jupiter.api.Test;
+import com.iozycore.core.testing.InMemoryEntityRepository;
+import com.iozycore.core.testing.InMemoryOwnershipRepository;
+import com.iozycore.core.testing.InMemoryWishlistEntryRepository;
+import com.iozycore.manga.testing.InMemoryMangaEditionRepository;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -293,202 +287,5 @@ class QuickAddServiceTest {
                 new CatalogEntityResolver(entityRepository),
                 new TomeResolver(entityRepository, List.of(), List.of(new MangaEditionLinker(new InMemoryMangaEditionRepository()))), new InMemoryWishlistEntryRepository(), event -> {
         });
-    }
-
-    /** Fake in-memory repository, enough to test the application logic without Spring/PostgreSQL. */
-    private static class InMemoryEntityRepository implements EntityRepository {
-        private final Map<UUID, Entity> store = new HashMap<>();
-
-        @Override
-        public Entity save(Entity entity) {
-            store.put(entity.id(), entity);
-            return entity;
-        }
-
-        @Override
-        public Optional<Entity> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<Entity> findByTypeAndTitle(UUID entityTypeId, String title) {
-            return store.values().stream()
-                    .filter(e -> e.entityTypeId().equals(entityTypeId) && e.title().equalsIgnoreCase(title))
-                    .findFirst();
-        }
-
-        @Override
-        public List<Entity> findAllByType(UUID entityTypeId) {
-            List<Entity> result = new ArrayList<>();
-            for (Entity entity : store.values()) {
-                if (entity.entityTypeId().equals(entityTypeId)) {
-                    result.add(entity);
-                }
-            }
-            return result;
-        }
-
-        @Override
-        public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-            return store.values().stream()
-                    .filter(e -> titleQuery == null || titleQuery.isBlank()
-                            || e.title().toLowerCase().contains(titleQuery.toLowerCase()))
-                    .filter(e -> entityTypeId == null || e.entityTypeId().equals(entityTypeId))
-                    .filter(e -> tagId == null || e.tagIds().contains(tagId))
-                    .collect(java.util.stream.Collectors.toList());
-        }
-
-        @Override
-        public boolean existsByType(UUID entityTypeId) {
-            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-
-        int count() {
-            return store.size();
-        }
-    }
-
-    /** Fake in-memory repository for MangaEdition, same pattern as InMemoryEntityRepository above. */
-    private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
-        private final Map<UUID, MangaEdition> store = new HashMap<>();
-
-        @Override
-        public MangaEdition save(MangaEdition edition) {
-            store.put(edition.id(), edition);
-            return edition;
-        }
-
-        @Override
-        public Optional<MangaEdition> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<MangaEdition> findAll() {
-            return List.copyOf(store.values());
-        }
-
-        @Override
-        public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
-            return store.values().stream()
-                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle) && e.editionName().equalsIgnoreCase(editionName))
-                    .findFirst();
-        }
-
-        @Override
-        public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
-            return store.values().stream()
-                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle))
-                    .collect(java.util.stream.Collectors.toList());
-        }
-
-        @Override
-        public List<MangaEdition> findByEntityId(UUID entityId) {
-            return store.values().stream()
-                    .filter(e -> entityId.equals(e.entityId()))
-                    .collect(java.util.stream.Collectors.toList());
-        }
-
-        @Override
-        public Optional<MangaEdition> findByEntityIdAndEditionName(UUID entityId, String editionName) {
-            return store.values().stream()
-                    .filter(e -> entityId.equals(e.entityId()) && e.editionName().equalsIgnoreCase(editionName))
-                    .findFirst();
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-
-        int count() {
-            return store.size();
-        }
-    }
-
-    private static class InMemoryOwnershipRepository implements OwnershipRepository {
-        private final Map<UUID, Ownership> store = new HashMap<>();
-
-        @Override
-        public Ownership save(Ownership ownership) {
-            store.put(ownership.id(), ownership);
-            return ownership;
-        }
-
-        @Override
-        public Optional<Ownership> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<Ownership> findByEntityId(UUID entityId) {
-            List<Ownership> result = new ArrayList<>();
-            for (Ownership ownership : store.values()) {
-                if (ownership.entityId().equals(entityId)) {
-                    result.add(ownership);
-                }
-            }
-            return result;
-        }
-
-        @Override
-        public boolean existsByEntityId(UUID entityId) {
-            return !findByEntityId(entityId).isEmpty();
-        }
-
-        @Override
-        public List<Ownership> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    /** Local double, like the other repositories in this file: QuickAddService
-     *  closes the wish of a work that was just acquired (see
-     *  retirerDesEnvies), so it needs a wish repository. */
-    private static class InMemoryWishlistEntryRepository implements WishlistEntryRepository {
-        private final Map<UUID, WishlistEntry> parId = new LinkedHashMap<>();
-
-        @Override
-        public WishlistEntry save(WishlistEntry entry) {
-            parId.put(entry.id(), entry);
-            return entry;
-        }
-
-        @Override
-        public Optional<WishlistEntry> findByEntityId(UUID entityId) {
-            return parId.values().stream().filter(e -> e.entityId().equals(entityId)).findFirst();
-        }
-
-        @Override
-        public List<WishlistEntry> findAll() {
-            return List.copyOf(parId.values());
-        }
-
-        @Override
-        public Optional<WishlistEntry> findByVariantId(UUID variantId) {
-            return parId.values().stream()
-                    .filter(e -> e.variantId().map(variantId::equals).orElse(false))
-                    .findFirst();
-        }
-
-        @Override
-        public List<WishlistEntry> findAllByEntityId(UUID entityId) {
-            return parId.values().stream().filter(e -> e.entityId().equals(entityId)).toList();
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            parId.remove(id);
-        }
     }
 }
