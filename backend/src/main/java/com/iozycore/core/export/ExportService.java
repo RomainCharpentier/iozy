@@ -22,6 +22,7 @@ import com.iozycore.core.domain.tierlist.TierListItemRepository;
 import com.iozycore.core.domain.tierlist.TierListRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
  * for the denormalization principle that makes the export self-sufficient.
  */
 @Service
+@RequiredArgsConstructor
 public class ExportService {
 
     private final EntityRepository entityRepository;
@@ -53,29 +55,6 @@ public class ExportService {
     private final TierListItemRepository tierListItemRepository;
     /** What each universe adds to the document - manga, its editions and its prices (Batch 133). */
     private final List<TransferModule> modules;
-
-    public ExportService(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
-                          OwnershipRepository ownershipRepository, ExperienceRepository experienceRepository,
-                          WishlistEntryRepository wishlistEntryRepository,
-                          FollowedWorkRepository followedWorkRepository,
-                          RelationshipRepository relationshipRepository, TagRepository tagRepository,
-                          EntityRankRepository entityRankRepository,
-                          TierListRepository tierListRepository,
-                          TierListItemRepository tierListItemRepository,
-                          List<TransferModule> modules) {
-        this.entityRepository = entityRepository;
-        this.entityTypeRepository = entityTypeRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.experienceRepository = experienceRepository;
-        this.wishlistEntryRepository = wishlistEntryRepository;
-        this.followedWorkRepository = followedWorkRepository;
-        this.relationshipRepository = relationshipRepository;
-        this.tagRepository = tagRepository;
-        this.entityRankRepository = entityRankRepository;
-        this.tierListRepository = tierListRepository;
-        this.tierListItemRepository = tierListItemRepository;
-        this.modules = modules;
-    }
 
     public ExportDocument buildExportDocument() {
         Map<UUID, EntityType> typesById = entityTypeRepository.findAll().stream()

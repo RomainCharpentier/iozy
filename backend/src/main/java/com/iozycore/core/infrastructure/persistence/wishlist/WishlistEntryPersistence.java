@@ -2,6 +2,7 @@ package com.iozycore.core.infrastructure.persistence.wishlist;
 
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,13 +31,10 @@ interface WishlistEntryJpaRepository extends JpaRepository<WishlistEntryJpaEntit
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaWishlistEntryRepositoryAdapter implements WishlistEntryRepository {
 
     private final WishlistEntryJpaRepository jpaRepository;
-
-    JpaWishlistEntryRepositoryAdapter(WishlistEntryJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public WishlistEntry save(WishlistEntry entry) {

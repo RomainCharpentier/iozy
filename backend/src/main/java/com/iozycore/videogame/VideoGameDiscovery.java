@@ -11,8 +11,8 @@ import com.iozycore.core.insights.DiscoverySource;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.videogame.igdb.IgdbSimilarGamesFetcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -36,19 +36,15 @@ import java.util.stream.Collectors;
  * instead of saying there is nothing to offer.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class VideoGameDiscovery implements DiscoverySource {
 
-    private static final Logger log = LoggerFactory.getLogger(VideoGameDiscovery.class);
     private static final int MAX_OWNED_GAMES_EXAMINED = 5;
     private static final int MAX_SUGGESTIONS = 8;
 
     private final EntityRepository entityRepository;
     private final IgdbSimilarGamesFetcher igdbSimilarGamesFetcher;
-
-    public VideoGameDiscovery(EntityRepository entityRepository, IgdbSimilarGamesFetcher igdbSimilarGamesFetcher) {
-        this.entityRepository = entityRepository;
-        this.igdbSimilarGamesFetcher = igdbSimilarGamesFetcher;
-    }
 
     @Override
     public boolean supports(EntityType entityType) {

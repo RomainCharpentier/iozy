@@ -3,8 +3,7 @@ package com.iozycore.core.api;
 import com.iozycore.core.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.core.domain.shared.EntityTypeDeletionNotAllowedException;
 import com.iozycore.core.domain.shared.VariantDeletionNotAllowedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
@@ -15,9 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class ApiExceptionHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(EntityDeletionNotAllowedException.class)
     public ResponseEntity<Map<String, String>> handleDeletionNotAllowed(EntityDeletionNotAllowedException ex) {

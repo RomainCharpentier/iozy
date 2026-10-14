@@ -3,6 +3,7 @@ package com.iozycore.core.infrastructure.persistence.tierlist;
 import com.iozycore.core.domain.tierlist.EntityRank;
 import com.iozycore.core.domain.tierlist.EntityRankRepository;
 import com.iozycore.core.domain.tierlist.Rank;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,13 +32,10 @@ interface EntityRankJpaRepository extends JpaRepository<EntityRankJpaEntity, UUI
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaEntityRankRepositoryAdapter implements EntityRankRepository {
 
     private final EntityRankJpaRepository jpaRepository;
-
-    JpaEntityRankRepositoryAdapter(EntityRankJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public EntityRank save(EntityRank entityRank) {

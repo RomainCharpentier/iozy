@@ -20,6 +20,7 @@ import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.insights.CollectionProgress;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -68,6 +69,7 @@ import com.iozycore.core.insights.SeriesProgressGateway;
 @RestController
 @RequestMapping("/api/public/share")
 @Tag(name = "Shared space", description = "Read only, unauthenticated, reserved for the holder of the link")
+@RequiredArgsConstructor
 public class PublicShareController {
 
     private static final String COVER_IMAGE_URL = "coverImageUrl";
@@ -80,24 +82,6 @@ public class PublicShareController {
     private final TierListRepository tierListRepository;
     private final TierListService tierListService;
     private final SeriesProgressGateway progressService;
-
-    public PublicShareController(ShareSettingsRepository shareSettingsRepository,
-                                  EntityRepository entityRepository,
-                                  EntityTypeRepository entityTypeRepository,
-                                  OwnershipRepository ownershipRepository,
-                                  WishlistEntryRepository wishlistEntryRepository,
-                                  TierListRepository tierListRepository,
-                                  TierListService tierListService,
-                                  SeriesProgressGateway progressService) {
-        this.shareSettingsRepository = shareSettingsRepository;
-        this.entityRepository = entityRepository;
-        this.entityTypeRepository = entityTypeRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.wishlistEntryRepository = wishlistEntryRepository;
-        this.tierListRepository = tierListRepository;
-        this.tierListService = tierListService;
-        this.progressService = progressService;
-    }
 
     @Operation(summary = "Read-only shared space through a token. 404 if the link does not exist or was "
             + "deleted. A section that is not shared is null in the response, never an empty list: "

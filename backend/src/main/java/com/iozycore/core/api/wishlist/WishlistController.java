@@ -7,6 +7,7 @@ import com.iozycore.core.application.WishlistService;
 import com.iozycore.core.application.WishlistService.AddToWishlist;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,13 +17,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/wishlist")
 @Tag(name = "Wishlist", description = "UC5 - wishlist, and UC4 - check before purchase")
+@RequiredArgsConstructor
 public class WishlistController {
 
     private final WishlistService wishlistService;
-
-    public WishlistController(WishlistService wishlistService) {
-        this.wishlistService = wishlistService;
-    }
 
     @Operation(summary = "Add to the wishes the item really wanted: a volume (variantId, or volumeNumber "
             + "+ edition) when the type has them, the whole work otherwise. The work is designated by its entityId or, "

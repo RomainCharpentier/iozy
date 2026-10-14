@@ -8,8 +8,7 @@ import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.BarcodeLookup;
 import com.iozycore.core.metadata.QuotaExceededException;
 import com.iozycore.manga.metadata.IsbnBookTitle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -43,9 +42,9 @@ import java.util.Optional;
  */
 @Component
 @Order(1)
+@Slf4j
 public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(GoogleBooksBarcodeProvider.class);
     private static final String LOOKUP_URL = "https://www.googleapis.com/books/v1/volumes?q=isbn:%s";
 
     private final GoogleBooksHttpClient httpClient;

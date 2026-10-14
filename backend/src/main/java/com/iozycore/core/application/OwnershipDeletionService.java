@@ -1,6 +1,7 @@
 package com.iozycore.core.application;
 
 import com.iozycore.core.domain.ownership.OwnershipRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -33,13 +34,10 @@ import java.util.UUID;
  * id raises nothing, the route returns 204 in all cases.
  */
 @Service
+@RequiredArgsConstructor
 public class OwnershipDeletionService {
 
     private final OwnershipRepository ownershipRepository;
-
-    public OwnershipDeletionService(OwnershipRepository ownershipRepository) {
-        this.ownershipRepository = ownershipRepository;
-    }
 
     public void delete(UUID ownershipId) {
         ownershipRepository.deleteById(ownershipId);

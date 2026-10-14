@@ -8,6 +8,7 @@ import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.domain.tierlist.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/tier-lists")
 @Tag(name = "Tier Lists", description = "General ranking and custom Tier Lists")
+@RequiredArgsConstructor
 public class TierListController {
 
     private final TierListRepository tierListRepository;
@@ -33,18 +35,6 @@ public class TierListController {
     private final EntityRepository entityRepository;
     private final EntityTypeRepository entityTypeRepository;
     private final TierListService tierListService;
-
-    public TierListController(TierListRepository tierListRepository, TierListItemRepository tierListItemRepository,
-                               EntityRankRepository entityRankRepository, EntityRepository entityRepository,
-                                EntityTypeRepository entityTypeRepository,
-                               TierListService tierListService) {
-        this.tierListRepository = tierListRepository;
-        this.tierListItemRepository = tierListItemRepository;
-        this.entityRankRepository = entityRankRepository;
-        this.entityRepository = entityRepository;
-        this.entityTypeRepository = entityTypeRepository;
-        this.tierListService = tierListService;
-    }
 
     // ═══ General ranking ═══
 

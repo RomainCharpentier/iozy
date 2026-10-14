@@ -16,6 +16,7 @@ import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/entities")
 @Tag(name = "Entities", description = "Catalog - management of Entities (mangas, video games, board games)")
+@RequiredArgsConstructor
 public class EntityController {
 
     private final EntityRepository entityRepository;
@@ -40,24 +42,6 @@ public class EntityController {
     /** The universes that can say whether a cover is usable (Batch 133). */
     private final List<CoverImageCheck> coverChecks;
     private final MetadataDetailsService metadataDetailsService;
-
-    public EntityController(EntityRepository entityRepository,
-                             EntityTypeRepository entityTypeRepository,
-                             QuickAddService quickAddService,
-                             EntityDeletionService entityDeletionService,
-                             VariantDeletionService variantDeletionService,
-                             CatalogSearchService catalogue,
-                             List<CoverImageCheck> coverChecks,
-                             MetadataDetailsService metadataDetailsService) {
-        this.entityRepository = entityRepository;
-        this.entityTypeRepository = entityTypeRepository;
-        this.quickAddService = quickAddService;
-        this.entityDeletionService = entityDeletionService;
-        this.variantDeletionService = variantDeletionService;
-        this.catalogue = catalogue;
-        this.coverChecks = coverChecks;
-        this.metadataDetailsService = metadataDetailsService;
-    }
 
     @Operation(summary = "Quick add (path 1): creates an Entity and its initial Ownership, "
             + "or attaches a new Ownership to an existing Entity if the title already matches (deduplication)")

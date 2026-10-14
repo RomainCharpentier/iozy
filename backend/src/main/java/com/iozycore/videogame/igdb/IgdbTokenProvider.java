@@ -2,8 +2,7 @@ package com.iozycore.videogame.igdb;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,9 +26,9 @@ import java.time.Instant;
  * not compliant with its terms).
  */
 @Component
+@Slf4j
 public class IgdbTokenProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(IgdbTokenProvider.class);
     private static final String TOKEN_URL =
             "https://id.twitch.tv/oauth2/token?client_id=%s&client_secret=%s&grant_type=client_credentials";
     // Safety margin to never hand over a token about to expire

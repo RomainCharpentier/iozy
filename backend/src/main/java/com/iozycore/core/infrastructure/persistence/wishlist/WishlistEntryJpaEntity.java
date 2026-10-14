@@ -1,6 +1,9 @@
 package com.iozycore.core.infrastructure.persistence.wishlist;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.TenantId;
 
 import java.time.LocalDate;
@@ -8,6 +11,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "wishlist_entry")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class WishlistEntryJpaEntity {
 
     @Id
@@ -36,9 +41,6 @@ public class WishlistEntryJpaEntity {
     @Column(name = "added_at", nullable = false)
     private LocalDate addedAt;
 
-    protected WishlistEntryJpaEntity() {
-    }
-
     public WishlistEntryJpaEntity(UUID id, UUID entityId, UUID variantId, UUID ownerId, LocalDate addedAt) {
         this.id = id;
         this.entityId = entityId;
@@ -46,10 +48,4 @@ public class WishlistEntryJpaEntity {
         this.ownerId = ownerId;
         this.addedAt = addedAt;
     }
-
-    public UUID getId() { return id; }
-    public UUID getEntityId() { return entityId; }
-    public UUID getVariantId() { return variantId; }
-    public UUID getOwnerId() { return ownerId; }
-    public LocalDate getAddedAt() { return addedAt; }
 }

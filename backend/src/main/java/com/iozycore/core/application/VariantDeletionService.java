@@ -7,6 +7,7 @@ import com.iozycore.core.domain.experience.ExperienceRepository;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.core.domain.shared.VariantDeletionNotAllowedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -36,6 +37,7 @@ import java.util.List;
  * error for this call, only a cascade that stops where it must.
  */
 @Service
+@RequiredArgsConstructor
 public class VariantDeletionService {
 
     private final EntityRepository entityRepository;
@@ -44,18 +46,6 @@ public class VariantDeletionService {
     /** What each universe does after the deletion of a volume - the cleanup of orphan editions, on the manga side (Batch 133). */
     private final List<VariantDeletionHook> hooks;
     private final EntityDeletionService entityDeletionService;
-
-    public VariantDeletionService(EntityRepository entityRepository,
-                                   OwnershipRepository ownershipRepository,
-                                   ExperienceRepository experienceRepository,
-                                   List<VariantDeletionHook> hooks,
-                                   EntityDeletionService entityDeletionService) {
-        this.entityRepository = entityRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.experienceRepository = experienceRepository;
-        this.hooks = hooks;
-        this.entityDeletionService = entityDeletionService;
-    }
 
     public void delete(UUID entityId, UUID variantId) {
         Entity entity = entityRepository.findById(entityId)

@@ -3,8 +3,8 @@ package com.iozycore.manga.recognition;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.manga.recognition.BarcodeWorkLookup;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -30,18 +30,12 @@ import com.iozycore.core.metadata.MetadataCandidate;
  * decoder.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class MetadataBarcodeWorkLookup implements BarcodeWorkLookup {
-
-    private static final Logger log = LoggerFactory.getLogger(MetadataBarcodeWorkLookup.class);
 
     private final MetadataSearchService metadataSearchService;
     private final EntityTypeRepository entityTypeRepository;
-
-    public MetadataBarcodeWorkLookup(MetadataSearchService metadataSearchService,
-                                      EntityTypeRepository entityTypeRepository) {
-        this.metadataSearchService = metadataSearchService;
-        this.entityTypeRepository = entityTypeRepository;
-    }
 
     @Override
     public Optional<String> titleFor(String ean, String entityTypeCode) {

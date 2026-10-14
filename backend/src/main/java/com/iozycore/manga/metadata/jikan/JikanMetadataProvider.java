@@ -6,8 +6,7 @@ import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.SourceUnavailableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -36,9 +35,9 @@ import java.util.Map;
  */
 @Component
 @Order(2)
+@Slf4j
 public class JikanMetadataProvider implements MetadataProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(JikanMetadataProvider.class);
     private static final String SEARCH_URL = "https://api.jikan.moe/v4/manga?q=%s&limit=10";
 
     private final HttpClient httpClient = HttpClient.newBuilder()

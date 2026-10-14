@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -65,18 +66,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Accounts, sign-in, session")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService comptes;
     private final AuthenticationManager authentification;
     private final SecurityContextRepository contextes;
-
-    public AuthController(AuthService comptes, AuthenticationManager authentification,
-                           SecurityContextRepository contextes) {
-        this.comptes = comptes;
-        this.authentification = authentification;
-        this.contextes = contextes;
-    }
 
     /** The state of an instance, for a client that does not yet know what to show. */
     public record EtatReponse(boolean aucunCompte, boolean creationOuverte) {

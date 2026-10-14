@@ -1,7 +1,6 @@
 package com.iozycore.core.listing;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
@@ -35,9 +34,8 @@ import java.util.Set;
  * link, not by a robot that crawls the site.
  */
 @Component
+@Slf4j
 public class ListingHttpFetcher {
-
-    private static final Logger log = LoggerFactory.getLogger(ListingHttpFetcher.class);
 
     /** Beyond this, we give up: the user is waiting in front of their form. */
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(12);

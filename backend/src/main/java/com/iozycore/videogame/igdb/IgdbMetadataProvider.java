@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -33,9 +33,10 @@ import java.util.Map;
  * search).
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class IgdbMetadataProvider implements MetadataProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(IgdbMetadataProvider.class);
     private static final String GAMES_URL = "https://api.igdb.com/v4/games";
     private static final String SEARCH_BODY =
             "search \"%s\"; fields name,cover.url,platforms.name,involved_companies.company.name; limit 10;";
@@ -48,10 +49,6 @@ public class IgdbMetadataProvider implements MetadataProvider {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    public IgdbMetadataProvider(IgdbTokenProvider tokenProvider) {
-        this.tokenProvider = tokenProvider;
-    }
 
     @Override
     public boolean supports(EntityType entityType) {

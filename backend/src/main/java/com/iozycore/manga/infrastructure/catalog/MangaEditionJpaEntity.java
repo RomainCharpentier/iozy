@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -12,6 +13,7 @@ import java.util.UUID;
 /** See V4__purchase_analysis.sql (table) and V10__manga_edition_entity_id.sql (entity_id column). */
 @Entity
 @Table(name = "manga_edition")
+@Getter
 public class MangaEditionJpaEntity {
 
     @Id
@@ -79,18 +81,6 @@ public class MangaEditionJpaEntity {
         this.updatedAt = updatedAt;
     }
 
-    public UUID getId() { return id; }
-    public UUID getEntityId() { return entityId; }
-    public String getSeriesTitle() { return seriesTitle; }
-    public String getEditionName() { return editionName; }
-    public String getEditionTier() { return editionTier; }
-    public String getPublisher() { return publisher; }
-    public Integer getTotalVolumes() { return totalVolumes; }
-    public BigDecimal getRetailPriceNewPerVolume() { return retailPriceNewPerVolume; }
     public boolean isOutOfPrint() { return outOfPrint; }
     public boolean isBetterEditionAnnounced() { return betterEditionAnnounced; }
-    public String getBetterEditionNote() { return betterEditionNote; }
-    public String getLanguageCode() { return languageCode; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
 }

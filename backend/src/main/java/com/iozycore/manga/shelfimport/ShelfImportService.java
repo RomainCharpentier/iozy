@@ -17,8 +17,7 @@ import com.iozycore.manga.recognition.ListingRecognitionService;
 import com.iozycore.manga.recognition.RecognitionContext;
 import com.iozycore.manga.recognition.RecognitionImage;
 import com.iozycore.manga.recognition.ResolvedItem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,9 +75,8 @@ import java.util.stream.Collectors;
  * series, label for the volume) as the Catalog and the scan.
  */
 @Service
+@Slf4j
 public class ShelfImportService {
-
-    private static final Logger log = LoggerFactory.getLogger(ShelfImportService.class);
 
     /**
      * How many unknown series are searched at the sources for one

@@ -2,6 +2,7 @@ package com.iozycore.core.infrastructure.persistence.user;
 
 import com.iozycore.core.domain.user.AppUser;
 import com.iozycore.core.domain.user.AppUserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +21,10 @@ interface AppUserJpaRepository extends JpaRepository<AppUserJpaEntity, UUID> {
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaAppUserRepositoryAdapter implements AppUserRepository {
 
     private final AppUserJpaRepository jpaRepository;
-
-    JpaAppUserRepositoryAdapter(AppUserJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public AppUser save(AppUser user) {

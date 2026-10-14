@@ -7,8 +7,7 @@ import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.core.metadata.QuotaExceededException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -56,9 +55,9 @@ import java.util.regex.Pattern;
  */
 @Component
 @Order(4)
+@Slf4j
 public class GoogleBooksTitleSearchProvider implements MetadataProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(GoogleBooksTitleSearchProvider.class);
     private static final String SEARCH_URL =
             "https://www.googleapis.com/books/v1/volumes?q=intitle:%s&langRestrict=fr&maxResults=20";
 

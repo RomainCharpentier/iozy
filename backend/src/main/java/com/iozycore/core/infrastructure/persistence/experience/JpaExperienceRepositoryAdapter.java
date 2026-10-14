@@ -2,6 +2,7 @@ package com.iozycore.core.infrastructure.persistence.experience;
 
 import com.iozycore.core.domain.experience.Experience;
 import com.iozycore.core.domain.experience.ExperienceRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,13 +13,10 @@ import java.util.stream.Collectors;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaExperienceRepositoryAdapter implements ExperienceRepository {
 
     private final ExperienceJpaRepository jpaRepository;
-
-    public JpaExperienceRepositoryAdapter(ExperienceJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public Experience save(Experience experience) {

@@ -9,6 +9,7 @@ import com.iozycore.manga.domain.followededition.FollowedEdition;
 import com.iozycore.manga.domain.followededition.FollowedEditionRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,19 +26,12 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/followed-editions")
 @Tag(name = "Followed editions", description = "The edition of a series that the user collects")
+@RequiredArgsConstructor
 public class FollowedEditionController {
 
     private final FollowedEditionRepository followedEditionRepository;
     private final EntityRepository entityRepository;
     private final WorkFollowing workFollowing;
-
-    public FollowedEditionController(FollowedEditionRepository followedEditionRepository,
-                                     EntityRepository entityRepository,
-                                     WorkFollowing workFollowing) {
-        this.followedEditionRepository = followedEditionRepository;
-        this.entityRepository = entityRepository;
-        this.workFollowing = workFollowing;
-    }
 
     /**
      * PUT and not POST: following an edition is IDEMPOTENT - there is only

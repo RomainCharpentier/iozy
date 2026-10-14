@@ -6,8 +6,7 @@ import com.iozycore.manga.deals.AiEditionAdvisor;
 import com.iozycore.core.insights.ConfidenceLevel;
 import com.iozycore.manga.deals.EditionSuggestion;
 import com.iozycore.manga.domain.EditionTier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,9 +26,8 @@ import com.iozycore.core.gemini.GeminiRequests;
  * simply means this capability is off, never an error surfaced to the user.
  */
 @Component
+@Slf4j
 public class GeminiEditionAdvisor implements AiEditionAdvisor {
-
-    private static final Logger log = LoggerFactory.getLogger(GeminiEditionAdvisor.class);
 
     private static final String PROMPT_TEMPLATE = """
             Tu es un expert des éditions françaises de mangas. Pour la série "%s", édition "%s", \

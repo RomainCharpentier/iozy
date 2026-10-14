@@ -1,7 +1,6 @@
 package com.iozycore.boardgame.bgg;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
@@ -40,9 +39,9 @@ import java.util.List;
  * optional: a game without them is imported anyway.
  */
 @Component
+@Slf4j
 public class BggCollectionFetcher {
 
-    private static final Logger log = LoggerFactory.getLogger(BggCollectionFetcher.class);
     private static final String COLLECTION_URL =
             "https://boardgamegeek.com/xmlapi2/collection?username=%s&own=1&stats=1";
     private static final int MAX_ATTEMPTS = 5;

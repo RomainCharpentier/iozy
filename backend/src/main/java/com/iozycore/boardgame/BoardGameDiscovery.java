@@ -12,8 +12,8 @@ import com.iozycore.core.insights.Discovery.EmptyReason;
 import com.iozycore.core.insights.DiscoveryCandidate;
 import com.iozycore.core.insights.DiscoverySource;
 import com.iozycore.core.metadata.SourceUnavailableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -40,9 +40,10 @@ import java.util.stream.Collectors;
  * or without any category of the owned games, nothing can be suggested at all.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class BoardGameDiscovery implements DiscoverySource {
 
-    private static final Logger log = LoggerFactory.getLogger(BoardGameDiscovery.class);
     private static final int MAX_OWNED_GAMES_EXAMINED = 5;
     private static final int MAX_HOT_GAMES_EXAMINED = 12;
     private static final int MAX_SUGGESTIONS = 8;
@@ -50,13 +51,6 @@ public class BoardGameDiscovery implements DiscoverySource {
     private final EntityRepository entityRepository;
     private final BggThingFetcher bggThingFetcher;
     private final BggHotListFetcher bggHotListFetcher;
-
-    public BoardGameDiscovery(EntityRepository entityRepository, BggThingFetcher bggThingFetcher,
-                              BggHotListFetcher bggHotListFetcher) {
-        this.entityRepository = entityRepository;
-        this.bggThingFetcher = bggThingFetcher;
-        this.bggHotListFetcher = bggHotListFetcher;
-    }
 
     @Override
     public boolean supports(EntityType entityType) {

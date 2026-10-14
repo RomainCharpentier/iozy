@@ -6,8 +6,7 @@ import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.manga.metadata.FrenchTitleMatch;
 import com.iozycore.manga.metadata.FrenchTitleProvider;
 import com.iozycore.core.metadata.QuotaExceededException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -53,9 +52,9 @@ import java.util.regex.Pattern;
  */
 @Component
 @Order(2)
+@Slf4j
 public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(GoogleBooksFrenchTitleProvider.class);
     // maxResults=10 (raised from 5, checked manually on "Zom 100", see
     // history): the "author only" last resort (see findFrenchTitle)
     // is the noisiest of the cascade - a prolific author can have

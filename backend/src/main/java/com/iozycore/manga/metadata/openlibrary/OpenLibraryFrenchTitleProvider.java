@@ -5,8 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.manga.metadata.FrenchTitleMatch;
 import com.iozycore.manga.metadata.FrenchTitleProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -62,9 +61,9 @@ import java.util.stream.Collectors;
  */
 @Component
 @Order(1)
+@Slf4j
 public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(OpenLibraryFrenchTitleProvider.class);
     // limit=10 (same fix as the twin GoogleBooksFrenchTitleProvider,
     // see history): the "author only" last resort is the
     // noisiest of the cascade, a usable numbered-volume result being able to

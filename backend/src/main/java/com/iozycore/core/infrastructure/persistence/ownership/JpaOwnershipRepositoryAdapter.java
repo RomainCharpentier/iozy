@@ -4,6 +4,7 @@ import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.ownership.OwnershipStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,13 +15,10 @@ import java.util.stream.Collectors;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
 
     private final OwnershipJpaRepository jpaRepository;
-
-    public JpaOwnershipRepositoryAdapter(OwnershipJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public Ownership save(Ownership ownership) {

@@ -1,5 +1,6 @@
 package com.iozycore.core.insights;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,13 +14,10 @@ import java.util.UUID;
  * the list is empty and nothing breaks.
  */
 @Service
+@RequiredArgsConstructor
 public class SeriesProgressGateway {
 
     private final List<SeriesProgressSource> sources;
-
-    public SeriesProgressGateway(List<SeriesProgressSource> sources) {
-        this.sources = sources;
-    }
 
     public List<CollectionProgress> computeAll() {
         List<CollectionProgress> toutes = new ArrayList<>();

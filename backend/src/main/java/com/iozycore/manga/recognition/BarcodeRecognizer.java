@@ -1,8 +1,8 @@
 package com.iozycore.manga.recognition;
 
 import com.iozycore.manga.deals.ListingTextParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -41,9 +41,9 @@ import java.util.concurrent.Future;
  * which would teach nothing to anybody.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class BarcodeRecognizer {
-
-    private static final Logger log = LoggerFactory.getLogger(BarcodeRecognizer.class);
 
     /**
      * Beyond that, it is no longer a batch reading but a scan session, and
@@ -75,10 +75,6 @@ public class BarcodeRecognizer {
     private static final int IDENTIFICATIONS_DE_FRONT = 4;
 
     private final BarcodeWorkLookup lookup;
-
-    public BarcodeRecognizer(BarcodeWorkLookup lookup) {
-        this.lookup = lookup;
-    }
 
     /**
      * @param images the photos already in memory, whatever the door

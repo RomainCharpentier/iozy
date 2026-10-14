@@ -4,6 +4,7 @@ import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.Variant;
 import com.iozycore.core.domain.shared.TexteRecherche;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,16 +20,11 @@ import java.util.stream.Collectors;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaEntityRepositoryAdapter implements EntityRepository {
 
     private final EntityJpaRepository entityJpaRepository;
     private final VariantJpaRepository variantJpaRepository;
-
-    public JpaEntityRepositoryAdapter(EntityJpaRepository entityJpaRepository,
-                                       VariantJpaRepository variantJpaRepository) {
-        this.entityJpaRepository = entityJpaRepository;
-        this.variantJpaRepository = variantJpaRepository;
-    }
 
     @Override
     public Entity save(Entity entity) {

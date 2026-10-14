@@ -8,6 +8,7 @@ import com.iozycore.core.metadata.MetadataDetailsService;
 import com.iozycore.core.metadata.MetadataSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,18 +30,12 @@ import java.util.UUID;
 @RequestMapping("/api/metadata")
 @Tag(name = "Metadata", description = "Search of external metadata, all universes: AniList/Jikan/MyAnimeList "
         + "for mangas, BGG for board games, IGDB for video games")
+@RequiredArgsConstructor
 public class MetadataController {
 
     private final MetadataSearchService metadataSearchService;
     private final EntityTypeRepository entityTypeRepository;
     private final MetadataDetailsService metadataDetailsService;
-
-    public MetadataController(MetadataSearchService metadataSearchService, EntityTypeRepository entityTypeRepository,
-                              MetadataDetailsService metadataDetailsService) {
-        this.metadataSearchService = metadataSearchService;
-        this.entityTypeRepository = entityTypeRepository;
-        this.metadataDetailsService = metadataDetailsService;
-    }
 
     @Operation(summary = "Search metadata candidates to pre-fill the quick add (path 1). "
             + "Titles already in the collection are left out - the goal is to prepare an ADD. "

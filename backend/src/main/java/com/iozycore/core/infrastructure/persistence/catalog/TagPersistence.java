@@ -5,6 +5,7 @@ import com.iozycore.core.domain.catalog.TagRepository;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,13 +43,10 @@ interface TagJpaRepository extends JpaRepository<TagJpaEntity, UUID> {
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaTagRepositoryAdapter implements TagRepository {
 
     private final TagJpaRepository jpaRepository;
-
-    JpaTagRepositoryAdapter(TagJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public Tag save(Tag tag) {

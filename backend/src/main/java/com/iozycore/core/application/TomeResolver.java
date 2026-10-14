@@ -4,6 +4,7 @@ import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.Variant;
 import com.iozycore.core.domain.catalog.VariantLabels;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,7 @@ import java.util.List;
  * the wish (see {@code QuickAddService.retirerDesEnvies}).
  */
 @Service
+@RequiredArgsConstructor
 public class TomeResolver {
 
     private final EntityRepository entityRepository;
@@ -44,13 +46,6 @@ public class TomeResolver {
     /** The universes that check a cover, those that keep editions - none is known from here (Batch 133). */
     private final List<CoverImageCheck> coverChecks;
     private final List<EditionLinker> editionLinkers;
-
-    public TomeResolver(EntityRepository entityRepository, List<CoverImageCheck> coverChecks,
-                        List<EditionLinker> editionLinkers) {
-        this.entityRepository = entityRepository;
-        this.coverChecks = coverChecks;
-        this.editionLinkers = editionLinkers;
-    }
 
     /** The canonical Volume of this work, and whether it already existed. */
     public record Resolution(Variant variant, boolean matchedExisting) {

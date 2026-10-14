@@ -2,8 +2,7 @@ package com.iozycore.manga.metadata.googlebooks;
 
 import com.iozycore.core.metadata.QuotaExceededException;
 import com.iozycore.core.metadata.SourceUnavailableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -41,9 +40,9 @@ import java.util.List;
  * fan-out from 8 requests to a single one while the window is active.
  */
 @Component
+@Slf4j
 public class GoogleBooksHttpClient {
 
-    private static final Logger log = LoggerFactory.getLogger(GoogleBooksHttpClient.class);
     private static final Duration COOLDOWN = Duration.ofHours(1);
 
     private final List<String> apiKeys;

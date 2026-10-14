@@ -1,6 +1,7 @@
 package com.iozycore.manga.infrastructure.deals;
 
 import jakarta.persistence.Column;
+import lombok.Getter;
 import org.hibernate.annotations.TenantId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -14,6 +15,7 @@ import java.util.UUID;
 /** See V4__purchase_analysis.sql. */
 @Entity
 @Table(name = "market_price_observation")
+@Getter
 public class MarketPriceObservationJpaEntity {
 
     @Id
@@ -89,22 +91,4 @@ public class MarketPriceObservationJpaEntity {
         this.sourceUrl = sourceUrl;
         this.createdAt = createdAt;
     }
-
-    public UUID getId() { return id; }
-    public UUID getMangaEditionId() { return mangaEditionId; }
-    public Integer getVolumeRangeStart() { return volumeRangeStart; }
-    public Integer getVolumeRangeEnd() { return volumeRangeEnd; }
-    public BigDecimal getObservedPrice() { return observedPrice; }
-    public String getPlatform() { return platform; }
-    public String getObservedCondition() { return observedCondition; }
-    public LocalDate getObservedAt() { return observedAt; }
-    public String getNote() { return note; }
-    public String getOrigin() { return origin; }
-
-    public Integer getVolumeCount() { return volumeCount; }
-
-    public String getListingIdentity() { return listingIdentity; }
-
-    public String getSourceUrl() { return sourceUrl; }
-    public Instant getCreatedAt() { return createdAt; }
 }

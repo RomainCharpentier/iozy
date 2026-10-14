@@ -4,8 +4,7 @@ import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.manga.metadata.VolumeSearchProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
@@ -78,9 +77,9 @@ import java.util.stream.Collectors;
 // same volume, its record is authoritative; Google Books only brings the
 // cover (see TomeSearchService.fusionnerTome).
 @Order(1)
+@Slf4j
 public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(BnfVolumeSearchProvider.class);
     private static final String SEARCH_URL =
             "https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&maximumRecords=100&startRecord=%d&query=%s";
     /** Five pages at most: One Piece (112 volumes, several editions) fits

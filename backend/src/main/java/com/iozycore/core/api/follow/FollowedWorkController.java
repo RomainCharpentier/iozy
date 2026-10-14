@@ -6,6 +6,7 @@ import com.iozycore.core.application.WorkFollowing;
 import com.iozycore.core.domain.follow.FollowedWorkRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,15 +25,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/followed-works")
 @Tag(name = "Followed works", description = "Follow a work: wait for its releases (calendar)")
+@RequiredArgsConstructor
 public class FollowedWorkController {
 
     private final WorkFollowing workFollowing;
     private final FollowedWorkRepository followedWorkRepository;
-
-    public FollowedWorkController(WorkFollowing workFollowing, FollowedWorkRepository followedWorkRepository) {
-        this.workFollowing = workFollowing;
-        this.followedWorkRepository = followedWorkRepository;
-    }
 
     @Operation(summary = "Follow a work (idempotent). Removes the wish for the work: one state at a time.")
     @PutMapping

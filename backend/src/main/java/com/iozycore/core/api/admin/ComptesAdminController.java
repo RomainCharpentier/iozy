@@ -4,6 +4,7 @@ import com.iozycore.core.application.admin.GestionDesComptes;
 import com.iozycore.core.application.auth.AppUserDetailsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,13 +35,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/admin/comptes")
 @Tag(name = "Administration", description = "The accounts of the instance - reserved for administrators")
+@RequiredArgsConstructor
 public class ComptesAdminController {
 
     private final GestionDesComptes comptes;
-
-    public ComptesAdminController(GestionDesComptes comptes) {
-        this.comptes = comptes;
-    }
 
     /**
      * @param volume what the account would destroy if it were deleted - the only

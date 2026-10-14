@@ -1,6 +1,7 @@
 package com.iozycore.core.export;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -20,13 +21,10 @@ import java.util.function.Function;
  * for some rows.
  */
 @Component
+@RequiredArgsConstructor
 public class ExportCsvWriter {
 
     private final ObjectMapper objectMapper;
-
-    public ExportCsvWriter(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
 
     public Map<String, String> writeAll(ExportDocument document) {
         Map<String, String> files = new LinkedHashMap<>();

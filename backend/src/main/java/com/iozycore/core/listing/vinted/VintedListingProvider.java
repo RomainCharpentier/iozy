@@ -6,6 +6,7 @@ import com.iozycore.core.listing.ListingResolution;
 import com.iozycore.core.listing.ListingSnapshot;
 import com.iozycore.core.listing.ListingSnapshot.ListingField;
 import com.iozycore.core.listing.ListingPlatform;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -46,6 +47,7 @@ import java.util.Set;
  * any verdict computation and so does not have to be read or kept.
  */
 @Component
+@RequiredArgsConstructor
 public class VintedListingProvider implements ListingProvider {
 
     /**
@@ -78,10 +80,6 @@ public class VintedListingProvider implements ListingProvider {
     }
 
     private final ListingHttpFetcher fetcher;
-
-    public VintedListingProvider(ListingHttpFetcher fetcher) {
-        this.fetcher = fetcher;
-    }
 
     @Override
     public ListingPlatform platform() {

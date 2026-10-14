@@ -6,8 +6,7 @@ import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.SourceUnavailableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -47,9 +46,9 @@ import java.util.Map;
  */
 @Component
 @Order(3)
+@Slf4j
 public class MyAnimeListMetadataProvider implements MetadataProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(MyAnimeListMetadataProvider.class);
     private static final String SEARCH_URL = "https://api.myanimelist.net/v2/manga?q=%s&limit=10"
             + "&fields=main_picture,media_type,start_date,alternative_titles,"
             + "authors%%7Bfirst_name,last_name%%7D,serialization%%7Bname%%7D,status,num_volumes";

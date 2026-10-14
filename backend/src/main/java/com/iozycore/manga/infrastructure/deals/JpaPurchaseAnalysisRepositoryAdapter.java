@@ -2,6 +2,7 @@ package com.iozycore.manga.infrastructure.deals;
 
 import com.iozycore.manga.deals.PurchaseAnalysis;
 import com.iozycore.manga.deals.PurchaseAnalysisRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,13 +12,10 @@ import java.util.UUID;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaPurchaseAnalysisRepositoryAdapter implements PurchaseAnalysisRepository {
 
     private final PurchaseAnalysisJpaRepository jpaRepository;
-
-    public JpaPurchaseAnalysisRepositoryAdapter(PurchaseAnalysisJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public PurchaseAnalysis save(PurchaseAnalysis analysis) {

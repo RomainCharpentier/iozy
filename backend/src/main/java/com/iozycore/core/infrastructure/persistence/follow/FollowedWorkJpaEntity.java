@@ -4,6 +4,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.TenantId;
 
 import java.time.LocalDate;
@@ -11,6 +14,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "followed_work")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class FollowedWorkJpaEntity {
 
     @Id
@@ -28,18 +33,10 @@ public class FollowedWorkJpaEntity {
     @Column(name = "followed_at", nullable = false)
     private LocalDate followedAt;
 
-    protected FollowedWorkJpaEntity() {
-    }
-
     public FollowedWorkJpaEntity(UUID id, UUID entityId, UUID ownerId, LocalDate followedAt) {
         this.id = id;
         this.entityId = entityId;
         this.ownerId = ownerId;
         this.followedAt = followedAt;
     }
-
-    public UUID getId() { return id; }
-    public UUID getEntityId() { return entityId; }
-    public UUID getOwnerId() { return ownerId; }
-    public LocalDate getFollowedAt() { return followedAt; }
 }

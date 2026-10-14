@@ -4,6 +4,7 @@ import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.tierlist.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
  * still have no general rank").
  */
 @Service
+@RequiredArgsConstructor
 public class TierListService {
 
     private final EntityRepository entityRepository;
@@ -24,16 +26,6 @@ public class TierListService {
     private final EntityRankRepository entityRankRepository;
     private final TierListRepository tierListRepository;
     private final TierListItemRepository tierListItemRepository;
-
-    public TierListService(EntityRepository entityRepository, OwnershipRepository ownershipRepository,
-                            EntityRankRepository entityRankRepository, TierListRepository tierListRepository,
-                            TierListItemRepository tierListItemRepository) {
-        this.entityRepository = entityRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.entityRankRepository = entityRankRepository;
-        this.tierListRepository = tierListRepository;
-        this.tierListItemRepository = tierListItemRepository;
-    }
 
     /** Entities REALLY owned in a universe - see isOwned() on the web side
      * (ShelfPage/ownership.ts) for the same rule: at least one active

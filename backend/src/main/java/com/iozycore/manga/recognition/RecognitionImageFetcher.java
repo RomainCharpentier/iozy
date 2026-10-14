@@ -2,8 +2,7 @@ package com.iozycore.manga.recognition;
 
 import com.iozycore.core.listing.ListingProvider;
 import com.iozycore.core.listing.ListingUrlGuard;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
@@ -48,9 +47,8 @@ import java.util.Set;
  * owner of its images.
  */
 @Component
+@Slf4j
 public class RecognitionImageFetcher {
-
-    private static final Logger log = LoggerFactory.getLogger(RecognitionImageFetcher.class);
 
     // The limits are stated only once, in RecognitionImageLimits:
     // direct upload by the user applies them too, and two copies

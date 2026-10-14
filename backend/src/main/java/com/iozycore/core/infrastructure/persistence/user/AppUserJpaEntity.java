@@ -5,11 +5,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "app_user")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class AppUserJpaEntity {
 
     @Id
@@ -35,9 +40,6 @@ public class AppUserJpaEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected AppUserJpaEntity() {
-    }
-
     public AppUserJpaEntity(UUID id, String email, String passwordHash, String pseudo, boolean admin,
                              Instant createdAt) {
         this.id = id;
@@ -48,10 +50,5 @@ public class AppUserJpaEntity {
         this.createdAt = createdAt;
     }
 
-    public UUID getId() { return id; }
-    public String getEmail() { return email; }
-    public String getPasswordHash() { return passwordHash; }
-    public String getPseudo() { return pseudo; }
     public boolean isAdmin() { return admin; }
-    public Instant getCreatedAt() { return createdAt; }
 }

@@ -5,8 +5,8 @@ import com.iozycore.core.domain.shared.TexteRecherche;
 import com.iozycore.core.metadata.QuotaExceededException;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.core.metadata.TtlCache;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -53,9 +53,9 @@ import java.util.stream.Collectors;
  * table at each change of chain (V33, V34).
  */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class TomeSearchService {
-
-    private static final Logger log = LoggerFactory.getLogger(TomeSearchService.class);
 
     /**
      * The version of the chain that writes the durable rows: providers, their
@@ -83,12 +83,6 @@ public class TomeSearchService {
     private final TtlCache<String, List<VolumeCandidate>> volumeSearchCache = new TtlCache<>(Duration.ofHours(24), 300);
     /** The results obtained while a provider was silent - see searchVolumes. */
     private final TtlCache<String, List<VolumeCandidate>> volumeSearchPartialCache = new TtlCache<>(Duration.ofHours(1), 300);
-
-    public TomeSearchService(List<VolumeSearchProvider> volumeSearchProviders,
-                             VolumeSearchCacheRepository volumeSearchCacheRepository) {
-        this.volumeSearchProviders = volumeSearchProviders;
-        this.volumeSearchCacheRepository = volumeSearchCacheRepository;
-    }
 
     /** The comparison key of titles - accents and punctuation folded, like the local search (see TexteRecherche). */
     private static String normalize(String value) {

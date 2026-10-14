@@ -7,6 +7,7 @@ import com.iozycore.core.domain.share.ShareSettings;
 import com.iozycore.core.domain.share.ShareSettingsRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,15 +26,11 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/share")
 @Tag(name = "Sharing", description = "One link, visible sections of your choice (collection, wishes)")
+@RequiredArgsConstructor
 public class ShareController {
 
     private final ShareSettingsRepository repository;
     private final UtilisateurCourant utilisateurCourant;
-
-    public ShareController(ShareSettingsRepository repository, UtilisateurCourant utilisateurCourant) {
-        this.repository = repository;
-        this.utilisateurCourant = utilisateurCourant;
-    }
 
     @Operation(summary = "Current state of the sharing (token null = no active link)")
     @GetMapping

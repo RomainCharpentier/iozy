@@ -1,8 +1,7 @@
 package com.iozycore.boardgame.bgg;
 
 import com.iozycore.core.metadata.SourceUnavailableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
@@ -27,9 +26,9 @@ import java.util.List;
  * then refined by cross-checking categories through BggThingFetcher.
  */
 @Component
+@Slf4j
 public class BggHotListFetcher {
 
-    private static final Logger log = LoggerFactory.getLogger(BggHotListFetcher.class);
     private static final String HOT_URL = "https://boardgamegeek.com/xmlapi2/hot?type=boardgame";
 
     @Value("${bgg.application-token:}")

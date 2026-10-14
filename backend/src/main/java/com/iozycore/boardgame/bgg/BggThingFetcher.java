@@ -2,8 +2,7 @@ package com.iozycore.boardgame.bgg;
 
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.core.metadata.TtlCache;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
@@ -37,9 +36,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * silent BGG is asked again next time.
  */
 @Component
+@Slf4j
 public class BggThingFetcher {
 
-    private static final Logger log = LoggerFactory.getLogger(BggThingFetcher.class);
     private static final String THING_URL = "https://boardgamegeek.com/xmlapi2/thing?id=%s";
 
     @Value("${bgg.application-token:}")

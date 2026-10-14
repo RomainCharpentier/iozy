@@ -1,6 +1,7 @@
 package com.iozycore.core.infrastructure.persistence.catalog;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "variant")
+@Getter
 public class VariantJpaEntity {
 
     @Id
@@ -38,10 +40,4 @@ public class VariantJpaEntity {
         this.attributes = attributes;
         this.mangaEditionId = mangaEditionId;
     }
-
-    public UUID getId() { return id; }
-    public UUID getEntityId() { return entityId; }
-    public String getLabel() { return label; }
-    public Map<String, Object> getAttributes() { return attributes; }
-    public UUID getMangaEditionId() { return mangaEditionId; }
 }

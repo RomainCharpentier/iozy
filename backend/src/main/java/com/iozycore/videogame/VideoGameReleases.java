@@ -7,6 +7,7 @@ import com.iozycore.core.insights.ReleaseDate;
 import com.iozycore.core.insights.ReleaseEntry;
 import com.iozycore.core.insights.ReleaseSource;
 import com.iozycore.videogame.igdb.IgdbReleaseDates;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import java.util.Optional;
  * a game entered by hand has only the date written on its work page.
  */
 @Component
+@RequiredArgsConstructor
 public class VideoGameReleases implements ReleaseSource {
 
     static final String SOURCE = "IGDB";
@@ -29,10 +31,6 @@ public class VideoGameReleases implements ReleaseSource {
     private static final String COVER_IMAGE_URL = "coverImageUrl";
 
     private final IgdbReleaseDates igdbReleaseDates;
-
-    public VideoGameReleases(IgdbReleaseDates igdbReleaseDates) {
-        this.igdbReleaseDates = igdbReleaseDates;
-    }
 
     @Override
     public boolean supports(EntityType entityType) {

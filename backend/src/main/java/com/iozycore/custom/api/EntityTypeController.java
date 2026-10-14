@@ -12,6 +12,7 @@ import com.iozycore.core.metadata.MetadataProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/entity-types")
 @Tag(name = "EntityTypes", description = "Dynamic type editor - create/list/update/delete "
         + "the collection categories (MANGA/VIDEO_GAME/BOARD_GAME at the start, extensible)")
+@RequiredArgsConstructor
 public class EntityTypeController {
 
     private final EntityTypeRepository entityTypeRepository;
@@ -32,16 +34,6 @@ public class EntityTypeController {
     private final List<MetadataProvider> metadataProviders;
     private final List<DiscoverySource> discoverySources;
     private final List<ReleaseSource> releaseSources;
-
-    public EntityTypeController(EntityTypeRepository entityTypeRepository, EntityTypeService entityTypeService,
-                                 List<MetadataProvider> metadataProviders, List<DiscoverySource> discoverySources,
-                                 List<ReleaseSource> releaseSources) {
-        this.entityTypeRepository = entityTypeRepository;
-        this.entityTypeService = entityTypeService;
-        this.metadataProviders = metadataProviders;
-        this.discoverySources = discoverySources;
-        this.releaseSources = releaseSources;
-    }
 
     /** A custom type (created through this editor) has by construction no provider -
      * only MANGA/VIDEO_GAME/BOARD_GAME have one today (Jikan/BGG/IGDB). */

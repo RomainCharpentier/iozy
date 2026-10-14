@@ -6,8 +6,7 @@ import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -52,9 +51,8 @@ import java.util.regex.Pattern;
  */
 @Component
 @Order(3)
+@Slf4j
 public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(OpenLibraryVolumeSearchProvider.class);
 
     private static final String SEARCH_URL = "https://openlibrary.org/search.json?q=%s&limit=60"
             + "&fields=title,author_name,publisher,first_publish_year,isbn,cover_i";

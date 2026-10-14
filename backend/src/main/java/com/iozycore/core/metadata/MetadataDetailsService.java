@@ -2,8 +2,8 @@ package com.iozycore.core.metadata;
 
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -28,17 +28,12 @@ import java.util.UUID;
  * gave. No provider is mandatory.
  */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class MetadataDetailsService {
-
-    private static final Logger log = LoggerFactory.getLogger(MetadataDetailsService.class);
 
     private final List<MetadataProvider> providers;
     private final EntityTypeRepository entityTypeRepository;
-
-    public MetadataDetailsService(List<MetadataProvider> providers, EntityTypeRepository entityTypeRepository) {
-        this.providers = providers;
-        this.entityTypeRepository = entityTypeRepository;
-    }
 
     /**
      * What the sources of this type know beyond {@code attributes}. Empty

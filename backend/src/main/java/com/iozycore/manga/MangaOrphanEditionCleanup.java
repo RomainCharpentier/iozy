@@ -5,6 +5,7 @@ import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.Variant;
 import com.iozycore.manga.deals.MarketPriceObservationRepository;
 import com.iozycore.manga.domain.MangaEditionRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -16,16 +17,11 @@ import java.util.UUID;
  * extracted from VariantDeletionService in Batch 133).
  */
 @Component
+@RequiredArgsConstructor
 public class MangaOrphanEditionCleanup implements VariantDeletionHook {
 
     private final MangaEditionRepository mangaEditionRepository;
     private final MarketPriceObservationRepository marketPriceObservationRepository;
-
-    public MangaOrphanEditionCleanup(MangaEditionRepository mangaEditionRepository,
-                                     MarketPriceObservationRepository marketPriceObservationRepository) {
-        this.mangaEditionRepository = mangaEditionRepository;
-        this.marketPriceObservationRepository = marketPriceObservationRepository;
-    }
 
     @Override
     public void apresSuppression(Entity oeuvre, Variant tomeSupprime, UUID tomeSupprimeId) {

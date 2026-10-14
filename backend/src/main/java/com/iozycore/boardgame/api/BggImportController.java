@@ -4,6 +4,7 @@ import com.iozycore.boardgame.BggCollectionImportService;
 import com.iozycore.boardgame.bgg.BggCollectionFetcher.BggCollectionUnavailableException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,13 +16,10 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/metadata")
 @Tag(name = "Metadata - board games", description = "Import of a BoardGameGeek collection")
+@RequiredArgsConstructor
 public class BggImportController {
 
     private final BggCollectionImportService bggCollectionImportService;
-
-    public BggImportController(BggCollectionImportService bggCollectionImportService) {
-        this.bggCollectionImportService = bggCollectionImportService;
-    }
 
     @Operation(summary = "Bulk import the games marked \"owned\" in a user's BGG collection "
             + "(automatic deduplication through the same mechanism as quick add)")

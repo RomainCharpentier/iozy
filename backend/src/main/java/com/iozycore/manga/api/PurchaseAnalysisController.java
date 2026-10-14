@@ -18,6 +18,7 @@ import com.iozycore.manga.deals.VolumeRange;
 import com.iozycore.manga.deals.WeightLevel;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,13 +42,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/purchase-analysis")
 @Tag(name = "PurchaseAnalysis", description = "Evaluate a second-hand manga listing (Vinted/Leboncoin/Rakuten) before buying it")
+@RequiredArgsConstructor
 public class PurchaseAnalysisController {
 
     private final PurchaseAnalysisService service;
-
-    public PurchaseAnalysisController(PurchaseAnalysisService service) {
-        this.service = service;
-    }
 
     public record ListingItemRequest(String seriesTitle, String editionName, Set<Integer> includedVolumes,
                                       String itemConditionOverride) {

@@ -1,6 +1,7 @@
 package com.iozycore.core.infrastructure.multitenance;
 
 import com.iozycore.core.application.auth.UtilisateurCourant;
+import lombok.RequiredArgsConstructor;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
@@ -40,13 +41,10 @@ import java.util.UUID;
  * rather than through a silent exception in the resolver.
  */
 @Component
+@RequiredArgsConstructor
 public class ProprietaireCourant implements CurrentTenantIdentifierResolver<UUID>, HibernatePropertiesCustomizer {
 
     private final UtilisateurCourant utilisateurCourant;
-
-    public ProprietaireCourant(UtilisateurCourant utilisateurCourant) {
-        this.utilisateurCourant = utilisateurCourant;
-    }
 
     @Override
     public UUID resolveCurrentTenantIdentifier() {

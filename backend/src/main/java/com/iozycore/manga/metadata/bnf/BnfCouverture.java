@@ -1,7 +1,6 @@
 package com.iozycore.manga.metadata.bnf;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -25,9 +24,9 @@ import java.time.Duration;
  * an image. Hence a check at write time, one per volume added, at the
  * pace of the user's actions.
  */
+@Slf4j
 public final class BnfCouverture {
 
-    private static final Logger log = LoggerFactory.getLogger(BnfCouverture.class);
     private static final String HOTE = "catalogue.bnf.fr";
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 

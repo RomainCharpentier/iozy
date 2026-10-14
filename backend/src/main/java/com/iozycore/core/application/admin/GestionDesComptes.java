@@ -2,6 +2,7 @@ package com.iozycore.core.application.admin;
 
 import com.iozycore.core.domain.user.AppUser;
 import com.iozycore.core.domain.user.AppUserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,15 +32,11 @@ import java.util.UUID;
  * deleting it would remove it from the collection of the others.
  */
 @Service
+@RequiredArgsConstructor
 public class GestionDesComptes {
 
     private final AppUserRepository comptes;
     private final DonneesParProprietaire donnees;
-
-    public GestionDesComptes(AppUserRepository comptes, DonneesParProprietaire donnees) {
-        this.comptes = comptes;
-        this.donnees = donnees;
-    }
 
     /** An account as the administration sees it: enough to decide, never enough to read. */
     public record CompteAdministre(UUID id, String pseudo, String email, boolean admin, Instant creeLe,

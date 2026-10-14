@@ -1,6 +1,9 @@
 package com.iozycore.core.infrastructure.persistence.experience;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -10,6 +13,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "experience")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class ExperienceJpaEntity {
 
     @Id
@@ -45,9 +50,6 @@ public class ExperienceJpaEntity {
 
     private String comment;
 
-    protected ExperienceJpaEntity() {
-    }
-
     public ExperienceJpaEntity(UUID id, UUID entityId, UUID variantId, UUID ownerId, String experienceType,
                                 LocalDate occurredAt, Integer rating, String comment) {
         this.id = id;
@@ -59,13 +61,4 @@ public class ExperienceJpaEntity {
         this.rating = rating;
         this.comment = comment;
     }
-
-    public UUID getId() { return id; }
-    public UUID getEntityId() { return entityId; }
-    public UUID getVariantId() { return variantId; }
-    public UUID getOwnerId() { return ownerId; }
-    public String getExperienceType() { return experienceType; }
-    public LocalDate getOccurredAt() { return occurredAt; }
-    public Integer getRating() { return rating; }
-    public String getComment() { return comment; }
 }

@@ -3,8 +3,8 @@ package com.iozycore.boardgame.bgg;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -46,9 +46,10 @@ import org.springframework.beans.factory.annotation.Value;
  * that would cost ten calls per keystroke.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class BggMetadataProvider implements MetadataProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(BggMetadataProvider.class);
     private static final String SEARCH_URL = "https://boardgamegeek.com/xmlapi2/search?query=%s&type=boardgame";
 
     @Value("${bgg.application-token:}")
@@ -59,10 +60,6 @@ public class BggMetadataProvider implements MetadataProvider {
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
-
-    public BggMetadataProvider(BggThingFetcher thingFetcher) {
-        this.thingFetcher = thingFetcher;
-    }
 
     @Override
     public boolean supports(EntityType entityType) {

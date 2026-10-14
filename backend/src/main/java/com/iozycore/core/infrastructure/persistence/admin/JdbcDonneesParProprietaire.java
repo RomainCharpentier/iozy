@@ -1,6 +1,7 @@
 package com.iozycore.core.infrastructure.persistence.admin;
 
 import com.iozycore.core.application.admin.DonneesParProprietaire;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ import java.util.UUID;
  * breaks at the first test if it gets out of date.
  */
 @Repository
+@RequiredArgsConstructor
 public class JdbcDonneesParProprietaire implements DonneesParProprietaire {
 
     /**
@@ -66,10 +68,6 @@ public class JdbcDonneesParProprietaire implements DonneesParProprietaire {
             """;
 
     private final JdbcTemplate jdbc;
-
-    public JdbcDonneesParProprietaire(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
-    }
 
     @Override
     public Map<UUID, Volume> compter() {

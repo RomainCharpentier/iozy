@@ -12,6 +12,7 @@ import com.iozycore.manga.shelfimport.ShelfImportService;
 import com.iozycore.manga.shelfimport.ShelfItem;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,15 +42,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/shelf-import")
 @Tag(name = "Shelf import", description = "Import your library from photos of the shelf")
+@RequiredArgsConstructor
 public class ShelfImportController {
 
     private final ShelfImportService service;
     private final UploadedImageReader uploadedImageReader;
-
-    public ShelfImportController(ShelfImportService service, UploadedImageReader uploadedImageReader) {
-        this.service = service;
-        this.uploadedImageReader = uploadedImageReader;
-    }
 
     /** The detail page that the sources propose for a series missing from the catalog. */
     public record ProposalResponse(String source, String externalId, String title, String imageUrl,

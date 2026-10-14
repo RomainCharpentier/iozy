@@ -4,21 +4,17 @@ import com.iozycore.core.application.auth.UtilisateurCourant;
 import com.iozycore.manga.deals.CollectorPreferences;
 import com.iozycore.manga.deals.CollectorPreferencesRepository;
 import com.iozycore.manga.deals.WeightLevel;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaCollectorPreferencesRepositoryAdapter implements CollectorPreferencesRepository {
 
     private final CollectorPreferencesJpaRepository jpaRepository;
     private final UtilisateurCourant utilisateurCourant;
-
-    public JpaCollectorPreferencesRepositoryAdapter(CollectorPreferencesJpaRepository jpaRepository,
-                                                     UtilisateurCourant utilisateurCourant) {
-        this.jpaRepository = jpaRepository;
-        this.utilisateurCourant = utilisateurCourant;
-    }
 
     @Override
     public CollectorPreferences find() {

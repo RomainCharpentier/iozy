@@ -2,6 +2,7 @@ package com.iozycore.manga.infrastructure.deals;
 
 import com.iozycore.manga.deals.MarketPriceObservation;
 import com.iozycore.manga.deals.MarketPriceObservationRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,13 +11,10 @@ import java.util.UUID;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaMarketPriceObservationRepositoryAdapter implements MarketPriceObservationRepository {
 
     private final MarketPriceObservationJpaRepository jpaRepository;
-
-    public JpaMarketPriceObservationRepositoryAdapter(MarketPriceObservationJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public MarketPriceObservation save(MarketPriceObservation observation) {

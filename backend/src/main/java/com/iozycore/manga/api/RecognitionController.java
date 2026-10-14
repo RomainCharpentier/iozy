@@ -10,6 +10,7 @@ import com.iozycore.manga.recognition.ResolvedItem;
 import com.iozycore.manga.recognition.UploadedImageReader;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,15 +64,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/recognition")
 @Tag(name = "Recognition", description = "Detect the items of a listing from its text and its photos")
+@RequiredArgsConstructor
 public class RecognitionController {
 
     private final ListingRecognitionService service;
     private final UploadedImageReader uploadedImageReader;
-
-    public RecognitionController(ListingRecognitionService service, UploadedImageReader uploadedImageReader) {
-        this.service = service;
-        this.uploadedImageReader = uploadedImageReader;
-    }
 
     /**
      * @param title       title of the listing - read locally, never sent to an external engine

@@ -4,6 +4,7 @@ import com.iozycore.manga.deals.AiPriceEstimate;
 import com.iozycore.manga.deals.AiPriceEstimateCacheRepository;
 import com.iozycore.manga.deals.Condition;
 import com.iozycore.core.insights.ConfidenceLevel;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,13 +14,10 @@ import java.util.UUID;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaAiPriceEstimateCacheRepositoryAdapter implements AiPriceEstimateCacheRepository {
 
     private final AiPriceEstimateCacheJpaRepository jpaRepository;
-
-    public JpaAiPriceEstimateCacheRepositoryAdapter(AiPriceEstimateCacheJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public Optional<AiPriceEstimate> find(String seriesTitle, String editionName, Condition condition) {

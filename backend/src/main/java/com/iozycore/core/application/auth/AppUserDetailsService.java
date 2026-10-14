@@ -2,6 +2,7 @@ package com.iozycore.core.application.auth;
 
 import com.iozycore.core.domain.user.AppUser;
 import com.iozycore.core.domain.user.AppUserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -19,6 +20,7 @@ import java.util.UUID;
  * would force each write to reopen the accounts table.
  */
 @Service
+@RequiredArgsConstructor
 public class AppUserDetailsService implements UserDetailsService {
 
     /** The only role of this application. It gives access to nothing of the data
@@ -30,10 +32,6 @@ public class AppUserDetailsService implements UserDetailsService {
     private static final List<org.springframework.security.core.GrantedAuthority> AUCUN_ROLE = List.of();
 
     private final AppUserRepository comptes;
-
-    public AppUserDetailsService(AppUserRepository comptes) {
-        this.comptes = comptes;
-    }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {

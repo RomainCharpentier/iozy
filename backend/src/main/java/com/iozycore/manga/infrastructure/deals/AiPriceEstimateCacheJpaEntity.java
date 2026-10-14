@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -14,6 +15,7 @@ import java.util.UUID;
  * price_per_volume is an answer ("I do not know"), not an absence. */
 @Entity
 @Table(name = "ai_price_estimate_cache")
+@Getter
 public class AiPriceEstimateCacheJpaEntity {
 
     @Id
@@ -56,9 +58,4 @@ public class AiPriceEstimateCacheJpaEntity {
         this.rationale = rationale;
         this.fetchedAt = fetchedAt;
     }
-
-    public UUID getId() { return id; }
-    public BigDecimal getPricePerVolume() { return pricePerVolume; }
-    public String getConfidence() { return confidence; }
-    public String getRationale() { return rationale; }
 }

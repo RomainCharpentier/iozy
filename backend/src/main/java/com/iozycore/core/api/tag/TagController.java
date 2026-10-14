@@ -5,6 +5,7 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.Tag;
 import com.iozycore.core.domain.catalog.TagRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,6 +34,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/tags")
+@RequiredArgsConstructor
 public class TagController {
 
     public record CreateTagRequest(String label) {
@@ -43,11 +45,6 @@ public class TagController {
 
     private final TagRepository tagRepository;
     private final EntityRepository entityRepository;
-
-    public TagController(TagRepository tagRepository, EntityRepository entityRepository) {
-        this.tagRepository = tagRepository;
-        this.entityRepository = entityRepository;
-    }
 
     @Operation(summary = "Create a Tag (reusable on several Entities)")
     @PostMapping

@@ -3,6 +3,7 @@ package com.iozycore.core.metadata;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.shared.TexteRecherche;
 import com.iozycore.core.metadata.catalog.CatalogSearchService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
  * call per time window.
  */
 @Service
+@RequiredArgsConstructor
 public class MetadataSearchService {
 
     private final List<MetadataProvider> providers;
@@ -83,14 +85,6 @@ public class MetadataSearchService {
      * key and a boolean.
      */
     private final TtlCache<String, Boolean> barcodeMissCache = new TtlCache<>(Duration.ofMinutes(30), 1000);
-
-    public MetadataSearchService(List<MetadataProvider> providers,
-                                  List<BarcodeMetadataProvider> barcodeProviders,
-                                  CatalogSearchService catalogue) {
-        this.providers = providers;
-        this.barcodeProviders = barcodeProviders;
-        this.catalogue = catalogue;
-    }
 
     /**
      * Excludes the candidates whose title already matches an Entity of this

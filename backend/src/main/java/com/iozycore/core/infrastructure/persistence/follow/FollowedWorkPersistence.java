@@ -2,6 +2,7 @@ package com.iozycore.core.infrastructure.persistence.follow;
 
 import com.iozycore.core.domain.follow.FollowedWork;
 import com.iozycore.core.domain.follow.FollowedWorkRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,13 +17,10 @@ interface FollowedWorkJpaRepository extends JpaRepository<FollowedWorkJpaEntity,
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaFollowedWorkRepositoryAdapter implements FollowedWorkRepository {
 
     private final FollowedWorkJpaRepository jpaRepository;
-
-    JpaFollowedWorkRepositoryAdapter(FollowedWorkJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public FollowedWork save(FollowedWork work) {

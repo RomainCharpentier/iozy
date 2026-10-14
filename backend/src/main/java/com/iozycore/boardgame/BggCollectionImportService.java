@@ -5,8 +5,8 @@ import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.boardgame.bgg.BggCollectionFetcher;
 import com.iozycore.boardgame.bgg.BggCollectionItem;
 import com.iozycore.core.application.QuickAddService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -26,20 +26,13 @@ import java.util.UUID;
  * of a collection of 200 games does not make the other 199 fail.
  */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class BggCollectionImportService {
-
-    private static final Logger log = LoggerFactory.getLogger(BggCollectionImportService.class);
 
     private final BggCollectionFetcher collectionFetcher;
     private final QuickAddService quickAddService;
     private final EntityTypeRepository entityTypeRepository;
-
-    public BggCollectionImportService(BggCollectionFetcher collectionFetcher, QuickAddService quickAddService,
-                                       EntityTypeRepository entityTypeRepository) {
-        this.collectionFetcher = collectionFetcher;
-        this.quickAddService = quickAddService;
-        this.entityTypeRepository = entityTypeRepository;
-    }
 
     public record ImportResult(int totalFound, int created, int matchedExisting, int failed) {
     }

@@ -2,6 +2,7 @@ package com.iozycore.manga.infrastructure.metadata;
 
 import com.iozycore.manga.metadata.VolumeCandidate;
 import jakarta.persistence.*;
+import lombok.Getter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -13,6 +14,7 @@ import java.util.UUID;
  * normalised (trim + lowercase), never displayed as is. */
 @Entity
 @Table(name = "volume_search_cache")
+@Getter
 public class VolumeSearchCacheJpaEntity {
 
     @Id
@@ -51,12 +53,4 @@ public class VolumeSearchCacheJpaEntity {
         this.fetchedAt = fetchedAt;
         this.chainVersion = chainVersion;
     }
-
-    public UUID getId() { return id; }
-    public UUID getEntityTypeId() { return entityTypeId; }
-    public String getSeriesTitle() { return seriesTitle; }
-    public String getAuthor() { return author; }
-    public List<VolumeCandidate> getVolumes() { return volumes; }
-    public Instant getFetchedAt() { return fetchedAt; }
-    public int getChainVersion() { return chainVersion; }
 }

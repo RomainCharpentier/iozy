@@ -2,6 +2,7 @@ package com.iozycore.manga.metadata;
 
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.TtlCache;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -39,6 +40,7 @@ import java.util.stream.Stream;
  * client side).
  */
 @Service
+@RequiredArgsConstructor
 public class RelatedSeriesService {
 
     private final List<RelatedSeriesProvider> providers;
@@ -51,10 +53,6 @@ public class RelatedSeriesService {
     // French title searched (the same malId series can be searched under
     // several titles/volumes).
     private final TtlCache<String, List<String>> cache = new TtlCache<>(Duration.ofHours(24), 500);
-
-    public RelatedSeriesService(List<RelatedSeriesProvider> providers) {
-        this.providers = providers;
-    }
 
     /**
      * @param externalId   malId (or equivalent) of the selected candidate, already

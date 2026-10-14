@@ -15,8 +15,8 @@ import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.QuotaExceededException;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.core.metadata.TtlCache;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -59,9 +59,10 @@ import java.util.stream.Collectors;
  * a partial list must not hide the missing author for half an hour.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class MangaDiscovery implements DiscoverySource {
 
-    private static final Logger log = LoggerFactory.getLogger(MangaDiscovery.class);
     private static final int MAX_SUGGESTIONS = 8;
     private static final Duration RETENUE = Duration.ofMinutes(30);
 
@@ -69,13 +70,6 @@ public class MangaDiscovery implements DiscoverySource {
     private final ExperienceRepository experienceRepository;
     private final List<MetadataProvider> metadataProviders;
     private final TtlCache<String, Discovery> memoire = new TtlCache<>(RETENUE, 64);
-
-    public MangaDiscovery(EntityRepository entityRepository, ExperienceRepository experienceRepository,
-                          List<MetadataProvider> metadataProviders) {
-        this.entityRepository = entityRepository;
-        this.experienceRepository = experienceRepository;
-        this.metadataProviders = metadataProviders;
-    }
 
     @Override
     public boolean supports(EntityType entityType) {

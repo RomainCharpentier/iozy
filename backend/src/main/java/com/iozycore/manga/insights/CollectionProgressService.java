@@ -7,6 +7,7 @@ import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.core.domain.catalog.Variant;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -57,6 +58,7 @@ import com.iozycore.core.insights.SeriesProgressSource;
  * </ol>
  */
 @Service
+@RequiredArgsConstructor
 public class CollectionProgressService implements SeriesProgressSource {
 
     private static final String EDITION = "edition";
@@ -65,14 +67,6 @@ public class CollectionProgressService implements SeriesProgressSource {
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
     private final MangaEditionRepository mangaEditionRepository;
-
-    public CollectionProgressService(EntityRepository entityRepository,
-                                      OwnershipRepository ownershipRepository,
-                                      MangaEditionRepository mangaEditionRepository) {
-        this.entityRepository = entityRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.mangaEditionRepository = mangaEditionRepository;
-    }
 
     /** Progression of all the works - a single pass over the Ownership objects, so that
      * Ma collection does not have to make one query per series. */

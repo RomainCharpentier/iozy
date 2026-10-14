@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,15 +60,11 @@ interface ShareSettingsJpaRepository extends JpaRepository<ShareSettingsJpaEntit
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
 
     private final ShareSettingsJpaRepository jpaRepository;
     private final UtilisateurCourant utilisateurCourant;
-
-    JpaShareSettingsRepositoryAdapter(ShareSettingsJpaRepository jpaRepository, UtilisateurCourant utilisateurCourant) {
-        this.jpaRepository = jpaRepository;
-        this.utilisateurCourant = utilisateurCourant;
-    }
 
     @Override
     public ShareSettings find() {

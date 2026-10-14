@@ -1,6 +1,9 @@
 package com.iozycore.core.infrastructure.persistence.ownership;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.TenantId;
 
 import java.math.BigDecimal;
@@ -9,6 +12,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "ownership")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class OwnershipJpaEntity {
 
     @Id
@@ -42,9 +47,6 @@ public class OwnershipJpaEntity {
     @Column(name = "purchase_price")
     private BigDecimal purchasePrice;
 
-    protected OwnershipJpaEntity() {
-    }
-
     public OwnershipJpaEntity(UUID id, UUID entityId, UUID variantId, UUID ownerId, String condition,
                                String status, LocalDate acquiredAt, String note, BigDecimal purchasePrice) {
         this.id = id;
@@ -57,14 +59,4 @@ public class OwnershipJpaEntity {
         this.note = note;
         this.purchasePrice = purchasePrice;
     }
-
-    public UUID getId() { return id; }
-    public UUID getEntityId() { return entityId; }
-    public UUID getVariantId() { return variantId; }
-    public UUID getOwnerId() { return ownerId; }
-    public String getCondition() { return condition; }
-    public String getStatus() { return status; }
-    public LocalDate getAcquiredAt() { return acquiredAt; }
-    public String getNote() { return note; }
-    public BigDecimal getPurchasePrice() { return purchasePrice; }
 }

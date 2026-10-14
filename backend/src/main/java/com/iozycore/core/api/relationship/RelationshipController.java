@@ -4,6 +4,7 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.Relationship;
 import com.iozycore.core.domain.catalog.RelationshipRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/relationships")
+@RequiredArgsConstructor
 public class RelationshipController {
 
     public record CreateRelationshipRequest(UUID sourceEntityId, UUID targetEntityId, String relationshipType) {
@@ -32,11 +34,6 @@ public class RelationshipController {
 
     private final RelationshipRepository relationshipRepository;
     private final EntityRepository entityRepository;
-
-    public RelationshipController(RelationshipRepository relationshipRepository, EntityRepository entityRepository) {
-        this.relationshipRepository = relationshipRepository;
-        this.entityRepository = entityRepository;
-    }
 
     @Operation(summary = "Create a typed relationship between two Entities (e.g. ADAPTED_INTO, PART_OF_SERIES)")
     @PostMapping

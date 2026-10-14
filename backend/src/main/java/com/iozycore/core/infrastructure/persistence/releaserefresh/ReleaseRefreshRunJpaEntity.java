@@ -5,12 +5,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import lombok.Getter;
 import java.time.Instant;
 import java.util.UUID;
 
 /** See V36__release_refresh_run.sql - no owner column: the refresh works on the shared catalog. */
 @Entity
 @Table(name = "release_refresh_run")
+@Getter
 public class ReleaseRefreshRunJpaEntity {
 
     @Id
@@ -52,12 +54,5 @@ public class ReleaseRefreshRunJpaEntity {
         this.error = error;
     }
 
-    public UUID getId() { return id; }
-    public Instant getStartedAt() { return startedAt; }
-    public Instant getFinishedAt() { return finishedAt; }
-    public String getOrigin() { return origin; }
-    public int getStaleCount() { return staleCount; }
-    public int getRefreshedCount() { return refreshedCount; }
     public boolean isStoppedOnProvider() { return stoppedOnProvider; }
-    public String getError() { return error; }
 }

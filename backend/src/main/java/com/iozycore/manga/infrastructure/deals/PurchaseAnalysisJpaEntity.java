@@ -2,6 +2,7 @@ package com.iozycore.manga.infrastructure.deals;
 
 import com.iozycore.manga.deals.PurchaseAnalysis;
 import jakarta.persistence.Column;
+import lombok.Getter;
 import org.hibernate.annotations.TenantId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -22,6 +23,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "purchase_analysis")
+@Getter
 public class PurchaseAnalysisJpaEntity {
 
     @Id
@@ -114,8 +116,4 @@ public class PurchaseAnalysisJpaEntity {
         this.negotiationAdvice = negotiationAdvice;
         this.payload = payload;
     }
-
-    public UUID getId() { return id; }
-    public Instant getCreatedAt() { return createdAt; }
-    public PurchaseAnalysis getPayload() { return payload; }
 }

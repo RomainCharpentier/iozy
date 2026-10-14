@@ -13,6 +13,7 @@ import com.iozycore.manga.domain.followededition.FollowedEditionRepository;
 import com.iozycore.manga.metadata.StoredVolumeSearch;
 import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchCacheRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ import java.util.stream.Collectors;
  * owned; missing otherwise - this is the case that calls for an action.
  */
 @Component
+@RequiredArgsConstructor
 public class MangaReleases implements ReleaseSource {
 
     /** Days and months come from Google Books; BnF only dates to the year. */
@@ -64,12 +66,6 @@ public class MangaReleases implements ReleaseSource {
 
     private final VolumeSearchCacheRepository volumeSearchCacheRepository;
     private final FollowedEditionRepository followedEditionRepository;
-
-    public MangaReleases(VolumeSearchCacheRepository volumeSearchCacheRepository,
-                         FollowedEditionRepository followedEditionRepository) {
-        this.volumeSearchCacheRepository = volumeSearchCacheRepository;
-        this.followedEditionRepository = followedEditionRepository;
-    }
 
     @Override
     public boolean supports(EntityType entityType) {

@@ -5,6 +5,7 @@ import com.iozycore.core.export.ImportReport;
 import com.iozycore.core.export.ImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,13 +29,10 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/import")
 @Tag(name = "Import", description = "Re-import a JSON export of the collection - dry run analysis, then application")
+@RequiredArgsConstructor
 public class ImportController {
 
     private final ImportService importService;
-
-    public ImportController(ImportService importService) {
-        this.importService = importService;
-    }
 
     @Operation(summary = "Analyze a JSON export without writing anything: what would be created, attached to what exists, or ignored")
     @PostMapping("/analyse")

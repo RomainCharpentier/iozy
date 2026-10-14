@@ -27,6 +27,7 @@ import com.iozycore.core.domain.tierlist.TierListItemRepository;
 import com.iozycore.core.domain.tierlist.TierListRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,6 +77,7 @@ import java.util.UUID;
  * nothing there.
  */
 @Service
+@RequiredArgsConstructor
 public class ImportService {
 
     private final EntityRepository entityRepository;
@@ -91,28 +93,6 @@ public class ImportService {
     private final TierListItemRepository tierListItemRepository;
     /** What each universe imports in addition - manga, its editions and its prices (Batch 133). */
     private final List<TransferModule> modules;
-
-    public ImportService(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
-                         TagRepository tagRepository,
-                         RelationshipRepository relationshipRepository, OwnershipRepository ownershipRepository,
-                         ExperienceRepository experienceRepository, WishlistEntryRepository wishlistEntryRepository,
-                         FollowedWorkRepository followedWorkRepository,
-                         EntityRankRepository entityRankRepository, TierListRepository tierListRepository,
-                         TierListItemRepository tierListItemRepository,
-                         List<TransferModule> modules) {
-        this.entityRepository = entityRepository;
-        this.entityTypeRepository = entityTypeRepository;
-        this.tagRepository = tagRepository;
-        this.relationshipRepository = relationshipRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.experienceRepository = experienceRepository;
-        this.wishlistEntryRepository = wishlistEntryRepository;
-        this.followedWorkRepository = followedWorkRepository;
-        this.entityRankRepository = entityRankRepository;
-        this.tierListRepository = tierListRepository;
-        this.tierListItemRepository = tierListItemRepository;
-        this.modules = modules;
-    }
 
     /** Tells what the import would do, without writing anything. */
     @Transactional(readOnly = true)

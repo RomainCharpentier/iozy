@@ -11,6 +11,7 @@ import com.iozycore.core.domain.experience.Experience;
 import com.iozycore.core.domain.experience.ExperienceRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,18 +23,12 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/experiences")
 @Tag(name = "Experiences", description = "UC3 - lived experiences, independent of Ownerships")
+@RequiredArgsConstructor
 public class ExperienceController {
 
     private final ExperienceRepository experienceRepository;
     private final EntityRepository entityRepository;
     private final EntityTypeRepository entityTypeRepository;
-
-    public ExperienceController(ExperienceRepository experienceRepository, EntityRepository entityRepository,
-                                 EntityTypeRepository entityTypeRepository) {
-        this.experienceRepository = experienceRepository;
-        this.entityRepository = entityRepository;
-        this.entityTypeRepository = entityTypeRepository;
-    }
 
     @Operation(summary = "Record an Experience (read/played/finished...), without requiring ownership")
     @PostMapping

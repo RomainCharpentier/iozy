@@ -8,6 +8,7 @@ import com.iozycore.core.domain.ownership.OwnershipStatus;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.metadata.MetadataDetailsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.util.UUID;
  * {@code ApiExceptionHandler} turns them into responses.
  */
 @Service
+@RequiredArgsConstructor
 public class WishlistService {
 
     private final WishlistEntryRepository wishlistEntryRepository;
@@ -35,24 +37,6 @@ public class WishlistService {
     private final TomeResolver tomeResolver;
     private final WorkFollowing workFollowing;
     private final MetadataDetailsService metadataDetailsService;
-
-    public WishlistService(WishlistEntryRepository wishlistEntryRepository,
-                           OwnershipRepository ownershipRepository,
-                           EntityRepository entityRepository,
-                           EntityTypeRepository entityTypeRepository,
-                           CatalogEntityResolver catalogEntityResolver,
-                           TomeResolver tomeResolver,
-                           WorkFollowing workFollowing,
-                           MetadataDetailsService metadataDetailsService) {
-        this.wishlistEntryRepository = wishlistEntryRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.entityRepository = entityRepository;
-        this.entityTypeRepository = entityTypeRepository;
-        this.catalogEntityResolver = catalogEntityResolver;
-        this.tomeResolver = tomeResolver;
-        this.workFollowing = workFollowing;
-        this.metadataDetailsService = metadataDetailsService;
-    }
 
     /**
      * What to add. The work is given by {@code entityId}, or by {@code entityTypeId} +

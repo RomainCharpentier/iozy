@@ -5,6 +5,7 @@ import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -18,13 +19,10 @@ import java.util.UUID;
  * TomeResolver in Batch 133).
  */
 @Component
+@RequiredArgsConstructor
 public class MangaEditionLinker implements EditionLinker {
 
     private final MangaEditionRepository mangaEditionRepository;
-
-    public MangaEditionLinker(MangaEditionRepository mangaEditionRepository) {
-        this.mangaEditionRepository = mangaEditionRepository;
-    }
 
     @Override
     public Optional<UUID> editionIdPour(Entity oeuvre, String nomEdition) {

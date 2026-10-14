@@ -1,7 +1,6 @@
 package com.iozycore.manga.recognition;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,9 +44,8 @@ import java.util.List;
  * the user and sometimes carries more than it seems.
  */
 @Component
+@Slf4j
 public class UploadedImageReader {
-
-    private static final Logger log = LoggerFactory.getLogger(UploadedImageReader.class);
 
     /** What was kept, and what was dropped - the screen must be able to say it. */
     public record Intake(List<RecognitionImage> images, int rejectedCount) {

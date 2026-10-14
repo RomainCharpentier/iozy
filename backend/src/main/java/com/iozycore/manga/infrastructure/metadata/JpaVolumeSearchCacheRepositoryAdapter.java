@@ -4,6 +4,7 @@ import com.iozycore.manga.metadata.StoredVolumeSearch;
 import com.iozycore.manga.metadata.StoredVolumeSearchKey;
 import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchCacheRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,13 +16,10 @@ import java.util.UUID;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaVolumeSearchCacheRepositoryAdapter implements VolumeSearchCacheRepository {
 
     private final VolumeSearchCacheJpaRepository jpaRepository;
-
-    public JpaVolumeSearchCacheRepositoryAdapter(VolumeSearchCacheJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public Optional<StoredVolumeSearch> find(UUID entityTypeId, String seriesTitle, String author) {

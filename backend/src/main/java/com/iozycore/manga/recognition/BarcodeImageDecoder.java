@@ -9,8 +9,7 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.multi.GenericMultipleBarcodeReader;
 import com.google.zxing.oned.MultiFormatOneDReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -52,9 +51,8 @@ import java.util.Set;
  * leads to a merchant page, never to a work. Searching for all of them would cost
  * time for noise.
  */
+@Slf4j
 public final class BarcodeImageDecoder {
-
-    private static final Logger log = LoggerFactory.getLogger(BarcodeImageDecoder.class);
 
     /**
      * Several codes per photo: a pile of mangas seen from the back shows as many

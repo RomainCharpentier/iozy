@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.SourceUnavailableException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +25,7 @@ import java.util.Map;
  * a single call per owned game is enough for discovery (see DiscoveryService).
  */
 @Component
+@RequiredArgsConstructor
 public class IgdbSimilarGamesFetcher {
 
     private static final String GAMES_URL = "https://api.igdb.com/v4/games";
@@ -38,10 +40,6 @@ public class IgdbSimilarGamesFetcher {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    public IgdbSimilarGamesFetcher(IgdbTokenProvider tokenProvider) {
-        this.tokenProvider = tokenProvider;
-    }
 
     /**
      * @throws SourceUnavailableException when IGDB did not answer - never an

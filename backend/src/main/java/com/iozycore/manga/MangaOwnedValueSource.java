@@ -5,6 +5,7 @@ import com.iozycore.core.insights.OwnedValueSource;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.manga.insights.CollectionProgressService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -20,15 +21,11 @@ import java.util.Map;
  * (logic extracted from StatsService in Batch 133).
  */
 @Component
+@RequiredArgsConstructor
 public class MangaOwnedValueSource implements OwnedValueSource {
 
     private final MangaEditionRepository mangaEditionRepository;
     private final CollectionProgressService progressService;
-
-    public MangaOwnedValueSource(MangaEditionRepository mangaEditionRepository, CollectionProgressService progressService) {
-        this.mangaEditionRepository = mangaEditionRepository;
-        this.progressService = progressService;
-    }
 
     @Override
     public List<OwnedValue> valeurs() {

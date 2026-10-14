@@ -3,6 +3,7 @@ package com.iozycore.core.metadata.catalog;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.shared.TexteRecherche;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,13 +26,10 @@ import java.util.stream.Collectors;
  * the database contains, it writes nothing to it.
  */
 @Service
+@RequiredArgsConstructor
 public class CatalogSearchService {
 
     private final EntityRepository entityRepository;
-
-    public CatalogSearchService(EntityRepository entityRepository) {
-        this.entityRepository = entityRepository;
-    }
 
     /** Cross-type search on the catalog (UC4): by title, filterable by type and/or tag, all optional. */
     public List<Entity> rechercher(String titre, UUID entityTypeId, UUID tagId) {

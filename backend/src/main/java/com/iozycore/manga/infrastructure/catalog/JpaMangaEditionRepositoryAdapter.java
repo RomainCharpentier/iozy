@@ -2,6 +2,7 @@ package com.iozycore.manga.infrastructure.catalog;
 
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,13 +13,10 @@ import java.util.stream.Collectors;
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 public class JpaMangaEditionRepositoryAdapter implements MangaEditionRepository {
 
     private final MangaEditionJpaRepository jpaRepository;
-
-    public JpaMangaEditionRepositoryAdapter(MangaEditionJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public MangaEdition save(MangaEdition edition) {

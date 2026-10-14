@@ -9,8 +9,7 @@ import com.iozycore.manga.recognition.RecognitionContext;
 import com.iozycore.manga.recognition.RecognitionImage;
 import com.iozycore.manga.recognition.RecognitionResult;
 import com.iozycore.manga.recognition.RecognizedItem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -51,9 +50,8 @@ import java.util.Set;
  * universe code.
  */
 @Component
+@Slf4j
 public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(GeminiVisionRecognitionProvider.class);
 
     /** Several megabytes of images to upload: a text timeout is not enough. */
     private static final Duration TIMEOUT = Duration.ofSeconds(45);

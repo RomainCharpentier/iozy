@@ -7,8 +7,7 @@ import com.iozycore.core.metadata.QuotaExceededException;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -64,9 +63,9 @@ import java.util.stream.Collectors;
 // search, and editions guessed in a free title. Still
 // essential for the covers, which the BnF does not have.
 @Order(2)
+@Slf4j
 public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(GoogleBooksVolumeSearchProvider.class);
     private static final String SEARCH_URL =
             "https://www.googleapis.com/books/v1/volumes?q=%s&langRestrict=fr&maxResults=40";
 

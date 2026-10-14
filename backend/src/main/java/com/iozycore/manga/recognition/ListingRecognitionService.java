@@ -1,7 +1,6 @@
 package com.iozycore.manga.recognition;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -47,9 +46,8 @@ import java.util.List;
  * proposals; writing comes from an action of the user, elsewhere.
  */
 @Service
+@Slf4j
 public class ListingRecognitionService {
-
-    private static final Logger log = LoggerFactory.getLogger(ListingRecognitionService.class);
 
     private final RecognitionImageFetcher fetcher;
     private final RecognitionCatalogResolver catalogResolver;

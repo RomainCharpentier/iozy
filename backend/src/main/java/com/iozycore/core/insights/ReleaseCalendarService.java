@@ -11,6 +11,7 @@ import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -53,6 +54,7 @@ import java.util.stream.Collectors;
  * would cost 300 queries (batch 141).
  */
 @Service
+@RequiredArgsConstructor
 public class ReleaseCalendarService {
 
     /** The attribute of a work that carries its release date typed by hand: "2026-10-14" or "2026-10". */
@@ -79,18 +81,6 @@ public class ReleaseCalendarService {
     private final WishlistEntryRepository wishlistEntryRepository;
     private final FollowedWorkRepository followedWorkRepository;
     private final List<ReleaseSource> sources;
-
-    public ReleaseCalendarService(EntityTypeRepository entityTypeRepository, EntityRepository entityRepository,
-                                  OwnershipRepository ownershipRepository,
-                                  WishlistEntryRepository wishlistEntryRepository,
-                                  FollowedWorkRepository followedWorkRepository, List<ReleaseSource> sources) {
-        this.entityTypeRepository = entityTypeRepository;
-        this.entityRepository = entityRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.wishlistEntryRepository = wishlistEntryRepository;
-        this.followedWorkRepository = followedWorkRepository;
-        this.sources = sources;
-    }
 
     /** True when a universe can date the releases of this category without them being typed. */
     public boolean hasReleaseSource(EntityType entityType) {

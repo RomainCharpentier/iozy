@@ -5,8 +5,8 @@ import com.iozycore.core.domain.shared.TexteRecherche;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.TtlCache;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -31,18 +31,13 @@ import java.util.stream.Collectors;
  * to fail for 24 h.
  */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class FrenchTitleService {
-
-    private static final Logger log = LoggerFactory.getLogger(FrenchTitleService.class);
 
     private final List<MetadataProvider> providers;
     private final List<FrenchTitleProvider> frenchTitleProviders;
     private final TtlCache<String, String> frenchTitleCache = new TtlCache<>(Duration.ofHours(24), 500);
-
-    public FrenchTitleService(List<MetadataProvider> providers, List<FrenchTitleProvider> frenchTitleProviders) {
-        this.providers = providers;
-        this.frenchTitleProviders = frenchTitleProviders;
-    }
 
     /** The comparison key of titles - accents and punctuation folded, like the local search (see TexteRecherche). */
     private static String normalize(String value) {

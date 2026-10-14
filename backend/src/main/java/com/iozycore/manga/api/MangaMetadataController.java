@@ -14,6 +14,7 @@ import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/metadata")
 @Tag(name = "Metadata - mangas", description = "French title, volumes and editions of a series (BnF, Google Books, "
         + "Open Library)")
+@RequiredArgsConstructor
 public class MangaMetadataController {
 
     private final FrenchTitleService frenchTitleService;
@@ -44,20 +46,6 @@ public class MangaMetadataController {
     private final EntityTypeRepository entityTypeRepository;
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
-
-    public MangaMetadataController(FrenchTitleService frenchTitleService,
-                                   TomeSearchService tomeSearchService,
-                                   RelatedSeriesService relatedSeriesService,
-                                   EntityTypeRepository entityTypeRepository,
-                                   EntityRepository entityRepository,
-                                   OwnershipRepository ownershipRepository) {
-        this.frenchTitleService = frenchTitleService;
-        this.tomeSearchService = tomeSearchService;
-        this.relatedSeriesService = relatedSeriesService;
-        this.entityTypeRepository = entityTypeRepository;
-        this.entityRepository = entityRepository;
-        this.ownershipRepository = ownershipRepository;
-    }
 
     @Operation(summary = "Best-effort search of a French edition title (Open Library, then Google Books as "
             + "fallback) for an already chosen title (mangas) - neither Jikan nor MyAnimeList know it. Triggered "

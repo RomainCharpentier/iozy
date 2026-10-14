@@ -6,6 +6,7 @@ import com.iozycore.core.domain.follow.FollowedWorkRepository;
 import com.iozycore.core.domain.ownership.OwnershipAdded;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,22 +32,13 @@ import java.util.UUID;
  */
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class WorkFollowing {
 
     private final FollowedWorkRepository followedWorkRepository;
     private final WishlistEntryRepository wishlistEntryRepository;
     private final OwnershipRepository ownershipRepository;
     private final EntityRepository entityRepository;
-
-    public WorkFollowing(FollowedWorkRepository followedWorkRepository,
-                         WishlistEntryRepository wishlistEntryRepository,
-                         OwnershipRepository ownershipRepository,
-                         EntityRepository entityRepository) {
-        this.followedWorkRepository = followedWorkRepository;
-        this.wishlistEntryRepository = wishlistEntryRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.entityRepository = entityRepository;
-    }
 
     /** Idempotent: following twice is following. */
     public FollowedWork follow(UUID entityId) {

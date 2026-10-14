@@ -6,8 +6,7 @@ import com.iozycore.manga.deals.AiMarketPriceAdvisor;
 import com.iozycore.manga.deals.AiPriceEstimate;
 import com.iozycore.manga.deals.Condition;
 import com.iozycore.core.insights.ConfidenceLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,9 +26,8 @@ import com.iozycore.core.gemini.GeminiRequests;
  * {@link GeminiEditionAdvisor}.
  */
 @Component
+@Slf4j
 public class GeminiMarketPriceAdvisor implements AiMarketPriceAdvisor {
-
-    private static final Logger log = LoggerFactory.getLogger(GeminiMarketPriceAdvisor.class);
 
     private static final String PROMPT_TEMPLATE = """
             Tu es un expert du marché de l'occasion des mangas en France (Vinted, Leboncoin, forums de collectionneurs). \

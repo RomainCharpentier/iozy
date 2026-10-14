@@ -19,6 +19,7 @@ import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.manga.domain.followededition.FollowedEdition;
 import com.iozycore.manga.domain.followededition.FollowedEditionRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -38,22 +39,13 @@ import java.util.stream.Collectors;
  * record is ignored, the preferences of the file replace).
  */
 @Component
+@RequiredArgsConstructor
 public class MangaTransfer implements TransferModule {
 
     private final MangaEditionRepository mangaEditionRepository;
     private final MarketPriceObservationRepository marketPriceObservationRepository;
     private final FollowedEditionRepository followedEditionRepository;
     private final CollectorPreferencesRepository collectorPreferencesRepository;
-
-    public MangaTransfer(MangaEditionRepository mangaEditionRepository,
-                         MarketPriceObservationRepository marketPriceObservationRepository,
-                         FollowedEditionRepository followedEditionRepository,
-                         CollectorPreferencesRepository collectorPreferencesRepository) {
-        this.mangaEditionRepository = mangaEditionRepository;
-        this.marketPriceObservationRepository = marketPriceObservationRepository;
-        this.followedEditionRepository = followedEditionRepository;
-        this.collectorPreferencesRepository = collectorPreferencesRepository;
-    }
 
     // ----- export ------------------------------------------------------------------------
 

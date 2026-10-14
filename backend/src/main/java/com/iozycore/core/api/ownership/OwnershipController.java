@@ -7,6 +7,7 @@ import com.iozycore.core.domain.ownership.OwnershipRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,15 +20,11 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/ownerships")
 @Tag(name = "Ownerships", description = "UC2 - management of ownerships, independent of Experiences")
+@RequiredArgsConstructor
 public class OwnershipController {
 
     private final OwnershipRepository ownershipRepository;
     private final OwnershipDeletionService ownershipDeletionService;
-
-    public OwnershipController(OwnershipRepository ownershipRepository, OwnershipDeletionService ownershipDeletionService) {
-        this.ownershipRepository = ownershipRepository;
-        this.ownershipDeletionService = ownershipDeletionService;
-    }
 
     @Operation(summary = "List the Ownerships - filtered on an Entity if entityId is given, all otherwise "
             + "(e.g. progress computation per series on My collection, which needs the real ownership of "

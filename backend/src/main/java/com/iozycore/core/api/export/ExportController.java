@@ -5,6 +5,7 @@ import com.iozycore.core.export.ExportDocument;
 import com.iozycore.core.export.ExportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -32,15 +33,11 @@ import java.util.zip.ZipOutputStream;
 @RestController
 @RequestMapping("/api/export")
 @Tag(name = "Export", description = "Full export of the collection (anti lock-in) - JSON or CSV/ZIP")
+@RequiredArgsConstructor
 public class ExportController {
 
     private final ExportService exportService;
     private final ExportCsvWriter csvWriter;
-
-    public ExportController(ExportService exportService, ExportCsvWriter csvWriter) {
-        this.exportService = exportService;
-        this.csvWriter = csvWriter;
-    }
 
     @Operation(summary = "Full JSON export of the collection (entities, volumes/variants, ownerships, "
             + "experiences, wishlist, relationships, tags) - a single self-sufficient file")

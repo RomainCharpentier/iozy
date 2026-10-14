@@ -3,6 +3,7 @@ package com.iozycore.core.infrastructure.persistence.tierlist;
 import com.iozycore.core.domain.tierlist.Rank;
 import com.iozycore.core.domain.tierlist.TierListItem;
 import com.iozycore.core.domain.tierlist.TierListItemRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +23,10 @@ interface TierListItemJpaRepository extends JpaRepository<TierListItemJpaEntity,
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaTierListItemRepositoryAdapter implements TierListItemRepository {
 
     private final TierListItemJpaRepository jpaRepository;
-
-    JpaTierListItemRepositoryAdapter(TierListItemJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public TierListItem save(TierListItem item) {

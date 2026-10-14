@@ -1,6 +1,7 @@
 package com.iozycore.core.listing;
 
 import com.iozycore.core.listing.ListingPlatform;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -23,13 +24,10 @@ import java.util.Optional;
  * analysis.
  */
 @Service
+@RequiredArgsConstructor
 public class ListingSourceResolver {
 
     private final List<ListingProvider> providers;
-
-    public ListingSourceResolver(List<ListingProvider> providers) {
-        this.providers = providers;
-    }
 
     /**
      * The platform recognized for this URL, without any network call -

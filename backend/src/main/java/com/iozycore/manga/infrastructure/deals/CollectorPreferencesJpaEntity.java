@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -23,6 +24,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "collector_preferences")
+@Getter
 public class CollectorPreferencesJpaEntity {
 
     @Id
@@ -62,10 +64,5 @@ public class CollectorPreferencesJpaEntity {
         this.factorWeights = factorWeights;
     }
 
-    public UUID getOwnerId() { return ownerId; }
-    public List<EditionTier> getEditionTierRanking() { return editionTierRanking; }
     public boolean isAvoidOutdatedEditionWhenBetterExistsOrAnnounced() { return avoidOutdatedEditionWhenBetterExistsOrAnnounced; }
-    public String getConditionImportance() { return conditionImportance; }
-    public int getMinimumDiscountVsRetailPercent() { return minimumDiscountVsRetailPercent; }
-    public Map<VerdictFactor, Integer> getFactorWeights() { return factorWeights; }
 }

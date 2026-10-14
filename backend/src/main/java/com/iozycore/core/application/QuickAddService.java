@@ -7,6 +7,7 @@ import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +45,7 @@ import java.util.UUID;
  * never a duplicate Edition.
  */
 @Service
+@RequiredArgsConstructor
 public class QuickAddService {
 
     private final EntityRepository entityRepository;
@@ -52,20 +54,6 @@ public class QuickAddService {
     private final TomeResolver tomeResolver;
     private final WishlistEntryRepository wishlistEntryRepository;
     private final ApplicationEventPublisher eventPublisher;
-
-    public QuickAddService(EntityRepository entityRepository,
-                            OwnershipRepository ownershipRepository,
-                            CatalogEntityResolver catalogEntityResolver,
-                            TomeResolver tomeResolver,
-                            WishlistEntryRepository wishlistEntryRepository,
-                            ApplicationEventPublisher eventPublisher) {
-        this.entityRepository = entityRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.catalogEntityResolver = catalogEntityResolver;
-        this.tomeResolver = tomeResolver;
-        this.wishlistEntryRepository = wishlistEntryRepository;
-        this.eventPublisher = eventPublisher;
-    }
 
     /** Result of the quick add: tells whether a duplicate was avoided by reusing
      * an existing Entity, and likewise for the Variant (volume) if any -

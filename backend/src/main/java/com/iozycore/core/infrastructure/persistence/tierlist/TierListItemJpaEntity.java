@@ -1,6 +1,9 @@
 package com.iozycore.core.infrastructure.persistence.tierlist;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.TenantId;
 
 import java.time.Instant;
@@ -8,6 +11,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "tier_list_item")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class TierListItemJpaEntity {
 
     @Id
@@ -32,9 +37,6 @@ public class TierListItemJpaEntity {
     @Column(name = "added_at", nullable = false)
     private Instant addedAt;
 
-    protected TierListItemJpaEntity() {
-    }
-
     public TierListItemJpaEntity(UUID id, UUID tierListId, UUID entityId, String rank, Instant addedAt) {
         this.id = id;
         this.tierListId = tierListId;
@@ -42,10 +44,4 @@ public class TierListItemJpaEntity {
         this.rank = rank;
         this.addedAt = addedAt;
     }
-
-    public UUID getId() { return id; }
-    public UUID getTierListId() { return tierListId; }
-    public UUID getEntityId() { return entityId; }
-    public String getRank() { return rank; }
-    public Instant getAddedAt() { return addedAt; }
 }

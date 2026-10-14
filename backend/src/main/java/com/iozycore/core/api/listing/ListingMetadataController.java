@@ -6,6 +6,7 @@ import com.iozycore.core.listing.ListingSourceResolver;
 import com.iozycore.core.listing.ListingPlatform;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,13 +37,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/listing-metadata")
 @Tag(name = "Listing metadata", description = "Pre-filling of a purchase analysis from the link of a listing")
+@RequiredArgsConstructor
 public class ListingMetadataController {
 
     private final ListingSourceResolver resolver;
-
-    public ListingMetadataController(ListingSourceResolver resolver) {
-        this.resolver = resolver;
-    }
 
     public record ResolveListingRequest(String url) {
     }

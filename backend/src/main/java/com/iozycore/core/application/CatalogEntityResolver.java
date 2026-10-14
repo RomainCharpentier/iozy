@@ -2,6 +2,7 @@ package com.iozycore.core.application;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +35,10 @@ import java.util.UUID;
  * survives a later metadata search.
  */
 @Service
+@RequiredArgsConstructor
 public class CatalogEntityResolver {
 
     private final EntityRepository entityRepository;
-
-    public CatalogEntityResolver(EntityRepository entityRepository) {
-        this.entityRepository = entityRepository;
-    }
 
     /** The canonical Entity, and whether it already existed - never a duplicate. */
     public record Resolution(Entity entity, boolean matchedExisting) {

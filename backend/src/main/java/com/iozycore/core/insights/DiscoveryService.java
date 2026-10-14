@@ -1,6 +1,7 @@
 package com.iozycore.core.insights;
 
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,15 +17,11 @@ import java.util.List;
  * to the {@link DiscoverySource} that covers the requested type.
  */
 @Service
+@RequiredArgsConstructor
 public class DiscoveryService {
 
     private final EntityTypeRepository entityTypeRepository;
     private final List<DiscoverySource> sources;
-
-    public DiscoveryService(EntityTypeRepository entityTypeRepository, List<DiscoverySource> sources) {
-        this.entityTypeRepository = entityTypeRepository;
-        this.sources = sources;
-    }
 
     /**
      * The discoveries of a type, by its code - resolved by the code, never by

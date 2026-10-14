@@ -3,6 +3,7 @@ package com.iozycore.core.infrastructure.persistence.catalog;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.infrastructure.persistence.catalog.EntityTypeJpaEntity.SchemaJson;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,13 +20,10 @@ interface EntityTypeJpaRepository extends JpaRepository<EntityTypeJpaEntity, UUI
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaEntityTypeRepositoryAdapter implements EntityTypeRepository {
 
     private final EntityTypeJpaRepository jpaRepository;
-
-    JpaEntityTypeRepositoryAdapter(EntityTypeJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public EntityType save(EntityType entityType) {

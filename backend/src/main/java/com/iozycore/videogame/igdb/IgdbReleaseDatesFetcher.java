@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.insights.ReleaseDate;
 import com.iozycore.core.metadata.TtlCache;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -52,9 +52,10 @@ import java.util.regex.Pattern;
  * from hour to hour. An outage, on the other hand, is never kept.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class IgdbReleaseDatesFetcher implements IgdbReleaseDates {
 
-    private static final Logger log = LoggerFactory.getLogger(IgdbReleaseDatesFetcher.class);
     private static final String GAMES_URL = "https://api.igdb.com/v4/games";
     private static final String BODY =
             "fields name,release_dates.date,release_dates.human,release_dates.region; where id = (%s); limit %d;";
@@ -74,10 +75,6 @@ public class IgdbReleaseDatesFetcher implements IgdbReleaseDates {
             .build();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final TtlCache<String, Optional<ReleaseDate>> memory = new TtlCache<>(Duration.ofHours(24), 2000);
-
-    public IgdbReleaseDatesFetcher(IgdbTokenProvider tokenProvider) {
-        this.tokenProvider = tokenProvider;
-    }
 
     @Override
     public Map<String, Optional<ReleaseDate>> fetch(Collection<String> igdbIds) {

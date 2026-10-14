@@ -4,6 +4,7 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.experience.ExperienceRepository;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.shared.EntityDeletionNotAllowedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -25,6 +26,7 @@ import java.util.List;
  * it) would be rejected with a raw SQL error rather than a clear message.
  */
 @Service
+@RequiredArgsConstructor
 public class EntityDeletionService {
 
     private final EntityRepository entityRepository;
@@ -32,16 +34,6 @@ public class EntityDeletionService {
     private final ExperienceRepository experienceRepository;
     /** What each universe can still hold - the reference editions of a manga (Batch 133). */
     private final List<EntityDeletionGuard> guards;
-
-    public EntityDeletionService(EntityRepository entityRepository,
-                                  OwnershipRepository ownershipRepository,
-                                  ExperienceRepository experienceRepository,
-                                  List<EntityDeletionGuard> guards) {
-        this.entityRepository = entityRepository;
-        this.ownershipRepository = ownershipRepository;
-        this.experienceRepository = experienceRepository;
-        this.guards = guards;
-    }
 
     public void delete(UUID entityId) {
         long ownershipCount = ownershipRepository.findByEntityId(entityId).size();

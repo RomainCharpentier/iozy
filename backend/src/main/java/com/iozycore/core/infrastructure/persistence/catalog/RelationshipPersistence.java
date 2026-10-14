@@ -5,6 +5,7 @@ import com.iozycore.core.domain.catalog.RelationshipRepository;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,13 +54,10 @@ interface RelationshipJpaRepository extends JpaRepository<RelationshipJpaEntity,
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaRelationshipRepositoryAdapter implements RelationshipRepository {
 
     private final RelationshipJpaRepository jpaRepository;
-
-    JpaRelationshipRepositoryAdapter(RelationshipJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public Relationship save(Relationship relationship) {

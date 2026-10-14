@@ -4,6 +4,7 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.domain.shared.EntityTypeDeletionNotAllowedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -17,15 +18,11 @@ import java.util.UUID;
  * {@link EntityDeletionService} for the Entity objects themselves).
  */
 @Service
+@RequiredArgsConstructor
 public class EntityTypeService {
 
     private final EntityTypeRepository entityTypeRepository;
     private final EntityRepository entityRepository;
-
-    public EntityTypeService(EntityTypeRepository entityTypeRepository, EntityRepository entityRepository) {
-        this.entityTypeRepository = entityTypeRepository;
-        this.entityRepository = entityRepository;
-    }
 
     /** Variant with visual identity - see EntityType.colorKey/iconKey. */
     public EntityType create(String code, String label, Set<String> allowedExperienceTypes,

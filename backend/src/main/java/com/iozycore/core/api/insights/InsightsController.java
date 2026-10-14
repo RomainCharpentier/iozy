@@ -14,6 +14,7 @@ import com.iozycore.core.insights.StatsSummary;
 import com.iozycore.core.insights.YearlyRecap;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,6 +34,7 @@ import com.iozycore.core.insights.SeriesProgressGateway;
 @RestController
 @RequestMapping("/api/insights")
 @Tag(name = "Insights", description = "UC6 - statistics and discovery (read only)")
+@RequiredArgsConstructor
 public class InsightsController {
 
     private static final int MAX_LATEST = 50;
@@ -42,17 +44,6 @@ public class InsightsController {
     private final SeriesProgressGateway collectionProgressService;
     private final ReleaseCalendarService releaseCalendarService;
     private final ReleaseRefreshService releaseRefreshService;
-
-    public InsightsController(StatsService statsService, DiscoveryService discoveryService,
-                               SeriesProgressGateway collectionProgressService,
-                               ReleaseCalendarService releaseCalendarService,
-                               ReleaseRefreshService releaseRefreshService) {
-        this.statsService = statsService;
-        this.discoveryService = discoveryService;
-        this.collectionProgressService = collectionProgressService;
-        this.releaseCalendarService = releaseCalendarService;
-        this.releaseRefreshService = releaseRefreshService;
-    }
 
     @Operation(summary = "Aggregated statistics: number of entities/ownerships per type, "
             + "average rating, experiences of the current year, most used tags")

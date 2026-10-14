@@ -4,8 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.manga.metadata.RelatedSeriesProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -51,9 +50,9 @@ import java.util.Set;
  * supports() returns false as long as {@code mal.client-id} is empty.
  */
 @Component
+@Slf4j
 public class MyAnimeListRelatedSeriesProvider implements RelatedSeriesProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(MyAnimeListRelatedSeriesProvider.class);
     private static final String RELATIONS_URL = "https://api.myanimelist.net/v2/manga/%s?fields=related_manga";
     private static final Set<String> DISTINCT_SERIES_RELATIONS =
             Set.of("spin_off", "side_story", "sequel", "prequel", "alternative_version", "alternative_setting");

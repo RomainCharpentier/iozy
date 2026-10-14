@@ -2,6 +2,7 @@ package com.iozycore.core.infrastructure.persistence.releaserefresh;
 
 import com.iozycore.core.insights.ReleaseRefreshRun;
 import com.iozycore.core.insights.ReleaseRefreshRunRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,13 +16,10 @@ interface ReleaseRefreshRunJpaRepository extends JpaRepository<ReleaseRefreshRun
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaReleaseRefreshRunRepositoryAdapter implements ReleaseRefreshRunRepository {
 
     private final ReleaseRefreshRunJpaRepository jpaRepository;
-
-    JpaReleaseRefreshRunRepositoryAdapter(ReleaseRefreshRunJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public ReleaseRefreshRun save(ReleaseRefreshRun run) {

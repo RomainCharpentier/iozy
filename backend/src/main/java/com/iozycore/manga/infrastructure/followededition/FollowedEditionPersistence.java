@@ -2,6 +2,7 @@ package com.iozycore.manga.infrastructure.followededition;
 
 import com.iozycore.manga.domain.followededition.FollowedEdition;
 import com.iozycore.manga.domain.followededition.FollowedEditionRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +22,10 @@ interface FollowedEditionJpaRepository extends JpaRepository<FollowedEditionJpaE
 
 @Repository
 @Transactional
+@RequiredArgsConstructor
 class JpaFollowedEditionRepositoryAdapter implements FollowedEditionRepository {
 
     private final FollowedEditionJpaRepository jpaRepository;
-
-    JpaFollowedEditionRepositoryAdapter(FollowedEditionJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public FollowedEdition save(FollowedEdition followedEdition) {
