@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -42,13 +43,36 @@ import java.util.stream.Collectors;
  * search, forever. Only an empty result caused by a silent
  * provider or an exceeded quota stays out of the durable cache (temporary failure,
  * not a real absence of result) - "Actualiser" stays the only way to
- * check again a series already in cache, empty or not. And the durable cache never
- * expires: at each change of chain, a migration empties it (V33).
+ * check again a series already in cache, empty or not.
+ * <p>
+ * A durable row is served only while it is fresh: written by the current
+ * chain ({@link #CHAIN_VERSION}) and less than {@link #DURABLE_EXPIRY} ago.
+ * Otherwise the providers are read again; if they are silent, the old row is
+ * NOT served (a number nobody believes anymore) and the result says
+ * {@code providerUnavailable}. This replaces the migrations that emptied the
+ * table at each change of chain (V33, V34).
  */
 @Service
 public class TomeSearchService {
 
     private static final Logger log = LoggerFactory.getLogger(TomeSearchService.class);
+
+    /**
+     * The version of the chain that writes the durable rows: providers, their
+     * parsing, {@link #finaliser}. Bump it when a change makes the rows already
+     * stored wrong (an edition missed, a volume misfiled): every row of an older
+     * version is then read again when its series is opened, without a migration.
+     * 1 = the chain in place when V37 was written (rows older than V37 have 0).
+     */
+    static final int CHAIN_VERSION = 1;
+
+    /**
+     * The age after which a durable row is read again. 30 days: the nightly
+     * refresh already re-reads the ongoing series after 7 days (MangaReleaseRefresh),
+     * so this one catches the rest - finished series, series the nightly pass
+     * did not reach - at a cost of about one search per series per month.
+     */
+    static final Duration DURABLE_EXPIRY = Duration.ofDays(30);
 
     private final List<VolumeSearchProvider> volumeSearchProviders;
     private final VolumeSearchCacheRepository volumeSearchCacheRepository;
@@ -69,6 +93,18 @@ public class TomeSearchService {
     /** The comparison key of titles - accents and punctuation folded, like the local search (see TexteRecherche). */
     private static String normalize(String value) {
         return TexteRecherche.normaliser(value);
+    }
+
+    /** The stored volumes of this key, only if the row can still be served (see {@link #isFresh}). */
+    private Optional<List<VolumeCandidate>> findFresh(EntityType entityType, String normalizedTitle, String normalizedAuthor) {
+        return volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor)
+                .filter(TomeSearchService::isFresh)
+                .map(StoredVolumeSearch::volumes);
+    }
+
+    static boolean isFresh(StoredVolumeSearch stored) {
+        return stored.chainVersion() == CHAIN_VERSION
+                && stored.fetchedAt().isAfter(Instant.now().minus(DURABLE_EXPIRY));
     }
 
     /**
@@ -92,9 +128,9 @@ public class TomeSearchService {
      *                      always runs the Google
      *                      Books requests again and overwrites the stored result - this is the
      *                      entry point of the "Actualiser" button on the
-     *                      client side. Without it, a result once stored
-     *                      is never called again automatically: the
-     *                      editions/volumes of a series rarely change, no
+     *                      client side. Without it, a stored result is
+     *                      served until it expires (see {@link #isFresh}):
+     *                      the editions/volumes of a series rarely change, no
      *                      need to pay again for external calls at each
      *                      selection of the same candidate.
      */
@@ -146,7 +182,9 @@ public class TomeSearchService {
                 return VolumeSearchResult.of(finaliser(inMemory.get()));
             }
 
-            Optional<List<VolumeCandidate>> stored = volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor);
+            // An expired row is skipped: the providers are read again below,
+            // and if they are silent the result says so instead of serving it.
+            Optional<List<VolumeCandidate>> stored = findFresh(entityType, normalizedTitle, normalizedAuthor);
             if (stored.isPresent()) {
                 volumeSearchCache.put(cacheKey, stored.get()); // warms the memory cache for the next calls
                 return VolumeSearchResult.of(finaliser(stored.get()));
@@ -181,7 +219,7 @@ public class TomeSearchService {
         if (!providerUnavailable) {
             volumeSearchCache.put(cacheKey, result);
             if (cacheDurable) {
-                volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
+                volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result, CHAIN_VERSION);
             }
         } else if (!result.isEmpty()) {
             volumeSearchPartialCache.put(cacheKey, result);
@@ -277,7 +315,7 @@ public class TomeSearchService {
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
         volumeSearchCache.put(cacheKey, result);
         if (!normalizedAuthor.isBlank()) {
-            volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
+            volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result, CHAIN_VERSION);
         }
         return true;
     }
@@ -302,16 +340,33 @@ public class TomeSearchService {
     /** Variant with exclusion of known spin-offs (see
      * {@link #searchVolumes(EntityType, String, String, boolean, List)}). */
     public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author, List<String> excludedTitleFragments) {
+        return searchAdditionalEditions(entityType, seriesTitle, author, excludedTitleFragments, null);
+    }
+
+    /** @param totalVolumes passed to the quick search when there is no fresh base (see {@link #searchVolumes}),
+     *                     so that its gap probes run as on a normal opening */
+    public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author,
+                                                       List<String> excludedTitleFragments, Integer totalVolumes) {
         String normalizedTitle = normalize(seriesTitle);
         String normalizedAuthor = normalize(author == null ? "" : author);
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
 
-        List<VolumeCandidate> existing = volumeSearchCache.get(cacheKey)
-                .or(() -> volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor))
-                .orElseGet(List::of);
+        Optional<List<VolumeCandidate>> known = volumeSearchCache.get(cacheKey)
+                .or(() -> findFresh(entityType, normalizedTitle, normalizedAuthor));
+        List<VolumeCandidate> existing;
+        boolean providerUnavailable = false;
+        if (known.isPresent()) {
+            existing = known.get();
+        } else {
+            // No fresh base to merge onto (never searched, or expired): run the
+            // quick search first, otherwise the stored row would hold the deep
+            // editions alone and hide the common ones until it expires.
+            VolumeSearchResult base = searchVolumes(entityType, seriesTitle, author, false, excludedTitleFragments, totalVolumes);
+            existing = base.volumes();
+            providerUnavailable = base.providerUnavailable();
+        }
 
         List<VolumeCandidate> additional = new ArrayList<>();
-        boolean providerUnavailable = false;
         for (VolumeSearchProvider provider : volumeSearchProviders) {
             if (!provider.supports(entityType)) {
                 continue;
@@ -327,7 +382,10 @@ public class TomeSearchService {
         List<VolumeCandidate> merged = mergeVolumes(existing, additional);
         if (!providerUnavailable) {
             volumeSearchCache.put(cacheKey, merged);
-            volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged);
+            // Without an author, memory only - same rule as searchVolumes (Batch 126).
+            if (!normalizedAuthor.isBlank()) {
+                volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged, CHAIN_VERSION);
+            }
         }
         return new VolumeSearchResult(merged, providerUnavailable);
     }
@@ -384,7 +442,8 @@ public class TomeSearchService {
      * <p>
      * Reads only the durable storage ({@link VolumeSearchCacheRepository},
      * see V3__volume_search_cache.sql), where an empty list IS remembered -
-     * this is what makes the question free. A series never searched
+     * this is what makes the question free. An expired row answers "we do not
+     * know", like a missing one. A series never searched
      * therefore returns {@code false}: "we do not know" and "we know there are
      * none" must not be mixed up, otherwise every work still
      * unknown would be wrongly reported.
@@ -394,8 +453,7 @@ public class TomeSearchService {
      * influence what the next real call will find.
      */
     public boolean isVolumeSearchKnownEmpty(EntityType entityType, String seriesTitle, String author) {
-        return volumeSearchCacheRepository
-                .find(entityType.id(), normalize(seriesTitle), normalize(author == null ? "" : author))
+        return findFresh(entityType, normalize(seriesTitle), normalize(author == null ? "" : author))
                 .map(List::isEmpty)
                 .orElse(false);
     }

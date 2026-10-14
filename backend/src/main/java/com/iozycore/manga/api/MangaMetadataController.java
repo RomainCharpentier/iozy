@@ -162,7 +162,7 @@ public class MangaMetadataController {
         // intention, and a 403 would pass for a silent provider there.
         boolean rechargement = forceRefresh && estAdministrateur();
         VolumeSearchResult searchResult = deepSearch
-                ? tomeSearchService.searchAdditionalEditions(entityType, title, author, excludedTitleFragments)
+                ? tomeSearchService.searchAdditionalEditions(entityType, title, author, excludedTitleFragments, totalVolumes)
                 : tomeSearchService.searchVolumes(entityType, title, author, rechargement, excludedTitleFragments, totalVolumes);
         Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
 

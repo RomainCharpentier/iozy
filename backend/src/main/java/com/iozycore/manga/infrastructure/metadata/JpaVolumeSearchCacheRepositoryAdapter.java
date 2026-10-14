@@ -24,20 +24,20 @@ public class JpaVolumeSearchCacheRepositoryAdapter implements VolumeSearchCacheR
     }
 
     @Override
-    public Optional<List<VolumeCandidate>> find(UUID entityTypeId, String seriesTitle, String author) {
+    public Optional<StoredVolumeSearch> find(UUID entityTypeId, String seriesTitle, String author) {
         return jpaRepository.findByEntityTypeIdAndSeriesTitleAndAuthor(entityTypeId, seriesTitle, author)
-                .map(VolumeSearchCacheJpaEntity::getVolumes);
+                .map(JpaVolumeSearchCacheRepositoryAdapter::toStored);
     }
 
     @Override
-    public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes) {
+    public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion) {
         // Upsert: reuses the existing id for this key (refresh),
         // otherwise creates a new one - never two rows for the same key
         // (UNIQUE constraint on the database side, see V3__volume_search_cache.sql).
         UUID id = jpaRepository.findByEntityTypeIdAndSeriesTitleAndAuthor(entityTypeId, seriesTitle, author)
                 .map(VolumeSearchCacheJpaEntity::getId)
                 .orElseGet(UUID::randomUUID);
-        jpaRepository.save(new VolumeSearchCacheJpaEntity(id, entityTypeId, seriesTitle, author, volumes, Instant.now()));
+        jpaRepository.save(new VolumeSearchCacheJpaEntity(id, entityTypeId, seriesTitle, author, volumes, Instant.now(), chainVersion));
     }
 
     @Override
@@ -52,7 +52,7 @@ public class JpaVolumeSearchCacheRepositoryAdapter implements VolumeSearchCacheR
             return List.of();
         }
         return jpaRepository.findAllByEntityTypeIdAndSeriesTitleIn(entityTypeId, seriesTitles).stream()
-                .map(row -> new StoredVolumeSearch(row.getSeriesTitle(), row.getAuthor(), row.getVolumes(), row.getFetchedAt()))
+                .map(JpaVolumeSearchCacheRepositoryAdapter::toStored)
                 .toList();
     }
 
@@ -61,5 +61,10 @@ public class JpaVolumeSearchCacheRepositoryAdapter implements VolumeSearchCacheR
         return jpaRepository.findAllByEntityTypeId(entityTypeId).stream()
                 .map(row -> new StoredVolumeSearchKey(row.getSeriesTitle(), row.getAuthor(), row.getFetchedAt()))
                 .toList();
+    }
+
+    private static StoredVolumeSearch toStored(VolumeSearchCacheJpaEntity row) {
+        return new StoredVolumeSearch(row.getSeriesTitle(), row.getAuthor(), row.getVolumes(), row.getFetchedAt(),
+                row.getChainVersion());
     }
 }

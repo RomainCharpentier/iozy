@@ -64,7 +64,7 @@ class TomeSearchServiceTest {
 
         assertThat(result.volumes()).isEmpty();
         assertThat(result.providerUnavailable()).isTrue();
-        assertThat(durableStorage.find(MANGA.id(), "naruto", "kishimoto")).isEmpty();
+        assertThat(durableStorage.volumes(MANGA.id(), "naruto", "kishimoto")).isEmpty();
 
         // And the next search does call the provider again, instead of being
         // served by a remembered empty result.
@@ -181,6 +181,100 @@ class TomeSearchServiceTest {
     }
 
     @Test
+    void a_durable_row_older_than_the_expiry_is_read_again_from_the_provider() {
+        // A row written once was served forever, even after the providers or the
+        // parsing changed (V33 and V34 had to empty the table by hand).
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        durableStorage.storeFetchedAt(MANGA.id(), "death note", "ohba",
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")),
+                java.time.Instant.now().minus(java.time.Duration.ofDays(31)));
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1"),
+                        new VolumeCandidate("Kana", 2, null, "Death Note - Tome 2")));
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(provider.callCount).isEqualTo(1);
+        assertThat(result.volumes()).hasSize(2);
+        assertThat(result.providerUnavailable()).isFalse();
+        assertThat(durableStorage.volumes(MANGA.id(), "death note", "ohba")).hasValueSatisfying(
+                volumes -> assertThat(volumes).hasSize(2)); // the row is written again, fresh
+    }
+
+    @Test
+    void an_expired_row_is_refused_not_served_when_the_provider_is_silent() {
+        // Serving the old row would show a number nobody believes anymore; an empty
+        // list without the flag would say "no volume". Only "try again later" is true.
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        durableStorage.storeFetchedAt(MANGA.id(), "death note", "ohba",
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")),
+                java.time.Instant.now().minus(java.time.Duration.ofDays(31)));
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(new SourceUnavailableException("503"));
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(provider.callCount).isEqualTo(1);
+        assertThat(result.volumes()).isEmpty();
+        assertThat(result.providerUnavailable()).isTrue();
+        assertThat(service.isVolumeSearchKnownEmpty(MANGA, "Death Note", "Ohba")).isFalse();
+    }
+
+    @Test
+    void a_recent_row_written_by_an_older_chain_is_read_again() {
+        // A change of providers or parsing bumps CHAIN_VERSION: no migration needed.
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        durableStorage.storeRow(MANGA.id(), "death note", "ohba",
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")),
+                java.time.Instant.now(), TomeSearchService.CHAIN_VERSION - 1);
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1"),
+                        new VolumeCandidate("Kana", 2, null, "Death Note - Tome 2")));
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(provider.callCount).isEqualTo(1);
+        assertThat(result.volumes()).hasSize(2);
+        assertThat(durableStorage.find(MANGA.id(), "death note", "ohba")).hasValueSatisfying(
+                stored -> assertThat(stored.chainVersion()).isEqualTo(TomeSearchService.CHAIN_VERSION));
+    }
+
+    @Test
+    void a_deep_search_on_an_expired_row_reads_the_quick_search_again_before_merging() {
+        // Merging onto nothing would store the deep editions alone, fresh, for 30 days.
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        durableStorage.storeFetchedAt(MANGA.id(), "death note", "ohba",
+                List.of(new VolumeCandidate("Old", 1, null, "Death Note - Tome 1")),
+                java.time.Instant.now().minus(java.time.Duration.ofDays(31)));
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
+        provider.additionalResults = List.of(new VolumeCandidate("Perfect Edition", 1, null, "Death Note Perfect Edition - Tome 1"));
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        VolumeSearchResult result = service.searchAdditionalEditions(MANGA, "Death Note", "Ohba", List.of(), 3);
+
+        assertThat(provider.callCount).isEqualTo(1);
+        assertThat(provider.probedNumbers).containsExactly(2, 3); // the gaps are probed, as on a normal opening
+        assertThat(result.volumes()).extracting(VolumeCandidate::edition).containsExactlyInAnyOrder("Kana", "Perfect Edition");
+    }
+
+    @Test
+    void a_deep_search_without_an_author_is_never_stored_durably() {
+        // Same rule as the quick search (Batch 126): a bare title does not name a work.
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Doubt - Tome 1")));
+        provider.additionalResults = List.of(new VolumeCandidate("Perfect Edition", 1, null, "Doubt Perfect Edition - Tome 1"));
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        service.searchAdditionalEditions(MANGA, "Doubt", null);
+
+        assertThat(durableStorage.find(MANGA.id(), "doubt", "")).isEmpty();
+    }
+
+    @Test
     void force_refresh_bypasses_both_caches_and_overwrites_the_durable_storage() {
         FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
@@ -249,7 +343,7 @@ class TomeSearchServiceTest {
 
         assertThat(result.volumes()).hasSize(1); // the already known result is still returned
         assertThat(result.providerUnavailable()).isTrue();
-        assertThat(durableStorage.find(MANGA.id(), "death note", "ohba")).hasValueSatisfying(
+        assertThat(durableStorage.volumes(MANGA.id(), "death note", "ohba")).hasValueSatisfying(
                 volumes -> assertThat(volumes).hasSize(1)); // not overwritten by a failure
     }
 
@@ -311,7 +405,7 @@ class TomeSearchServiceTest {
 
         assertThat(result.volumes()).hasSize(5);
         assertThat(result.providerUnavailable()).isTrue();
-        assertThat(durableStorage.find(MANGA.id(), "naruto", "kishimoto")).isEmpty(); // nothing frozen during the outage
+        assertThat(durableStorage.volumes(MANGA.id(), "naruto", "kishimoto")).isEmpty(); // nothing frozen during the outage
     }
 
     private static final class FakeVolumeSearchProvider implements VolumeSearchProvider {
@@ -332,6 +426,7 @@ class TomeSearchServiceTest {
         Map<String, List<VolumeCandidate>> editionResults = Map.of();
         RuntimeException editionFailure;
         final List<String> editionCalls = new ArrayList<>();
+        final List<Integer> probedNumbers = new ArrayList<>();
 
         FakeVolumeSearchProvider(List<VolumeCandidate> results) {
             this.results = results;
@@ -370,6 +465,13 @@ class TomeSearchServiceTest {
         }
 
         @Override
+        public List<VolumeCandidate> probeVolume(String seriesTitle, String author, int volumeNumber,
+                                                 List<String> excludedTitleFragments) {
+            probedNumbers.add(volumeNumber);
+            return List.of();
+        }
+
+        @Override
         public List<VolumeCandidate> searchEdition(String seriesTitle, String author, String editionName, List<String> excludedTitleFragments) {
             editionCalls.add(editionName);
             if (editionFailure != null) {
@@ -383,16 +485,33 @@ class TomeSearchServiceTest {
      * simple in-memory Map is enough to check that TomeSearchService reads/writes
      * this storage properly, without needing a real database for this unit test. */
     private static final class FakeVolumeSearchCacheRepository implements VolumeSearchCacheRepository {
-        private final Map<String, List<VolumeCandidate>> store = new java.util.HashMap<>();
+        private final Map<String, StoredVolumeSearch> store = new java.util.HashMap<>();
+
+        /** Puts a row as if the chain {@code chainVersion} had written it at {@code at}. */
+        void storeRow(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes,
+                      java.time.Instant at, int chainVersion) {
+            store.put(entityTypeId + "|" + seriesTitle + "|" + author,
+                    new StoredVolumeSearch(seriesTitle, author, volumes, at, chainVersion));
+        }
+
+        /** Puts a row of the current chain as if it had been written at {@code at}. */
+        void storeFetchedAt(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, java.time.Instant at) {
+            storeRow(entityTypeId, seriesTitle, author, volumes, at, TomeSearchService.CHAIN_VERSION);
+        }
+
+        /** The stored volumes of this key, whatever their age. */
+        Optional<List<VolumeCandidate>> volumes(UUID entityTypeId, String seriesTitle, String author) {
+            return find(entityTypeId, seriesTitle, author).map(StoredVolumeSearch::volumes);
+        }
 
         @Override
-        public Optional<List<VolumeCandidate>> find(UUID entityTypeId, String seriesTitle, String author) {
+        public Optional<StoredVolumeSearch> find(UUID entityTypeId, String seriesTitle, String author) {
             return Optional.ofNullable(store.get(entityTypeId + "|" + seriesTitle + "|" + author));
         }
 
         @Override
-        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes) {
-            store.put(entityTypeId + "|" + seriesTitle + "|" + author, volumes);
+        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion) {
+            storeRow(entityTypeId, seriesTitle, author, volumes, java.time.Instant.now(), chainVersion);
         }
 
         @Override
@@ -402,26 +521,20 @@ class TomeSearchServiceTest {
 
         @Override
         public List<StoredVolumeSearch> findAllByEntityTypeIdAndSeriesTitleIn(UUID entityTypeId, java.util.Collection<String> seriesTitles) {
-            List<StoredVolumeSearch> result = new java.util.ArrayList<>();
-            for (Map.Entry<String, List<VolumeCandidate>> entry : store.entrySet()) {
-                String[] parts = entry.getKey().split("\\|", -1);
-                if (parts[0].equals(entityTypeId.toString()) && seriesTitles.contains(parts[1])) {
-                    result.add(new StoredVolumeSearch(parts[1], parts[2], entry.getValue(), java.time.Instant.now()));
-                }
-            }
-            return result;
+            return store.entrySet().stream()
+                    .filter(entry -> entry.getKey().startsWith(entityTypeId + "|"))
+                    .map(Map.Entry::getValue)
+                    .filter(stored -> seriesTitles.contains(stored.seriesTitle()))
+                    .toList();
         }
 
         @Override
         public List<StoredVolumeSearchKey> findKeysByEntityTypeId(UUID entityTypeId) {
-            List<StoredVolumeSearchKey> result = new java.util.ArrayList<>();
-            for (String key : store.keySet()) {
-                String[] parts = key.split("\\|", -1);
-                if (parts[0].equals(entityTypeId.toString())) {
-                    result.add(new StoredVolumeSearchKey(parts[1], parts[2], java.time.Instant.now()));
-                }
-            }
-            return result;
+            return store.entrySet().stream()
+                    .filter(entry -> entry.getKey().startsWith(entityTypeId + "|"))
+                    .map(Map.Entry::getValue)
+                    .map(stored -> new StoredVolumeSearchKey(stored.seriesTitle(), stored.author(), stored.fetchedAt()))
+                    .toList();
         }
     }
 }
