@@ -6,6 +6,7 @@ import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.tierlist.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -89,6 +90,32 @@ public class TierListService {
             }
         }
         return new GeneralBoard(ranked, unranked);
+    }
+
+    /**
+     * Ranks a work on the general ranking, or unranks it when {@code rank} is null.
+     * Returns the ranked work.
+     */
+    @Transactional
+    public Entity setGeneralRank(UUID entityId, Rank rank) {
+        Entity entity = entityRepository.findById(entityId)
+                .orElseThrow(() -> new IllegalArgumentException("Entité introuvable : " + entityId));
+        if (rank == null) {
+            entityRankRepository.deleteByEntityId(entityId);
+            return entity;
+        }
+        EntityRank entityRank = entityRankRepository.findByEntityId(entityId)
+                .map(existing -> {
+                    existing.updateRank(rank);
+                    return existing;
+                })
+                .orElseGet(() -> EntityRank.assign(entityId, rank));
+        entityRankRepository.save(entityRank);
+        return entity;
+    }
+
+    public Optional<Rank> generalRankOf(UUID entityId) {
+        return entityRankRepository.findByEntityId(entityId).map(EntityRank::rank);
     }
 
     public record CustomRankEntry(TierList list, Rank rank) {

@@ -33,8 +33,7 @@ class LayersTest {
             "OwnershipController",
             "RelationshipController",
             "ShareController",
-            "TagController",
-            "TierListController");
+            "TagController");
 
     private final JavaClasses classes = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
