@@ -2,15 +2,10 @@ package com.iozycore.core.application;
 
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
-import com.iozycore.core.domain.ownership.OwnershipRepository;
 import org.junit.jupiter.api.Test;
+import com.iozycore.core.testing.InMemoryOwnershipRepository;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,40 +52,5 @@ class OwnershipDeletionServiceTest {
 
         assertThat(ownershipRepository.findById(supprime.id())).isEmpty();
         assertThat(ownershipRepository.findById(conserve.id())).isPresent();
-    }
-
-    private static class InMemoryOwnershipRepository implements OwnershipRepository {
-        private final Map<UUID, Ownership> store = new HashMap<>();
-
-        @Override
-        public Ownership save(Ownership ownership) {
-            store.put(ownership.id(), ownership);
-            return ownership;
-        }
-
-        @Override
-        public Optional<Ownership> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<Ownership> findByEntityId(UUID entityId) {
-            return store.values().stream().filter(o -> o.entityId().equals(entityId)).toList();
-        }
-
-        @Override
-        public boolean existsByEntityId(UUID entityId) {
-            return !findByEntityId(entityId).isEmpty();
-        }
-
-        @Override
-        public List<Ownership> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
     }
 }

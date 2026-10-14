@@ -2,10 +2,10 @@ package com.iozycore.manga.recognition;
 
 import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
-import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.manga.deals.MangaSeries;
 import com.iozycore.manga.deals.SeriesMatcher;
 import org.junit.jupiter.api.Test;
+import com.iozycore.manga.testing.InMemoryMangaEditionRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -408,12 +408,12 @@ class TextAndVisionMergeTest {
         }
     }
 
-    private static class EditionsDeTest implements MangaEditionRepository {
-        private final List<MangaEdition> editions = new ArrayList<>();
+    /** Counts the editions the service creates; seeding with ajouter is not counted. */
+    private static class EditionsDeTest extends InMemoryMangaEditionRepository {
         private int creations;
 
         void ajouter(UUID entityId, String serie, String edition, Integer totalVolumes) {
-            editions.add(new MangaEdition(UUID.randomUUID(), entityId, serie, edition, EditionTier.STANDARD,
+            super.save(new MangaEdition(UUID.randomUUID(), entityId, serie, edition, EditionTier.STANDARD,
                     null, totalVolumes, null, false, false, null, null, null, null));
         }
 
@@ -424,48 +424,7 @@ class TextAndVisionMergeTest {
         @Override
         public MangaEdition save(MangaEdition edition) {
             creations++;
-            editions.add(edition);
-            return edition;
-        }
-
-        @Override
-        public Optional<MangaEdition> findById(UUID id) {
-            return editions.stream().filter(e -> e.id().equals(id)).findFirst();
-        }
-
-        @Override
-        public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
-            return editions.stream()
-                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)
-                            && e.editionName().equalsIgnoreCase(editionName))
-                    .findFirst();
-        }
-
-        @Override
-        public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
-            return editions.stream().filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)).toList();
-        }
-
-        @Override
-        public List<MangaEdition> findByEntityId(UUID entityId) {
-            return editions.stream().filter(e -> entityId.equals(e.entityId())).toList();
-        }
-
-        @Override
-        public List<MangaEdition> findAll() {
-            return List.copyOf(editions);
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            editions.removeIf(e -> e.id().equals(id));
-        }
-
-        @Override
-        public Optional<MangaEdition> findByEntityIdAndEditionName(UUID entityId, String editionName) {
-            return editions.stream()
-                    .filter(e -> entityId.equals(e.entityId()) && e.editionName().equalsIgnoreCase(editionName))
-                    .findFirst();
+            return super.save(edition);
         }
     }
 }

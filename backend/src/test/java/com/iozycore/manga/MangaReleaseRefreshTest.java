@@ -1,10 +1,8 @@
 package com.iozycore.manga;
 
 import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
-import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.insights.ReleaseRefreshSource;
 import com.iozycore.core.metadata.QuotaExceededException;
 import com.iozycore.manga.metadata.RelatedSeriesService;
@@ -15,6 +13,8 @@ import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchCacheRepository;
 import com.iozycore.manga.metadata.VolumeSearchProvider;
 import org.junit.jupiter.api.Test;
+import com.iozycore.core.testing.InMemoryEntityRepository;
+import com.iozycore.core.testing.InMemoryEntityTypeRepository;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -44,7 +44,7 @@ class MangaReleaseRefreshTest {
     private final TomeSearchService tomeSearchService = new TomeSearchService(List.of(provider), cache);
 
     private MangaReleaseRefresh refresh(int seriesPerRun) {
-        return new MangaReleaseRefresh(new InMemoryEntityTypeRepository(), entities, cache, tomeSearchService,
+        return new MangaReleaseRefresh(new InMemoryEntityTypeRepository(EntityTypeFixtures.MANGA), entities, cache, tomeSearchService,
                 new RelatedSeriesService(List.of()), seriesPerRun, Duration.ofDays(7), Clock.fixed(TONIGHT, ZoneOffset.UTC));
     }
 
@@ -101,7 +101,7 @@ class MangaReleaseRefreshTest {
 
     @Test
     void does_nothing_on_an_instance_without_the_manga_category() {
-        MangaReleaseRefresh refresh = new MangaReleaseRefresh(new InMemoryEntityTypeRepository(false), entities, cache,
+        MangaReleaseRefresh refresh = new MangaReleaseRefresh(new InMemoryEntityTypeRepository(), entities, cache,
                 tomeSearchService, new RelatedSeriesService(List.of()), 10, Duration.ofDays(7),
                 Clock.fixed(TONIGHT, ZoneOffset.UTC));
 
@@ -136,88 +136,6 @@ class MangaReleaseRefreshTest {
                 throw new QuotaExceededException("quota dépassé");
             }
             return List.of(new VolumeCandidate("Kana", 1, null, seriesTitle + " 1", null, null, "2026-10-14"));
-        }
-    }
-
-    private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
-        private final Map<UUID, EntityType> store = new HashMap<>();
-
-        InMemoryEntityTypeRepository() {
-            this(true);
-        }
-
-        InMemoryEntityTypeRepository(boolean withManga) {
-            if (withManga) {
-                store.put(EntityTypeFixtures.MANGA.id(), EntityTypeFixtures.MANGA);
-            }
-        }
-
-        @Override
-        public EntityType save(EntityType entityType) {
-            store.put(entityType.id(), entityType);
-            return entityType;
-        }
-
-        @Override
-        public Optional<EntityType> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<EntityType> findByCode(String code) {
-            return store.values().stream().filter(t -> t.code().equals(code)).findFirst();
-        }
-
-        @Override
-        public List<EntityType> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    private static class InMemoryEntityRepository implements EntityRepository {
-        private final Map<UUID, Entity> store = new java.util.LinkedHashMap<>();
-
-        @Override
-        public Entity save(Entity entity) {
-            store.put(entity.id(), entity);
-            return entity;
-        }
-
-        @Override
-        public Optional<Entity> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<Entity> findByTypeAndTitle(UUID entityTypeId, String title) {
-            return store.values().stream()
-                    .filter(e -> e.entityTypeId().equals(entityTypeId) && e.title().equalsIgnoreCase(title))
-                    .findFirst();
-        }
-
-        @Override
-        public List<Entity> findAllByType(UUID entityTypeId) {
-            return store.values().stream().filter(e -> e.entityTypeId().equals(entityTypeId)).toList();
-        }
-
-        @Override
-        public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-            return List.of();
-        }
-
-        @Override
-        public boolean existsByType(UUID entityTypeId) {
-            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
         }
     }
 

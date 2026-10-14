@@ -4,21 +4,18 @@ import com.iozycore.boardgame.bgg.BggCollectionItem;
 import com.iozycore.boardgame.bgg.BggHotListFetcher;
 import com.iozycore.boardgame.bgg.BggThingFetcher;
 import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.insights.Discovery;
 import com.iozycore.core.insights.Discovery.EmptyReason;
 import com.iozycore.core.insights.DiscoveryCandidate;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import org.junit.jupiter.api.Test;
+import com.iozycore.core.testing.InMemoryEntityRepository;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -157,48 +154,6 @@ class BoardGameDiscoveryTest {
         @Override
         public List<BggCollectionItem> fetchHotBoardGames() {
             throw new SourceUnavailableException("BGG answered 503 for /hot");
-        }
-    }
-
-    private static class InMemoryEntityRepository implements EntityRepository {
-        private final Map<UUID, Entity> store = new HashMap<>();
-
-        @Override
-        public Entity save(Entity entity) {
-            store.put(entity.id(), entity);
-            return entity;
-        }
-
-        @Override
-        public Optional<Entity> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<Entity> findByTypeAndTitle(UUID entityTypeId, String title) {
-            return store.values().stream()
-                    .filter(e -> e.entityTypeId().equals(entityTypeId) && e.title().equalsIgnoreCase(title))
-                    .findFirst();
-        }
-
-        @Override
-        public List<Entity> findAllByType(UUID entityTypeId) {
-            return store.values().stream().filter(e -> e.entityTypeId().equals(entityTypeId)).toList();
-        }
-
-        @Override
-        public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-            return List.of();
-        }
-
-        @Override
-        public boolean existsByType(UUID entityTypeId) {
-            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
         }
     }
 }

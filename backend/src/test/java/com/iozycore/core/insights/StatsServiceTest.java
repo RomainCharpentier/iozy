@@ -2,30 +2,26 @@ package com.iozycore.core.insights;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.manga.domain.MangaEdition;
-import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.manga.domain.EditionTier;
-import com.iozycore.core.domain.catalog.EntityRepository;
-import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
-import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.domain.catalog.Tag;
-import com.iozycore.core.domain.catalog.TagRepository;
 import com.iozycore.core.domain.experience.Experience;
-import com.iozycore.core.domain.experience.ExperienceRepository;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
-import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
-import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import org.junit.jupiter.api.Test;
+import com.iozycore.core.testing.InMemoryEntityRepository;
+import com.iozycore.core.testing.InMemoryEntityTypeRepository;
+import com.iozycore.core.testing.InMemoryExperienceRepository;
+import com.iozycore.core.testing.InMemoryOwnershipRepository;
+import com.iozycore.core.testing.InMemoryTagRepository;
+import com.iozycore.core.testing.InMemoryWishlistEntryRepository;
+import com.iozycore.manga.testing.InMemoryMangaEditionRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +37,7 @@ class StatsServiceTest {
         InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
         InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
-        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository(EntityTypeFixtures.MANGA, EntityTypeFixtures.VIDEO_GAME);
 
         Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         Tag seinen = new Tag(UUID.randomUUID(), "seinen");
@@ -97,7 +93,7 @@ class StatsServiceTest {
         InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
         InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
-        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository(EntityTypeFixtures.MANGA, EntityTypeFixtures.VIDEO_GAME);
 
         Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         entityRepository.save(deathNote);
@@ -130,7 +126,7 @@ class StatsServiceTest {
         InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
         InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
-        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository(EntityTypeFixtures.MANGA, EntityTypeFixtures.VIDEO_GAME);
 
         Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         deathNote.setAttribute("mangaka", "Takeshi Obata");
@@ -179,7 +175,7 @@ class StatsServiceTest {
         InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
         InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
-        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository(EntityTypeFixtures.MANGA, EntityTypeFixtures.VIDEO_GAME);
 
         InMemoryMangaEditionRepository editionRepository = new InMemoryMangaEditionRepository();
         StatsService statsService = new StatsService(
@@ -202,7 +198,7 @@ class StatsServiceTest {
         InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
         InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
-        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository(EntityTypeFixtures.MANGA, EntityTypeFixtures.VIDEO_GAME);
 
         // A series with TWO owned volumes, in an edition whose new price is
         // known: that is what makes the value, not what was paid.
@@ -259,284 +255,5 @@ class StatsServiceTest {
                 .filter(t -> t.entityTypeLabel().equals("Jeu vidéo")).findFirst().orElseThrow();
         assertThat(jeuValue.knownValue()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(jeuValue.pricedCount()).isZero();
-    }
-
-    private static class InMemoryEntityRepository implements EntityRepository {
-        private final Map<UUID, Entity> store = new HashMap<>();
-
-        @Override
-        public Entity save(Entity entity) {
-            store.put(entity.id(), entity);
-            return entity;
-        }
-
-        @Override
-        public Optional<Entity> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<Entity> findByTypeAndTitle(UUID entityTypeId, String title) {
-            return store.values().stream()
-                    .filter(e -> e.entityTypeId().equals(entityTypeId) && e.title().equalsIgnoreCase(title))
-                    .findFirst();
-        }
-
-        @Override
-        public List<Entity> findAllByType(UUID entityTypeId) {
-            List<Entity> result = new ArrayList<>();
-            for (Entity entity : store.values()) {
-                if (entity.entityTypeId().equals(entityTypeId)) {
-                    result.add(entity);
-                }
-            }
-            return result;
-        }
-
-        @Override
-        public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-            // Used to return List.of() with the comment "not exercised by this test".
-            // That stopped being true the day the collection value
-            // stopped reading works one by one (Batch 113): the test
-            // announced 0 € for a collection worth 29,80. A fake
-            // repository that lies about a method is only noticed the day
-            // someone calls it.
-            return store.values().stream()
-                    .filter(e -> titleQuery == null
-                            || e.title().toLowerCase().contains(titleQuery.toLowerCase()))
-                    .filter(e -> entityTypeId == null || entityTypeId.equals(e.entityTypeId()))
-                    .filter(e -> tagId == null || e.tagIds().contains(tagId))
-                    .toList();
-        }
-
-        @Override
-        public boolean existsByType(UUID entityTypeId) {
-            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    /** Seeded with the MANGA/VIDEO_GAME fixtures - the 2 types exercised by this test. */
-    private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
-        private final Map<UUID, EntityType> store = new HashMap<>(Map.of(
-                EntityTypeFixtures.MANGA.id(), EntityTypeFixtures.MANGA,
-                EntityTypeFixtures.VIDEO_GAME.id(), EntityTypeFixtures.VIDEO_GAME));
-
-        @Override
-        public EntityType save(EntityType entityType) {
-            store.put(entityType.id(), entityType);
-            return entityType;
-        }
-
-        @Override
-        public Optional<EntityType> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<EntityType> findByCode(String code) {
-            return store.values().stream().filter(t -> t.code().equals(code)).findFirst();
-        }
-
-        @Override
-        public List<EntityType> findAll() {
-            return List.copyOf(store.values());
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    private static class InMemoryOwnershipRepository implements OwnershipRepository {
-        private final Map<UUID, Ownership> store = new HashMap<>();
-
-        @Override
-        public Ownership save(Ownership ownership) {
-            store.put(ownership.id(), ownership);
-            return ownership;
-        }
-
-        @Override
-        public Optional<Ownership> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<Ownership> findByEntityId(UUID entityId) {
-            return store.values().stream().filter(o -> o.entityId().equals(entityId)).toList();
-        }
-
-        @Override
-        public boolean existsByEntityId(UUID entityId) {
-            return !findByEntityId(entityId).isEmpty();
-        }
-
-        @Override
-        public List<Ownership> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    private static class InMemoryExperienceRepository implements ExperienceRepository {
-        private final Map<UUID, Experience> store = new HashMap<>();
-
-        @Override
-        public Experience save(Experience experience) {
-            store.put(experience.id(), experience);
-            return experience;
-        }
-
-        @Override
-        public Optional<Experience> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<Experience> findByEntityId(UUID entityId) {
-            return store.values().stream().filter(e -> e.entityId().equals(entityId)).toList();
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-
-        @Override
-        public boolean existsByEntityId(UUID entityId) {
-            return !findByEntityId(entityId).isEmpty();
-        }
-
-        @Override
-        public List<Experience> findAll() {
-            return new ArrayList<>(store.values());
-        }
-    }
-
-    private static class InMemoryWishlistEntryRepository implements WishlistEntryRepository {
-        private final Map<UUID, WishlistEntry> store = new HashMap<>();
-
-        @Override
-        public WishlistEntry save(WishlistEntry entry) {
-            store.put(entry.id(), entry);
-            return entry;
-        }
-
-        @Override
-        public Optional<WishlistEntry> findByEntityId(UUID entityId) {
-            return store.values().stream().filter(e -> e.entityId().equals(entityId)).findFirst();
-        }
-
-        @Override
-        public List<WishlistEntry> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public Optional<WishlistEntry> findByVariantId(UUID variantId) {
-            return store.values().stream()
-                    .filter(e -> e.variantId().map(variantId::equals).orElse(false))
-                    .findFirst();
-        }
-
-        @Override
-        public List<WishlistEntry> findAllByEntityId(UUID entityId) {
-            return store.values().stream().filter(e -> e.entityId().equals(entityId)).toList();
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    private static class InMemoryTagRepository implements TagRepository {
-        private final Map<UUID, Tag> store = new HashMap<>();
-
-        @Override
-        public Tag save(Tag tag) {
-            store.put(tag.id(), tag);
-            return tag;
-        }
-
-        @Override
-        public Optional<Tag> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<Tag> findByLabel(String label) {
-            return store.values().stream().filter(t -> t.label().equals(label)).findFirst();
-        }
-
-        @Override
-        public List<Tag> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public void supprimer(UUID id) {
-            store.remove(id);
-        }
-    }
-
-    private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
-        private final Map<UUID, MangaEdition> store = new HashMap<>();
-
-        @Override
-        public MangaEdition save(MangaEdition edition) {
-            store.put(edition.id(), edition);
-            return edition;
-        }
-
-        @Override
-        public Optional<MangaEdition> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
-            return store.values().stream()
-                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)
-                            && e.editionName().equalsIgnoreCase(editionName))
-                    .findFirst();
-        }
-
-        @Override
-        public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
-            return store.values().stream().filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)).toList();
-        }
-
-        @Override
-        public List<MangaEdition> findByEntityId(UUID entityId) {
-            return store.values().stream().filter(e -> entityId.equals(e.entityId())).toList();
-        }
-
-        @Override
-        public List<MangaEdition> findAll() {
-            return new ArrayList<>(store.values());
-        }
-
-        @Override
-        public Optional<MangaEdition> findByEntityIdAndEditionName(UUID entityId, String editionName) {
-            return store.values().stream()
-                    .filter(e -> entityId.equals(e.entityId()) && e.editionName().equalsIgnoreCase(editionName))
-                    .findFirst();
-        }
-
-        @Override
-        public void deleteById(UUID id) {
-            store.remove(id);
-        }
     }
 }
