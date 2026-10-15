@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type MutableRefObject } from 'react'
 import { connectSocket, getSocket, setCurrentRoom, clearCurrentRoom } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
+import { getSessionToken, setSessionToken } from '@/utils/sessionToken'
 import type { Player } from '@/lib/game/types'
 import { TIMING } from '@/services/gameService'
 
@@ -86,7 +87,14 @@ export function useRoomSocketJoin(
     const playerId = getPlayerId()
     const joinTimeoutsRef: number[] = []
 
-    const handleRoomJoined = ({ room }: { room: { players?: Player[]; phase?: string } }) => {
+    const handleRoomJoined = ({
+      room,
+      sessionToken,
+    }: {
+      room: { players?: Player[]; phase?: string }
+      sessionToken?: string
+    }) => {
+      setSessionToken(roomCode, sessionToken)
       // Room active : sera réintégrée automatiquement après une reconnexion
       setCurrentRoom(roomCode)
       setPlayers(room.players || [])
@@ -151,6 +159,7 @@ export function useRoomSocketJoin(
       roomCode,
       playerId,
       playerName: trimmedName,
+      sessionToken: getSessionToken(roomCode),
     })
 
     return () => {
@@ -229,10 +238,13 @@ export function useRoomSocketCreate(
       const handleRoomCreated = ({
         roomCode: code,
         room,
+        sessionToken,
       }: {
         roomCode: string
         room: { players?: Player[] }
+        sessionToken?: string
       }) => {
+        setSessionToken(code, sessionToken)
         setRoomCode(code)
         roomCodeRef.current = code
         // Room active : sera réintégrée automatiquement après une reconnexion

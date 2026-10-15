@@ -16,7 +16,12 @@ import {
   reconnectPlayer,
   findPlayerBySocketId,
   findPlayer,
-  getRoomState
+  getRoomState,
+  issueSessionToken,
+  verifySessionToken,
+  toPublicPlayers,
+  toPublicQuestion,
+  toPublicQuestions
 } from '../domain/room.js';
 import { getGameState } from '../domain/game.js';
 import { roomRepository } from '../infrastructure/roomRepository.js';
@@ -58,10 +63,10 @@ function syncPlayerToGame(socket, room) {
   }
 
   const gameStartData = {
-    currentQuestion: room.questions[room.game.questionIndex],
-    questions: room.questions,
+    currentQuestion: toPublicQuestion(room.questions[room.game.questionIndex]),
+    questions: toPublicQuestions(room.questions),
     questionIndex: room.game.questionIndex,
-    players: room.players,
+    players: toPublicPlayers(room.players),
     defaultTimeLimit: room.defaultTimeLimit,
     durationMs: room.game.durationMs
   };
@@ -106,16 +111,18 @@ export function setupRoomHandlers(socket, io) {
 
     const roomCode = generateRoomCode();
     const room = createRoom(roomCode, playerId, socket.id, finalPlayerName, categories, normalizeTimeLimit(defaultTimeLimit));
+    // Jeton secret renvoyé uniquement au créateur (protège l'identité de l'hôte)
+    const sessionToken = issueSessionToken(room, playerId);
     
     roomRepository.create(room);
     socket.join(roomCode);
     
     const state = getRoomState(room);
-    socket.emit('room:created', { roomCode, room: state });
+    socket.emit('room:created', { roomCode, room: state, sessionToken });
     broadcastRoomState(io, roomCode, room);
   }));
 
-  socket.on('room:join', withPayload(socket, 'room:join', async ({ roomCode, playerId, playerName, playerAvatar }) => {
+  socket.on('room:join', withPayload(socket, 'room:join', async ({ roomCode, playerId, playerName, playerAvatar, sessionToken }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
       return;
@@ -137,6 +144,11 @@ export function setupRoomHandlers(socket, io) {
     // Vérifier si le joueur existe déjà (reconnexion)
     const existingPlayer = findPlayer(room, playerId);
     if (existingPlayer) {
+      // Le playerId est public : exiger le jeton de session pour reprendre ce joueur
+      if (!verifySessionToken(room, playerId, sessionToken)) {
+        sendError(socket, 'INVALID_SESSION', 'Session invalide pour ce joueur');
+        return;
+      }
       // Reconnecter le joueur et mettre à jour le nom
       reconnectPlayer(room, playerId, socket.id);
       if (finalPlayerName) existingPlayer.name = finalPlayerName;
@@ -145,7 +157,7 @@ export function setupRoomHandlers(socket, io) {
       socket.join(roomCode);
       
       const state = getRoomState(room);
-      socket.emit('room:joined', { room: state });
+      socket.emit('room:joined', { room: state, sessionToken });
       
       // Broadcaster immédiatement à tous les autres joueurs
       broadcastRoomState(io, roomCode, room);
@@ -158,24 +170,26 @@ export function setupRoomHandlers(socket, io) {
       // La partie a déjà commencé, permettre la reconnexion
       // Le joueur recevra l'état actuel de la partie
       addPlayer(room, playerId, socket.id, finalPlayerName);
+      const newSessionToken = issueSessionToken(room, playerId);
       roomRepository.update(roomCode, room);
       socket.join(roomCode);
       
       const state = getRoomState(room);
-      socket.emit('room:joined', { room: state });
+      socket.emit('room:joined', { room: state, sessionToken: newSessionToken });
       syncPlayerToGame(socket, room);
       broadcastRoomState(io, roomCode, room);
       return;
     }
 
     addPlayer(room, playerId, socket.id, finalPlayerName, normalizeAvatar(playerAvatar, '🎮'));
+    const newSessionToken = issueSessionToken(room, playerId);
     roomRepository.update(roomCode, room);
     
     // Joindre la room AVANT de broadcaster
     socket.join(roomCode);
     
     const state = getRoomState(room);
-    socket.emit('room:joined', { room: state });
+    socket.emit('room:joined', { room: state, sessionToken: newSessionToken });
     
     // Broadcaster à tous les autres joueurs (le nouveau joueur a déjà reçu room:joined)
     // Utiliser setImmediate pour s'assurer que le socket est bien dans la room
@@ -184,7 +198,7 @@ export function setupRoomHandlers(socket, io) {
     });
   }));
 
-  socket.on('room:rejoin', withPayload(socket, 'room:rejoin', async ({ roomCode, playerId }) => {
+  socket.on('room:rejoin', withPayload(socket, 'room:rejoin', async ({ roomCode, playerId, sessionToken }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
       return;
@@ -205,6 +219,12 @@ export function setupRoomHandlers(socket, io) {
     const existingPlayer = findPlayer(room, playerId);
     if (!existingPlayer) {
       sendError(socket, 'PLAYER_NOT_FOUND', 'Joueur introuvable dans ce salon');
+      return;
+    }
+
+    // Le playerId est public : exiger le jeton de session pour reprendre ce joueur
+    if (!verifySessionToken(room, playerId, sessionToken)) {
+      sendError(socket, 'INVALID_SESSION', 'Session invalide pour ce joueur');
       return;
     }
 

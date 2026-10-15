@@ -314,6 +314,14 @@ export function nextQuestion(room) {
 }
 
 /**
+ * Bonne réponse de la question en cours (à n'envoyer qu'au reveal)
+ */
+export function getCorrectAnswer(room) {
+    if (!room || !room.game || !room.questions) return undefined;
+    return room.questions[room.game.questionIndex]?.answer;
+}
+
+/**
  * Vérifie si la partie est terminée
  */
 export function isGameFinished(room) {

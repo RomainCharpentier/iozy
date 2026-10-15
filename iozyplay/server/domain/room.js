@@ -3,6 +3,8 @@
  * Aucune dépendance externe (pas de Socket.io, Express, etc.)
  */
 
+import { randomUUID, timingSafeEqual } from 'node:crypto';
+
 /**
  * Génère un code de salon unique
  */
@@ -33,6 +35,8 @@ export function createRoom(roomCode, hostPlayerId, hostSocketId, hostName, categ
     createdAt: Date.now(),
     updatedAt: Date.now(),
     defaultTimeLimit,
+    // Jetons de session secrets { playerId: sessionToken } - jamais diffusés
+    sessionTokens: {},
     // État du jeu pour synchronisation
     game: null // { questionIndex, startedAt, durationMs, answers: { playerId: answer } }
   };
@@ -124,9 +128,70 @@ export function removePlayer(room, socketIdOrPlayerId) {
   );
   if (playerIndex === -1) return room;
 
-  room.players.splice(playerIndex, 1);
+  const [removed] = room.players.splice(playerIndex, 1);
+  if (room.sessionTokens && removed) {
+    delete room.sessionTokens[removed.id];
+  }
   room.updatedAt = Date.now();
   return room;
+}
+
+/**
+ * Génère (ou régénère) le jeton de session secret d'un joueur.
+ * Ce jeton n'est renvoyé qu'au joueur concerné et prouve son identité lors d'un rejoin.
+ */
+export function issueSessionToken(room, playerId) {
+  if (!room || !playerId) return null;
+  if (!room.sessionTokens) room.sessionTokens = {};
+  const token = randomUUID();
+  room.sessionTokens[playerId] = token;
+  return token;
+}
+
+/**
+ * Vérifie le jeton de session d'un joueur (comparaison à temps constant)
+ */
+export function verifySessionToken(room, playerId, token) {
+  if (!room || !playerId || typeof token !== 'string') return false;
+  const expected = room.sessionTokens?.[playerId];
+  if (typeof expected !== 'string') return false;
+  const a = Buffer.from(expected);
+  const b = Buffer.from(token);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * Vue publique d'un joueur : ni socketId ni jeton de session
+ */
+export function toPublicPlayer(player) {
+  if (!player) return player;
+  return {
+    id: player.id,
+    name: player.name,
+    avatar: player.avatar,
+    score: player.score,
+    isHost: player.isHost || false,
+    connected: player.connected || false
+  };
+}
+
+export function toPublicPlayers(players) {
+  return (players || []).map(toPublicPlayer);
+}
+
+/**
+ * Vue publique d'une question : la réponse n'est jamais envoyée avant le reveal.
+ * L'indice (hint) est conservé : il est conçu pour être affiché pendant la devinette.
+ */
+export function toPublicQuestion(question) {
+  if (!question) return question;
+  const { answer, ...publicQuestion } = question;
+  return publicQuestion;
+}
+
+export function toPublicQuestions(questions) {
+  return (questions || []).map(toPublicQuestion);
 }
 
 /**
@@ -210,6 +275,20 @@ export function canDeleteRoom(room) {
 }
 
 /**
+ * État de jeu diffusable : les réponses des joueurs sont remplacées par la liste
+ * de ceux qui ont répondu ; la bonne réponse n'apparaît qu'après la validation (reveal).
+ */
+function getPublicGame(room) {
+  if (!room.game) return null;
+  const { answers, ...game } = room.game;
+  game.answeredPlayers = Object.keys(answers || {});
+  if (room.game.validatedAnswers?._validated === true) {
+    game.correctAnswer = room.questions?.[room.game.questionIndex]?.answer;
+  }
+  return game;
+}
+
+/**
  * Récupère l'état complet de la room pour synchronisation
  */
 export function getRoomState(room) {
@@ -218,21 +297,14 @@ export function getRoomState(room) {
   const state = {
     code: room.code,
     hostPlayerId: room.hostPlayerId,
-    players: room.players.map(p => ({
-      id: p.id,
-      name: p.name,
-      socketId: p.socketId,
-      score: p.score,
-      isHost: p.isHost || false,
-      connected: p.connected || false
-    })),
+    players: toPublicPlayers(room.players),
     phase: room.gameState, // waiting, playing, finished
     settings: {
       categories: room.categories,
       defaultTimeLimit: room.defaultTimeLimit
     },
-    game: room.game ? { ...room.game } : null, // { questionIndex, startedAt, durationMs, answers }
-    questions: room.questions || [], // Inclure les questions dans l'état
+    game: getPublicGame(room), // { questionIndex, startedAt, durationMs, answeredPlayers, ... }
+    questions: toPublicQuestions(room.questions), // Questions sans les réponses
     updatedAt: room.updatedAt
   };
   

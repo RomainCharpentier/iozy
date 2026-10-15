@@ -8,7 +8,10 @@ import {
   isWaiting,
   findPlayer,
   transferHost,
-  getRoomState
+  getRoomState,
+  issueSessionToken,
+  verifySessionToken,
+  toPublicQuestion
 } from './room.js'
 
 describe('Room Domain', () => {
@@ -111,3 +114,78 @@ describe('Room Domain', () => {
   })
 })
 
+describe('Room Domain - sécurité', () => {
+  let room
+
+  test.beforeEach(() => {
+    room = createRoom('ABC123', 'player1', 'socket1', 'Host', ['pop'], 5)
+  })
+
+  test('getRoomState ne diffuse ni socketId ni jetons de session', () => {
+    issueSessionToken(room, 'player1')
+    const state = getRoomState(room)
+    assert.strictEqual(state.players[0].socketId, undefined)
+    assert.strictEqual(state.sessionTokens, undefined)
+    assert.ok(!JSON.stringify(state).includes(room.sessionTokens.player1))
+  })
+
+  test('getRoomState retire answer des questions et les réponses des joueurs', () => {
+    room.gameState = 'playing'
+    room.questions = [{ id: 'q1', answer: 'Secret', hint: 'Indice' }]
+    room.game = {
+      questionIndex: 0,
+      startedAt: Date.now(),
+      durationMs: 5000,
+      answers: { player1: 'Secret' },
+      readyPlayers: new Set(['player1']),
+      validatedAnswers: {}
+    }
+    const state = getRoomState(room)
+    assert.strictEqual(state.questions[0].answer, undefined)
+    assert.strictEqual(state.questions[0].hint, 'Indice')
+    assert.strictEqual(state.game.answers, undefined)
+    assert.deepStrictEqual(state.game.answeredPlayers, ['player1'])
+    assert.strictEqual(state.game.correctAnswer, undefined)
+    assert.ok(!JSON.stringify(state).includes('Secret'))
+    // L'objet room n'est pas modifié
+    assert.strictEqual(room.questions[0].answer, 'Secret')
+    assert.deepStrictEqual(room.game.answers, { player1: 'Secret' })
+  })
+
+  test('getRoomState donne la bonne réponse une fois les réponses validées', () => {
+    room.gameState = 'playing'
+    room.questions = [{ id: 'q1', answer: 'Secret' }]
+    room.game = {
+      questionIndex: 0,
+      startedAt: Date.now(),
+      durationMs: 5000,
+      answers: {},
+      readyPlayers: new Set(),
+      validatedAnswers: { _validated: true }
+    }
+    assert.strictEqual(getRoomState(room).game.correctAnswer, 'Secret')
+  })
+
+  test('toPublicQuestion ne mute pas la question', () => {
+    const q = { id: 'q1', answer: 'A' }
+    assert.deepStrictEqual(toPublicQuestion(q), { id: 'q1' })
+    assert.strictEqual(q.answer, 'A')
+  })
+
+  test('verifySessionToken accepte seulement le jeton du joueur', () => {
+    const token = issueSessionToken(room, 'player1')
+    addPlayer(room, 'player2', 'socket2', 'Player2')
+    const token2 = issueSessionToken(room, 'player2')
+    assert.strictEqual(verifySessionToken(room, 'player1', token), true)
+    assert.strictEqual(verifySessionToken(room, 'player1', token2), false)
+    assert.strictEqual(verifySessionToken(room, 'player1', undefined), false)
+    assert.strictEqual(verifySessionToken(room, 'player1', ''), false)
+    assert.strictEqual(verifySessionToken(room, 'unknown', token), false)
+  })
+
+  test('removePlayer révoque le jeton de session', () => {
+    const token = issueSessionToken(room, 'player1')
+    removePlayer(room, 'player1')
+    assert.strictEqual(verifySessionToken(room, 'player1', token), false)
+  })
+})

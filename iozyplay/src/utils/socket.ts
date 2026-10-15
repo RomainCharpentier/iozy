@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client'
 import { getPlayerId } from '@/utils/playerId'
+import { getSessionToken } from '@/utils/sessionToken'
 
 const getSocketUrl = (): string => {
   if (import.meta.env.VITE_SOCKET_URL) {
@@ -51,7 +52,11 @@ const handleConnect = () => {
   // Après une reconnexion, toujours réintégrer la room : même si le socket.id est conservé
   // (connectionStateRecovery), le serveur a mis socketId = null sur le joueur
   if (isReconnect && currentRoomCode && socket) {
-    socket.emit('room:rejoin', { roomCode: currentRoomCode, playerId: getPlayerId() })
+    socket.emit('room:rejoin', {
+      roomCode: currentRoomCode,
+      playerId: getPlayerId(),
+      sessionToken: getSessionToken(currentRoomCode),
+    })
   }
 
   if (eventQueue.length > 0) {

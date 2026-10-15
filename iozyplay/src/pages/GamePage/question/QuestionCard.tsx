@@ -35,7 +35,8 @@ interface QuestionCardProps {
   startTime?: number // Timestamp serveur pour synchroniser le démarrage (pour mode multijoueur)
   isGameEnded?: boolean // Indique si la partie est terminée
   isMediaReady?: boolean // Indique si le média est prêt et lancé
-  allQuestions?: Question[] // Toutes les questions de la partie (pour les suggestions)
+  answerSuggestions?: string[] // Réponses proposées en autocomplétion
+  revealedAnswer?: string // Bonne réponse reçue du serveur au reveal (mode multijoueur)
   validatedAnswers?: Record<string, boolean> // Réponses validées par le serveur (mode multijoueur)
 }
 
@@ -60,7 +61,8 @@ export default function QuestionCard({
   startTime,
   isGameEnded = false,
   isMediaReady = false,
-  allQuestions = [],
+  answerSuggestions = [],
+  revealedAnswer,
   validatedAnswers = {},
 }: QuestionCardProps) {
   const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
@@ -366,8 +368,7 @@ export default function QuestionCard({
                 inputRefs.current['solo'] = el
               }}
               hasSubmitted={hasSubmitted}
-              allQuestions={allQuestions}
-              currentQuestionId={question.id}
+              suggestionPool={answerSuggestions}
               isReveal={isRevealPhase}
               isCorrect={isRevealPhase ? isCorrect : undefined}
               correctAnswer={isRevealPhase ? question.answer : undefined}
@@ -391,11 +392,10 @@ export default function QuestionCard({
                 inputRefs.current['online'] = el
               }}
               hasSubmitted={hasSubmitted}
-              allQuestions={allQuestions}
-              currentQuestionId={question.id}
+              suggestionPool={answerSuggestions}
               isReveal={isRevealPhase}
               isCorrect={isRevealPhase ? isCurrentPlayerCorrect : undefined}
-              correctAnswer={isRevealPhase ? question.answer : undefined}
+              correctAnswer={isRevealPhase ? revealedAnswer : undefined}
               onSkipVote={onSkipVote}
               skipVotes={skipVotes}
               gameMode={gameMode}
