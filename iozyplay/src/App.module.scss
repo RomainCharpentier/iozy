@@ -17,7 +17,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 16px 20px;
+  /* Hauteur fixe : l'écran de jeu réserve exactement cette place sous le bandeau */
+  height: var(--game-banner-height);
+  box-sizing: border-box;
+  padding: 0 20px;
   background: linear-gradient(
     180deg,
     rgba(10, 14, 39, 0.98) 0%,
