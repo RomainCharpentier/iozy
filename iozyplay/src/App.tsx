@@ -30,7 +30,8 @@ function GameOverlay() {
 
 function App() {
   useEffect(() => {
-    QuestionService.loadQuestions()
+    // Préchargement : l'erreur est déjà journalisée par le service
+    QuestionService.loadQuestions().catch(() => {})
   }, [])
 
   return (

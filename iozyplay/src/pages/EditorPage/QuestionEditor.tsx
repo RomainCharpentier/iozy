@@ -1,6 +1,6 @@
 import styles from '@/pages/EditorPage/QuestionEditor.module.scss'
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -21,7 +21,7 @@ import { questionSchema, type QuestionFormData } from '@/schemas/questionSchema'
 
 interface QuestionEditorProps {
   questions: Question[]
-  onSave: (questions: Question[]) => void
+  onSave: (questions: Question[]) => Promise<void> | void
   onClose: () => void
 }
 
@@ -77,26 +77,30 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
 
   const watchedMediaUrl = watch('mediaUrl')
 
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  // Compteur de modifications réelles faites par l'utilisateur : la sauvegarde automatique
+  // ne se déclenche que s'il reste des modifications non sauvegardées
+  const [changeCount, setChangeCount] = useState(0)
+  const savedChangeCountRef = useRef(0)
+  // Dernière liste envoyée à onSave : évite d'écraser l'état local quand le parent la renvoie
+  const lastSavedQuestionsRef = useRef<Question[] | null>(null)
+  const markAsModified = () => setChangeCount((count) => count + 1)
 
   useEffect(() => {
+    if (questions === lastSavedQuestionsRef.current) return
     setLocalQuestions(questions)
-    setIsInitialLoad(true)
-    // Marquer comme chargé après un court délai pour éviter la sauvegarde au chargement
-    setTimeout(() => setIsInitialLoad(false), 1000)
+  }, [questions])
 
+  useEffect(() => {
     // Vérifier si on revient de l'import avec des questions importées
-    if (location.state?.imported) {
-      toast.success(`${location.state.imported} question(s) importée(s)`)
-      // Recharger les questions
-      QuestionService.getAllQuestions().then((allQuestions) => {
-        setLocalQuestions(allQuestions)
-        onSave(allQuestions)
-      })
-      // Nettoyer le state
-      navigate(location.pathname, { replace: true, state: {} })
-    }
-  }, [questions, location.state, navigate, onSave])
+    if (!location.state?.imported) return
+    toast.success(`${location.state.imported} question(s) importée(s)`)
+    // Recharger les questions (déjà enregistrées côté serveur : pas de sauvegarde ici)
+    QuestionService.getAllQuestions()
+      .then((allQuestions) => setLocalQuestions(allQuestions))
+      .catch(() => toast.error('Erreur lors du rechargement des questions'))
+    // Nettoyer le state
+    navigate(location.pathname, { replace: true, state: {} })
+  }, [location.state, location.pathname, navigate])
 
   const loadCategoriesList = async () => {
     const cats = await loadCategories()
@@ -195,20 +199,22 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     loadMetadata()
   }, [filteredQuestions, questionMetadata])
 
-  // Sauvegarde automatique à chaque changement (sauf au chargement initial)
+  // Sauvegarde automatique, uniquement après une modification réelle par l'utilisateur
   useEffect(() => {
-    if (isInitialLoad) return
+    if (changeCount === savedChangeCountRef.current) return
 
     const saveTimeout = setTimeout(async () => {
       try {
+        lastSavedQuestionsRef.current = localQuestions
         await onSave(localQuestions)
+        savedChangeCountRef.current = changeCount
       } catch (error) {
         console.error('Erreur lors de la sauvegarde automatique:', error)
       }
     }, 1000) // Debounce de 1 seconde
 
     return () => clearTimeout(saveTimeout)
-  }, [localQuestions, isInitialLoad, onSave])
+  }, [localQuestions, changeCount, onSave])
 
   // Validation YouTube en temps réel
   useEffect(() => {
@@ -308,6 +314,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
 
       await QuestionService.addQuestion(newQuestion)
       setLocalQuestions([...localQuestions, newQuestion])
+      markAsModified()
       reset()
       setSelectedCategories([])
       setYoutubeThumbnail(null)
@@ -370,6 +377,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       const newQuestions = [...localQuestions]
       newQuestions[editingIndex] = updatedQuestion
       setLocalQuestions(newQuestions)
+      markAsModified()
       reset()
       setSelectedCategories([])
       setYoutubeThumbnail(null)
@@ -411,6 +419,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       }
 
       setLocalQuestions([...localQuestions, ...newQuestions])
+      markAsModified()
       toast.success(`${newQuestions.length} question(s) ajoutée(s)`)
     } catch (error) {
       console.error("Erreur lors de l'import:", error)
@@ -487,15 +496,14 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     const handleConfirm = async () => {
       try {
         const questionId = question.id || question.mediaUrl
-        const categories = Array.isArray(question.category)
-          ? question.category
-          : [question.category]
-        await QuestionService.deleteQuestion(questionId, categories[0])
+        // Suppression de toutes les catégories, comme dans la liste locale
+        await QuestionService.deleteQuestion(questionId)
 
         const newQuestions = localQuestions.filter(
           (q) => (q.id && question.id && q.id !== question.id) || q.mediaUrl !== question.mediaUrl
         )
         setLocalQuestions(newQuestions)
+        markAsModified()
         toast.success('Question supprimée avec succès')
       } catch (error) {
         console.error('Erreur lors de la suppression:', error)

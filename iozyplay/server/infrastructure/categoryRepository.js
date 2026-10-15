@@ -41,8 +41,10 @@ export async function loadCategories() {
       await saveCategories(DEFAULT_CATEGORIES);
       return DEFAULT_CATEGORIES;
     }
+    // Fichier illisible ou JSON corrompu : lever une erreur plutôt que renvoyer les
+    // catégories par défaut, sinon la prochaine écriture effacerait les catégories personnalisées
     console.error('Erreur lors du chargement des catégories:', error);
-    return DEFAULT_CATEGORIES;
+    throw error;
   }
 }
 

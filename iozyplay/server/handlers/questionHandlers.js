@@ -2,7 +2,31 @@
  * Gestionnaires d'API REST pour les questions
  */
 
-import { loadQuestions, addQuestion, deleteQuestion, saveQuestions } from '../infrastructure/questionRepository.js';
+import {
+  loadQuestions,
+  addQuestion,
+  deleteQuestion,
+  saveQuestions,
+  CorruptedQuestionsFileError,
+  InvalidQuestionsDataError
+} from '../infrastructure/questionRepository.js';
+
+/**
+ * Réponse d'erreur commune : 400 pour des données invalides,
+ * 500 explicite si le fichier est corrompu (aucune écriture effectuée)
+ */
+function sendRepositoryError(res, error, fallbackMessage) {
+  if (error instanceof InvalidQuestionsDataError) {
+    return res.status(400).json({ error: 'Erreurs de validation', details: [error.message] });
+  }
+  if (error instanceof CorruptedQuestionsFileError) {
+    return res.status(500).json({
+      error: 'Fichier de questions corrompu : aucune modification enregistrée',
+      details: error.message
+    });
+  }
+  return res.status(500).json({ error: fallbackMessage });
+}
 
 /**
  * GET /api/questions - Récupère toutes les questions
@@ -13,7 +37,7 @@ export async function getAllQuestions(req, res) {
     res.json(questionsData);
   } catch (error) {
     console.error('Erreur lors de la récupération des questions:', error);
-    res.status(500).json({ error: 'Erreur serveur lors de la récupération des questions' });
+    sendRepositoryError(res, error, 'Erreur serveur lors de la récupération des questions');
   }
 }
 
@@ -76,7 +100,7 @@ export async function createQuestion(req, res) {
     res.status(201).json(savedQuestion);
   } catch (error) {
     console.error('Erreur lors de l\'ajout de la question:', error);
-    res.status(500).json({ error: 'Erreur serveur lors de l\'ajout de la question' });
+    sendRepositoryError(res, error, 'Erreur serveur lors de l\'ajout de la question');
   }
 }
 
@@ -97,6 +121,9 @@ export async function removeQuestion(req, res) {
     res.json({ success: true });
   } catch (error) {
     console.error('Erreur lors de la suppression de la question:', error);
+    if (error instanceof CorruptedQuestionsFileError) {
+      return sendRepositoryError(res, error);
+    }
     const statusCode = error.message?.includes('not found') ? 404 : 500;
     res.status(statusCode).json({ 
       error: 'Erreur serveur lors de la suppression de la question',
@@ -115,7 +142,7 @@ export async function updateAllQuestions(req, res) {
     res.json({ success: true });
   } catch (error) {
     console.error('Erreur lors de la mise à jour des questions:', error);
-    res.status(500).json({ error: 'Erreur serveur lors de la mise à jour des questions' });
+    sendRepositoryError(res, error, 'Erreur serveur lors de la mise à jour des questions');
   }
 }
 
