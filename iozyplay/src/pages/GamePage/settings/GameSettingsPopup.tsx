@@ -134,7 +134,7 @@ export default function GameSettingsPopup({
   return (
     <div className={gameStyles.gameSettingsPopup}>
       <div className={gameStyles.gameSettingsHeader}>
-        <h2>Modifier les paramètres</h2>
+        <h2>Changer les thèmes</h2>
         <button
           className={gameStyles.closeButton}
           onClick={() => {

@@ -59,21 +59,36 @@
   align-items: center;
 }
 
-/* Conteneur de l'écran de fin (Score) : défile dans son propre panneau si besoin */
-.gameInterfaceGame {
+/*
+ * Écran de fin, colonne de gauche (récapitulatif + actions) ; le classement final occupe
+ * la colonne de droite comme pendant la partie. Le contenu est centré et défile dans le
+ * panneau s'il ne tient pas (jamais de chevauchement avec la barre du haut).
+ */
+.endScreenMain {
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
-  max-width: 820px;
-  max-height: 100%;
-  width: 100%;
   overflow-y: auto;
   box-sizing: border-box;
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      color-mix(in srgb, var(--accent-primary) 14%, transparent),
+      transparent 70%
+    ),
+    color-mix(in srgb, var(--bg-tertiary) 88%, black);
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--border-color) 78%, var(--accent-primary));
+  border-radius: var(--radius-xl);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
 }
 
-.gameInterfaceBodyNoSidebar .gameInterfaceGame,
-.gameInterfaceBodySoloEnd .gameInterfaceGame {
-  margin: 0 auto;
+/* Solo : pas de classement, le récapitulatif est centré avec une largeur raisonnable */
+.gameInterfaceBodySoloEnd .endScreenMain {
+  flex: 0 1 820px;
+  max-height: 100%;
 }
 
 /* Colonne question : catégorie, zone média (flexible), réponse, indice */
@@ -369,19 +384,27 @@
   flex-shrink: 0;
 }
 
+/* Actions de la barre du haut : icône + libellé court (libellé masqué < md) */
 .gameInterfaceActionBtn {
-  width: 38px;
   height: 38px;
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--bg-secondary) 85%, var(--accent-primary) 6%);
-  border: 1px solid color-mix(in srgb, var(--border-color, #334155) 80%, var(--accent-primary));
-  color: var(--text-color, #f1f5f9);
-  cursor: pointer;
-  display: flex;
+  padding: 0 var(--space-3);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  transition: all 0.2s ease;
+  gap: var(--space-2);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-secondary) 85%, var(--accent-primary) 6%);
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--border-color) 80%, var(--accent-primary));
+  color: var(--text-color);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    transform var(--transition-base);
 }
 
 .gameInterfaceActionBtn:hover {
@@ -390,8 +413,25 @@
   transform: translateY(-1px);
 }
 
+.gameInterfaceActionBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--accent-primary);
+}
+
+/* Son coupé : état visible en permanence */
+.gameInterfaceActionBtn[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--color-warning) 16%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--color-warning) 60%, var(--border-color));
+  color: var(--color-warning);
+}
+
 .gameInterfaceActionIcon {
-  font-size: 1.05rem;
+  font-size: var(--font-size-base);
+  line-height: 1;
+}
+
+.gameInterfaceActionLabel {
   line-height: 1;
 }
 
@@ -402,6 +442,19 @@
 .gameInterfaceActionBtnDanger:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: var(--error);
+}
+
+/* Barre du haut de l'écran de fin : intitulé à la place de la progression */
+.gameInterfaceEndHeading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: 0.95rem;
+  line-height: 38px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Classement : colonne de la hauteur du corps, la liste défile dans le panneau */
@@ -523,13 +576,11 @@
   min-width: 20px;
 }
 
+/* Vainqueur : la couronne remplace le rang, dans la même colonne de la grille */
 .gameInterfaceWinnerCrown {
-  position: absolute;
-  top: -0.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.5rem;
-  z-index: 1;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  text-align: center;
 }
 
 .gameInterfacePlayerAvatar {
@@ -674,18 +725,22 @@
   margin-right: 0.5rem;
 }
 
+/* Récapitulatif de fin : compact pour tenir sans défilement dès 800×600 */
 .gameInterfaceGameEnd {
+  margin: auto;
+  width: 100%;
+  max-width: 40rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2rem;
-  padding: 3rem 2rem;
+  gap: clamp(var(--space-2), 2.2dvh, var(--space-5));
+  padding: clamp(var(--space-4), 3dvh, var(--space-8)) var(--space-6);
+  box-sizing: border-box;
   text-align: center;
 }
 
 .gameInterfaceEndIcon {
-  font-size: 4rem;
+  font-size: clamp(2.25rem, 7dvh, 3.5rem);
   line-height: 1;
   animation: bounce 1s ease-in-out;
 }
@@ -696,85 +751,149 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-20px);
+    transform: translateY(-12px);
   }
 }
 
 .gameInterfaceEndTitle {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--text-primary, #fff);
   margin: 0;
+  font-size: clamp(var(--font-size-2xl), 4.5dvh, var(--font-size-4xl));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--text-primary);
 }
 
 .gameInterfaceEndSubtitle {
-  font-size: 1.125rem;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
   margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
 .gameInterfaceEndStats {
   display: flex;
-  gap: 3rem;
-  margin-top: 1rem;
+  justify-content: center;
+  gap: var(--space-4);
+  width: 100%;
 }
 
 .gameInterfaceEndStat {
+  flex: 0 1 11rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--bg-secondary) 80%, var(--accent-primary) 6%);
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--border-color) 80%, var(--accent-primary));
+  border-radius: var(--radius-lg);
 }
 
 .gameInterfaceEndStatLabel {
-  font-size: 0.875rem;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .gameInterfaceEndStatValue {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary, #fff);
+  font-size: clamp(var(--font-size-xl), 4dvh, var(--font-size-3xl));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--text-primary);
+}
+
+/* Invité : la relance appartient à l'hôte */
+.gameInterfaceEndWaiting {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: var(--accent-alpha-1);
+  border: var(--border-width-thin) dashed var(--accent-alpha-4);
+  border-radius: var(--radius-full);
+}
+
+.gameInterfaceEndWaitingDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  animation: endWaitingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes endWaitingPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .gameInterfaceEndActions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
 }
 
 .gameInterfaceEndBtn {
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: var(--border-width-thin) solid var(--border-color);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s;
-  background: var(--bg-secondary, rgba(51, 65, 85, 0.6));
-  color: var(--text-primary, #fff);
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    transform var(--transition-base);
 }
 
 .gameInterfaceEndBtn:hover {
-  background: var(--bg-secondary-hover, rgba(51, 65, 85, 0.8));
-  transform: translateY(-2px);
+  background: var(--color-card-bg-hover);
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.gameInterfaceEndBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .gameInterfaceEndBtnPrimary {
   background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: #fff;
 }
 
 .gameInterfaceEndBtnPrimary:hover {
-  background: var(--accent-primary-hover, #4f46e5);
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
 }
 
-.scoreScreen {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 60vh;
+.gameInterfaceEndBtnDanger {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--error) 55%, var(--border-color));
+  color: var(--error);
+}
+
+.gameInterfaceEndBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--error);
 }
 
 .gameModalOverlay {
@@ -1112,9 +1231,45 @@
     flex: none;
   }
 
-  .gameInterfaceGame {
-    max-height: none;
+  .endScreenMain {
+    flex: none;
     overflow-y: visible;
+  }
+
+  /* Écran de fin compact : récapitulatif + classement tiennent en 375×812 */
+  .gameInterfaceGameEnd {
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .gameInterfaceEndIcon {
+    font-size: 2.25rem;
+  }
+
+  .gameInterfaceEndTitle {
+    font-size: var(--font-size-2xl);
+  }
+
+  .gameInterfaceEndSubtitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .gameInterfaceEndStat {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .gameInterfaceEndBtn {
+    min-height: 40px;
+  }
+
+  /* Libellés des actions masqués : icône seule (aria-label et infobulle conservés) */
+  .gameInterfaceActionBtn {
+    width: 38px;
+    padding: 0;
+  }
+
+  .gameInterfaceActionLabel {
+    display: none;
   }
 }
 

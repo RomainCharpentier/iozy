@@ -23,7 +23,7 @@ interface RoundScreenProps {
   revealedAnswer?: string
   waitingForGo: boolean
   gameStep: string
-  showSettingsPopup: boolean
+  muted: boolean
   isGameEnded: boolean
   isMediaReady: boolean
   revealStartTime: number | undefined
@@ -53,7 +53,7 @@ export default function RoundScreen({
   revealedAnswer,
   waitingForGo,
   gameStep,
-  showSettingsPopup,
+  muted,
   isGameEnded,
   isMediaReady,
   revealStartTime,
@@ -75,7 +75,6 @@ export default function RoundScreen({
         gameMode={gameMode}
         players={players}
         questionAnsweredBy={questionAnsweredBy}
-        shouldPause={showSettingsPopup}
         onMediaReady={onMediaReady}
         onMediaStart={onMediaStart}
         onRevealVideoStart={onRevealVideoStart}
@@ -91,6 +90,7 @@ export default function RoundScreen({
         answerSuggestions={answerSuggestions}
         revealedAnswer={revealedAnswer}
         validatedAnswers={isOnline(gameMode) ? validatedAnswers : undefined}
+        muted={muted}
       />
 
       {isOnline(gameMode) && (

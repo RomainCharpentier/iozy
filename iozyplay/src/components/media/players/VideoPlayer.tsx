@@ -17,6 +17,7 @@ interface VideoPlayerProps {
   startTime?: number // Timestamp serveur pour synchroniser le démarrage (phase guess si showVideo=false, phase reveal si showVideo=true)
   timeLimit?: number // Durée en secondes pour limiter la vidéo en phase reveal
   startSeconds?: number // Point de départ de l'extrait (secondes)
+  muted?: boolean // Son coupé localement
 }
 
 export default function VideoPlayer({
@@ -30,6 +31,7 @@ export default function VideoPlayer({
   onMediaStart,
   onRevealVideoStart,
   startSeconds = 0,
+  muted = false,
 }: VideoPlayerProps) {
   const audioVideoRef = useRef<HTMLVideoElement>(null) // Vidéo pour l'audio (toujours présente, invisible)
   const displayVideoRef = useRef<HTMLVideoElement>(null) // Vidéo pour l'affichage (visible seulement en reveal)
@@ -239,6 +241,13 @@ export default function VideoPlayer({
     }
   }, [])
 
+  // Son coupé localement : propriété DOM (l'attribut seul n'est lu qu'au montage).
+  // La vidéo d'affichage reste muette pendant la devinette (c'est la vidéo audio qui joue le son)
+  useEffect(() => {
+    if (audioVideoRef.current) audioVideoRef.current.muted = muted
+    if (displayVideoRef.current) displayVideoRef.current.muted = muted || !showVideo
+  }, [muted, showVideo])
+
   useEffect(() => {
     hasStartedRef.current = false
     revealStartedRef.current = false
@@ -320,7 +329,7 @@ export default function VideoPlayer({
           ref={displayVideoRef}
           src={mediaUrl}
           controls={showVideo}
-          muted={!showVideo}
+          muted={muted || !showVideo}
           style={{
             width: '100%',
             height: '100%',
@@ -340,6 +349,7 @@ export default function VideoPlayer({
         ref={audioVideoRef}
         src={mediaUrl}
         controls={false}
+        muted={muted}
         style={{
           position: 'absolute',
           left: '-9999px',

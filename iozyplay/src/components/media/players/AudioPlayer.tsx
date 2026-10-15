@@ -11,6 +11,7 @@ interface AudioPlayerProps {
   onMediaReady?: () => void
   onMediaStart?: () => void
   startSeconds?: number // Point de départ de l'extrait (secondes)
+  muted?: boolean // Son coupé localement
 }
 
 export default function AudioPlayer({
@@ -20,6 +21,7 @@ export default function AudioPlayer({
   onMediaReady,
   onMediaStart,
   startSeconds = 0,
+  muted = false,
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const hasStartedRef = useRef(false)
@@ -119,6 +121,11 @@ export default function AudioPlayer({
       })
     }
   }, [shouldPause, autoPlay])
+
+  // Son coupé localement : propriété DOM (l'attribut seul n'est lu qu'au montage)
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = muted
+  }, [muted])
 
   useEffect(() => {
     const audio = audioRef.current

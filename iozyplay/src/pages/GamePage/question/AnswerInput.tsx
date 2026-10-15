@@ -5,6 +5,7 @@ import * as Popover from '@radix-ui/react-popover'
 import type { GameMode, Player } from '@/lib/game/types'
 import { isSolo } from '@/lib/game/gameMode'
 import { getPlayerId } from '@/utils/playerId'
+import { getSkipButtonState } from '@/pages/GamePage/question/skipButton'
 
 interface AnswerInputProps {
   value: string
@@ -179,12 +180,18 @@ export default function AnswerInput({
       }
     : {}
 
-  // Gestion du bouton skip
-  const playerId = isSolo(gameMode) ? 'solo' : getPlayerId() || ''
-  const hasVoted = skipVotes.has(playerId)
-  const canSkip = Boolean(
-    !isGameEnded && isMediaReady && !waitingForGo && !hasVoted && onSkipVote
-  )
+  // Bouton « Passer » / « Suivant » : vote en ligne (tous les joueurs connectés), direct en solo
+  const solo = isSolo(gameMode)
+  const playerId = solo ? 'solo' : getPlayerId() || ''
+  const skip = getSkipButtonState({
+    solo,
+    isReveal,
+    ready: !isGameEnded && isMediaReady && !waitingForGo,
+    hasVoted: !solo && skipVotes.has(playerId),
+    votes: skipVotes.size,
+    total: players.filter((p) => p.connected !== false).length,
+  })
+  const showSkip = Boolean(onSkipVote) && !isGameEnded
 
   return (
     <Popover.Root
@@ -238,26 +245,26 @@ export default function AnswerInput({
                 </span>
               )}
             </div>
-            {canSkip && (
+            {showSkip && (
               <button
                 type="button"
-                className={styles.skipBtn}
+                className={`${styles.skipBtn} ${skip.disabled ? styles.skipBtnDisabled : ''}`}
                 onClick={() => {
                   setOpen(false)
                   onSkipVote?.()
                 }}
-                disabled={!canSkip}
-                title={
-                  isGameEnded
-                    ? 'La partie est terminée'
-                    : !isMediaReady || waitingForGo
-                      ? 'Attendez que le média démarre'
-                      : hasVoted
-                        ? 'Vous avez déjà voté skip'
-                        : 'Passer cette question'
-                }
+                disabled={skip.disabled}
+                title={skip.title}
+                aria-label={`${skip.label} (${skip.title})`}
+                data-testid="skip-button"
               >
-                ⏭
+                <span className={styles.skipIcon} aria-hidden="true">
+                  {skip.icon}
+                </span>
+                <span className={styles.skipLabel}>{skip.label}</span>
+                <span className={styles.skipShortLabel} aria-hidden="true">
+                  {skip.shortLabel}
+                </span>
               </button>
             )}
             {shouldOpen && (

@@ -40,6 +40,7 @@ interface QuestionCardProps {
   answerSuggestions?: string[] // Réponses proposées en autocomplétion
   revealedAnswer?: string // Bonne réponse reçue du serveur au reveal (mode multijoueur)
   validatedAnswers?: Record<string, boolean> // Réponses validées par le serveur (mode multijoueur)
+  muted?: boolean // Son du média coupé localement (bouton « Son » de la barre du haut)
 }
 
 export default function QuestionCard({
@@ -66,6 +67,7 @@ export default function QuestionCard({
   answerSuggestions = [],
   revealedAnswer,
   validatedAnswers = {},
+  muted = false,
 }: QuestionCardProps) {
   const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
 
@@ -362,6 +364,7 @@ export default function QuestionCard({
                 }}
                 startTime={startTime}
                 startSeconds={getQuestionStartTime(question)}
+                muted={muted}
               />
             </div>
           </>

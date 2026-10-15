@@ -150,4 +150,16 @@ describe('Tirage des questions : game:start et game:restart', () => {
     assert.ok(room.questions.every(x => x.category === 'jeux'))
     assert.ok(ids(room.questions).every(id => !previous.includes(id)))
   })
+
+  test('game:restart-with-categories avec les mêmes thèmes évite les questions de la partie précédente', async () => {
+    await host._trigger('game:start', { roomCode: ROOM, questions: POOL.map(x => ({ ...x })), questionCount: 3, defaultTimeLimit: 20 })
+    for (let i = 0; i < 4; i++) {
+      const previous = ids(roomRepository.get(ROOM).questions)
+      roomRepository.get(ROOM).gameState = 'finished'
+      await host._trigger('game:restart-with-categories', { roomCode: ROOM, questions: POOL.map(x => ({ ...x })), categories: ['animes', 'jeux'], questionCount: 3, defaultTimeLimit: 20 })
+      const current = ids(roomRepository.get(ROOM).questions)
+      assert.strictEqual(current.length, 3)
+      assert.ok(current.every(id => !previous.includes(id)), `questions reprises : ${previous} → ${current}`)
+    }
+  })
 })

@@ -1,48 +1,150 @@
 import gameStyles from '@/pages/GamePage/Game.module.scss'
+import { toast } from 'sonner'
 import { GameService } from '@/services/gameService'
-import type { Question } from '@/types'
 import { soundManager } from '@/utils/sounds'
 
 interface GameTopBarProps {
   currentQuestionIndex: number
   totalQuestions: number
-  currentQuestion: Question
   timeRemaining: number
-  isRevealPhase: boolean
   score: number
-  onQuit: () => void
-  onSettings?: () => void
+  onQuit: () => void // Ouvre la confirmation de sortie (voir QuitGameDialog)
   isGameEnded?: boolean
   inviteLink?: string | null
+  muted?: boolean
+  onToggleMute?: () => void
+}
+
+interface ActionButtonProps {
+  icon: string
+  label: string
+  description: string // aria-label et infobulle (le libellé est masqué sur petit écran)
+  onClick: () => void
+  danger?: boolean
+  pressed?: boolean
+  testId?: string
+}
+
+function ActionButton({
+  icon,
+  label,
+  description,
+  onClick,
+  danger = false,
+  pressed,
+  testId,
+}: ActionButtonProps) {
+  return (
+    <button
+      type="button"
+      className={`${gameStyles.gameInterfaceActionBtn} ${danger ? gameStyles.gameInterfaceActionBtnDanger : ''}`}
+      onClick={onClick}
+      title={description}
+      aria-label={description}
+      aria-pressed={pressed}
+      data-testid={testId}
+    >
+      <span className={gameStyles.gameInterfaceActionIcon} aria-hidden="true">
+        {icon}
+      </span>
+      <span className={gameStyles.gameInterfaceActionLabel}>{label}</span>
+    </button>
+  )
+}
+
+// En haut au centre : la position par défaut (en haut à droite) recouvrirait les boutons
+// « Son » et « Quitter » tant que la souris reste dessus
+const TOAST_POSITION = 'top-center' as const
+
+const formatTime = (seconds: number) => {
+  if (seconds <= 0) return '0:00'
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
 export default function GameTopBar({
   currentQuestionIndex,
   totalQuestions,
-  currentQuestion,
   timeRemaining,
-  isRevealPhase,
   score,
   onQuit,
-  onSettings,
   isGameEnded = false,
   inviteLink,
+  muted = false,
+  onToggleMute,
 }: GameTopBarProps) {
-  const formatTime = (seconds: number) => {
-    if (seconds <= 0) return '0:00'
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
   const handleCopyInviteLink = async () => {
     if (!inviteLink) return
+    soundManager.playClick()
     try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Presse-papiers indisponible')
+      }
       await navigator.clipboard.writeText(inviteLink)
-      soundManager.playClick()
+      toast.success('Lien du salon copié', { position: TOAST_POSITION })
     } catch (err) {
       console.error('Erreur lors de la copie du lien de salon :', err)
+      // Le lien reste accessible : affiché en clair pour une copie manuelle
+      toast.error('Impossible de copier le lien du salon', {
+        description: inviteLink,
+        duration: 15000,
+        position: TOAST_POSITION,
+      })
     }
+  }
+
+  const actions = (
+    <div className={gameStyles.gameInterfaceHeaderActions}>
+      {inviteLink && (
+        <ActionButton
+          icon="🔗"
+          label="Inviter"
+          description="Copier le lien du salon pour inviter des joueurs"
+          onClick={handleCopyInviteLink}
+          testId="invite-button"
+        />
+      )}
+      {!isGameEnded && onToggleMute && (
+        <ActionButton
+          icon={muted ? '🔇' : '🔊'}
+          label="Son"
+          description={muted ? 'Rétablir le son' : 'Couper le son'}
+          pressed={muted}
+          onClick={onToggleMute}
+          testId="mute-button"
+        />
+      )}
+      <ActionButton
+        icon="🚪"
+        label="Quitter"
+        description={isGameEnded ? 'Quitter le salon' : 'Quitter la partie'}
+        onClick={() => {
+          soundManager.playClick()
+          onQuit()
+        }}
+        danger
+        testId="quit-button"
+      />
+    </div>
+  )
+
+  // Écran de fin : plus de chrono ni de score (affichés sur l'écran de fin), seulement les actions
+  if (isGameEnded) {
+    return (
+      <div className={gameStyles.gameInterfaceHeader} data-testid="game-topbar">
+        <div className={gameStyles.gameInterfaceHeaderMain}>
+          <div className={gameStyles.gameInterfaceEndHeading}>
+            <span aria-hidden="true">🏁</span>
+            <span className={gameStyles.gameInterfaceQuestion}>Partie terminée</span>
+            <span className={gameStyles.gameInterfaceTotal}>
+              {totalQuestions} question{totalQuestions > 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
+        {actions}
+      </div>
+    )
   }
 
   return (
@@ -50,28 +152,18 @@ export default function GameTopBar({
       <div className={gameStyles.gameInterfaceHeaderMain}>
         <div className={gameStyles.gameInterfaceProgressSection}>
           <div className={gameStyles.gameInterfaceProgressHeader}>
-            {isGameEnded ? (
-              <>
-                <span className={gameStyles.gameInterfaceQuestion}>Question {totalQuestions}</span>
-                <span className={gameStyles.gameInterfaceSeparator}>sur</span>
-                <span className={gameStyles.gameInterfaceTotal}>{totalQuestions}</span>
-              </>
-            ) : (
-              <>
-                <span className={gameStyles.gameInterfaceQuestion}>Question {currentQuestionIndex + 1}</span>
-                <span className={gameStyles.gameInterfaceSeparator}>sur</span>
-                <span className={gameStyles.gameInterfaceTotal}>{totalQuestions}</span>
-              </>
-            )}
+            <span className={gameStyles.gameInterfaceQuestion}>
+              Question {currentQuestionIndex + 1}
+            </span>
+            <span className={gameStyles.gameInterfaceSeparator}>sur</span>
+            <span className={gameStyles.gameInterfaceTotal}>{totalQuestions}</span>
           </div>
           <div className={gameStyles.gameInterfaceProgressContainer}>
             <div className={gameStyles.gameInterfaceProgressBar}>
               <div
                 className={gameStyles.gameInterfaceProgressFill}
                 style={{
-                  width: isGameEnded
-                    ? '100%'
-                    : `${GameService.calculateProgress(currentQuestionIndex, totalQuestions)}%`,
+                  width: `${GameService.calculateProgress(currentQuestionIndex, totalQuestions)}%`,
                 }}
               />
             </div>
@@ -79,57 +171,18 @@ export default function GameTopBar({
         </div>
         <div className={gameStyles.gameInterfaceMeta}>
           <div className={gameStyles.gameInterfaceTimerSection}>
-            <div className={gameStyles.gameInterfaceTimerIcon}>
-              {isGameEnded ? '🏁' : '⏱️'}
+            <div className={gameStyles.gameInterfaceTimerIcon} aria-hidden="true">
+              ⏱️
             </div>
-            <div className={gameStyles.gameInterfaceTimerValue}>
-              {isGameEnded ? 'Terminé' : formatTime(timeRemaining)}
-            </div>
+            <div className={gameStyles.gameInterfaceTimerValue}>{formatTime(timeRemaining)}</div>
           </div>
           <div className={gameStyles.gameInterfaceScoreSection}>
-            <div className={gameStyles.gameInterfaceScoreLabel}>
-              {isGameEnded ? 'Score final' : 'Score'}
-            </div>
+            <div className={gameStyles.gameInterfaceScoreLabel}>Score</div>
             <div className={gameStyles.gameInterfaceScoreValue}>{score}</div>
           </div>
         </div>
       </div>
-      <div className={gameStyles.gameInterfaceHeaderActions}>
-        {inviteLink && (
-          <button
-            className={gameStyles.gameInterfaceActionBtn}
-            onClick={handleCopyInviteLink}
-            title="Copier le lien du salon"
-            aria-label="Copier le lien du salon"
-          >
-            <span className={gameStyles.gameInterfaceActionIcon}>🔗</span>
-          </button>
-        )}
-        {onSettings && (
-          <button
-            className={gameStyles.gameInterfaceActionBtn}
-            onClick={() => {
-              soundManager.playClick()
-              onSettings()
-            }}
-            title="Paramètres"
-          >
-            <span className={gameStyles.gameInterfaceActionIcon}>⚙️</span>
-          </button>
-        )}
-        <button
-          className={`${gameStyles.gameInterfaceActionBtn} ${gameStyles.gameInterfaceActionBtnDanger}`}
-          onClick={() => {
-            soundManager.playClick()
-            onQuit()
-          }}
-          data-testid="quit-button"
-          title="Quitter"
-          aria-label="Quitter la partie"
-        >
-          <span className={gameStyles.gameInterfaceActionIcon}>🚪</span>
-        </button>
-      </div>
+      {actions}
     </div>
   )
 }

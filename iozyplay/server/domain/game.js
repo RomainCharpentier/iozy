@@ -16,10 +16,10 @@ const DEFAULT_TIME_LIMIT = 20;
  * - Sinon : tirage aléatoire de `questionCount` questions dans le pool (dédupliqué).
  * Le pool complet (avec les réponses) reste côté serveur pour les « Rejouer ».
  */
-function setQuestionPool(room, questions, questionCount) {
+function setQuestionPool(room, questions, questionCount, previous = []) {
     const pool = dedupeQuestions(questions);
     room.questionPool = pool;
-    room.questions = questionCount == null ? pool : drawQuestions(pool, questionCount);
+    room.questions = questionCount == null ? pool : drawQuestions(pool, questionCount, { previous });
     room.questionCount = room.questions.length;
 }
 
@@ -59,7 +59,8 @@ export function startGame(room, questions, defaultTimeLimit, questionCount = nul
 export function restartGameWithCategories(room, questions, categories, defaultTimeLimit, questionCount = null) {
     if (!room) return null;
 
-    setQuestionPool(room, questions, questionCount);
+    // Comme « Rejouer » : on évite autant que possible les questions de la partie précédente
+    setQuestionPool(room, questions, questionCount, room.questions || []);
     room.categories = categories;
     room.currentQuestionIndex = 0;
     room.gameState = 'playing';
@@ -276,8 +277,11 @@ export function voteSkip(room, socketId) {
     room.game.skipVotes.add(player.id);
     room.updatedAt = Date.now();
 
-    // Vérifier si tous les joueurs ont voté
-    const allPlayersVoted = room.players.every(p => room.game.skipVotes.has(p.id));
+    // Tous les joueurs connectés ont voté (comme pour game:ready, un joueur déconnecté
+    // ne bloque pas le vote ; le client affiche « X/Y » avec Y = joueurs connectés)
+    const connectedPlayers = room.players.filter(p => p.connected !== false);
+    const allPlayersVoted = connectedPlayers.length > 0 &&
+        connectedPlayers.every(p => room.game.skipVotes.has(p.id));
 
     return {
         voted: true,

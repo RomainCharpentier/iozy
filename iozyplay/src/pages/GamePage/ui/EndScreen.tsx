@@ -12,11 +12,15 @@ interface EndScreenProps {
   isHost: boolean
   shouldPlaySound: boolean
   onRestart: () => void
-  onModifySettings: () => void
-  onQuit: () => void
+  onChangeThemes: () => void
+  onQuit: () => void // Ouvre la confirmation de sortie
   onSoundPlayed: () => void
 }
 
+/**
+ * Écran de fin : récapitulatif et actions à gauche, classement final dans la colonne
+ * de droite (même emplacement que pendant la partie).
+ */
 export default function EndScreen({
   score,
   totalQuestions,
@@ -25,13 +29,13 @@ export default function EndScreen({
   isHost,
   shouldPlaySound,
   onRestart,
-  onModifySettings,
+  onChangeThemes,
   onQuit,
   onSoundPlayed,
 }: EndScreenProps) {
   return (
     <>
-      <div className={gameStyles.gameInterfaceGame}>
+      <section className={gameStyles.endScreenMain} aria-label="Fin de partie">
         <Score
           score={score}
           totalQuestions={totalQuestions}
@@ -39,24 +43,17 @@ export default function EndScreen({
           players={players}
           isHost={isHost}
           onRestart={onRestart}
-          onModifySettings={onModifySettings}
+          onChangeThemes={onChangeThemes}
           onQuit={onQuit}
-          isPopup={false}
           shouldPlaySound={shouldPlaySound}
           onSoundPlayed={onSoundPlayed}
         />
-      </div>
+      </section>
       {isOnline(gameMode) && (
         <div className={gameStyles.gamePlayersPanel}>
           <PlayersPanel
             players={players}
             questionAnsweredBy={null}
-            correctPlayers={new Set()}
-            answeredPlayers={new Set()}
-            isRevealPhase={false}
-            playerAnswers={{}}
-            validatedAnswers={{}}
-            skipVotes={new Set()}
             isGameEnded={true}
             totalQuestions={totalQuestions}
           />

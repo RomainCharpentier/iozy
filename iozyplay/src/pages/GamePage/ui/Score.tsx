@@ -13,9 +13,8 @@ interface ScoreProps {
   players?: Player[]
   isHost?: boolean
   onRestart: () => void
-  onModifySettings?: () => void
-  onQuit: () => void
-  isPopup?: boolean
+  onChangeThemes?: () => void // Ouvre la popup de paramètres (thèmes, timer, nombre de questions)
+  onQuit: () => void // Ouvre la confirmation de sortie
   onSoundPlayed?: () => void
   shouldPlaySound?: boolean
 }
@@ -27,17 +26,18 @@ export default function Score({
   players = [],
   isHost = true,
   onRestart,
-  onModifySettings,
+  onChangeThemes,
   onQuit,
-  isPopup = false,
   onSoundPlayed,
   shouldPlaySound = true,
 }: ScoreProps) {
   const soundPlayedRef = useRef(false)
+  const solo = isSolo(gameMode)
+  // Seul l'hôte (ou le joueur solo) peut relancer une partie : le serveur refuse les autres
+  const canManage = solo || isHost
 
   // Calculer le score du joueur actuel
-  const currentPlayerScore =
-    isSolo(gameMode) ? score : players.find((p) => p.id === getPlayerId())?.score || 0
+  const currentPlayerScore = solo ? score : players.find((p) => p.id === getPlayerId())?.score || 0
 
   const percentage = GameService.calculatePercentage(currentPlayerScore, totalQuestions)
 
@@ -50,64 +50,71 @@ export default function Score({
     }
   }, [shouldPlaySound, onSoundPlayed])
 
-  // Empêcher le scroll quand la popup est ouverte
-  useEffect(() => {
-    if (isPopup) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isPopup])
-
-  const scoreContent = (
-    <div className={gameStyles.gameInterfaceGameEnd}>
-      <div className={gameStyles.gameInterfaceEndIcon}>🏆</div>
-      <div className={gameStyles.gameInterfaceEndTitle}>Partie Terminée !</div>
-      <div className={gameStyles.gameInterfaceEndSubtitle}>Félicitations à tous les participants</div>
+  return (
+    <div className={gameStyles.gameInterfaceGameEnd} data-testid="end-summary">
+      <div className={gameStyles.gameInterfaceEndIcon} aria-hidden="true">
+        🏆
+      </div>
+      <h2 className={gameStyles.gameInterfaceEndTitle}>Partie terminée !</h2>
+      {!solo && (
+        <p className={gameStyles.gameInterfaceEndSubtitle}>Félicitations à tous les participants</p>
+      )}
       <div className={gameStyles.gameInterfaceEndStats}>
         <div className={gameStyles.gameInterfaceEndStat}>
-          <div className={gameStyles.gameInterfaceEndStatLabel}>Votre Score</div>
+          <div className={gameStyles.gameInterfaceEndStatLabel}>Votre score</div>
           <div className={gameStyles.gameInterfaceEndStatValue}>
             {currentPlayerScore} / {totalQuestions}
           </div>
         </div>
         <div className={gameStyles.gameInterfaceEndStat}>
-          <div className={gameStyles.gameInterfaceEndStatLabel}>Taux de Réussite</div>
+          <div className={gameStyles.gameInterfaceEndStatLabel}>Taux de réussite</div>
           <div className={gameStyles.gameInterfaceEndStatValue}>{percentage}%</div>
         </div>
       </div>
+
+      {!canManage && (
+        <p className={gameStyles.gameInterfaceEndWaiting} role="status">
+          <span className={gameStyles.gameInterfaceEndWaitingDot} aria-hidden="true" />
+          En attente de l'hôte pour une nouvelle partie…
+        </p>
+      )}
+
       <div className={gameStyles.gameInterfaceEndActions}>
-        {(isSolo(gameMode) || isHost) && (
+        {canManage && (
           <button
+            type="button"
             className={`${gameStyles.gameInterfaceEndBtn} ${gameStyles.gameInterfaceEndBtnPrimary}`}
             onClick={() => {
               soundManager.playStart()
               onRestart()
             }}
           >
-            🔄 Rejouer
+            <span aria-hidden="true">🔄</span> Rejouer
+          </button>
+        )}
+        {canManage && onChangeThemes && (
+          <button
+            type="button"
+            className={gameStyles.gameInterfaceEndBtn}
+            onClick={() => {
+              soundManager.playClick()
+              onChangeThemes()
+            }}
+          >
+            <span aria-hidden="true">🎨</span> Changer les thèmes
           </button>
         )}
         <button
-          className={gameStyles.gameInterfaceEndBtn}
+          type="button"
+          className={`${gameStyles.gameInterfaceEndBtn} ${gameStyles.gameInterfaceEndBtnDanger}`}
           onClick={() => {
             soundManager.playClick()
             onQuit()
           }}
         >
-          🏠 Accueil
+          <span aria-hidden="true">🚪</span> {solo ? 'Quitter' : 'Quitter le salon'}
         </button>
       </div>
     </div>
   )
-
-  if (isPopup) {
-    return scoreContent
-  }
-
-  return <div className={gameStyles.scoreScreen}>{scoreContent}</div>
 }
