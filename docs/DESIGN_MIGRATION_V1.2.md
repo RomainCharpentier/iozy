@@ -1014,3 +1014,32 @@ pile jetable.
 À reprendre : `releases.spec.ts` et `suggestions.spec.ts` échouent, déjà sur
 `main` ; les paquets `manga/deals` et `core/insights` mélangent encore domaine et
 services.
+
+
+### Lot 165 — Le client web lit la charte IozyKit
+
+Les couleurs, ombres et polices des deux thèmes viennent du dépôt voisin
+IozyKit, copié dans `web/vendor/iozykit/` par `npm run kit:sync` (`VERSION`
+note le commit copié, 2fe29b8). `index.css` n'a plus de valeur de charte : le
+bloc `@theme inline` relie les noms de l'app (`bg-surface`, `text-textDim`…)
+aux variables `--iozy-*`, et seuls les rôles que le kit n'a pas (univers,
+rangs, voiles) gardent leurs deux thèmes sur place. Les trois CSS du kit entrent
+dans les couches Tailwind (`theme`, `base`, `components`) : hors couche, le
+`h1 { font-weight: 700 }` du kit l'emporterait sur `font-semibold` de chaque
+titre. Les règles que le kit apporte (curseur, survol par luminosité, anneau de
+focus, `select option`, `prefers-reduced-motion`) quittent `index.css`.
+`index.html` part en `data-theme="dark"` pour ne pas voir le clair avant le
+premier script. `check:contrast` résout les alias via `tokens.json` du kit.
+
+Les 30 valeurs (26 couleurs, 4 ombres) étaient déjà identiques au kit dans les
+deux thèmes : rien ne change à l'écran. Retirés faute de consommateur : le
+miroir `colors` de `tokens.ts`, `--color-violet`, `--color-pink`. Ajouté :
+Inter 700, graisse que le kit demande. Corrigé au passage : l'anneau de focus
+ne ramenait plus un bouton arrondi à 4 px de rayon (règle passée en `@layer base`).
+
+Vérifié : `npm test`, `typecheck`, `lint`, `check:contrast` (116 paires et
+6 avatars), `build` ; les deux thèmes dans le navigateur de l'app.
+
+À reprendre : les `meta theme-color` d'`index.html` et le manifeste gardent
+leurs couleurs en dur (pas de variable CSS possible là) ; le README du kit note
+encore IozyCore « à faire ».

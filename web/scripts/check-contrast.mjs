@@ -22,6 +22,14 @@
  * gives a false positive - this is the mistake made while writing this
  * script, fixed by reading TierBadge.tsx.
  *
+ * ## Where the values come from
+ * The charter roles are aliases in `index.css` (`--color-textDim:
+ * var(--iozy-text-dim)`), resolved here through `vendor/iozykit/tokens.json`
+ * for each theme. The roles of this app alone (universes, ranks) are read as
+ * hex values from `index.css`, as before. The kit checks its own pairs; this
+ * script checks the pairs the APP makes, under the names the app uses, so a
+ * wrong alias (textDim pointing at text-faint) is caught here.
+ *
  * Usage: `npm run check:contrast`
  */
 import { readFileSync } from 'node:fs'
@@ -30,6 +38,7 @@ import { dirname, join } from 'node:path'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CSS = readFileSync(join(RACINE, 'src/index.css'), 'utf8')
+const KIT = JSON.parse(readFileSync(join(RACINE, 'vendor/iozykit/tokens.json'), 'utf8')).themes
 
 /** AA threshold for normal-size text. */
 const SEUIL = 4.5
@@ -69,10 +78,15 @@ const ENCRE_RANG = { clair: '#ffffff', sombre: '#231e19' }
 
 // ─────────────────────────────────────────────────────── Reading the tokens
 
-function tokensDe(texte) {
+/** The solid colors of a block of CSS, by app name: a hex value as written,
+ * or the kit value of the theme behind a `var(--iozy-*)` alias. Tints and
+ * lines are translucent and take part in no ratio, so they are left out. */
+function tokensDe(texte, kit) {
   const trouves = {}
-  for (const m of texte.matchAll(/--color-([A-Za-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
-    trouves[m[1]] = m[2]
+  const regle = /--color-([A-Za-z0-9-]+)\s*:\s*(?:(#[0-9a-fA-F]{6})|var\(--iozy-([a-z0-9-]+)\))\s*;/g
+  for (const m of texte.matchAll(regle)) {
+    const valeur = m[2] ?? kit[m[3]]
+    if (/^#[0-9a-fA-F]{6}$/.test(valeur ?? '')) trouves[m[1]] = valeur
   }
   return trouves
 }
@@ -86,10 +100,12 @@ if (debutSombre < 0) {
   process.exit(2)
 }
 
-const clair = tokensDe(CSS.slice(0, debutSombre))
-const sombre = { ...clair }
+const clair = tokensDe(CSS.slice(0, debutSombre), KIT.light)
+// The aliases resolve to the dark kit values; the dark rules of index.css
+// then override the roles of the app.
+const sombre = tokensDe(CSS.slice(0, debutSombre), KIT.dark)
 for (const m of CSS.matchAll(/^\[data-theme="dark"\]\s*\{([\s\S]*?)^\}/gm)) {
-  Object.assign(sombre, tokensDe(m[1]))
+  Object.assign(sombre, tokensDe(m[1], KIT.dark))
 }
 
 // ─────────────────────────────────────────────────────── Contrast
@@ -176,8 +192,10 @@ if (absents.length > 0) {
 if (echecs.length > 0) {
   console.error(`AA contrast: ${echecs.length} combination(s) under ${SEUIL}:1\n`)
   for (const e of echecs) console.error(e)
-  console.error('\nDarken (light theme) or lighten (dark theme) the faulty hue')
-  console.error('in web/src/index.css, keeping the hue and changing only the lightness.')
+  console.error('\nDarken (light theme) or lighten (dark theme) the faulty hue, keeping the hue')
+  console.error('and changing only the lightness: in IozyKit/tokens.json for a charter role')
+  console.error('(then `npm test` there and `npm run kit:sync`), in web/src/index.css for a')
+  console.error('role of this app.')
   process.exit(1)
 }
 

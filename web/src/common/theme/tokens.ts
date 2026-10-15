@@ -1,35 +1,16 @@
-// Design tokens - mirror of src/index.css (@theme, for the Tailwind classes
-// bg-accent/text-textDim/etc.) - this file is the source of truth for pure
-// TS/JS (e.g. theme/gradient.ts, which needs the raw hex values).
-// Terracotta palette (IozyCore DS v1.1) adopted on 2026-08-19 - see
-// docs/DESIGN_MIGRATION_V1.2.md. Snapshot of the DARK theme (default of the
-// app, see lib/theme.ts): this file has no light/dark mechanism of its own,
-// unlike index.css (no current JS consumer needs one in light - to be
-// revisited if a real use appears).
-// <p>
-// ios/IozyCore/DesignSystem/Theme.swift stays on the old direction (lime
-// on dark) as long as it has not received its own migration batch (explicitly
-// accepted, iOS outside the scope of this batch) - so no longer a real mirror
-// for now, just documented as such for next time.
-export const colors = {
-  background: '#16120F',
-  surface: '#231E19',
-  surface2: '#2C261F',
-  textPrimary: '#F4EEE7',
-  textDim: '#C2B5A9',
-  accent: '#D9694A',
-  accentText: '#EF9070',
-  violet: '#8B7FFF',
-  pink: '#FF6FA5',
-} as const
-
-// Gradient pairs for the cover tiles (no real cover images,
-// rights not available) - warm and muted tones, consistent with the
-// terracotta palette (see DS v1.1, demonstration of the Tier components:
-// substitute covers in this same warm/matte register rather than saturated
-// neon). Replaces the 6 saturated pairs of the old lime direction, which
-// would clash next to the new accent. See gradient.ts for the selection
-// algorithm (deterministic by title, unchanged).
+// The interface colors are NOT mirrored here: they live in the IozyKit charter
+// (vendor/iozykit/tokens.json, copied by `npm run kit:sync`) and reach the code
+// through the Tailwind classes of src/index.css (bg-surface, text-textDim...)
+// or `var(--color-*)` in an inline style. A hex value written here would be a
+// second source, out of phase with the kit at the first change.
+//
+// Gradient pairs for the cover tiles (no real cover images, rights not
+// available) and the avatar badges (see avatar.ts): warm and muted tones, in
+// the register of the terracotta charter (IozyKit/CHARTE.md), rather than
+// saturated neon next to the accent. Content colors, not interface roles, so
+// they are not kit tokens. See gradient.ts for the selection algorithm
+// (deterministic by title). `check:contrast` reads this list: each pair must
+// carry white or black initials at 4.5:1.
 export const gradientPalettes: readonly [string, string][] = [
   ['C2492F', '5E1F14'],
   ['8A6A3A', '33251A'],

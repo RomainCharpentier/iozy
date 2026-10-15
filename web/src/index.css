@@ -1,108 +1,91 @@
 @import "tailwindcss";
 
-/* Tailwind design tokens — mirror of web/src/theme/tokens.ts (source of
-   truth for TS/JS, e.g. theme/gradient.ts) — see also
-   ios/IozyCore/DesignSystem/Theme.swift, which stays on the old direction
-   (lime on dark) until it gets its own migration batch
-   (explicitly accepted — see docs/DESIGN_MIGRATION_V1.2.md).
-   <p>
-   Terracotta palette — adopted from IozyCore DS v1.1.dc.html (light AND dark
-   themes are "first-level experiences", not a secondary mode). Values
-   below = default light theme in :root (source), dark theme in
-   [data-theme="dark"] (see theme.ts for the switch mechanism - real default
-   = dark on first load, so as not to surprise existing users who have only
-   known the dark one so far).
-   <p>
-   Suffixes in camelCase (not kebab-case) to match 1:1 the historical
-   Theme.swift names (textPrimary, accentText...) - Tailwind v4 generates
-   the utility classes from the exact name after "color-", so this
-   gives bg-surface2, text-textPrimary, text-accentText, etc. rather than
-   the ambiguous "text-text-primary". Names kept even when the VALUE changes
-   (background/surface/surface2/textPrimary/textDim/accent/accentText/danger/
-   warning) so as not to break the ~40 files that already reference them;
-   new roles of DS v1.1 (dim/muted/faint, accentTint/accentPress,
-   dangerText/dangerTint, ok/okTint, warn.../ already covered by warning/
-   warningTint, line/lineStrong/fieldBorder, softBtn/softPress/rowHover,
-   handle/scrim) added as a complement - see "reuse/complete the existing
-   tokens" of the migration brief. */
+/* The charter of the Iozy family (IozyKit), as a vendored copy: `npm run
+   kit:sync` copies ../IozyKit into vendor/iozykit/ and notes the kit commit
+   in VERSION. Never edit the copy by hand: change IozyKit/tokens.json, run
+   `npm test` there (it checks the contrast), then sync.
+
+   The three files go into Tailwind's layers ON PURPOSE. Unlayered CSS beats
+   every layered rule, whatever its specificity: left outside, the kit's
+   `h1 { font-weight: 700 }` would override `font-semibold` on every heading
+   of the app. In `base`, the kit sits above Preflight and below the
+   utilities, which is where a global rule belongs. */
+@import "../vendor/iozykit/css/tokens.css" layer(theme);
+@import "../vendor/iozykit/css/base.css" layer(base);
+@import "../vendor/iozykit/css/components.css" layer(components);
+
+/* Tailwind design tokens.
+
+   Every role of the charter is an alias of a `--iozy-*` variable of the kit,
+   so this file holds NO charter value: both themes come from
+   vendor/iozykit/css/tokens.css, light on :root and dark on
+   [data-theme='dark'], the attribute lib/theme.ts puts on <html>.
+   `@theme inline` makes the utilities (bg-surface, text-textDim...) read the
+   kit variable where they apply, so they follow the theme of the element.
+
+   Names stay in camelCase after "color-" (textPrimary, accentText...):
+   Tailwind v4 derives the class from the exact name, which gives
+   text-textPrimary rather than the ambiguous text-text-primary, and ~40
+   files already use them. The kit says `text`, `warn`, `shadow-lg` where the
+   app says `textPrimary`, `warning`, `shadow-token-elevated`: the alias
+   absorbs the difference, nothing is renamed. */
+@theme inline {
+  --color-background: var(--iozy-bg);
+  --color-surface: var(--iozy-surface);
+  --color-surface2: var(--iozy-surface2);
+  --color-textPrimary: var(--iozy-text);
+  --color-textDim: var(--iozy-text-dim);
+  --color-muted: var(--iozy-text-muted);
+  --color-faint: var(--iozy-text-faint);
+
+  /* `-ink` goes ON a fill (primary button, selected chip); `-text` is the
+     color AS text on a neutral background. The two were mixed up before
+     (`bg-accent text-accentText`, 1.47:1 in dark): see IozyKit/CHARTE.md. */
+  --color-accent: var(--iozy-accent);
+  --color-accentText: var(--iozy-accent-text);
+  --color-accentPress: var(--iozy-accent-press);
+  --color-accentTint: var(--iozy-accent-tint);
+  --color-accentInk: var(--iozy-accent-ink);
+
+  --color-danger: var(--iozy-danger);
+  --color-dangerText: var(--iozy-danger-text);
+  --color-dangerTint: var(--iozy-danger-tint);
+  --color-dangerInk: var(--iozy-danger-ink);
+
+  --color-ok: var(--iozy-ok);
+  --color-okTint: var(--iozy-ok-tint);
+  --color-warning: var(--iozy-warn);
+  --color-warningTint: var(--iozy-warn-tint);
+  --color-warningInk: var(--iozy-warn-ink);
+
+  /* Lines and interactive veils: derived from the ink of the theme in the
+     kit, never an independent gray that goes out of phase with it. */
+  --color-line: var(--iozy-line);
+  --color-lineStrong: var(--iozy-line-strong);
+  --color-fieldBorder: var(--iozy-field-border);
+  --color-hoverSurface: var(--iozy-hover-surface);
+  --color-scrim: var(--iozy-scrim);
+
+  --shadow-token-sm: var(--iozy-shadow-sm);
+  --shadow-token-md: var(--iozy-shadow-md);
+  --shadow-token-elevated: var(--iozy-shadow-lg);
+  --shadow-token-accent: var(--iozy-shadow-accent);
+
+  --font-display: var(--iozy-font-display);
+  --font-body: var(--iozy-font-body);
+}
+
+/* Roles of this app only: the kit has no equivalent, so each one carries
+   its two themes here, light below and dark further down. */
 @theme {
-  --color-background: #faf6f2;
-  --color-surface: #fffdfb;
-  --color-surface2: #f4ece5;
-  --color-textPrimary: #231e1a;
-  /* dim: subtitles and secondary body text (keeps the historical name
-     textDim). muted/faint: two more discreet levels, new. */
-  --color-textDim: #544a43;
-  --color-muted: #6b605a;
-  /* #746963 and not the DS #7c716a: the most discreet level of the
-     four stayed under the AA threshold (4.41 on the background, 4.06 on surface2) -
-     yet it is the one that carries counters and meta information
-     that are really read. Calibrated to hold 4.5:1 on the THREE backgrounds of the theme
-     (background/surface/surface2), not only on the most contrasted one.
-     Darkened a second time (#746963 -> #6c625c): a FOURTH background was missing,
-     the one of the shelf headers, tinted by the universe - 4.21 on it. */
-  --color-faint: #6c625c;
-
-  /* #bc583b and not the DS #c05a3c: it is the MINIMAL darkening
-     (1% of lightness, indistinguishable by eye) that raises the white placed
-     on it from 4.40 to 4.57 - the DS only fixes the fill color, and
-     its own mock does write #fff on top (see the primary buttons of
-     IozyCore.dc.html), a combination that just missed the AA threshold of
-     4.5. */
-  --color-accent: #bc583b;
-  --color-accentText: #a2452c;
-  --color-accentPress: #933d24;
-  --color-accentTint: rgb(192 90 60 / 12%);
-  /* Ink to place ON an accent fill (primary button, selected
-     chip, pill). Never to be confused with accentText, which is
-     the accent AS text, on a neutral background: the two were
-     systematically mixed up before this batch (`bg-accent text-accentText`,
-     ~40 files), which gave 1.47:1 in dark - unreadable. */
-  --color-accentInk: #ffffff;
-
-  --color-danger: #9c3324;
-  --color-dangerText: #8c2d20;
-  --color-dangerTint: rgb(156 51 36 / 10%);
-  /* Ink to place ON a danger fill ("Confirmer" button of a
-     deletion, "À éviter" badge). Same distinction as accent/accentInk:
-     dangerText is danger AS text on a neutral background, dangerInk is what we
-     write ON TOP of it. The five existing uses mixed text-white and
-     text-textPrimary, wrong in one theme or the other (3.29:1 for
-     white in dark, 2.29:1 for dark ink in light). */
-  --color-dangerInk: #ffffff;
-
-  --color-ok: #356b56;
-  --color-okTint: rgb(53 107 86 / 12%);
-  --color-warning: #7a5c10;
-  --color-warningTint: rgb(122 92 16 / 12%);
-  /* Ink on a warning fill - same distinction as accent/accentInk and
-     danger/dangerInk. The "Prix correct" badge carried text-accentText on
-     bg-warning: 1.21:1 in dark, unreadable. */
-  --color-warningInk: #ffffff;
-
-  /* Discreet borders and interactive backgrounds - always derived from the ink of
-     the theme (35,30,26 in light / 244,238,231 in dark), never an
-     independent gray that goes out of phase with the theme. */
-  --color-line: rgb(35 30 26 / 10%);
-  --color-lineStrong: rgb(35 30 26 / 17%);
-  --color-fieldBorder: rgb(35 30 26 / 14%);
+  /* Veils for small interactive surfaces (soft button, pressed state, row
+     hover, sheet handle), derived from the ink of the theme like the lines
+     of the kit. Not the same opacity in both themes: a light veil on a dark
+     background is less visible than a dark veil on a light one. */
   --color-softBtn: rgb(35 30 26 / 6%);
   --color-softPress: rgb(35 30 26 / 13%);
   --color-rowHover: rgb(35 30 26 / 4%);
-  /* The background that a control WITHOUT a background takes on hover. Clearly stronger
-     than rowHover, calibrated for a whole row: here the surface is small
-     - a bar button, a header link - and a 4 % veil goes unnoticed
-     there. */
-  --color-hoverSurface: rgb(35 30 26 / 10%);
   --color-handle: rgb(35 30 26 / 20%);
-  --color-scrim: rgb(35 30 26 / 38%);
-
-  /* Content type (Manga/Video game/Board game/Book) - outside the
-     DS v1.1 scope (not redefined per theme), kept as is from the
-     previous palette until a dedicated Collection batch (Batch 3) decides the
-     color per universe of the V1.2 mockup. */
-  --color-violet: #8b7fff;
-  --color-pink: #ff6fa5;
 
   /* Colors per universe (see lib/entityTypeVisuals.ts) - tints of the
      V1.2 mockup, but reactive to the theme, unlike what was
@@ -136,14 +119,6 @@
   --color-universeRoseTint: rgb(163 62 104 / 12%);
   --color-universeCyanTint: rgb(43 106 115 / 12%);
   --color-universeArdoiseTint: rgb(88 100 111 / 12%);
-
-  --shadow-token-sm: 0 1px 2px rgb(35 30 26 / 9%);
-  --shadow-token-md: 0 4px 14px rgb(35 30 26 / 11%);
-  --shadow-token-elevated: 0 18px 44px rgb(35 30 26 / 22%);
-  --shadow-token-accent: 0 8px 20px rgb(192 90 60 / 30%);
-
-  --font-display: "Space Grotesk", sans-serif;
-  --font-body: "Inter", sans-serif;
 }
 
 /* Tier Lists rank scale (S to F) - exact values of DS v1.1
@@ -178,46 +153,14 @@
   --color-rank-f: #a99c91;
 }
 
-/* Dark theme - same set of roles, DS v1.1 "Dark theme" values. A
-   single redefinition per role: the generated Tailwind classes (bg-surface,
-   text-textDim...) already reference `var(--color-*)`, so overriding them
-   here is enough to switch EVERY existing component without touching it. */
+/* Dark values of the roles of this app. The charter roles need nothing
+   here: the kit already redefines every `--iozy-*` under the dark
+   attribute, and the aliases above follow. */
 [data-theme="dark"] {
-  --color-background: #16120f;
-  --color-surface: #231e19;
-  --color-surface2: #2c261f;
-  --color-textPrimary: #f4eee7;
-  --color-textDim: #c2b5a9;
-  --color-muted: #a99c91;
-  /* Same fix as in light, the other way round: #95887d fell to 4.34
-     on surface2. Raised a second time (#978b80 -> #9e9288): the shelf
-     headers place this gray on a background TINTED by the universe, darker than
-     surface2, where it fell back to 4.35 (work count of the shelf). */
-  --color-faint: #9e9288;
-
-  --color-accent: #d9694a;
-  --color-accentText: #ef9070;
-  --color-accentPress: #f0a184;
-  --color-accentTint: rgb(217 105 74 / 18%);
-  /* DARK ink on the lightened accent of the dark theme (5.38:1, against 3.46
-     for white) - same principle as the rank scale above, whose lightened
-     pills already carry a dark ink in dark. */
-  --color-accentInk: #16120f;
-
-  --color-danger: #e8654a;
-  --color-dangerText: #f08a72;
-  --color-dangerTint: rgb(232 101 74 / 16%);
-  /* DARK ink on the lightened danger of the dark theme (5.67:1, against 3.29
-     for white) - same principle as accentInk. */
-  --color-dangerInk: #16120f;
-
-  --color-ok: #6cbd9d;
-  --color-okTint: rgb(108 189 157 / 14%);
-  --color-warning: #d9b64a;
-  --color-warningTint: rgb(217 182 74 / 16%);
-  /* DARK ink on the lightened amber of the dark theme (9.53:1, against 1.96
-     for white). */
-  --color-warningInk: #16120f;
+  --color-softBtn: rgb(244 238 231 / 9%);
+  --color-softPress: rgb(244 238 231 / 19%);
+  --color-rowHover: rgb(244 238 231 / 6%);
+  --color-handle: rgb(244 238 231 / 24%);
 
   --color-universeManga: #e0805f;
   --color-universeVideoGame: #8fa0dd;
@@ -236,30 +179,13 @@
   --color-universeRoseTint: rgb(207 129 162 / 16%);
   --color-universeCyanTint: rgb(69 168 181 / 16%);
   --color-universeArdoiseTint: rgb(144 156 167 / 16%);
-
-  --color-line: rgb(244 238 231 / 10%);
-  --color-lineStrong: rgb(244 238 231 / 21%);
-  --color-fieldBorder: rgb(244 238 231 / 21%);
-  --color-softBtn: rgb(244 238 231 / 9%);
-  --color-softPress: rgb(244 238 231 / 19%);
-  --color-rowHover: rgb(244 238 231 / 6%);
-  /* 14 % and not 10 %: a light veil on a dark background is less visible than a dark
-     veil on a light background, at equal opacity. */
-  --color-hoverSurface: rgb(244 238 231 / 14%);
-  --color-handle: rgb(244 238 231 / 24%);
-  --color-scrim: rgb(0 0 0 / 60%);
-
-  --shadow-token-sm: 0 1px 2px rgb(0 0 0 / 60%);
-  --shadow-token-md: 0 6px 18px rgb(0 0 0 / 55%);
-  --shadow-token-elevated: 0 22px 52px rgb(0 0 0 / 72%);
-  --shadow-token-accent: 0 8px 20px rgb(0 0 0 / 50%);
 }
 
-/* Dark theme by default on first load (see lib/theme.ts) - the app
-   has only known the dark one so far, a light default would have surprised for no
+/* Dark theme by default on first load (see lib/theme.ts; index.html starts
+   with the attribute so the first paint is already dark) - the app has only
+   known the dark one so far, a light default would have surprised for no
    reason. It stays an explicit and switchable choice, not a follow of
-   `prefers-color-scheme` (same logic as the old forced `html{color-scheme:dark}`,
-   which is removed in favor of this really bi-theme mechanism). */
+   `prefers-color-scheme`. */
 /* The native controls (the drop-down list of a <select>, scrollbars, date fields)
    follow the theme of the APP, not the one of the system: with a light system and the dark
    theme chosen here, a list that opens in the system's colors showed light text on a
@@ -272,14 +198,6 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
-/* The choices of a drop-down list take the colors of the surface they open over:
-   some browsers draw them with their own background and keep the text color of the
-   field, which is unreadable on the other theme. */
-select option {
-  background-color: var(--color-surface);
-  color: var(--color-textPrimary);
-}
-
 body {
   margin: 0;
   background-color: var(--color-background);
@@ -288,47 +206,18 @@ body {
   transition: background-color 200ms ease, color 200ms ease;
 }
 
-/* Global polish of interactions, applied once here rather than repeated
-   component by component: until now no button had visual feedback
-   on hover beyond `disabled:opacity`, and the state changes
-   (hover, disabled, focus) were instantaneous. `:not(:disabled)` avoids
-   stacking with the `disabled:opacity-50` already set on some buttons. The
-   input fields also keep their own `focus:ring-2` (added to
-   each one) - `outline` alone would have been invisible everywhere
-   `focus:outline-none` was already set, with no replacement indicator. */
+/* The interactions themselves come from the kit (vendor/iozykit/css/base.css):
+   the hand cursor on what is clickable, the hover by brightness (never by
+   opacity - opacity says "disabled"), the 2 px accent focus ring on
+   :focus-visible only, the colors of a <select> list, and the stop of motion
+   under prefers-reduced-motion. Only what the kit does not say stays here. */
+
+/* State changes are animated once here rather than component by component:
+   before this rule, nothing moved on hover beyond `disabled:opacity`. The
+   input fields also keep their own `focus:ring-2`. */
 button, a, input, textarea, select {
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
     opacity 150ms ease, box-shadow 150ms ease, transform 150ms ease, filter 150ms ease;
-}
-
-/* Hover changes the COLOR, it no longer lowers the opacity.
-
-   The old rule set `opacity: 0.85`. Two flaws, one of them fundamental:
-
-   - `disabled` is written `opacity-50` across the repository. The application
-     therefore said "less opaque" both for "you can interact" and for "you
-     cannot", and only told them apart by the QUANTITY. Hovering a button
-     made it slightly fade - the exact gesture that must make it stand out;
-   - a hundred controls already declare their own hover
-     (`hover:bg-rowHover`, `hover:text-textPrimary`…). The global opacity
-     stacked on top, so that they changed color AND faded.
-
-   Why `filter` and not a background veil. Any SINGLE property ends up
-   overriding the one of a component: a veil in `background-image` would have erased
-   the gradient of the profile avatar, an `inset box-shadow` would have erased
-   the twenty-six `shadow-token-*` of the repository. `filter` collides with
-   nothing - it is used nowhere else - and acts on the WHOLE rendering:
-   a solid background darkens, a gradient darkens without coming apart, and a
-   button without a background sees its text darken, which is still a signal.
-
-   The direction reverses with the theme: darken on a light background, lighten on a
-   dark background. A single factor, two values. */
-:root {
-  --hover-brightness: 0.90;
-}
-
-[data-theme="dark"] {
-  --hover-brightness: 1.25;
 }
 
 /* A background on hover, but only on what ALREADY has the shape of a surface.
@@ -365,57 +254,15 @@ button, a, input, textarea, select {
   }
 }
 
-/* Outside a layer, so applied to all: this is what makes filled buttons
-   and gradients react, which the rule above deliberately leaves
-   untouched.
-
-   `@media (hover: hover)`, on both rules: a touch screen has no
-   hover, it has a "last touched element" - and the browser leaves the
-   :hover state stuck there until the next touch. A button therefore stayed
-   lightened after the tap, as if it had stayed pressed (batch 148). Tailwind
-   already handles its own `hover:` variants this way; these two custom rules
-   did not. */
-@media (hover: hover) {
-  button:not(:disabled):hover,
-  a:hover {
-    filter: brightness(var(--hover-brightness));
+/* The focus ring of the kit follows the corners of the element. A bare text
+   link has none: 4 px, so the ring is not a sharp rectangle around a word.
+   In `base` so that a `rounded-*` utility keeps its own radius when focused:
+   unlayered, this rule gave a 12 px button 4 px corners under keyboard
+   focus. */
+@layer base {
+  :focus-visible {
+    border-radius: 4px;
   }
-}
-
-/* The hand cursor on what is clickable.
-
-   It came for free from the Preflight of Tailwind v3, which set
-   `cursor: pointer` on buttons. v4 aligned its Preflight on the
-   browser default (`cursor: default`): the version upgrade therefore
-   removed the affordance from ALL the buttons of the application, silently
-   and without breaking anything visible. Links get it from the browser and
-   were never touched - hence a repository where half of the controls
-   changed the cursor and the other half did not.
-
-   `:not(:disabled)` leaves the hand to `not-allowed` below. */
-button:not(:disabled),
-[role="button"]:not([aria-disabled="true"]),
-[role="switch"]:not([aria-disabled="true"]),
-summary,
-label:has(input:not(:disabled)) {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-}
-
-/* Keyboard focus ring — 2px accent, offset 2px, never the browser's default
-   blue (see DS v1.1 §5). `:focus-visible` only: no permanent
-   ring on mouse/touch click. */
-:focus {
-  outline: none;
-}
-
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 4px;
 }
 
 /* Each screen takes up the middle column of the page grid; only a
@@ -534,16 +381,4 @@ button:disabled {
 /* Counters line up: every digit has the same width. */
 @utility compteur {
   font-variant-numeric: tabular-nums;
-}
-
-/* Motion fades away for whoever asked the system for it. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
 }
