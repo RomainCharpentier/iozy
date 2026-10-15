@@ -1,8 +1,20 @@
 import styles from '@/components/media/MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import { extractYouTubeId } from '@/utils/youtube'
+import { normalizeStartTime } from '@/utils/timecode'
+import { forceGenericIframeTitle, guardIframeTitle } from '@/utils/iframeTitle'
 import Soundwave from '@/components/media/Soundwave'
 import { useYouTubeAPI } from '@/hooks/useYouTubeAPI'
+
+// États du lecteur YouTube (YT.PlayerState)
+const YT_STATE = {
+  UNSTARTED: -1,
+  ENDED: 0,
+  PLAYING: 1,
+  PAUSED: 2,
+  BUFFERING: 3,
+  CUED: 5,
+} as const
 
 interface YouTubePlayerProps {
   mediaUrl: string
@@ -16,6 +28,7 @@ interface YouTubePlayerProps {
   onMediaStart?: () => void
   onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
   startTime?: number // Timestamp serveur pour synchroniser le démarrage
+  startSeconds?: number // Point de départ de l'extrait dans la vidéo (secondes)
 }
 
 export default function YouTubePlayer({
@@ -24,12 +37,11 @@ export default function YouTubePlayer({
   showVideo = false,
   restartVideo = false,
   onVideoRestarted,
-  timeLimit,
   shouldPause = false,
   onMediaReady,
   onMediaStart,
   onRevealVideoStart,
-  startTime,
+  startSeconds = 0,
 }: YouTubePlayerProps) {
   const { isReady, YT, error } = useYouTubeAPI()
   const playerRef = useRef<YT.Player | null>(null)
@@ -41,6 +53,23 @@ export default function YouTubePlayer({
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPlayerReady, setIsPlayerReady] = useState(false)
   const videoId = extractYouTubeId(mediaUrl)
+  const startAt = normalizeStartTime(startSeconds)
+
+  // Les événements du YT.Player sont branchés une seule fois, à sa création :
+  // ils lisent les props via des refs pour ne jamais travailler sur des valeurs figées
+  const showVideoRef = useRef(showVideo)
+  showVideoRef.current = showVideo
+  const startAtRef = useRef(startAt)
+  startAtRef.current = startAt
+  const callbacksRef = useRef({ onMediaReady, onMediaStart, onRevealVideoStart })
+  callbacksRef.current = { onMediaReady, onMediaStart, onRevealVideoStart }
+
+  // Signale le début de la vidéo en phase reveal (une seule fois par reveal)
+  const notifyRevealVideoStart = () => {
+    if (revealVideoStartCalledRef.current) return
+    revealVideoStartCalledRef.current = true
+    callbacksRef.current.onRevealVideoStart?.()
+  }
 
   // Initialiser le player quand l'API est prête
   useEffect(() => {
@@ -67,7 +96,11 @@ export default function YouTubePlayer({
       }
     }
 
+    // Anti-triche : titre générique sur l'iframe dès sa création (l'API y écrit le titre de la vidéo)
+    const stopTitleGuard = guardIframeTitle(containerRef.current)
+
     // Créer le player avec l'API YouTube
+    const initialStart = startAtRef.current
     const playerConfig: YT.PlayerOptions = {
       videoId: videoId,
       width: '100%',
@@ -84,47 +117,44 @@ export default function YouTubePlayer({
         // Paramètres pour minimiser les publicités (ne les bloque pas complètement)
         cc_load_policy: 0, // Pas de sous-titres par défaut
         origin: window.location.origin,
+        // Point de départ de l'extrait : la vidéo est chargée directement à cette position
+        ...(initialStart > 0 ? { start: initialStart } : {}),
       },
       events: {
         onReady: (event: YT.PlayerEvent) => {
           const player = event.target
           playerRef.current = player
+          forceGenericIframeTitle(player.getIframe())
           setIsPlayerReady(true)
-
-          // Appeler onMediaReady
-          if (onMediaReady) {
-            onMediaReady()
-          }
+          callbacksRef.current.onMediaReady?.()
         },
         onError: (event: YT.OnErrorEvent) => {
           console.error('YouTube Player Error:', event.data)
           // Même en cas d'erreur, signaler que le média est "prêt" pour ne pas bloquer
-          if (onMediaReady) {
-            onMediaReady()
-          }
+          callbacksRef.current.onMediaReady?.()
         },
         onStateChange: (event: YT.OnStateChangeEvent) => {
           const state = event.data
+          // L'API peut réécrire le titre de l'iframe à chaque changement d'état
+          forceGenericIframeTitle(event.target.getIframe?.())
 
-          // YT.PlayerState.PLAYING = 1
-          if (state === 1) {
+          if (state === YT_STATE.PLAYING) {
             setIsPlaying(true)
-            if (!hasStartedRef.current && onMediaStart) {
+            if (!hasStartedRef.current) {
               hasStartedRef.current = true
-              onMediaStart()
+              // Le chrono de devinette démarre au premier PLAYING, jamais pendant le reveal
+              if (!showVideoRef.current) {
+                callbacksRef.current.onMediaStart?.()
+              }
             }
-            // Si on est en phase reveal et que la vidéo démarre, appeler onRevealVideoStart
-            if (showVideo && onRevealVideoStart && !revealVideoStartCalledRef.current) {
-              revealVideoStartCalledRef.current = true
-              onRevealVideoStart()
+            // Phase reveal : la vidéo (re)joue
+            if (showVideoRef.current) {
+              notifyRevealVideoStart()
             }
-          } else if (state === 2) {
-            // YT.PlayerState.PAUSED = 2
+          } else if (state === YT_STATE.PAUSED || state === YT_STATE.ENDED) {
+            // hasStartedRef n'est pas réinitialisé à la fin : onMediaStart ne doit partir
+            // qu'une fois par question (sinon le chrono de devinette redémarrerait)
             setIsPlaying(false)
-          } else if (state === 0) {
-            // YT.PlayerState.ENDED = 0
-            setIsPlaying(false)
-            hasStartedRef.current = false
           }
         },
       },
@@ -133,25 +163,23 @@ export default function YouTubePlayer({
     // Timeout de 30 secondes pour le chargement
     timeoutId = window.setTimeout(() => {
       cleanup()
-      if (onMediaReady) {
-        onMediaReady()
-      }
+      callbacksRef.current.onMediaReady?.()
     }, 30000)
 
     try {
       const player = new YT.Player(playerIdRef.current, playerConfig)
       playerRef.current = player
+      forceGenericIframeTitle(containerRef.current?.querySelector('iframe'))
     } catch (err) {
       console.error('Error creating YouTube player:', err)
       cleanup()
-      if (onMediaReady) {
-        onMediaReady()
-      }
+      callbacksRef.current.onMediaReady?.()
     }
 
     // Cleanup
     return () => {
       cleanup()
+      stopTitleGuard()
       if (playerRef.current) {
         try {
           playerRef.current.destroy()
@@ -164,7 +192,8 @@ export default function YouTubePlayer({
     }
   }, [isReady, YT, videoId]) // Ne recréer que si l'API est prête ou si la vidéo change
 
-  // Gérer le changement de showVideo : relancer la vidéo à 0 quand on passe en phase reveal
+  // Passage en phase reveal : la vidéo devient visible et CONTINUE là où le son en était
+  // (pas de seekTo : la position de lecture est conservée, le player n'est pas recréé)
   useEffect(() => {
     if (!isPlayerReady || !playerRef.current) {
       return
@@ -175,20 +204,20 @@ export default function YouTubePlayer({
       // Réinitialiser le flag pour permettre l'appel de onRevealVideoStart
       revealVideoStartCalledRef.current = false
 
-      // Relancer la vidéo à 0 et forcer la lecture
-      if (videoId) {
-        // Petit délai pour s'assurer que le player est prêt
-        setTimeout(() => {
-          if (playerRef.current) {
-            playerRef.current.seekTo(0, true)
-            // Forcer la lecture
-            try {
-              playerRef.current.playVideo()
-            } catch (error) {
-              console.error('Error playing video in reveal phase:', error)
-            }
-          }
-        }, 100)
+      try {
+        const state = playerRef.current.getPlayerState()
+        if (state === YT_STATE.PLAYING) {
+          // Déjà en lecture : aucun événement PLAYING ne suivra, signaler le début du reveal ici
+          notifyRevealVideoStart()
+        } else if (
+          !shouldPause &&
+          (state === YT_STATE.PAUSED || state === YT_STATE.CUED || state === YT_STATE.UNSTARTED)
+        ) {
+          // Reprendre la lecture à la position courante (onRevealVideoStart partira au PLAYING)
+          playerRef.current.playVideo()
+        }
+      } catch (error) {
+        console.error('Error resuming video in reveal phase:', error)
       }
     }
 
@@ -198,7 +227,7 @@ export default function YouTubePlayer({
     }
 
     previousShowVideoRef.current = showVideo
-  }, [showVideo, isPlayerReady, videoId])
+  }, [showVideo, isPlayerReady])
 
   // Gérer le pause/play
   useEffect(() => {
@@ -206,14 +235,22 @@ export default function YouTubePlayer({
       return
     }
 
-    if (shouldPause) {
-      playerRef.current.pauseVideo()
-    } else if (autoPlay && !hasStartedRef.current) {
-      try {
+    try {
+      if (shouldPause) {
+        playerRef.current.pauseVideo()
+      } else if (autoPlay && !hasStartedRef.current) {
+        // Premier démarrage (game:go) : s'assurer d'être au point de départ de l'extrait
+        const start = startAtRef.current
+        if (start > 0 && Math.abs(playerRef.current.getCurrentTime() - start) > 1) {
+          playerRef.current.seekTo(start, true)
+        }
         playerRef.current.playVideo()
-      } catch (error) {
-        console.error('Error playing video:', error)
+      } else if (autoPlay && playerRef.current.getPlayerState() === YT_STATE.PAUSED) {
+        // Reprise après une pause (ex. popup de paramètres) : continuer à la position courante
+        playerRef.current.playVideo()
       }
+    } catch (error) {
+      console.error('Error playing video:', error)
     }
   }, [shouldPause, autoPlay, isPlayerReady])
 
@@ -224,7 +261,7 @@ export default function YouTubePlayer({
     }
 
     if (videoId) {
-      playerRef.current.loadVideoById(videoId, 0)
+      playerRef.current.loadVideoById(videoId, startAtRef.current)
       hasStartedRef.current = false
       revealVideoStartCalledRef.current = false // Réinitialiser aussi ce flag
       if (onVideoRestarted) {
@@ -243,7 +280,7 @@ export default function YouTubePlayer({
     // On évite de recharger si c'est juste un changement de props
     const currentVideoId = playerRef.current.getVideoUrl()?.match(/[?&]v=([^&]+)/)?.[1]
     if (currentVideoId !== videoId) {
-      playerRef.current.loadVideoById(videoId, 0)
+      playerRef.current.loadVideoById(videoId, startAtRef.current)
       hasStartedRef.current = false
       revealVideoStartCalledRef.current = false // Réinitialiser aussi ce flag
     }
@@ -292,6 +329,9 @@ export default function YouTubePlayer({
       {/* Player YouTube - toujours présent pour l'audio, visible seulement si showVideo est true */}
       <div
         ref={containerRef}
+        // Pendant la devinette, le lecteur (et le document de l'iframe) est retiré de l'arbre
+        // d'accessibilité : il n'y a rien à voir, et cela limite les fuites d'informations
+        aria-hidden={showVideo ? undefined : true}
         style={{
           position: showVideo ? 'relative' : 'absolute',
           top: showVideo ? 'auto' : 0,

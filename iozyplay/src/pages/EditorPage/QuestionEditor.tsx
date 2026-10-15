@@ -12,12 +12,23 @@ import {
   getYouTubeThumbnailFromUrl,
   extractYouTubeId,
   getYouTubeMetadata,
+  extractYouTubeStartTime,
 } from '@/utils/youtube'
+import { formatTimecode, isValidStartTime, parseTimecode } from '@/utils/timecode'
 import { QuestionService } from '@/services/questionService'
 import { loadCategories } from '@/services/categoryService'
 import CategorySelector from '@/components/editor/CategorySelector'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { questionSchema, type QuestionFormData } from '@/schemas/questionSchema'
+
+/**
+ * Convertit le champ « Début de l'extrait » du formulaire en secondes.
+ * Champ vide → undefined (pas de startTime enregistré). Le schéma zod a déjà validé le format.
+ */
+function toStartTime(value: string | undefined): number | undefined {
+  if (!value || value.trim() === '') return undefined
+  return parseTimecode(value) ?? undefined
+}
 
 interface QuestionEditorProps {
   questions: Question[]
@@ -61,6 +72,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     handleSubmit,
     formState: { errors, isSubmitting },
     watch,
+    getValues,
     setValue,
     reset,
     setError,
@@ -71,11 +83,21 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       mediaUrl: '',
       answer: '',
       hint: '',
+      startTime: '',
       categories: [],
     },
   })
 
   const watchedMediaUrl = watch('mediaUrl')
+
+  // Point de départ par défaut : le `t=` / `start=` de l'URL YouTube, si le champ est vide
+  useEffect(() => {
+    if (!watchedMediaUrl) return
+    const urlStartTime = extractYouTubeStartTime(watchedMediaUrl)
+    if (urlStartTime === null || !isValidStartTime(urlStartTime)) return
+    if ((getValues('startTime') ?? '').trim() !== '') return
+    setValue('startTime', formatTimecode(urlStartTime), { shouldValidate: true })
+  }, [watchedMediaUrl, getValues, setValue])
 
   // Compteur de modifications réelles faites par l'utilisateur : la sauvegarde automatique
   // ne se déclenche que s'il reste des modifications non sauvegardées
@@ -310,6 +332,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         mediaUrl: data.mediaUrl,
         answer: data.answer,
         hint: data.hint || undefined,
+        startTime: toStartTime(data.startTime),
       }
 
       await QuestionService.addQuestion(newQuestion)
@@ -364,6 +387,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         mediaUrl: data.mediaUrl,
         answer: data.answer,
         hint: data.hint || undefined,
+        startTime: toStartTime(data.startTime),
       }
 
       await QuestionService.updateQuestion(
@@ -459,6 +483,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       mediaUrl: question.mediaUrl,
       answer: question.answer,
       hint: question.hint || '',
+      startTime: isValidStartTime(question.startTime) ? formatTimecode(question.startTime) : '',
       categories: questionCategories,
     })
 
@@ -776,6 +801,25 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     />
                   </label>
 
+                  <label>
+                    Début de l'extrait (optionnel)
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      {...register('startTime')}
+                      placeholder="mm:ss ou secondes (ex : 1:30 ou 90)"
+                      className={errors.startTime ? styles.inputError : ''}
+                    />
+                    {errors.startTime && (
+                      <div className={styles.youtubeErrorMessage}>
+                        <span className={styles.errorIcon} style={{ fontSize: '16px' }}>
+                          ⚠️
+                        </span>
+                        <span>{errors.startTime.message}</span>
+                      </div>
+                    )}
+                  </label>
+
                   <div className={styles.formActions}>
                     <button
                       type="submit"
@@ -906,6 +950,11 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                               )}
                               {question.hint && (
                                 <div className={styles.questionHintCompact}>{question.hint}</div>
+                              )}
+                              {isValidStartTime(question.startTime) && question.startTime > 0 && (
+                                <div className={styles.questionHintCompact}>
+                                  Début : {formatTimecode(question.startTime)}
+                                </div>
                               )}
                             </div>
                           </div>

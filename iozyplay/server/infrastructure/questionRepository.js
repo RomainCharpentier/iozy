@@ -10,6 +10,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { isValidStartTime, START_TIME_MAX } from '../domain/questionMedia.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,6 +59,19 @@ function assertValidQuestionsData(questionsData) {
     if (!Array.isArray(questions) || !questions.every(isPlainObject)) {
       throw new InvalidQuestionsDataError(`La catégorie "${category}" doit contenir un tableau de questions`);
     }
+  }
+}
+
+/**
+ * Vérifie le champ optionnel startTime d'une question (point de départ en secondes).
+ * Contrôlé à l'écriture seulement : une valeur invalide déjà présente dans le fichier
+ * ne le rend pas « corrompu ».
+ */
+function assertValidStartTime(question) {
+  if (question.startTime !== undefined && !isValidStartTime(question.startTime)) {
+    throw new InvalidQuestionsDataError(
+      `startTime doit être un entier entre 0 et ${START_TIME_MAX} (secondes)`
+    );
   }
 }
 
@@ -142,6 +156,7 @@ async function writeQuestionsFile(questionsData) {
  */
 export async function saveQuestions(questionsData) {
   assertValidQuestionsData(questionsData);
+  Object.values(questionsData).forEach(questions => questions.forEach(assertValidStartTime));
   return withWriteLock(async () => {
     // Vérifie que le fichier existant est lisible avant de l'écraser
     await loadQuestions();
@@ -156,6 +171,7 @@ export async function saveQuestions(questionsData) {
  */
 export async function addQuestion(question) {
   const categories = toCategoryList(question.category);
+  assertValidStartTime(question);
 
   return withWriteLock(async () => {
     const questionsData = await loadQuestions();

@@ -8,8 +8,10 @@ import {
   isYouTubeUrl,
   getPlaylistVideos,
   getYouTubeMetadata,
+  extractYouTubeStartTime,
   type PlaylistVideo,
 } from '@/utils/youtube'
+import { formatTimecode, normalizeStartTime, parseTimecode } from '@/utils/timecode'
 import type { Category, CategoryInfo, Question } from '@/types'
 import { loadCategories } from '@/services/categoryService'
 import { QuestionService } from '@/services/questionService'
@@ -21,7 +23,15 @@ interface VideoWithAnswer {
   thumbnailUrl: string
   answer: string
   hint?: string
+  startTimeText: string // Début de l'extrait saisi en « mm:ss » ou en secondes
   selected: boolean
+}
+
+/**
+ * Début de l'extrait proposé par défaut : le `t=` / `start=` de l'URL, sinon 0
+ */
+function defaultStartTimeText(url: string): string {
+  return formatTimecode(normalizeStartTime(extractYouTubeStartTime(url) ?? 0))
 }
 
 export default function VideoImportPage() {
@@ -123,6 +133,7 @@ export default function VideoImportPage() {
             answer: video.title,
             selected: true,
             hint: undefined,
+            startTimeText: defaultStartTimeText(video.videoUrl),
           }))
 
           setVideos(videosWithAnswers)
@@ -165,6 +176,7 @@ export default function VideoImportPage() {
             answer: metadata.title,
             selected: true,
             hint: undefined,
+            startTimeText: defaultStartTimeText(url),
           }
 
           setVideos([singleVideo])
@@ -225,6 +237,10 @@ export default function VideoImportPage() {
   }
 
   const handleEditAnswer = (index: number, answer: string, hint?: string) => {
+    if (videos[index] && parseTimecode(videos[index].startTimeText) === null) {
+      toast.error("Début de l'extrait invalide : utilisez mm:ss ou un nombre de secondes")
+      return
+    }
     setVideos((prev) => prev.map((video, i) => (i === index ? { ...video, answer, hint } : video)))
     setEditingIndex(null)
   }
@@ -257,6 +273,12 @@ export default function VideoImportPage() {
 
     if (videosToImport.length === 0) {
       toast.error('Veuillez sélectionner au moins une vidéo avec une réponse')
+      return
+    }
+
+    const invalidStartTime = videosToImport.find((v) => parseTimecode(v.startTimeText) === null)
+    if (invalidStartTime) {
+      toast.error(`Début de l'extrait invalide pour "${invalidStartTime.title}"`)
       return
     }
 
@@ -297,6 +319,7 @@ export default function VideoImportPage() {
             mediaUrl: video.videoUrl,
             answer: video.answer,
             hint: video.hint,
+            startTime: parseTimecode(video.startTimeText) ?? 0,
           }
           await QuestionService.addQuestion(newQuestion)
           newQuestions.push(newQuestion)
@@ -592,6 +615,28 @@ export default function VideoImportPage() {
                             placeholder="Indice (optionnel)"
                             aria-label="Indice (optionnel)"
                           />
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={video.startTimeText}
+                            onChange={(e) => {
+                              const startTimeText = e.target.value
+                              setVideos((prev) =>
+                                prev.map((v, i) => (i === index ? { ...v, startTimeText } : v))
+                              )
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleEditAnswer(index, video.answer, video.hint)
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault()
+                                setEditingIndex(null)
+                              }
+                            }}
+                            placeholder="Début de l'extrait (mm:ss ou secondes)"
+                            aria-label="Début de l'extrait (mm:ss ou secondes)"
+                          />
                           <div className={styles.editActions}>
                             <button
                               className={styles.saveEditButton}
@@ -621,6 +666,9 @@ export default function VideoImportPage() {
                               <strong>Indice :</strong> {video.hint}
                             </div>
                           )}
+                          <div className={styles.hintText}>
+                            <strong>Début :</strong> {video.startTimeText || '0:00'}
+                          </div>
                           <button
                             className={styles.editAnswerButton}
                             onClick={() => setEditingIndex(index)}

@@ -4,6 +4,7 @@
 
 import { isHost, getRoomState, findPlayerBySocketId, toPublicPlayers, toPublicQuestion, toPublicQuestions } from '../domain/room.js';
 import { startGame, restartGameWithCategories, restartGame, checkAnswer, storeAnswer, validateAnswers, voteSkip, resetSkipVotes, nextQuestion, getGameState, getCorrectAnswer } from '../domain/game.js';
+import { sanitizeQuestionsStartTime } from '../domain/questionMedia.js';
 import { roomRepository } from '../infrastructure/roomRepository.js';
 import {
   withPayload,
@@ -230,7 +231,8 @@ export function setupGameHandlers(socket, io) {
     // Nettoyer les timers précédents
     roomRepository.clearGameTimer(roomCode);
 
-    startGame(room, questions, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit));
+    // startTime conservé tel quel s'il est valide (diffusé aux clients, comme mediaUrl)
+    startGame(room, sanitizeQuestionsStartTime(questions), normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit));
     roomRepository.update(roomCode, room);
     
     // Envoyer l'état de démarrage (sans startedAt, sera défini au "go")
@@ -275,7 +277,7 @@ export function setupGameHandlers(socket, io) {
     // Nettoyer les timers précédents
     roomRepository.clearGameTimer(roomCode);
     
-    restartGameWithCategories(room, questions, categories, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit));
+    restartGameWithCategories(room, sanitizeQuestionsStartTime(questions), categories, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit));
     roomRepository.update(roomCode, room);
     
     // Programmer le timer

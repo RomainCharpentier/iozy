@@ -1,6 +1,8 @@
 import styles from '@/components/media/MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import Soundwave from '@/components/media/Soundwave'
+import { seekToStart } from '@/components/media/players/mediaStart'
+import { normalizeStartTime } from '@/utils/timecode'
 
 interface VideoPlayerProps {
   mediaUrl: string
@@ -14,6 +16,7 @@ interface VideoPlayerProps {
   onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
   startTime?: number // Timestamp serveur pour synchroniser le démarrage (phase guess si showVideo=false, phase reveal si showVideo=true)
   timeLimit?: number // Durée en secondes pour limiter la vidéo en phase reveal
+  startSeconds?: number // Point de départ de l'extrait (secondes)
 }
 
 export default function VideoPlayer({
@@ -26,20 +29,27 @@ export default function VideoPlayer({
   onMediaReady,
   onMediaStart,
   onRevealVideoStart,
-  startTime,
-  timeLimit,
+  startSeconds = 0,
 }: VideoPlayerProps) {
   const audioVideoRef = useRef<HTMLVideoElement>(null) // Vidéo pour l'audio (toujours présente, invisible)
   const displayVideoRef = useRef<HTMLVideoElement>(null) // Vidéo pour l'affichage (visible seulement en reveal)
   const hasStartedRef = useRef(false)
   const [isPlaying, setIsPlaying] = useState(false)
-  const revealStartedRef = useRef(false) // Flag pour éviter de redémarrer la vidéo plusieurs fois en phase reveal
-  const previousShowVideoRef = useRef<boolean>(false) // Pour détecter le changement de showVideo
+  const revealStartedRef = useRef(false) // Flag pour éviter de relancer la vidéo plusieurs fois en phase reveal
   const revealVideoStartCalledRef = useRef(false) // Flag pour éviter d'appeler onRevealVideoStart plusieurs fois
+
+  // Callbacks, phase et point de départ lus via des refs : les écouteurs ne sont branchés qu'une fois
+  const callbacksRef = useRef({ onMediaReady, onMediaStart, onRevealVideoStart })
+  callbacksRef.current = { onMediaReady, onMediaStart, onRevealVideoStart }
+  const showVideoRef = useRef(showVideo)
+  showVideoRef.current = showVideo
+  const startAtRef = useRef(normalizeStartTime(startSeconds))
+  startAtRef.current = normalizeStartTime(startSeconds)
 
   // Gérer les événements de la vidéo audio
   useEffect(() => {
     const video = audioVideoRef.current
+    const displayVideo = displayVideoRef.current
     if (!video) return
 
     let timeoutId: number | null = null
@@ -51,19 +61,29 @@ export default function VideoPlayer({
       }
     }
 
+    const onMediaReady = () => callbacksRef.current.onMediaReady?.()
+
+    // Pré-positionnement au point de départ dès les métadonnées connues,
+    // pour que le buffering se fasse avant game:ready
+    const handleLoadedMetadata = () => {
+      if (!hasStartedRef.current) seekToStart(video, startAtRef.current)
+    }
+    const handleDisplayLoadedMetadata = () => {
+      if (displayVideo && !revealStartedRef.current) seekToStart(displayVideo, startAtRef.current)
+    }
+
     const handleCanPlay = () => {
       cleanup()
-      if (onMediaReady) {
-        onMediaReady()
-      }
+      onMediaReady()
     }
 
     const handlePlay = () => {
       setIsPlaying(true)
       if (!hasStartedRef.current) {
         hasStartedRef.current = true
-        if (onMediaStart) {
-          onMediaStart()
+        // Le chrono de devinette démarre au premier play, jamais pendant le reveal
+        if (!showVideoRef.current) {
+          callbacksRef.current.onMediaStart?.()
         }
       }
     }
@@ -76,44 +96,68 @@ export default function VideoPlayer({
       setIsPlaying(false)
     }
 
+    const handleError = () => {
+      cleanup()
+      onMediaReady()
+    }
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata)
     video.addEventListener('canplay', handleCanPlay)
     video.addEventListener('play', handlePlay)
     video.addEventListener('pause', handlePause)
     video.addEventListener('ended', handleEnded)
-    video.addEventListener('error', () => {
-      cleanup()
-      if (onMediaReady) {
-        onMediaReady()
-      }
-    })
+    video.addEventListener('error', handleError)
+    displayVideo?.addEventListener('loadedmetadata', handleDisplayLoadedMetadata)
+
+    // Métadonnées déjà chargées avant le branchement des écouteurs
+    handleLoadedMetadata()
+    handleDisplayLoadedMetadata()
 
     // Timeout de 30 secondes pour le chargement
     timeoutId = window.setTimeout(() => {
       cleanup()
-      if (onMediaReady) {
-        onMediaReady()
-      }
+      onMediaReady()
     }, 30000)
 
     return () => {
       cleanup()
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
       video.removeEventListener('canplay', handleCanPlay)
       video.removeEventListener('play', handlePlay)
       video.removeEventListener('pause', handlePause)
       video.removeEventListener('ended', handleEnded)
+      video.removeEventListener('error', handleError)
+      displayVideo?.removeEventListener('loadedmetadata', handleDisplayLoadedMetadata)
     }
-  }, [onMediaReady, onMediaStart])
+  }, [])
 
-  // Gérer play/pause de la vidéo audio avec synchronisation précise
+  // Gérer play/pause : la vidéo audio pendant la devinette, la vidéo d'affichage pendant le reveal
   useEffect(() => {
     const audioVideo = audioVideoRef.current
+    const displayVideo = displayVideoRef.current
     if (!audioVideo) return
 
     if (shouldPause) {
       audioVideo.pause()
-    } else if (autoPlay) {
-      // Démarrer immédiatement (pas de synchronisation complexe)
-      audioVideo.currentTime = 0
+      displayVideo?.pause()
+      return
+    }
+
+    if (!autoPlay) return
+
+    if (showVideoRef.current && revealStartedRef.current) {
+      // Reprise après une pause pendant le reveal : continuer à la position courante
+      if (displayVideo?.paused && !displayVideo.ended) {
+        displayVideo.play().catch((error) => {
+          console.error('Error resuming display video:', error)
+        })
+      }
+      return
+    }
+
+    if (!showVideoRef.current) {
+      // Premier démarrage : partir du point de départ ; ensuite, reprendre où on en était
+      if (!hasStartedRef.current) seekToStart(audioVideo, startAtRef.current)
       audioVideo.play().catch((error) => {
         console.error('Error playing audio video:', error)
       })
@@ -126,7 +170,7 @@ export default function VideoPlayer({
     if (!audioVideo || !restartVideo) return
 
     if (!showVideo) {
-      audioVideo.currentTime = 0
+      audioVideo.currentTime = startAtRef.current
       audioVideo.play().catch((error) => {
         console.error('Error restarting audio video:', error)
       })
@@ -136,13 +180,11 @@ export default function VideoPlayer({
     }
   }, [restartVideo, showVideo, onVideoRestarted])
 
-  // Mettre à jour previousShowVideoRef (le son de reveal est joué par Game.tsx)
-  useEffect(() => {
-    previousShowVideoRef.current = showVideo
-  }, [showVideo])
-
+  // Passage en phase reveal : la vidéo d'affichage prend le relais de la vidéo audio
+  // à la même position (continuité), puis la vidéo audio est coupée (pas de double son)
   useEffect(() => {
     const displayVideo = displayVideoRef.current
+    const audioVideo = audioVideoRef.current
     if (!displayVideo) return
 
     if (!showVideo) {
@@ -152,19 +194,32 @@ export default function VideoPlayer({
       return
     }
 
-    if (!revealStartedRef.current) {
-      revealStartedRef.current = true
-      displayVideo.currentTime = 0
+    if (revealStartedRef.current) return
+    revealStartedRef.current = true
 
-      // Petit délai pour laisser la transition visuelle se voir avant de démarrer la vidéo
-      setTimeout(() => {
-        if (displayVideo && showVideo) {
-          displayVideo.play().catch((error) => {
-            console.error('Error playing display video in reveal:', error)
-          })
-        }
-      }, 100) // 100ms de délai pour laisser la transition commencer
+    const position =
+      audioVideo && hasStartedRef.current ? audioVideo.currentTime : startAtRef.current
+    try {
+      displayVideo.currentTime = position
+    } catch (error) {
+      console.error('Error seeking display video in reveal:', error)
     }
+
+    if (shouldPause) {
+      audioVideo?.pause()
+      return
+    }
+
+    displayVideo
+      .play()
+      .then(() => {
+        // Couper le son de la vidéo audio seulement une fois la vidéo d'affichage lancée
+        if (showVideoRef.current) audioVideo?.pause()
+      })
+      .catch((error) => {
+        // Échec (ex. autoplay bloqué) : la vidéo audio continue, le son n'est pas interrompu
+        console.error('Error playing display video in reveal:', error)
+      })
   }, [showVideo])
 
   useEffect(() => {
@@ -172,9 +227,9 @@ export default function VideoPlayer({
     if (!displayVideo) return
 
     const handlePlay = () => {
-      if (showVideo && onRevealVideoStart && !revealVideoStartCalledRef.current) {
+      if (showVideoRef.current && !revealVideoStartCalledRef.current) {
         revealVideoStartCalledRef.current = true
-        onRevealVideoStart()
+        callbacksRef.current.onRevealVideoStart?.()
       }
     }
 
@@ -182,12 +237,11 @@ export default function VideoPlayer({
     return () => {
       displayVideo.removeEventListener('play', handlePlay)
     }
-  }, [showVideo, onRevealVideoStart])
+  }, [])
 
   useEffect(() => {
     hasStartedRef.current = false
     revealStartedRef.current = false
-    previousShowVideoRef.current = false
     revealVideoStartCalledRef.current = false
   }, [mediaUrl])
 

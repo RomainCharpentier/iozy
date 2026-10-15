@@ -11,6 +11,9 @@ export interface Question {
   options?: string[] // Options de réponse (optionnel, non utilisé en mode texte)
   hint?: string // Indice optionnel
   timeLimit?: number // Temps imparti en secondes (par défaut: 5)
+  // Point de départ de l'extrait en secondes (entier ≥ 0). Absent : `t=` / `start=` de l'URL
+  // YouTube s'il existe, sinon 0. Voir getQuestionStartTime (utils/timecode.ts).
+  startTime?: number
 }
 
 export type QuestionsData = Record<Category, Question[]>

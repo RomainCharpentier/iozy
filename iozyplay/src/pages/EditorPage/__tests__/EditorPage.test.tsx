@@ -26,6 +26,7 @@ vi.mock('@/utils/youtube', () => ({
   getYouTubeThumbnailFromUrl: () => null,
   extractYouTubeId: () => null,
   getYouTubeMetadata: vi.fn().mockResolvedValue(null),
+  extractYouTubeStartTime: () => null,
 }))
 
 vi.mock('sonner', () => ({

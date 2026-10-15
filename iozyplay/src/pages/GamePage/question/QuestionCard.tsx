@@ -9,6 +9,7 @@ import MediaSyncOverlay from '@/pages/GamePage/question/MediaSyncOverlay'
 import { TIMING } from '@/services/gameService'
 import { getPlayerId } from '@/utils/playerId'
 import { compareAnswers } from '@/utils/answerNormalization'
+import { getQuestionStartTime } from '@/utils/timecode'
 import CategoryIcon from '@/components/common/CategoryIcon'
 import type { CategoryInfo } from '@/types'
 import { DEFAULT_CATEGORIES } from '@/types'
@@ -351,6 +352,7 @@ export default function QuestionCard({
                 }
               }}
               startTime={startTime}
+              startSeconds={getQuestionStartTime(question)}
             />
           </>
         )}

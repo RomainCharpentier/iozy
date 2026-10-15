@@ -1,6 +1,8 @@
 import styles from '@/components/media/MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import Soundwave from '@/components/media/Soundwave'
+import { seekToStart } from '@/components/media/players/mediaStart'
+import { normalizeStartTime } from '@/utils/timecode'
 
 interface AudioPlayerProps {
   mediaUrl: string
@@ -8,6 +10,7 @@ interface AudioPlayerProps {
   shouldPause?: boolean
   onMediaReady?: () => void
   onMediaStart?: () => void
+  startSeconds?: number // Point de départ de l'extrait (secondes)
 }
 
 export default function AudioPlayer({
@@ -16,10 +19,17 @@ export default function AudioPlayer({
   shouldPause = false,
   onMediaReady,
   onMediaStart,
+  startSeconds = 0,
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const hasStartedRef = useRef(false)
   const [isPlaying, setIsPlaying] = useState(false)
+
+  // Callbacks et point de départ lus via des refs : les écouteurs ne sont branchés qu'une fois
+  const callbacksRef = useRef({ onMediaReady, onMediaStart })
+  callbacksRef.current = { onMediaReady, onMediaStart }
+  const startAtRef = useRef(normalizeStartTime(startSeconds))
+  startAtRef.current = normalizeStartTime(startSeconds)
 
   useEffect(() => {
     const audio = audioRef.current
@@ -34,20 +44,24 @@ export default function AudioPlayer({
       }
     }
 
+    const onMediaReady = () => callbacksRef.current.onMediaReady?.()
+
+    // Pré-positionnement au point de départ dès les métadonnées connues,
+    // pour que le buffering se fasse avant game:ready
+    const handleLoadedMetadata = () => {
+      if (!hasStartedRef.current) seekToStart(audio, startAtRef.current)
+    }
+
     const handleCanPlay = () => {
       cleanup()
-      if (onMediaReady) {
-        onMediaReady()
-      }
+      onMediaReady()
     }
 
     const handlePlay = () => {
       setIsPlaying(true)
       if (!hasStartedRef.current) {
         hasStartedRef.current = true
-        if (onMediaStart) {
-          onMediaStart()
-        }
+        callbacksRef.current.onMediaStart?.()
       }
     }
 
@@ -59,33 +73,37 @@ export default function AudioPlayer({
       setIsPlaying(false)
     }
 
+    const handleError = () => {
+      cleanup()
+      onMediaReady()
+    }
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata)
     audio.addEventListener('canplay', handleCanPlay)
     audio.addEventListener('play', handlePlay)
     audio.addEventListener('pause', handlePause)
     audio.addEventListener('ended', handleEnded)
-    audio.addEventListener('error', () => {
-      cleanup()
-      if (onMediaReady) {
-        onMediaReady()
-      }
-    })
+    audio.addEventListener('error', handleError)
+
+    // Métadonnées déjà chargées avant le branchement des écouteurs
+    handleLoadedMetadata()
 
     // Timeout de 30 secondes pour le chargement
     timeoutId = window.setTimeout(() => {
       cleanup()
-      if (onMediaReady) {
-        onMediaReady()
-      }
+      onMediaReady()
     }, 30000)
 
     return () => {
       cleanup()
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
       audio.removeEventListener('canplay', handleCanPlay)
       audio.removeEventListener('play', handlePlay)
       audio.removeEventListener('pause', handlePause)
       audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('error', handleError)
     }
-  }, [onMediaReady, onMediaStart])
+  }, [])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -94,6 +112,8 @@ export default function AudioPlayer({
     if (shouldPause) {
       audio.pause()
     } else if (autoPlay) {
+      // Premier démarrage : partir du point de départ ; ensuite, reprendre où on en était
+      if (!hasStartedRef.current) seekToStart(audio, startAtRef.current)
       audio.play().catch((error) => {
         console.error('Error playing audio:', error)
       })

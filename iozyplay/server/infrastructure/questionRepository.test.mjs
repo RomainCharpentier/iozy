@@ -182,4 +182,30 @@ describe('questionRepository', () => {
     await Promise.all(['a', 'b', 'c', 'd', 'e'].map(id => addQuestion(q(id, 'films'))));
     assert.deepStrictEqual((await readJson()).films.map(x => x.id).sort(), ['a', 'b', 'c', 'd', 'e']);
   });
+
+  test('startTime est conservé par addQuestion, saveQuestions et loadQuestions', async () => {
+    await addQuestion({ ...q('a', 'films'), startTime: 75 });
+    assert.strictEqual((await readJson()).films[0].startTime, 75);
+
+    await saveQuestions({ films: [{ ...q('b', 'films'), startTime: 0 }, q('c', 'films')] });
+    const loaded = await loadQuestions();
+    assert.strictEqual(loaded.films[0].startTime, 0);
+    assert.strictEqual('startTime' in loaded.films[1], false);
+  });
+
+  test('startTime invalide : refusé à l\'écriture, sans modifier le fichier', async () => {
+    const content = JSON.stringify({ films: [q('a', 'films')] });
+    await writeRaw(content);
+    for (const startTime of [-1, 1.5, '30', null, 86401]) {
+      await assert.rejects(addQuestion({ ...q('b', 'films'), startTime }), InvalidQuestionsDataError);
+      await assert.rejects(saveQuestions({ films: [{ ...q('b', 'films'), startTime }] }), InvalidQuestionsDataError);
+    }
+    assert.strictEqual(await fs.readFile(testFile, 'utf-8'), content);
+  });
+
+  test('un startTime invalide déjà présent ne rend pas le fichier corrompu', async () => {
+    await writeRaw(JSON.stringify({ films: [{ ...q('a', 'films'), startTime: 'abc' }] }));
+    const loaded = await loadQuestions();
+    assert.strictEqual(loaded.films[0].startTime, 'abc');
+  });
 });

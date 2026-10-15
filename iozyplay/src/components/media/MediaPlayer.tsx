@@ -19,6 +19,7 @@ interface MediaPlayerProps {
   onMediaStart?: () => void // Appelé quand le média commence vraiment à jouer
   onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
   startTime?: number // Timestamp serveur pour synchroniser le démarrage
+  startSeconds?: number // Point de départ de l'extrait dans le média (secondes), voir getQuestionStartTime
 }
 
 export default function MediaPlayer({
@@ -34,6 +35,7 @@ export default function MediaPlayer({
   onMediaStart,
   onRevealVideoStart,
   startTime,
+  startSeconds = 0,
 }: MediaPlayerProps) {
   useEffect(() => {
     if (type === 'image' && onMediaReady) {
@@ -76,6 +78,7 @@ export default function MediaPlayer({
         onMediaStart={onMediaStart}
         onRevealVideoStart={onRevealVideoStart}
         startTime={startTime}
+        startSeconds={startSeconds}
       />
     )
   }
@@ -115,6 +118,7 @@ export default function MediaPlayer({
         shouldPause={shouldPause}
         onMediaReady={onMediaReady}
         onMediaStart={onMediaStart}
+        startSeconds={startSeconds}
       />
     )
   }
@@ -133,6 +137,7 @@ export default function MediaPlayer({
         onRevealVideoStart={onRevealVideoStart}
         startTime={startTime}
         timeLimit={timeLimit}
+        startSeconds={startSeconds}
       />
     )
   }

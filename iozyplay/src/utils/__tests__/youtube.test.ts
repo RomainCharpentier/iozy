@@ -7,6 +7,7 @@ import {
   extractYouTubeId,
   getYouTubeThumbnailUrl,
   getYouTubeThumbnailFromUrl,
+  extractYouTubeStartTime,
 } from '@/utils/youtube'
 
 describe('YouTube utilities', () => {
@@ -67,5 +68,41 @@ describe('YouTube utilities', () => {
     it('should return null for invalid URLs', () => {
       expect(getYouTubeThumbnailFromUrl('not a url')).toBeNull()
     })
+  })
+})
+
+describe('extractYouTubeStartTime', () => {
+  it('lit t= en secondes', () => {
+    expect(extractYouTubeStartTime('https://youtu.be/abc123?t=90')).toBe(90)
+    expect(extractYouTubeStartTime('https://www.youtube.com/watch?v=abc123&t=42')).toBe(42)
+    expect(extractYouTubeStartTime('https://www.youtube.com/watch?v=abc123&t=42s')).toBe(42)
+  })
+
+  it('lit t= au format XhYmZs', () => {
+    expect(extractYouTubeStartTime('https://youtu.be/abc123?t=1m30s')).toBe(90)
+    expect(extractYouTubeStartTime('https://youtu.be/abc123?t=1h2m3s')).toBe(3723)
+    expect(extractYouTubeStartTime('https://youtu.be/abc123?t=2m')).toBe(120)
+  })
+
+  it('lit start= et le fragment #t=', () => {
+    expect(extractYouTubeStartTime('https://www.youtube.com/embed/abc123?start=15')).toBe(15)
+    expect(extractYouTubeStartTime('https://www.youtube.com/watch?v=abc123#t=33')).toBe(33)
+  })
+
+  it('accepte une URL sans protocole', () => {
+    expect(extractYouTubeStartTime('youtu.be/abc123?t=12')).toBe(12)
+  })
+
+  it('retourne null si absent ou invalide', () => {
+    expect(extractYouTubeStartTime('https://youtu.be/abc123')).toBeNull()
+    expect(extractYouTubeStartTime('https://youtu.be/abc123?t=abc')).toBeNull()
+    expect(extractYouTubeStartTime('https://youtu.be/abc123?t=-5')).toBeNull()
+    expect(extractYouTubeStartTime('https://example.com/video?t=10')).toBeNull()
+    expect(extractYouTubeStartTime('')).toBeNull()
+  })
+
+  it("n'altère pas l'extraction de l'ID", () => {
+    expect(extractYouTubeId('https://youtu.be/abc123?t=90')).toBe('abc123')
+    expect(extractYouTubeId('https://www.youtube.com/watch?v=abc123&t=42s')).toBe('abc123')
   })
 })

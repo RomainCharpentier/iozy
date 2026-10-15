@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { parseTimecode } from '@/utils/timecode'
 
 export const questionSchema = z.object({
   mediaUrl: z
@@ -22,6 +23,13 @@ export const questionSchema = z.object({
     }),
   answer: z.string().min(1, 'La réponse est obligatoire').trim(),
   hint: z.string().optional(),
+  // Saisi en « mm:ss » ou en secondes, converti en secondes à l'enregistrement (parseTimecode)
+  startTime: z
+    .string()
+    .optional()
+    .refine((value) => value === undefined || parseTimecode(value) !== null, {
+      message: 'Format invalide : utilisez mm:ss ou un nombre de secondes',
+    }),
   categories: z.array(z.string()).min(1, 'Au moins une catégorie doit être sélectionnée'),
 })
 

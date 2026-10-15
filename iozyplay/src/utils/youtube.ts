@@ -51,6 +51,43 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 /**
+ * Convertit une valeur de paramètre temporel YouTube en secondes.
+ * Formats acceptés : « 90 », « 90s », « 1m30s », « 1h2m3s ». Retourne null si invalide.
+ */
+function parseYouTubeTimeParam(raw: string): number | null {
+  const value = raw.trim().toLowerCase()
+  if (/^\d+$/.test(value)) return Number(value)
+  const match = value.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/)
+  if (!match || (!match[1] && !match[2] && !match[3])) return null
+  return Number(match[1] ?? 0) * 3600 + Number(match[2] ?? 0) * 60 + Number(match[3] ?? 0)
+}
+
+/**
+ * Extrait le point de départ (en secondes) d'une URL YouTube : paramètre `t=` ou `start=`
+ * dans la query, ou `#t=` dans le fragment. Retourne null si absent ou invalide.
+ */
+export function extractYouTubeStartTime(url: string): number | null {
+  if (!url || !isYouTubeUrl(url)) return null
+
+  let parsed: URL
+  try {
+    parsed = new URL(
+      url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`
+    )
+  } catch {
+    return null
+  }
+
+  const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''))
+  const raw =
+    parsed.searchParams.get('t') ?? parsed.searchParams.get('start') ?? hashParams.get('t')
+  if (raw === null) return null
+
+  const seconds = parseYouTubeTimeParam(raw)
+  return seconds !== null && Number.isSafeInteger(seconds) ? seconds : null
+}
+
+/**
  * Vérifie si une URL YouTube est une playlist
  */
 export function isYouTubePlaylistUrl(url: string): boolean {
