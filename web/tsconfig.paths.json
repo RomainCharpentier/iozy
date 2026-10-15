@@ -1,0 +1,9 @@
+{
+  /* The @/ alias points to src: an import says where a thing comes from, never how many
+     folders separate it (Batch 134). It lives here, and every tsconfig of the package
+     extends this file, so the alias has a single source of truth that tooling walking up
+     from src/ can also discover through tsconfig.json. */
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] }
+  }
+}

@@ -1,4 +1,7 @@
 {
+  /* Extended for the @/ alias only: this file compiles nothing, but it is the tsconfig
+     that tooling finds when it walks up from src/, so the alias must be visible here too. */
+  "extends": "./tsconfig.paths.json",
   "files": [],
   "references": [
     {
