@@ -8,7 +8,8 @@ import { getPlayerAvatarLabel } from '@/utils/playerAvatar'
 interface RoomJoinerProps {
   roomCode: string
   playerName?: string
-  onJoined: (roomCode: string) => void
+  /** Appelé au lancement de la partie, avec le nom choisi dans le lobby */
+  onJoined: (roomCode: string, playerName: string) => void
   onBack: () => void
 }
 
@@ -40,7 +41,7 @@ export default function RoomJoiner({
     roomCode,
     playerName: playerName.trim(),
     enabled: hasJoined,
-    onJoined,
+    onJoined: (code) => onJoined(code, playerName.trim()),
     onJoinedSuccess: () => soundManager.playSuccess(),
     onGameStart: () => soundManager.playStart(),
     onError: handleError,

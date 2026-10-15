@@ -72,6 +72,9 @@ export function useRoomSocketJoin(
   const [isHost, setIsHost] = useState(false)
   const [gameStarted, setGameStarted] = useState(false)
   const gameStartedRef = useRef(false)
+  // Vrai quand on bascule vers /game : le démontage du lobby ne doit alors PAS quitter le salon
+  // (sinon le serveur retire le joueur, et /game le recrée sans son nom ni son score)
+  const navigatingToGameRef = useRef(false)
 
   const leaveRoom = useCallback(() => {
     const socket = getSocket()
@@ -87,6 +90,11 @@ export function useRoomSocketJoin(
     const socket = connectSocket()
     const playerId = getPlayerId()
     const joinTimeoutsRef: number[] = []
+
+    const goToGame = () => {
+      navigatingToGameRef.current = true
+      callbacksRef.current.onJoined(roomCode)
+    }
 
     const handleRoomJoined = ({
       room,
@@ -105,10 +113,7 @@ export function useRoomSocketJoin(
       if (room.phase === 'playing') {
         setGameStarted(true)
         gameStartedRef.current = true
-        const timeoutId = window.setTimeout(
-          () => callbacksRef.current.onJoined(roomCode),
-          TIMING.ROOM_JOIN_DELAY
-        )
+        const timeoutId = window.setTimeout(goToGame, TIMING.ROOM_JOIN_DELAY)
         joinTimeoutsRef.push(timeoutId)
       } else {
         callbacksRef.current.onJoinedSuccess?.()
@@ -125,10 +130,7 @@ export function useRoomSocketJoin(
       if (state.phase === 'playing' && !gameStartedRef.current) {
         setGameStarted(true)
         gameStartedRef.current = true
-        const timeoutId = window.setTimeout(
-          () => callbacksRef.current.onJoined(roomCode),
-          TIMING.ROOM_JOIN_DELAY
-        )
+        const timeoutId = window.setTimeout(goToGame, TIMING.ROOM_JOIN_DELAY)
         joinTimeoutsRef.push(timeoutId)
       }
     }
@@ -137,10 +139,7 @@ export function useRoomSocketJoin(
       callbacksRef.current.onGameStart?.()
       setGameStarted(true)
       gameStartedRef.current = true
-      const timeoutId = window.setTimeout(
-        () => callbacksRef.current.onJoined(roomCode),
-        TIMING.ROOM_JOIN_DELAY
-      )
+      const timeoutId = window.setTimeout(goToGame, TIMING.ROOM_JOIN_DELAY)
       joinTimeoutsRef.push(timeoutId)
     }
 
@@ -171,7 +170,8 @@ export function useRoomSocketJoin(
       socket.off('room:state', handleRoomState)
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
-      leaveRoom()
+      // En route vers /game : rester dans le salon (Game.tsx émet room:rejoin)
+      if (!navigatingToGameRef.current) leaveRoom()
     }
   }, [roomCode, trimmedName, enabled, leaveRoom, callbacksRef])
 

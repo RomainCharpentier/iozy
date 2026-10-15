@@ -158,9 +158,11 @@ export function setupRoomHandlers(socket, io) {
         sendError(socket, 'INVALID_SESSION', 'Session invalide pour ce joueur');
         return;
       }
-      // Reconnecter le joueur et mettre à jour le nom (l'avatar n'est remplacé que s'il est valide)
+      // Reconnecter le joueur. Le nom n'est remplacé que par un nom explicite non vide
+      // (jamais par le défaut « Joueur ») ; idem pour l'avatar, remplacé seulement s'il est valide
       reconnectPlayer(room, playerId, socket.id);
-      if (finalPlayerName) existingPlayer.name = finalPlayerName;
+      const explicitName = normalizePlayerName(playerName, null);
+      if (explicitName) existingPlayer.name = explicitName;
       existingPlayer.avatar = normalizeAvatar(playerAvatar, existingPlayer.avatar || DEFAULT_AVATAR);
       roomRepository.cancelGracePeriod(roomCode, playerId);
       roomRepository.update(roomCode, room);

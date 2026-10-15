@@ -51,6 +51,7 @@ export default function GamePage() {
       gameMode={gameState.gameMode}
       players={gameState.players || []}
       roomCode={gameState.roomCode || null}
+      playerName={gameState.playerName}
       onEndGame={handleEndGame}
       onRestartWithNewCategories={handleRestartWithNewCategories}
     />

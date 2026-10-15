@@ -13,6 +13,8 @@ import { getGameModeStrategy } from '@/lib/game/strategies'
 import { getSocket, connectSocket, setCurrentRoom, clearCurrentRoom } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
 import { getSessionToken, setSessionToken } from '@/utils/sessionToken'
+import { getLocalPlayerAvatar } from '@/utils/playerAvatar'
+import { getSavedUsername, pickPlayerName } from '@/utils/playerName'
 import { GameService, TIMING } from '@/services/gameService'
 import { toast } from 'sonner'
 import { soundManager } from '@/utils/sounds'
@@ -24,6 +26,8 @@ interface GameProps {
   gameMode: GameMode
   players: Player[]
   roomCode?: string | null
+  /** Nom choisi avant /game (lobby) : repli si le serveur ne connaît plus le joueur */
+  playerName?: string
   onEndGame: () => void
   onRestartWithNewCategories?: (categories: Category[], questions: Question[]) => void
 }
@@ -34,6 +38,7 @@ export default function Game({
   gameMode,
   players,
   roomCode,
+  playerName,
   onEndGame,
   onRestartWithNewCategories,
 }: GameProps) {
@@ -105,6 +110,14 @@ export default function Game({
   const gameInstanceKeyRef = useRef<number>(0)
   const countdownWarningPlayedRef = useRef<boolean>(false)
   const countdownEndPlayedRef = useRef<boolean>(false)
+  // Dernier nom connu du joueur local (lu par les handlers socket : ref, pas de closure figée).
+  // Priorité au nom vu dans room:state (source de vérité serveur), puis au nom du lobby.
+  const myNameRef = useRef<string | undefined>(
+    pickPlayerName(players.find((p) => p.id === getPlayerId())?.name, playerName)
+  )
+  useEffect(() => {
+    if (!myNameRef.current) myNameRef.current = pickPlayerName(playerName)
+  }, [playerName])
 
   useEffect(() => {
     strategy.onMount?.()
@@ -588,6 +601,7 @@ export default function Game({
         setGamePlayers(state.players)
         const myPlayer = state.players.find((p: Player) => p.id === playerId)
         setIsHost(myPlayer?.isHost || false)
+        myNameRef.current = pickPlayerName(myPlayer?.name, myNameRef.current)
       }
 
       if (state.questions?.length) {
@@ -841,16 +855,26 @@ export default function Game({
       }, 200)
     }
 
+    // Repli room:join (joueur inconnu du serveur ou room:rejoin sans réponse), émis une seule fois.
+    // Toujours avec le vrai nom : sans nom connu, on n'en envoie pas (le serveur garde le nom
+    // d'un joueur existant et n'applique son défaut qu'à un nouveau joueur).
+    let joinFallbackSent = false
+    const emitJoinFallback = () => {
+      if (joinFallbackSent) return
+      joinFallbackSent = true
+      socket.emit('room:join', {
+        roomCode,
+        playerId,
+        playerName: pickPlayerName(myNameRef.current, getSavedUsername()),
+        playerAvatar: getLocalPlayerAvatar(),
+        sessionToken: getSessionToken(roomCode),
+      })
+    }
+
     const handleError = ({ code, message }: { code: string; message: string }) => {
       // Si le joueur n'est pas trouvé dans la room, essayer de rejoindre avec room:join
       if (code === 'PLAYER_NOT_FOUND' && roomCode) {
-        // Essayer de rejoindre la room avec room:join (peut-être que le joueur n'a jamais rejoint)
-        socket.emit('room:join', {
-          roomCode,
-          playerId,
-          playerName: 'Joueur', // Nom par défaut
-          sessionToken: getSessionToken(roomCode),
-        })
+        emitJoinFallback()
         return
       }
 
@@ -1056,14 +1080,7 @@ export default function Game({
     // Timeout de sécurité : si on ne reçoit pas room:joined/rejoined après 2 secondes,
     // essayer room:join (peut-être que le joueur n'a jamais rejoint)
     const joinTimeout = setTimeout(() => {
-      if (!hasJoinedRoom) {
-        socket.emit('room:join', {
-          roomCode,
-          playerId,
-          playerName: 'Joueur', // Nom par défaut si on n'a pas le nom
-          sessionToken: getSessionToken(roomCode),
-        })
-      }
+      if (!hasJoinedRoom) emitJoinFallback()
     }, 2000)
 
     // Nettoyer le timeout si on reçoit room:joined/rejoined
