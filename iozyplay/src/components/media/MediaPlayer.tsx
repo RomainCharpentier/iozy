@@ -20,6 +20,7 @@ interface MediaPlayerProps {
   onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
   startTime?: number // Timestamp serveur pour synchroniser le démarrage
   startSeconds?: number // Point de départ de l'extrait dans le média (secondes), voir getQuestionStartTime
+  muted?: boolean // Son coupé localement (bouton « Son » de la barre du haut)
 }
 
 export default function MediaPlayer({
@@ -36,6 +37,7 @@ export default function MediaPlayer({
   onRevealVideoStart,
   startTime,
   startSeconds = 0,
+  muted = false,
 }: MediaPlayerProps) {
   useEffect(() => {
     if (type === 'image' && onMediaReady) {
@@ -79,6 +81,7 @@ export default function MediaPlayer({
         onRevealVideoStart={onRevealVideoStart}
         startTime={startTime}
         startSeconds={startSeconds}
+        muted={muted}
       />
     )
   }
@@ -119,6 +122,7 @@ export default function MediaPlayer({
         onMediaReady={onMediaReady}
         onMediaStart={onMediaStart}
         startSeconds={startSeconds}
+        muted={muted}
       />
     )
   }
@@ -138,6 +142,7 @@ export default function MediaPlayer({
         startTime={startTime}
         timeLimit={timeLimit}
         startSeconds={startSeconds}
+        muted={muted}
       />
     )
   }

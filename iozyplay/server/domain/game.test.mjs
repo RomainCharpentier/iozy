@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert'
-import { startGame, checkAnswer, nextQuestion } from './game.js'
+import { startGame, checkAnswer, nextQuestion, voteSkip } from './game.js'
 import { createRoom, addPlayer } from './room.js'
 
 describe('Game Domain', () => {
@@ -102,5 +102,23 @@ describe('Game Domain', () => {
     assert.strictEqual(result.isFinished, true)
     assert.strictEqual(room.gameState, 'finished')
   })
-})
 
+  test('voteSkip : il faut le vote de tous les joueurs connectés', () => {
+    startGame(room, questions, 5)
+    const first = voteSkip(room, 'socket1')
+    assert.strictEqual(first.voted, true)
+    assert.strictEqual(first.allPlayersVoted, false)
+    assert.deepStrictEqual(first.skipVotes, ['player1'])
+    assert.strictEqual(voteSkip(room, 'socket1').voted, false) // pas de double vote
+    const second = voteSkip(room, 'socket2')
+    assert.strictEqual(second.allPlayersVoted, true)
+  })
+
+  test('voteSkip : un joueur déconnecté ne bloque pas le vote', () => {
+    startGame(room, questions, 5)
+    room.players.find(p => p.id === 'player2').connected = false
+    const result = voteSkip(room, 'socket1')
+    assert.strictEqual(result.voted, true)
+    assert.strictEqual(result.allPlayersVoted, true)
+  })
+})

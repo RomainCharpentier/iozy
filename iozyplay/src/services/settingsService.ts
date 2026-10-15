@@ -7,6 +7,7 @@ export interface UserSettings {
   // Son
   soundEnabled: boolean
   soundVolume: number // 0-100
+  mediaMuted: boolean // Son des extraits (YouTube, audio, vidéo) coupé localement pendant la partie
 
   // Interface
   theme: 'dark' | 'light'
@@ -16,6 +17,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   username: '',
   soundEnabled: true,
   soundVolume: 70,
+  mediaMuted: false,
   theme: 'dark',
 }
 

@@ -26,6 +26,14 @@ class FakePlayer {
   pauseVideo = vi.fn(() => this.setState(2))
   loadVideoById = vi.fn()
   cueVideoById = vi.fn()
+  isMutedFlag = false
+  mute = vi.fn(() => {
+    this.isMutedFlag = true
+  })
+  unMute = vi.fn(() => {
+    this.isMutedFlag = false
+  })
+  isMuted = () => this.isMutedFlag
   destroy = vi.fn()
 
   constructor(elementId: string, options: FakePlayer['options']) {
@@ -193,5 +201,38 @@ describe('YouTubePlayer - titre de la vidéo masqué', () => {
     expect(player.iframe.closest('[aria-hidden="true"]')).not.toBeNull()
     rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo />)
     expect(player.iframe.closest('[aria-hidden="true"]')).toBeNull()
+  })
+})
+
+describe('YouTubePlayer - son coupé localement', () => {
+  it('coupe puis rétablit le son sans toucher à la lecture', () => {
+    const { player, rerender, baseProps } = setup(30)
+    rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} />)
+    player.playVideo.mockClear()
+    player.pauseVideo.mockClear()
+    player.seekTo.mockClear()
+
+    rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} muted />)
+    expect(player.mute).toHaveBeenCalledTimes(1)
+    expect(player.isMuted()).toBe(true)
+
+    rerender(
+      <YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} muted={false} />
+    )
+    expect(player.unMute).toHaveBeenCalledTimes(1)
+    expect(player.isMuted()).toBe(false)
+    expect(player.playVideo).not.toHaveBeenCalled()
+    expect(player.pauseVideo).not.toHaveBeenCalled()
+    expect(player.seekTo).not.toHaveBeenCalled()
+  })
+
+  it('un lecteur créé alors que le son est coupé démarre muet', () => {
+    const utils = render(
+      <YouTubePlayer mediaUrl={URL} autoPlay={false} shouldPause showVideo={false} muted />
+    )
+    const player = FakePlayer.instances[FakePlayer.instances.length - 1]
+    act(() => player.ready())
+    expect(player.isMuted()).toBe(true)
+    utils.unmount()
   })
 })

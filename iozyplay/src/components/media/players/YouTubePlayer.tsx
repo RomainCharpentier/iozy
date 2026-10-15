@@ -29,6 +29,7 @@ interface YouTubePlayerProps {
   onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
   startTime?: number // Timestamp serveur pour synchroniser le démarrage
   startSeconds?: number // Point de départ de l'extrait dans la vidéo (secondes)
+  muted?: boolean // Son coupé localement
 }
 
 export default function YouTubePlayer({
@@ -42,6 +43,7 @@ export default function YouTubePlayer({
   onMediaStart,
   onRevealVideoStart,
   startSeconds = 0,
+  muted = false,
 }: YouTubePlayerProps) {
   const { isReady, YT, error } = useYouTubeAPI()
   const playerRef = useRef<YT.Player | null>(null)
@@ -61,6 +63,8 @@ export default function YouTubePlayer({
   showVideoRef.current = showVideo
   const startAtRef = useRef(startAt)
   startAtRef.current = startAt
+  const mutedRef = useRef(muted)
+  mutedRef.current = muted
   const callbacksRef = useRef({ onMediaReady, onMediaStart, onRevealVideoStart })
   callbacksRef.current = { onMediaReady, onMediaStart, onRevealVideoStart }
 
@@ -125,6 +129,7 @@ export default function YouTubePlayer({
           const player = event.target
           playerRef.current = player
           forceGenericIframeTitle(player.getIframe())
+          if (mutedRef.current) player.mute()
           setIsPlayerReady(true)
           callbacksRef.current.onMediaReady?.()
         },
@@ -253,6 +258,20 @@ export default function YouTubePlayer({
       console.error('Error playing video:', error)
     }
   }, [shouldPause, autoPlay, isPlayerReady])
+
+  // Couper / rétablir le son localement (sans toucher à la lecture)
+  useEffect(() => {
+    if (!isPlayerReady || !playerRef.current) return
+    try {
+      if (muted) {
+        playerRef.current.mute()
+      } else if (playerRef.current.isMuted?.()) {
+        playerRef.current.unMute()
+      }
+    } catch (error) {
+      console.error('Error toggling YouTube mute:', error)
+    }
+  }, [muted, isPlayerReady])
 
   // Gérer le redémarrage
   useEffect(() => {

@@ -5,6 +5,9 @@ import GameTopBar from '@/pages/GamePage/ui/GameTopBar'
 import RoundScreen from '@/pages/GamePage/ui/RoundScreen'
 import EndScreen from '@/pages/GamePage/ui/EndScreen'
 import LoadingScreen from '@/pages/GamePage/ui/LoadingScreen'
+import QuitGameDialog from '@/pages/GamePage/ui/QuitGameDialog'
+import { useRoomCategories } from '@/pages/GamePage/settings/useRoomCategories'
+import { useMediaMuted } from '@/hooks/useMediaMuted'
 import { useAnswerSuggestions } from '@/pages/GamePage/question/useAnswerSuggestions'
 import type { Category, Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
@@ -57,6 +60,10 @@ export default function Game({
   const [isHost, setIsHost] = useState(true)
   const [gameStarted, setGameStarted] = useState(strategy.getInitialGameStarted())
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false)
+  const [mediaMuted, toggleMediaMuted] = useMediaMuted()
+  // Thèmes du salon (suivis via room:state) pour pré-remplir « Changer les thèmes »
+  const settingsCategories = useRoomCategories(isOnline(gameMode) ? roomCode : null, categories)
   const [gameQuestions, setGameQuestions] = useState<Question[]>(
     strategy.getInitialQuestions(questions)
   )
@@ -1245,8 +1252,8 @@ export default function Game({
     }
   }
 
-  const handleModifySettings = () => {
-    setShowScore(false)
+  // « Changer les thèmes » (écran de fin, hôte) : la popup s'ouvre par-dessus l'écran de fin
+  const handleChangeThemes = () => {
     setShowSettingsPopup(true)
   }
 
@@ -1257,11 +1264,10 @@ export default function Game({
     questionCount: number
   ) => {
     setShowSettingsPopup(false)
-    setShowScore(false)
-    setCurrentQuestionIndex(0)
-    setScore(0)
-    questionAnsweredByRef.current = null
-    isTransitioningRef.current = false
+    // Même remise à zéro que « Rejouer » : sans elle, gameEndedRef resterait à true
+    // si le nouveau tirage avait les mêmes questions (game:go ignoré)
+    resetGameState()
+    gameInstanceKeyRef.current += 1
 
     if (isOnline(gameMode) && roomCode) {
       const socket = getSocket()
@@ -1359,16 +1365,12 @@ export default function Game({
       <GameTopBar
         currentQuestionIndex={currentQuestionIndex}
         totalQuestions={gameQuestions.length}
-        currentQuestion={currentQuestion}
         timeRemaining={timeRemaining}
-        isRevealPhase={isRevealPhase}
         score={strategy.getDisplayScore(score, gamePlayers)}
         inviteLink={inviteLink}
-        onQuit={() => {
-          leaveRoom()
-          onEndGame()
-        }}
-        onSettings={() => setShowSettingsPopup(true)}
+        muted={mediaMuted}
+        onToggleMute={toggleMediaMuted}
+        onQuit={() => setShowQuitConfirm(true)}
         isGameEnded={showScore}
       />
 
@@ -1387,8 +1389,8 @@ export default function Game({
               isHost={isHost}
               shouldPlaySound={!successSoundPlayedRef.current}
               onRestart={handleRestart}
-              onModifySettings={handleModifySettings}
-              onQuit={onEndGame}
+              onChangeThemes={handleChangeThemes}
+              onQuit={() => setShowQuitConfirm(true)}
               onSoundPlayed={handleScoreSoundPlayed}
             />
           ) : (
@@ -1414,7 +1416,7 @@ export default function Game({
               }
               waitingForGo={waitingForGo}
               gameStep={gameStep}
-              showSettingsPopup={showSettingsPopup}
+              muted={mediaMuted}
               isGameEnded={gameEndedRef.current}
               isMediaReady={isSolo(gameMode) || (mediaReadyRef.current && !waitingForGo)}
               revealStartTime={
@@ -1431,7 +1433,18 @@ export default function Game({
         </div>
       </div>
 
-      {/* Dialog uniquement pour les paramètres */}
+      {/* Sortie confirmée : room:leave puis retour à l'accueil (barre du haut et écran de fin) */}
+      <QuitGameDialog
+        isOpen={showQuitConfirm}
+        isOnline={isOnline(gameMode)}
+        isHost={isHost}
+        isGameEnded={showScore}
+        onLeaveRoom={leaveRoom}
+        onEndGame={onEndGame}
+        onCancel={() => setShowQuitConfirm(false)}
+      />
+
+      {/* Popup « Changer les thèmes » : accessible seulement depuis l'écran de fin (hôte) */}
       <Dialog.Root
         open={showSettingsPopup}
         onOpenChange={(open) => {
@@ -1448,11 +1461,13 @@ export default function Game({
               setShowSettingsPopup(false)
             }}
           >
-            <Dialog.Title style={{ display: 'none' }}>Game Settings</Dialog.Title>
-            <Dialog.Description style={{ display: 'none' }}>Game settings</Dialog.Description>
+            <Dialog.Title style={{ display: 'none' }}>Changer les thèmes</Dialog.Title>
+            <Dialog.Description style={{ display: 'none' }}>
+              Choisir les thèmes, le timer et le nombre de questions de la prochaine partie
+            </Dialog.Description>
             <GameSettingsPopup
               isOpen={true}
-              currentCategories={categories}
+              currentCategories={settingsCategories}
               currentTimeLimit={getCurrentTimeLimit()}
               currentQuestionCount={gameQuestions.length}
               onSave={handleSettingsSaved}

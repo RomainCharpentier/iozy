@@ -29,7 +29,8 @@ export default function PlayersPanel({
 }: PlayersPanelProps) {
   if (players.length === 0) return null
 
-  const sortedPlayers = players.sort((a, b) => b.score - a.score)
+  // Copie triée : ne pas muter le tableau reçu en props
+  const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
 
   return (
     <div className={gameStyles.gameInterfaceSidebar} data-testid="game-players-panel">
@@ -55,9 +56,17 @@ export default function PlayersPanel({
               key={player.id}
               className={`${gameStyles.gameInterfacePlayer} ${index === 0 && isGameEnded ? `${gameStyles.gameInterfacePlayerTop} ${gameStyles.gameInterfacePlayerWinner}` : index === 0 ? gameStyles.gameInterfacePlayerTop : ''} ${isCorrect ? gameStyles.gameInterfacePlayerCorrect : ''} ${isRevealPhase && isValidated && !isPlayerCorrect ? gameStyles.gameInterfacePlayerIncorrect : ''} ${isRequestingSkip ? gameStyles.gameInterfacePlayerSkipRequesting : ''}`}
             >
-              <div className={gameStyles.gameInterfacePlayerRank}>#{index + 1}</div>
-              {index === 0 && isGameEnded && (
-                <div className={gameStyles.gameInterfaceWinnerCrown}>👑</div>
+              {/* Vainqueur : la couronne prend la place du rang (pas de chevauchement du nom) */}
+              {index === 0 && isGameEnded ? (
+                <div
+                  className={`${gameStyles.gameInterfacePlayerRank} ${gameStyles.gameInterfaceWinnerCrown}`}
+                  title="Vainqueur"
+                  aria-label="Vainqueur, 1er"
+                >
+                  👑
+                </div>
+              ) : (
+                <div className={gameStyles.gameInterfacePlayerRank}>#{index + 1}</div>
               )}
               <div className={gameStyles.gameInterfacePlayerAvatar}>
                 {getPlayerAvatarLabel(player)}
@@ -77,7 +86,7 @@ export default function PlayersPanel({
                   </div>
                 )}
                 {!isGameEnded && !isRevealPhase && isRequestingSkip && (
-                  <div className={gameStyles.gameInterfacePlayerAnswer}>Vote skip</div>
+                  <div className={gameStyles.gameInterfacePlayerAnswer}>Veut passer</div>
                 )}
                 {!isGameEnded && !isRevealPhase && !isRequestingSkip && hasAnswered && (
                   <div className={gameStyles.gameInterfacePlayerAnswer}>Réponse envoyée</div>
