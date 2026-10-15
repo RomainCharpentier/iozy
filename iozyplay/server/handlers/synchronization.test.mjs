@@ -62,7 +62,7 @@ describe('Game Handlers - Synchronization', () => {
     player1Socket = createMockSocket('socket-player1')
     player2Socket = createMockSocket('socket-player2')
 
-    const room = createRoom('TEST123', 'host-id', 'socket-host', 'Host', ['pop'], 5)
+    const room = createRoom('TEST123', 'host-id', 'socket-host', 'Host', ['pop'], 20)
     addPlayer(room, 'player1-id', 'socket-player1', 'Player1')
     addPlayer(room, 'player2-id', 'socket-player2', 'Player2')
     
@@ -74,13 +74,13 @@ describe('Game Handlers - Synchronization', () => {
   })
 
   test('should wait for all players before sending game:go', () => {
-    const questions = [{ id: 'q1', answer: 'Song 1', timeLimit: 5 }]
+    const questions = [{ id: 'q1', answer: 'Song 1', timeLimit: 20 }]
 
     // Host starts game
     hostSocket._trigger('game:start', {
       roomCode: 'TEST123',
       questions,
-      defaultTimeLimit: 5
+      defaultTimeLimit: 20
     })
 
     // Player 1 ready
@@ -110,16 +110,16 @@ describe('Game Handlers - Synchronization', () => {
     const goEvent = goEventsAfterAll[0]
     assert.ok(goEvent.data.goAt)
     assert.ok(goEvent.data.startedAt)
-    assert.strictEqual(goEvent.data.durationMs, 5000)
+    assert.strictEqual(goEvent.data.durationMs, 20000)
   })
 
   test('should send game:go with correct timing (1s in future)', () => {
-    const questions = [{ id: 'q1', answer: 'Song 1', timeLimit: 5 }]
+    const questions = [{ id: 'q1', answer: 'Song 1', timeLimit: 20 }]
     
     hostSocket._trigger('game:start', {
       roomCode: 'TEST123',
       questions,
-      defaultTimeLimit: 5
+      defaultTimeLimit: 20
     })
 
     const beforeReady = Date.now()
@@ -142,15 +142,15 @@ describe('Game Handlers - Synchronization', () => {
 
   test('should reset readyPlayers when moving to next question', () => {
     const questions = [
-      { id: 'q1', answer: 'Song 1', timeLimit: 5 },
-      { id: 'q2', answer: 'Song 2', timeLimit: 5 }
+      { id: 'q1', answer: 'Song 1', timeLimit: 20 },
+      { id: 'q2', answer: 'Song 2', timeLimit: 20 }
     ]
 
     // Start game
     hostSocket._trigger('game:start', {
       roomCode: 'TEST123',
       questions,
-      defaultTimeLimit: 5
+      defaultTimeLimit: 20
     })
 
     // All players ready

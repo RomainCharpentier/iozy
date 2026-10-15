@@ -138,6 +138,7 @@ export default function RoomConfigPanel({
             type="range"
             min={TIMING.MIN_TIME_LIMIT}
             max={TIMING.MAX_TIME_LIMIT}
+            step={TIMING.TIME_LIMIT_STEP}
             value={timeLimit}
             onChange={(e) => {
               const value = parseInt(e.target.value)

@@ -6,7 +6,7 @@ import { loadCategories } from '@/services/categoryService'
 import CategorySelector from '@/pages/CategorySelectorPage/CategorySelector'
 import { soundManager } from '@/utils/sounds'
 import { QuestionService } from '@/services/questionService'
-import { TIMING, QUESTION_COUNT } from '@/services/gameService'
+import { GameService, TIMING, QUESTION_COUNT } from '@/services/gameService'
 import CategoryIcon from '@/components/common/CategoryIcon'
 
 interface GameSettingsPopupProps {
@@ -35,7 +35,10 @@ export default function GameSettingsPopup({
 }: GameSettingsPopupProps) {
   const [selectedCategories, setSelectedCategories] = useState<Category[]>(currentCategories)
   const [showCategorySelector, setShowCategorySelector] = useState(false)
-  const [timeLimit, setTimeLimit] = useState<number>(currentTimeLimit)
+  // Une durée héritée hors de la plage actuelle (ex. ancien défaut de 5 s) est bornée
+  const [timeLimit, setTimeLimit] = useState<number>(() =>
+    GameService.validateTimeLimit(currentTimeLimit)
+  )
   const [questionCount, setQuestionCount] = useState<number>(currentQuestionCount)
   const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(0)
   const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
@@ -46,7 +49,7 @@ export default function GameSettingsPopup({
 
   useEffect(() => {
     setSelectedCategories(currentCategories)
-    setTimeLimit(currentTimeLimit)
+    setTimeLimit(GameService.validateTimeLimit(currentTimeLimit))
     setQuestionCount(currentQuestionCount)
     loadAvailableQuestions()
   }, [currentCategories, currentTimeLimit, currentQuestionCount])
@@ -118,10 +121,11 @@ export default function GameSettingsPopup({
       return
     }
 
-    const shuffledQuestions = QuestionService.shuffleQuestions(allQuestions)
-    const actualCount = Math.min(questionCount, shuffledQuestions.length)
-    const limitedQuestions = shuffledQuestions.slice(0, actualCount)
-    const questionsWithTimer = QuestionService.applyDefaultTimeLimit(limitedQuestions, timeLimit)
+    // Pool complet mélangé : en ligne, le serveur y tire `actualCount` questions ;
+    // en solo, Game prend les `actualCount` premières
+    const pool = QuestionService.buildQuestionPool(allQuestions)
+    const actualCount = Math.min(questionCount, pool.length)
+    const questionsWithTimer = QuestionService.applyDefaultTimeLimit(pool, timeLimit)
 
     soundManager.playStart()
     onSave(selectedCategories, questionsWithTimer, timeLimit, actualCount)
@@ -201,6 +205,7 @@ export default function GameSettingsPopup({
               type="range"
               min={TIMING.MIN_TIME_LIMIT}
               max={TIMING.MAX_TIME_LIMIT}
+              step={TIMING.TIME_LIMIT_STEP}
               value={timeLimit}
               onChange={(e) => {
                 const value = parseInt(e.target.value)

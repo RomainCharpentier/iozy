@@ -13,6 +13,7 @@ import {
   isValidQuestionList,
   isValidCategories,
   normalizeTimeLimit,
+  normalizeQuestionCount,
   normalizeAnswerInput
 } from './validation.js';
 
@@ -204,7 +205,7 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
 }
 
 export function setupGameHandlers(socket, io) {
-  socket.on('game:start', withPayload(socket, 'game:start', async ({ roomCode, questions, defaultTimeLimit }) => {
+  socket.on('game:start', withPayload(socket, 'game:start', async ({ roomCode, questions, defaultTimeLimit, questionCount }) => {
     if (!isValidRoomCode(roomCode) || (questions != null && !isValidQuestionList(questions))) {
       sendInvalidPayload(socket);
       return;
@@ -230,7 +231,8 @@ export function setupGameHandlers(socket, io) {
     // Nettoyer les timers précédents
     roomRepository.clearGameTimer(roomCode);
 
-    startGame(room, questions, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit));
+    // `questions` = pool des catégories choisies ; le serveur tire `questionCount` questions au hasard
+    startGame(room, questions, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit), normalizeQuestionCount(questionCount));
     roomRepository.update(roomCode, room);
     
     // Envoyer l'état de démarrage (sans startedAt, sera défini au "go")
@@ -249,7 +251,7 @@ export function setupGameHandlers(socket, io) {
     // Pas de timeout de sécurité - on attend vraiment que tous les joueurs soient prêts
   }));
 
-  socket.on('game:restart-with-categories', withPayload(socket, 'game:restart-with-categories', async ({ roomCode, questions, categories, defaultTimeLimit }) => {
+  socket.on('game:restart-with-categories', withPayload(socket, 'game:restart-with-categories', async ({ roomCode, questions, categories, defaultTimeLimit, questionCount }) => {
     if (!isValidRoomCode(roomCode) || (questions != null && !isValidQuestionList(questions)) || !isValidCategories(categories)) {
       sendInvalidPayload(socket);
       return;
@@ -275,7 +277,7 @@ export function setupGameHandlers(socket, io) {
     // Nettoyer les timers précédents
     roomRepository.clearGameTimer(roomCode);
     
-    restartGameWithCategories(room, questions, categories, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit));
+    restartGameWithCategories(room, questions, categories, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit), normalizeQuestionCount(questionCount));
     roomRepository.update(roomCode, room);
     
     // Programmer le timer
@@ -320,6 +322,7 @@ export function setupGameHandlers(socket, io) {
     // Nettoyer les timers précédents
     roomRepository.clearGameTimer(roomCode);
     
+    // Nouveau tirage dans le pool conservé depuis game:start (voir restartGame)
     restartGame(room);
     roomRepository.update(roomCode, room);
     

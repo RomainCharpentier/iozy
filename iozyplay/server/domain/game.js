@@ -4,17 +4,35 @@
  */
 
 import { compareAnswers, normalizeAnswer } from './answerUtils.js';
+import { dedupeQuestions, drawQuestions } from './questionDraw.js';
+
+// Durée par défaut d'une question (secondes), alignée sur TIME_LIMIT.DEFAULT (handlers/validation.js)
+const DEFAULT_TIME_LIMIT = 20;
+
+/**
+ * Enregistre le pool de questions de la room et tire la sélection de la partie.
+ * - `questionCount` absent (null/undefined) : on garde toutes les questions reçues, dans l'ordre
+ *   (compatibilité : l'hôte envoie alors une liste déjà tirée).
+ * - Sinon : tirage aléatoire de `questionCount` questions dans le pool (dédupliqué).
+ * Le pool complet (avec les réponses) reste côté serveur pour les « Rejouer ».
+ */
+function setQuestionPool(room, questions, questionCount) {
+    const pool = dedupeQuestions(questions);
+    room.questionPool = pool;
+    room.questions = questionCount == null ? pool : drawQuestions(pool, questionCount);
+    room.questionCount = room.questions.length;
+}
 
 /**
  * Démarre une partie dans un salon
  */
-export function startGame(room, questions, defaultTimeLimit) {
+export function startGame(room, questions, defaultTimeLimit, questionCount = null) {
     if (!room) return null;
 
-    room.questions = questions;
+    setQuestionPool(room, questions, questionCount);
     room.currentQuestionIndex = 0;
     room.gameState = 'playing';
-    room.defaultTimeLimit = defaultTimeLimit || room.defaultTimeLimit || 5;
+    room.defaultTimeLimit = defaultTimeLimit || room.defaultTimeLimit || DEFAULT_TIME_LIMIT;
     room.updatedAt = Date.now();
 
     // Initialiser l'état de jeu avec la première question
@@ -38,14 +56,14 @@ export function startGame(room, questions, defaultTimeLimit) {
 /**
  * Relance une partie avec de nouvelles catégories
  */
-export function restartGameWithCategories(room, questions, categories, defaultTimeLimit) {
+export function restartGameWithCategories(room, questions, categories, defaultTimeLimit, questionCount = null) {
     if (!room) return null;
 
-    room.questions = questions;
+    setQuestionPool(room, questions, questionCount);
     room.categories = categories;
     room.currentQuestionIndex = 0;
     room.gameState = 'playing';
-    room.defaultTimeLimit = defaultTimeLimit || room.defaultTimeLimit || 5;
+    room.defaultTimeLimit = defaultTimeLimit || room.defaultTimeLimit || DEFAULT_TIME_LIMIT;
     room.updatedAt = Date.now();
 
     // Réinitialiser les scores
@@ -72,10 +90,18 @@ export function restartGameWithCategories(room, questions, categories, defaultTi
 }
 
 /**
- * Relance une partie avec les mêmes questions
+ * Relance une partie dans les mêmes catégories, avec un nouveau tirage :
+ * même nombre de questions, en évitant autant que possible celles de la partie précédente,
+ * et au minimum dans un nouvel ordre.
  */
 export function restartGame(room) {
     if (!room) return null;
+
+    if (room.questions && room.questions.length > 0) {
+        const pool = room.questionPool && room.questionPool.length > 0 ? room.questionPool : room.questions;
+        const count = room.questionCount || room.questions.length;
+        room.questions = drawQuestions(pool, count, { previous: room.questions });
+    }
 
     room.currentQuestionIndex = 0;
     room.gameState = 'playing';
