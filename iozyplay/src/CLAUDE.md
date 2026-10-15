@@ -17,12 +17,14 @@
 - L'effet socket de `Game.tsx` a des deps réduites (`[gameMode, roomCode]`) : les handlers lisent des states figés. Passer par des refs pour toute nouvelle donnée lue dans un handler socket.
 - Reconnexion centralisée dans `utils/socket.ts` : à chaque `connect` non initial, `room:rejoin` est émis pour la room courante (`setCurrentRoom` / `clearCurrentRoom`). Ne pas ajouter de listener `socket.on('reconnect')` (jamais déclenché en v4). `connectSocket` est idempotent.
 - `sessionToken` par room (`utils/sessionToken.ts`, localStorage) : à renvoyer dans tout `room:join` / `room:rejoin`.
-- Les questions reçues du serveur n'ont pas de `answer` : la réponse arrive au reveal (`correctAnswer`). Les suggestions viennent de l'API REST (`useAnswerSuggestions`).
+- Les questions reçues du serveur n'ont pas de `answer` : la réponse arrive au reveal (`correctAnswer`). Les suggestions viennent de l'API REST (`useAnswerSuggestions`) et sont filtrées par préfixe via `normalizeAnswer` (sans accents/majuscules/ponctuation).
 - Hooks de lobby : `useRoomSocketCreate` / `useRoomSocketJoin` ; callbacks passés via ref (pas dans les deps).
 - Point de départ des extraits : `Question.startTime` (secondes) ; toujours lire via `getQuestionStartTime(q)` (`utils/timecode.ts`, repli sur `t=` de l'URL YouTube). Le chrono démarre au premier PLAYING.
-- `YouTubePlayer` : le player n'est jamais recréé ni re-seeké au reveal (la vidéo continue) ; les events YT lisent les props via refs. Le `title` de l'iframe est forcé à « Lecteur du blindtest » (anti-triche) — ne pas exposer titre/auteur de la vidéo avant le reveal.
+- Départ des extraits : **aléatoire à chaque partie**. Le serveur tire `startFraction` ∈ [0,1) par question (`withStartFractions`, solo : `SoloGameStrategy.getInitialQuestions`) ; le client la convertit avec `pickPlayableStart(startTime, duration, chrono, fraction)` (`utils/timecode.ts`) entre le « début minimum » (`startTime` / `t=`) et `durée − chrono`. `Question.duration` (relevée par l'éditeur via `GET /api/youtube/duration/:videoId`) est prioritaire sur la durée du lecteur : même départ pour tous, calculable avant la lecture. Média plus court que le chrono : départ à 0 et lecture en boucle. Au reveal, la vidéo repart du même départ (le player YouTube n'est jamais recréé) ; Le `title` de l'iframe est forcé à « Lecteur du blindtest » (anti-triche) — ne pas exposer titre/auteur de la vidéo avant le reveal.
 - Écran `/game` : tient dans `100dvh` sans scroll ≥ 768 px (`Game.module.scss`, `.gameScreen`/`.mediaStage`) ; vérifier 1366×768, 1024×700, 800×600 et 375×812 après toute modif de layout.
 - Boutons de jeu : barre du haut = « Inviter » (toast), « Son » (mute local du média, `settingsService.mediaMuted`), « Quitter » (toujours via `ConfirmDialog` puis `leaveRoom()` + `onEndGame()`). Pas de paramètres pendant une manche : « Changer les thèmes » n'existe que sur l'écran de fin, pour l'hôte. « Passer »/« Suivant » est un vote (compteur X/Y joueurs connectés).
+- Réponse : une seule par question, = **contenu du champ**, modifiable jusqu'au reveal (solo et en ligne). Envoi automatique via `question/useAnswerAutoSend` (300 ms après la frappe, immédiat sur Entrée/suggestion, sous 3 s de chrono et avant un vote « Passer »). Le champ n'est figé (lecture seule) qu'au reveal ; une question validée (`validatedQuestionIndexRef`) ne repasse jamais en guess. Aucun retour juste/faux avant le reveal, solo compris.
+- `room:state` est diffusé à chaque arrivée/départ : il ne doit pas réinitialiser la question en cours (`alreadyPlayingThisQuestion`). Reconnexion : `game:start` sur la même question = resynchronisation (rien n'est remis à zéro), `game:sync` réaligne le chrono, `room:rejoined` renvoie la réponse en cours.
 - Un `game:start` reçu après la fin d'une partie = nouvelle partie (reset forcé dans `handleGameStarted`), ne pas se fier au changement de la liste de questions.
 - Le lobby invité ne doit pas faire `room:leave` en partant vers `/game` (`navigatingToGameRef` dans `useRoomSocketJoin`).
 - Avatars : `utils/playerAvatar.ts` (🎮 par défaut, aucune UI de choix pour l'instant).
@@ -35,7 +37,7 @@
 
 ## Code mort connu
 
-`emitWithQueue` / `isSocketConnected` (`utils/socket.ts`), listener `game:correct-answer` dans `Game.tsx` (jamais émis), la plupart des classes de `styles/index.scss`.
+`emitWithQueue` / `isSocketConnected` (`utils/socket.ts`), la plupart des classes de `styles/index.scss`.
 
 ## Tests
 

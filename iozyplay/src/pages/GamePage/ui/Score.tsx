@@ -41,6 +41,14 @@ export default function Score({
 
   const percentage = GameService.calculatePercentage(currentPlayerScore, totalQuestions)
 
+  // Copie adaptative : éviter de « féliciter » un joueur qui n'a rien trouvé.
+  const hasScored = currentPlayerScore > 0
+  const endIcon = hasScored ? '🏆' : '🎮'
+  const endTitle = hasScored ? 'Partie terminée !' : 'Partie terminée'
+  const endSubtitle = hasScored
+    ? 'Félicitations à tous les participants'
+    : 'Personne n’a trouvé cette fois — tentez votre chance à la prochaine !'
+
   // Jouer le son de fin de partie une seule fois au montage du composant
   useEffect(() => {
     if (shouldPlaySound && !soundPlayedRef.current) {
@@ -53,12 +61,10 @@ export default function Score({
   return (
     <div className={gameStyles.gameInterfaceGameEnd} data-testid="end-summary">
       <div className={gameStyles.gameInterfaceEndIcon} aria-hidden="true">
-        🏆
+        {endIcon}
       </div>
-      <h2 className={gameStyles.gameInterfaceEndTitle}>Partie terminée !</h2>
-      {!solo && (
-        <p className={gameStyles.gameInterfaceEndSubtitle}>Félicitations à tous les participants</p>
-      )}
+      <h2 className={gameStyles.gameInterfaceEndTitle}>{endTitle}</h2>
+      {!solo && <p className={gameStyles.gameInterfaceEndSubtitle}>{endSubtitle}</p>}
       <div className={gameStyles.gameInterfaceEndStats}>
         <div className={gameStyles.gameInterfaceEndStat}>
           <div className={gameStyles.gameInterfaceEndStatLabel}>Votre score</div>

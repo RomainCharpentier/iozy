@@ -4,7 +4,6 @@ import { getPlayerAvatarLabel } from '@/utils/playerAvatar'
 
 interface PlayersPanelProps {
   players: Player[]
-  questionAnsweredBy: string | null
   correctPlayers?: Set<string> // Joueurs qui ont répondu correctement (pour surlignage vert)
   answeredPlayers?: Set<string> // Joueurs qui ont soumis une réponse (pendant le guess)
   isRevealPhase?: boolean
@@ -17,7 +16,6 @@ interface PlayersPanelProps {
 
 export default function PlayersPanel({
   players,
-  questionAnsweredBy,
   correctPlayers = new Set(),
   answeredPlayers = new Set(),
   isRevealPhase = false,
@@ -32,6 +30,12 @@ export default function PlayersPanel({
   // Copie triée : ne pas muter le tableau reçu en props
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
 
+  // Couronne réservée à un vainqueur net : score strictement positif et strictement
+  // supérieur au deuxième (pas de couronne sur une égalité ou à 0 point partout).
+  const topScore = sortedPlayers[0]?.score ?? 0
+  const isUniqueWinner =
+    topScore > 0 && (sortedPlayers.length < 2 || sortedPlayers[1].score < topScore)
+
   return (
     <div className={gameStyles.gameInterfaceSidebar} data-testid="game-players-panel">
       <div className={gameStyles.gameInterfaceSidebarHeader}>
@@ -39,7 +43,9 @@ export default function PlayersPanel({
           <span className={gameStyles.gameInterfaceSidebarTitle}>
             {isGameEnded ? 'Classement Final' : 'Classement'}
           </span>
-          {!isGameEnded && <span className={gameStyles.gameInterfaceSidebarCount}>{players.length}</span>}
+          {!isGameEnded && (
+            <span className={gameStyles.gameInterfaceSidebarCount}>{players.length}</span>
+          )}
         </div>
       </div>
       <div className={gameStyles.gameInterfacePlayers}>
@@ -54,10 +60,12 @@ export default function PlayersPanel({
           return (
             <div
               key={player.id}
-              className={`${gameStyles.gameInterfacePlayer} ${index === 0 && isGameEnded ? `${gameStyles.gameInterfacePlayerTop} ${gameStyles.gameInterfacePlayerWinner}` : index === 0 ? gameStyles.gameInterfacePlayerTop : ''} ${isCorrect ? gameStyles.gameInterfacePlayerCorrect : ''} ${isRevealPhase && isValidated && !isPlayerCorrect ? gameStyles.gameInterfacePlayerIncorrect : ''} ${isRequestingSkip ? gameStyles.gameInterfacePlayerSkipRequesting : ''}`}
+              className={`${gameStyles.gameInterfacePlayer} ${index === 0 && isGameEnded && isUniqueWinner ? `${gameStyles.gameInterfacePlayerTop} ${gameStyles.gameInterfacePlayerWinner}` : index === 0 ? gameStyles.gameInterfacePlayerTop : ''} ${isCorrect ? gameStyles.gameInterfacePlayerCorrect : ''} ${isRevealPhase && isValidated && !isPlayerCorrect ? gameStyles.gameInterfacePlayerIncorrect : ''} ${isRequestingSkip ? gameStyles.gameInterfacePlayerSkipRequesting : ''}`}
             >
-              {/* Vainqueur : la couronne prend la place du rang (pas de chevauchement du nom) */}
-              {index === 0 && isGameEnded ? (
+              {/* Vainqueur : la couronne prend la place du rang (pas de chevauchement du nom).
+                  Réservée à un score strictement positif et strictement supérieur au suivant :
+                  pas de couronne sur une égalité (y compris à 0 point). */}
+              {index === 0 && isGameEnded && isUniqueWinner ? (
                 <div
                   className={`${gameStyles.gameInterfacePlayerRank} ${gameStyles.gameInterfaceWinnerCrown}`}
                   title="Vainqueur"
@@ -80,11 +88,6 @@ export default function PlayersPanel({
                     "{playerAnswer}"
                   </div>
                 )}
-                {isGameEnded && totalQuestions > 0 && (
-                  <div className={gameStyles.gameInterfacePlayerFinalScore}>
-                    {player.score} / {totalQuestions}
-                  </div>
-                )}
                 {!isGameEnded && !isRevealPhase && isRequestingSkip && (
                   <div className={gameStyles.gameInterfacePlayerAnswer}>Veut passer</div>
                 )}
@@ -92,7 +95,16 @@ export default function PlayersPanel({
                   <div className={gameStyles.gameInterfacePlayerAnswer}>Réponse envoyée</div>
                 )}
               </div>
-              <div className={gameStyles.gameInterfacePlayerScore}>{player.score}</div>
+              {/* Un seul format de score : « X / N » en fin de partie, le nombre de points sinon */}
+              <div className={gameStyles.gameInterfacePlayerScore}>
+                {player.score}
+                {isGameEnded && totalQuestions > 0 && (
+                  <span className={gameStyles.gameInterfacePlayerScoreTotal}>
+                    {' '}
+                    / {totalQuestions}
+                  </span>
+                )}
+              </div>
             </div>
           )
         })}

@@ -4,7 +4,10 @@ import {
   START_TIME_MAX,
   isValidStartTime,
   sanitizeQuestionStartTime,
-  sanitizeQuestionsStartTime
+  sanitizeQuestionsStartTime,
+  withStartFractions,
+  parseYouTubeLengthSeconds,
+  isValidDuration
 } from './questionMedia.js';
 
 describe('questionMedia - startTime', () => {
@@ -40,5 +43,37 @@ describe('questionMedia - startTime', () => {
   test('sanitizeQuestionsStartTime traite une liste', () => {
     const result = sanitizeQuestionsStartTime([{ startTime: 5 }, { startTime: -2 }]);
     assert.deepStrictEqual(result, [{ startTime: 5 }, {}]);
+  });
+});
+
+describe('questionMedia - départ aléatoire', () => {
+  test('withStartFractions : une fraction dans [0, 1) par question, sans muter les entrées', () => {
+    const questions = [{ id: 'a' }, { id: 'b', startFraction: 0.5 }];
+    const values = [0.25, 0.999999];
+    const result = withStartFractions(questions, () => values.shift());
+    assert.deepStrictEqual(result.map((q) => q.startFraction), [0.25, 0.9999]);
+    assert.strictEqual(questions[0].startFraction, undefined);
+    // Une fraction envoyée par le client hôte est remplacée par celle du serveur
+    assert.notStrictEqual(result[1].startFraction, 0.5);
+  });
+});
+
+describe('questionMedia - durée', () => {
+  test('parseYouTubeLengthSeconds lit lengthSeconds dans la page', () => {
+    assert.strictEqual(parseYouTubeLengthSeconds('..."lengthSeconds":"213",...'), 213);
+    assert.strictEqual(parseYouTubeLengthSeconds('<html>pas de durée</html>'), null);
+    assert.strictEqual(parseYouTubeLengthSeconds(undefined), null);
+  });
+
+  test('durée invalide retirée, durée valide conservée', () => {
+    assert.ok(isValidDuration(213));
+    assert.ok(!isValidDuration(0));
+    assert.ok(!isValidDuration('213'));
+    const [valid, invalid] = sanitizeQuestionsStartTime([
+      { id: 'a', duration: 213 },
+      { id: 'b', duration: -5 }
+    ]);
+    assert.strictEqual(valid.duration, 213);
+    assert.ok(!('duration' in invalid));
   });
 });

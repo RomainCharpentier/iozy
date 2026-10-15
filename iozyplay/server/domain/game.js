@@ -5,6 +5,7 @@
 
 import { compareAnswers, normalizeAnswer } from './answerUtils.js';
 import { dedupeQuestions, drawQuestions } from './questionDraw.js';
+import { withStartFractions } from './questionMedia.js';
 
 // Durée par défaut d'une question (secondes), alignée sur TIME_LIMIT.DEFAULT (handlers/validation.js)
 const DEFAULT_TIME_LIMIT = 20;
@@ -19,7 +20,9 @@ const DEFAULT_TIME_LIMIT = 20;
 function setQuestionPool(room, questions, questionCount, previous = []) {
     const pool = dedupeQuestions(questions);
     room.questionPool = pool;
-    room.questions = questionCount == null ? pool : drawQuestions(pool, questionCount, { previous });
+    const selection = questionCount == null ? pool : drawQuestions(pool, questionCount, { previous });
+    // Nouveau point de départ aléatoire pour chaque question, à chaque partie
+    room.questions = withStartFractions(selection);
     room.questionCount = room.questions.length;
 }
 
@@ -101,7 +104,7 @@ export function restartGame(room) {
     if (room.questions && room.questions.length > 0) {
         const pool = room.questionPool && room.questionPool.length > 0 ? room.questionPool : room.questions;
         const count = room.questionCount || room.questions.length;
-        room.questions = drawQuestions(pool, count, { previous: room.questions });
+        room.questions = withStartFractions(drawQuestions(pool, count, { previous: room.questions }));
     }
 
     room.currentQuestionIndex = 0;

@@ -21,16 +21,17 @@
   height: var(--game-banner-height);
   box-sizing: border-box;
   padding: 0 20px;
+  /* Couleurs du thème (l'ancien dégradé bleu nuit codé en dur jurait en thème clair) */
   background: linear-gradient(
     180deg,
-    rgba(10, 14, 39, 0.98) 0%,
-    rgba(10, 14, 39, 0.9) 60%,
+    color-mix(in srgb, var(--bg-color, var(--bg-primary)) 98%, transparent) 0%,
+    color-mix(in srgb, var(--bg-color, var(--bg-primary)) 90%, transparent) 60%,
     transparent 100%
   );
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   pointer-events: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
 }
 
 .appOverlayContent {

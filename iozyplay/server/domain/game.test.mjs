@@ -1,7 +1,10 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert'
-import { startGame, checkAnswer, nextQuestion, voteSkip } from './game.js'
+import { startGame, checkAnswer, nextQuestion, voteSkip, restartGame } from './game.js'
 import { createRoom, addPlayer } from './room.js'
+
+// Question sans la fraction de départ aléatoire tirée à chaque partie
+const withoutStartFraction = ({ startFraction: _startFraction, ...question }) => question
 
 describe('Game Domain', () => {
   let room
@@ -20,7 +23,9 @@ describe('Game Domain', () => {
     const updatedRoom = startGame(room, questions, 5)
     
     assert.strictEqual(updatedRoom.gameState, 'playing')
-    assert.deepStrictEqual(updatedRoom.questions, questions)
+    // Mêmes questions, chacune avec son départ aléatoire de la partie
+    assert.deepStrictEqual(updatedRoom.questions.map(withoutStartFraction), questions)
+    assert.ok(updatedRoom.questions.every((q) => q.startFraction >= 0 && q.startFraction < 1))
     assert.strictEqual(updatedRoom.currentQuestionIndex, 0)
     assert.ok(updatedRoom.game)
     assert.strictEqual(updatedRoom.game.questionIndex, 0)
@@ -75,7 +80,7 @@ describe('Game Domain', () => {
     const result = nextQuestion(room)
     
     assert.strictEqual(result.questionIndex, 1)
-    assert.deepStrictEqual(result.currentQuestion, questions[1])
+    assert.deepStrictEqual(withoutStartFraction(result.currentQuestion), questions[1])
     assert.strictEqual(room.currentQuestionIndex, 1)
     assert.strictEqual(room.game.questionIndex, 1)
   })
@@ -120,5 +125,22 @@ describe('Game Domain', () => {
     const result = voteSkip(room, 'socket1')
     assert.strictEqual(result.voted, true)
     assert.strictEqual(result.allPlayersVoted, true)
+  })
+})
+
+describe('Départ aléatoire des extraits', () => {
+  test('chaque partie tire une nouvelle fraction de départ pour chaque question', () => {
+    const room = createRoom('ABC123', 'player1', 'socket1', 'Host', ['pop'], 20)
+    const pool = [{ id: 'a', answer: 'A' }, { id: 'b', answer: 'B' }, { id: 'c', answer: 'C' }]
+    startGame(room, pool, 20, 3)
+    const first = room.questions.map((q) => q.startFraction)
+    assert.ok(first.every((f) => typeof f === 'number' && f >= 0 && f < 1))
+    // Le pool conservé pour « Rejouer » n'est pas modifié
+    assert.ok(room.questionPool.every((q) => q.startFraction === undefined))
+
+    restartGame(room)
+    const second = room.questions.map((q) => q.startFraction)
+    assert.ok(second.every((f) => typeof f === 'number' && f >= 0 && f < 1))
+    assert.notDeepStrictEqual(second, first)
   })
 })

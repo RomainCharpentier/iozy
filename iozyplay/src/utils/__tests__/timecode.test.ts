@@ -2,6 +2,9 @@
  * Tests de la conversion des points de départ (secondes ↔ « mm:ss »)
  */
 import {
+  fitStartToDuration,
+  pickPlayableStart,
+  randomStartFraction,
   START_TIME_MAX,
   formatTimecode,
   getQuestionStartTime,
@@ -135,5 +138,57 @@ describe('questionSchema.startTime', () => {
   it('refuse un format invalide', () => {
     const result = questionSchema.safeParse({ ...base, startTime: '1:75' })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('fitStartToDuration', () => {
+  it('garde le départ quand l’extrait tient jusqu’à la fin du chrono', () => {
+    expect(fitStartToDuration(30, 300, 20)).toBe(30)
+    expect(fitStartToDuration(280, 300, 20)).toBe(280)
+  })
+
+  it('avance un départ trop tardif à « durée − chrono »', () => {
+    expect(fitStartToDuration(290, 300, 20)).toBe(280)
+    expect(fitStartToDuration(299.5, 300.9, 20)).toBe(280)
+  })
+
+  it('média plus court que le chrono : départ au début', () => {
+    expect(fitStartToDuration(10, 15, 20)).toBe(0)
+  })
+
+  it('durée inconnue (métadonnées non chargées) : départ inchangé', () => {
+    expect(fitStartToDuration(290, undefined, 20)).toBe(290)
+    expect(fitStartToDuration(290, NaN, 20)).toBe(290)
+    expect(fitStartToDuration(290, 0, 20)).toBe(290)
+  })
+})
+
+describe('pickPlayableStart (départ aléatoire)', () => {
+  it('répartit la fraction entre le départ minimum et « durée − chrono »', () => {
+    // Vidéo de 213 s, chrono 20 s : départs possibles 0..193
+    expect(pickPlayableStart(0, 213, 20, 0)).toBe(0)
+    expect(pickPlayableStart(0, 213, 20, 0.5)).toBe(97)
+    expect(pickPlayableStart(0, 213, 20, 0.9999)).toBe(193)
+    // Départ minimum de l'éditeur respecté
+    expect(pickPlayableStart(60, 213, 20, 0)).toBe(60)
+    expect(pickPlayableStart(60, 213, 20, 0.9999)).toBe(193)
+  })
+
+  it('même fraction, même durée → même départ pour tous les joueurs', () => {
+    expect(pickPlayableStart(0, 282, 20, 0.4242)).toBe(pickPlayableStart(0, 282, 20, 0.4242))
+  })
+
+  it('vidéo plus courte que le chrono : départ au début (elle boucle ensuite)', () => {
+    expect(pickPlayableStart(0, 18, 20, 0.8)).toBe(0)
+    expect(pickPlayableStart(5, 18, 20, 0.8)).toBe(0)
+  })
+
+  it('durée inconnue : départ minimum', () => {
+    expect(pickPlayableStart(30, undefined, 20, 0.8)).toBe(30)
+  })
+
+  it('randomStartFraction reste dans [0, 1)', () => {
+    expect(randomStartFraction(() => 0)).toBe(0)
+    expect(randomStartFraction(() => 0.99999999)).toBeLessThan(1)
   })
 })

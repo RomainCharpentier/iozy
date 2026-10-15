@@ -22,6 +22,8 @@
 
 Il n'y a pas de champ « phase » : devinette vs reveal se déduit de `game.validatedAnswers._validated`. `setGameTimer` remplace le timer précédent de la room. La logique reveal → next est dupliquée à 3 endroits de `gameHandlers.js` : les modifier ensemble.
 
+Départ des extraits : à chaque tirage (`setQuestionPool`, `restartGame`), chaque question reçoit une `startFraction` aléatoire (`domain/questionMedia.js`), convertie en secondes par les clients ; `duration` (secondes, facultatif) est validée comme `startTime`. `GET /api/youtube/duration/:videoId` lit la durée sur la page YouTube (pas de clé d'API).
+
 Tirage : l'hôte envoie dans `game:start` tout le pool dédupliqué + `questionCount` ; le serveur garde `room.questionPool` et tire la sélection (`domain/questionDraw.js`, Fisher-Yates). « Rejouer » refait un tirage en évitant la partie précédente. Timer : 10–60 s, 20 s par défaut (`TIME_LIMIT` dans `validation.js`, `TIMING` côté client).
 
 Score : +1 par bonne réponse, validation en lot à la fin du timer. `compareAnswers` normalise (accents, casse, ponctuation) puis tolère une distance de Levenshtein ≤1 (≤5 caractères) ou ≤10 %.

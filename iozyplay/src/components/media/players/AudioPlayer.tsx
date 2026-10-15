@@ -11,6 +11,9 @@ interface AudioPlayerProps {
   onMediaReady?: () => void
   onMediaStart?: () => void
   startSeconds?: number // Point de départ de l'extrait (secondes)
+  startFraction?: number // Départ aléatoire de la partie (voir pickPlayableStart)
+  mediaDuration?: number // Durée connue (éditeur), prioritaire sur celle lue par le lecteur
+  timeLimit?: number // Durée du chrono : le départ est avancé si l'extrait serait trop court
   muted?: boolean // Son coupé localement
 }
 
@@ -21,6 +24,9 @@ export default function AudioPlayer({
   onMediaReady,
   onMediaStart,
   startSeconds = 0,
+  startFraction,
+  mediaDuration,
+  timeLimit,
   muted = false,
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -32,6 +38,12 @@ export default function AudioPlayer({
   callbacksRef.current = { onMediaReady, onMediaStart }
   const startAtRef = useRef(normalizeStartTime(startSeconds))
   startAtRef.current = normalizeStartTime(startSeconds)
+  const timeLimitRef = useRef(timeLimit)
+  timeLimitRef.current = timeLimit
+  const startFractionRef = useRef(startFraction)
+  startFractionRef.current = startFraction
+  const mediaDurationRef = useRef(mediaDuration)
+  mediaDurationRef.current = mediaDuration
 
   useEffect(() => {
     const audio = audioRef.current
@@ -51,7 +63,14 @@ export default function AudioPlayer({
     // Pré-positionnement au point de départ dès les métadonnées connues,
     // pour que le buffering se fasse avant game:ready
     const handleLoadedMetadata = () => {
-      if (!hasStartedRef.current) seekToStart(audio, startAtRef.current)
+      if (!hasStartedRef.current)
+        seekToStart(
+          audio,
+          startAtRef.current,
+          timeLimitRef.current,
+          startFractionRef.current,
+          mediaDurationRef.current
+        )
     }
 
     const handleCanPlay = () => {
@@ -115,7 +134,14 @@ export default function AudioPlayer({
       audio.pause()
     } else if (autoPlay) {
       // Premier démarrage : partir du point de départ ; ensuite, reprendre où on en était
-      if (!hasStartedRef.current) seekToStart(audio, startAtRef.current)
+      if (!hasStartedRef.current)
+        seekToStart(
+          audio,
+          startAtRef.current,
+          timeLimitRef.current,
+          startFractionRef.current,
+          mediaDurationRef.current
+        )
       audio.play().catch((error) => {
         console.error('Error playing audio:', error)
       })
@@ -164,6 +190,8 @@ export default function AudioPlayer({
       <audio
         ref={audioRef}
         src={mediaUrl}
+        // Extrait plus court que le chrono : lecture en boucle depuis le début
+        loop
         controls
         style={{ width: '100%', maxWidth: '500px', flexShrink: 0 }}
         preload="auto"

@@ -1,7 +1,7 @@
 import styles from '@/components/media/MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import { extractYouTubeId } from '@/utils/youtube'
-import { normalizeStartTime } from '@/utils/timecode'
+import { pickPlayableStart, normalizeStartTime } from '@/utils/timecode'
 import { forceGenericIframeTitle, guardIframeTitle } from '@/utils/iframeTitle'
 import Soundwave from '@/components/media/Soundwave'
 import { useYouTubeAPI } from '@/hooks/useYouTubeAPI'
@@ -29,7 +29,22 @@ interface YouTubePlayerProps {
   onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
   startTime?: number // Timestamp serveur pour synchroniser le démarrage
   startSeconds?: number // Point de départ de l'extrait dans la vidéo (secondes)
+  startFraction?: number // Départ aléatoire de la partie (voir pickPlayableStart)
+  mediaDuration?: number // Durée connue (éditeur), prioritaire sur celle lue par le lecteur
   muted?: boolean // Son coupé localement
+}
+
+/** Message affiché quand l'extrait ne peut pas être lu (le jeu continue) */
+function MediaUnavailable() {
+  return (
+    <div className={styles.mediaUnavailable} role="alert">
+      <span aria-hidden="true">⚠️</span>
+      <p>L’extrait ne peut pas être lu.</p>
+      <p className={styles.mediaUnavailableHint}>
+        Vous pouvez quand même répondre, ou passer la question.
+      </p>
+    </div>
+  )
 }
 
 export default function YouTubePlayer({
@@ -42,7 +57,10 @@ export default function YouTubePlayer({
   onMediaReady,
   onMediaStart,
   onRevealVideoStart,
+  timeLimit,
   startSeconds = 0,
+  startFraction,
+  mediaDuration,
   muted = false,
 }: YouTubePlayerProps) {
   const { isReady, YT, error } = useYouTubeAPI()
@@ -54,6 +72,9 @@ export default function YouTubePlayer({
   const previousShowVideoRef = useRef(false) // Pour détecter le changement de showVideo
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPlayerReady, setIsPlayerReady] = useState(false)
+  // Extrait illisible (vidéo supprimée, privée, intégration interdite…) : message lisible
+  // pour le joueur, la manche continue (le chrono démarre via les replis de Game)
+  const [playbackError, setPlaybackError] = useState(false)
   const videoId = extractYouTubeId(mediaUrl)
   const startAt = normalizeStartTime(startSeconds)
 
@@ -63,6 +84,32 @@ export default function YouTubePlayer({
   showVideoRef.current = showVideo
   const startAtRef = useRef(startAt)
   startAtRef.current = startAt
+  const timeLimitRef = useRef(timeLimit)
+  timeLimitRef.current = timeLimit
+  const startFractionRef = useRef(startFraction)
+  startFractionRef.current = startFraction
+  const mediaDurationRef = useRef(mediaDuration)
+  mediaDurationRef.current = mediaDuration
+
+  // Point de départ jouable : avancé si la vidéo est trop courte pour durer tout le chrono
+  // depuis startSeconds (la durée n'est connue qu'une fois la vidéo chargée)
+  const getPlayableStart = () => {
+    // Durée relevée par l'éditeur en priorité (connue avant la lecture, identique pour tous)
+    let duration: number | undefined = mediaDurationRef.current
+    if (!duration) {
+      try {
+        duration = playerRef.current?.getDuration?.()
+      } catch {
+        duration = undefined
+      }
+    }
+    return pickPlayableStart(
+      startAtRef.current,
+      duration,
+      timeLimitRef.current,
+      startFractionRef.current
+    )
+  }
   const mutedRef = useRef(muted)
   mutedRef.current = muted
   const callbacksRef = useRef({ onMediaReady, onMediaStart, onRevealVideoStart })
@@ -104,7 +151,9 @@ export default function YouTubePlayer({
     const stopTitleGuard = guardIframeTitle(containerRef.current)
 
     // Créer le player avec l'API YouTube
-    const initialStart = startAtRef.current
+    // Départ de la partie dès la création si la durée est connue (sinon départ minimum,
+    // recalé au premier démarrage)
+    const initialStart = getPlayableStart()
     const playerConfig: YT.PlayerOptions = {
       videoId: videoId,
       width: '100%',
@@ -135,6 +184,7 @@ export default function YouTubePlayer({
         },
         onError: (event: YT.OnErrorEvent) => {
           console.error('YouTube Player Error:', event.data)
+          setPlaybackError(true)
           // Même en cas d'erreur, signaler que le média est "prêt" pour ne pas bloquer
           callbacksRef.current.onMediaReady?.()
         },
@@ -147,6 +197,12 @@ export default function YouTubePlayer({
             setIsPlaying(true)
             if (!hasStartedRef.current) {
               hasStartedRef.current = true
+              // La durée n'est souvent connue qu'à la lecture : recaler un départ trop tardif
+              // pour que l'extrait dure jusqu'à la fin du chrono
+              const playable = getPlayableStart()
+              if (event.target.getCurrentTime() - playable > 1) {
+                event.target.seekTo(playable, true)
+              }
               // Le chrono de devinette démarre au premier PLAYING, jamais pendant le reveal
               if (!showVideoRef.current) {
                 callbacksRef.current.onMediaStart?.()
@@ -156,9 +212,14 @@ export default function YouTubePlayer({
             if (showVideoRef.current) {
               notifyRevealVideoStart()
             }
-          } else if (state === YT_STATE.PAUSED || state === YT_STATE.ENDED) {
-            // hasStartedRef n'est pas réinitialisé à la fin : onMediaStart ne doit partir
-            // qu'une fois par question (sinon le chrono de devinette redémarrerait)
+          } else if (state === YT_STATE.ENDED) {
+            // Vidéo plus courte que le chrono (ou fin atteinte) : on boucle depuis le début.
+            // hasStartedRef reste vrai : onMediaStart ne repart pas (chrono non relancé).
+            event.target.seekTo(0, true)
+            event.target.playVideo()
+          } else if (state === YT_STATE.PAUSED) {
+            // hasStartedRef n'est pas réinitialisé : onMediaStart ne doit partir qu'une fois
+            // par question (sinon le chrono de devinette redémarrerait)
             setIsPlaying(false)
           }
         },
@@ -197,8 +258,8 @@ export default function YouTubePlayer({
     }
   }, [isReady, YT, videoId]) // Ne recréer que si l'API est prête ou si la vidéo change
 
-  // Passage en phase reveal : la vidéo devient visible et CONTINUE là où le son en était
-  // (pas de seekTo : la position de lecture est conservée, le player n'est pas recréé)
+  // Passage en phase reveal : la vidéo devient visible et REPART du point de départ de
+  // l'extrait (recalé pour durer tout le reveal). Le player n'est pas recréé.
   useEffect(() => {
     if (!isPlayerReady || !playerRef.current) {
       return
@@ -211,14 +272,19 @@ export default function YouTubePlayer({
 
       try {
         const state = playerRef.current.getPlayerState()
+        playerRef.current.seekTo(getPlayableStart(), true)
         if (state === YT_STATE.PLAYING) {
-          // Déjà en lecture : aucun événement PLAYING ne suivra, signaler le début du reveal ici
+          // Déjà en lecture : le chrono du reveal part maintenant, avec la relance
           notifyRevealVideoStart()
         } else if (
           !shouldPause &&
-          (state === YT_STATE.PAUSED || state === YT_STATE.CUED || state === YT_STATE.UNSTARTED)
+          (state === YT_STATE.PAUSED ||
+            state === YT_STATE.CUED ||
+            state === YT_STATE.UNSTARTED ||
+            state === YT_STATE.ENDED ||
+            state === YT_STATE.BUFFERING)
         ) {
-          // Reprendre la lecture à la position courante (onRevealVideoStart partira au PLAYING)
+          // Relancer la lecture (onRevealVideoStart partira au PLAYING)
           playerRef.current.playVideo()
         }
       } catch (error) {
@@ -245,8 +311,8 @@ export default function YouTubePlayer({
         playerRef.current.pauseVideo()
       } else if (autoPlay && !hasStartedRef.current) {
         // Premier démarrage (game:go) : s'assurer d'être au point de départ de l'extrait
-        const start = startAtRef.current
-        if (start > 0 && Math.abs(playerRef.current.getCurrentTime() - start) > 1) {
+        const start = getPlayableStart()
+        if (Math.abs(playerRef.current.getCurrentTime() - start) > 1) {
           playerRef.current.seekTo(start, true)
         }
         playerRef.current.playVideo()
@@ -306,11 +372,13 @@ export default function YouTubePlayer({
   }, [videoId, isPlayerReady])
 
   if (!videoId) {
-    return <div>URL YouTube invalide</div>
+    return <MediaUnavailable />
   }
 
   if (error) {
-    return <div>Erreur de chargement de l'API YouTube: {error.message}</div>
+    // Détail technique en console seulement (error.message est en anglais et sans intérêt
+    // pour le joueur)
+    return <MediaUnavailable />
   }
 
   if (!isReady) {
@@ -370,8 +438,9 @@ export default function YouTubePlayer({
       >
         <div id={playerIdRef.current} style={{ width: '100%', height: '100%' }} />
       </div>
+      {playbackError && !showVideo && <MediaUnavailable />}
       {/* Soundwaves - affichées seulement si showVideo est false */}
-      {!showVideo && (
+      {!showVideo && !playbackError && (
         <div
           style={{
             width: '100%',

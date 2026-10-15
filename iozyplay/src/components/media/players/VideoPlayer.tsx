@@ -2,7 +2,7 @@ import styles from '@/components/media/MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import Soundwave from '@/components/media/Soundwave'
 import { seekToStart } from '@/components/media/players/mediaStart'
-import { normalizeStartTime } from '@/utils/timecode'
+import { pickPlayableStart, normalizeStartTime } from '@/utils/timecode'
 
 interface VideoPlayerProps {
   mediaUrl: string
@@ -17,6 +17,8 @@ interface VideoPlayerProps {
   startTime?: number // Timestamp serveur pour synchroniser le démarrage (phase guess si showVideo=false, phase reveal si showVideo=true)
   timeLimit?: number // Durée en secondes pour limiter la vidéo en phase reveal
   startSeconds?: number // Point de départ de l'extrait (secondes)
+  startFraction?: number // Départ aléatoire de la partie (voir pickPlayableStart)
+  mediaDuration?: number // Durée connue (éditeur), prioritaire sur celle lue par le lecteur
   muted?: boolean // Son coupé localement
 }
 
@@ -31,6 +33,9 @@ export default function VideoPlayer({
   onMediaStart,
   onRevealVideoStart,
   startSeconds = 0,
+  startFraction,
+  mediaDuration,
+  timeLimit,
   muted = false,
 }: VideoPlayerProps) {
   const audioVideoRef = useRef<HTMLVideoElement>(null) // Vidéo pour l'audio (toujours présente, invisible)
@@ -47,6 +52,12 @@ export default function VideoPlayer({
   showVideoRef.current = showVideo
   const startAtRef = useRef(normalizeStartTime(startSeconds))
   startAtRef.current = normalizeStartTime(startSeconds)
+  const timeLimitRef = useRef(timeLimit)
+  timeLimitRef.current = timeLimit
+  const startFractionRef = useRef(startFraction)
+  startFractionRef.current = startFraction
+  const mediaDurationRef = useRef(mediaDuration)
+  mediaDurationRef.current = mediaDuration
 
   // Gérer les événements de la vidéo audio
   useEffect(() => {
@@ -68,10 +79,24 @@ export default function VideoPlayer({
     // Pré-positionnement au point de départ dès les métadonnées connues,
     // pour que le buffering se fasse avant game:ready
     const handleLoadedMetadata = () => {
-      if (!hasStartedRef.current) seekToStart(video, startAtRef.current)
+      if (!hasStartedRef.current)
+        seekToStart(
+          video,
+          startAtRef.current,
+          timeLimitRef.current,
+          startFractionRef.current,
+          mediaDurationRef.current
+        )
     }
     const handleDisplayLoadedMetadata = () => {
-      if (displayVideo && !revealStartedRef.current) seekToStart(displayVideo, startAtRef.current)
+      if (displayVideo && !revealStartedRef.current)
+        seekToStart(
+          displayVideo,
+          startAtRef.current,
+          timeLimitRef.current,
+          startFractionRef.current,
+          mediaDurationRef.current
+        )
     }
 
     const handleCanPlay = () => {
@@ -159,7 +184,14 @@ export default function VideoPlayer({
 
     if (!showVideoRef.current) {
       // Premier démarrage : partir du point de départ ; ensuite, reprendre où on en était
-      if (!hasStartedRef.current) seekToStart(audioVideo, startAtRef.current)
+      if (!hasStartedRef.current)
+        seekToStart(
+          audioVideo,
+          startAtRef.current,
+          timeLimitRef.current,
+          startFractionRef.current,
+          mediaDurationRef.current
+        )
       audioVideo.play().catch((error) => {
         console.error('Error playing audio video:', error)
       })
@@ -182,8 +214,9 @@ export default function VideoPlayer({
     }
   }, [restartVideo, showVideo, onVideoRestarted])
 
-  // Passage en phase reveal : la vidéo d'affichage prend le relais de la vidéo audio
-  // à la même position (continuité), puis la vidéo audio est coupée (pas de double son)
+  // Passage en phase reveal : la vidéo d'affichage repart du point de départ de l'extrait
+  // (même passage que pendant la devinette, recalé pour durer tout le reveal), puis la
+  // vidéo audio est coupée (pas de double son)
   useEffect(() => {
     const displayVideo = displayVideoRef.current
     const audioVideo = audioVideoRef.current
@@ -199,8 +232,12 @@ export default function VideoPlayer({
     if (revealStartedRef.current) return
     revealStartedRef.current = true
 
-    const position =
-      audioVideo && hasStartedRef.current ? audioVideo.currentTime : startAtRef.current
+    const position = pickPlayableStart(
+      startAtRef.current,
+      mediaDurationRef.current || displayVideo.duration,
+      timeLimitRef.current,
+      startFractionRef.current
+    )
     try {
       displayVideo.currentTime = position
     } catch (error) {
@@ -328,6 +365,7 @@ export default function VideoPlayer({
         <video
           ref={displayVideoRef}
           src={mediaUrl}
+          loop
           controls={showVideo}
           muted={muted || !showVideo}
           style={{
@@ -348,6 +386,8 @@ export default function VideoPlayer({
       <video
         ref={audioVideoRef}
         src={mediaUrl}
+        // Vidéo plus courte que le chrono : lecture en boucle depuis le début
+        loop
         controls={false}
         muted={muted}
         style={{

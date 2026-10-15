@@ -9,21 +9,24 @@ import AnswerInput from '@/pages/GamePage/question/AnswerInput'
 import MediaSyncOverlay from '@/pages/GamePage/question/MediaSyncOverlay'
 import { TIMING } from '@/services/gameService'
 import { getPlayerId } from '@/utils/playerId'
-import { compareAnswers } from '@/utils/answerNormalization'
 import { getQuestionStartTime } from '@/utils/timecode'
 import CategoryIcon from '@/components/common/CategoryIcon'
 import type { CategoryInfo } from '@/types'
 import { DEFAULT_CATEGORIES } from '@/types'
 import { loadCategories } from '@/services/categoryService'
+import {
+  useAnswerAutoSend,
+  AUTO_SEND_DELAY_MS,
+  AUTO_SEND_IMMEDIATE_THRESHOLD_S,
+} from '@/pages/GamePage/question/useAnswerAutoSend'
+import type { AnswerSaveStatus } from '@/pages/GamePage/question/AnswerInput'
 
 interface QuestionCardProps {
   question: Question
-  onAnswer: (answer: string, timeRemaining: number, playerId?: string) => void // Modifié pour accepter la réponse (string) au lieu de isCorrect
-  onPhaseEnd: () => void
+  onAnswer: (answer: string, timeRemaining: number, playerId?: string) => void // Contenu du champ (envoi automatique)
   onSkipVote?: () => void // Fonction pour voter skip
   gameMode?: GameMode
   players?: Player[]
-  questionAnsweredBy?: string | null
   shouldPause?: boolean
   onMediaReady?: () => void
   onMediaStart?: () => void // Appelé quand le média commence vraiment à jouer
@@ -41,16 +44,15 @@ interface QuestionCardProps {
   revealedAnswer?: string // Bonne réponse reçue du serveur au reveal (mode multijoueur)
   validatedAnswers?: Record<string, boolean> // Réponses validées par le serveur (mode multijoueur)
   muted?: boolean // Son du média coupé localement (bouton « Son » de la barre du haut)
+  answerAckPending?: boolean // En ligne : une réponse envoyée attend l'accusé du serveur
 }
 
 export default function QuestionCard({
   question,
   onAnswer,
-  onPhaseEnd,
   onSkipVote,
   gameMode = 'solo',
   players = [],
-  questionAnsweredBy = null,
   shouldPause = false,
   onMediaReady,
   onMediaStart,
@@ -68,6 +70,7 @@ export default function QuestionCard({
   revealedAnswer,
   validatedAnswers = {},
   muted = false,
+  answerAckPending = false,
 }: QuestionCardProps) {
   const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
 
@@ -85,10 +88,8 @@ export default function QuestionCard({
     )
   }
 
+  // Contenu du champ = réponse du joueur (une seule par question, modifiable jusqu'au reveal)
   const [userAnswer, setUserAnswer] = useState<string>('')
-  const [attempts, setAttempts] = useState<number>(0)
-  const [isCorrect, setIsCorrect] = useState<boolean>(false)
-  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false) // Indique si une réponse a été soumise (pour le feedback visuel)
   // En mode multijoueur, utiliser directement les valeurs externes (pas d'état local)
   // En mode solo, utiliser l'état local
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(
@@ -105,12 +106,14 @@ export default function QuestionCard({
   const isRevealPhase =
     externalIsRevealPhase !== undefined ? externalIsRevealPhase : localIsRevealPhase
 
-  // En mode multijoueur, déterminer si le joueur actuel a répondu correctement
-  const currentPlayerId = isOnline(gameMode) ? getPlayerId() : null
-  const isCurrentPlayerCorrect =
-    isOnline(gameMode) && currentPlayerId
-      ? validatedAnswers[currentPlayerId] === true
-      : isCorrect
+  // Résultat du joueur, connu seulement après la validation de fin de guess (aucun retour
+  // juste/faux avant le reveal) : serveur en ligne, validateAnswers du solo sinon.
+  const currentPlayerId = isOnline(gameMode) ? getPlayerId() : 'solo'
+  const isCurrentPlayerCorrect = isOnline(gameMode)
+    ? currentPlayerId
+      ? validatedAnswers[currentPlayerId]
+      : undefined
+    : correctPlayers.has('solo')
 
   // Fonctions pour mettre à jour le temps (utilisées seulement en mode solo)
   const setTimeRemaining = (value: number | ((prev: number) => number)) => {
@@ -170,9 +173,6 @@ export default function QuestionCard({
       previousQuestionIdRef.current = question.id
 
       setUserAnswer('')
-      setAttempts(0)
-      setIsCorrect(false)
-      setHasSubmitted(false)
     }
 
     if (focusTimeoutRef.current) {
@@ -224,85 +224,59 @@ export default function QuestionCard({
     }
   }, [gameMode, onMediaReady])
 
-  const handleSubmit = (playerId?: string, answerValue?: string) => {
-    // Utiliser la valeur fournie en paramètre si disponible, sinon utiliser userAnswer
-    const answerToUse = answerValue !== undefined ? answerValue : userAnswer
+  // Envoi automatique : en ligne avec un court délai (immédiat près de la fin du chrono),
+  // en solo à chaque modification (stockage local, synchrone, lu par validateAnswers).
+  const isGuessActive = !isRevealPhase && !isGameEnded
+  const sendImmediately =
+    isSolo(gameMode) || (timeRemaining > 0 && timeRemaining <= AUTO_SEND_IMMEDIATE_THRESHOLD_S)
+  const autoSend = useAnswerAutoSend({
+    active: isGuessActive,
+    delayMs: sendImmediately ? 0 : AUTO_SEND_DELAY_MS,
+    send: (answer) => onAnswer(answer, timeRemaining),
+  })
 
-    if (!answerToUse.trim() || isRevealPhase) return
-
-    const answer = answerToUse.trim()
-    let isAnswerCorrect = false
-
-    // En mode solo, valider immédiatement pour donner un feedback
-    if (isSolo(gameMode)) {
-      // Utiliser la fonction de normalisation pour gérer les accents et caractères spéciaux
-      isAnswerCorrect = compareAnswers(answer, question.answer)
-
-      if (isAnswerCorrect) {
-        setIsCorrect(true)
-        setUserAnswer(answer)
-        setIsRevealPhase(true)
-        // IMPORTANT: onAnswer AVANT onPhaseEnd pour que validateAnswers trouve la réponse dans soloAnswersRef
-        onAnswer(answer, timeRemaining, playerId)
-        onPhaseEnd()
-      } else {
-        setIsCorrect(false)
-        // Vider le champ pour permettre de réessayer
-        setUserAnswer('')
-      }
-    } else {
-      // En mode multijoueur, mettre à jour userAnswer avec la valeur soumise
-      if (answerValue !== undefined) {
-        setUserAnswer(answerValue)
-      }
-    }
-
-    // Validation finale faite en fin de phase guess (timer ou skip)
-    setAttempts((prev) => prev + 1)
-    setHasSubmitted(true) // Marquer qu'une réponse a été soumise (pour le feedback visuel)
-
-    // Envoyer la réponse au parent (qui la stockera côté serveur en multijoueur)
-    // En solo correct: déjà fait plus haut. En solo incorrect ou multi: faire ici
-    if (!(isSolo(gameMode) && isAnswerCorrect)) {
-      onAnswer(answer, timeRemaining, playerId)
-    }
-
-    // En mode solo, si la réponse est correcte, garder hasSubmitted pour montrer le feedback
-    if (isSolo(gameMode) && isAnswerCorrect) {
-      // Ne pas réinitialiser hasSubmitted si c'est correct - on veut garder le feedback
-      return
-    }
-
-    // En mode multijoueur ou si incorrect en solo, permettre de modifier après un délai
-    // pour montrer le feedback visuel (icône check) mais permettre de modifier
-    if (isSolo(gameMode) && !isAnswerCorrect) {
-      setHasSubmitted(false)
-      inputRefs.current['solo']?.focus()
-    } else if (!isSolo(gameMode)) {
-      // En multijoueur, garder hasSubmitted pour montrer le feedback
-      // Ne pas réinitialiser automatiquement - l'utilisateur peut modifier en tapant
-      // hasSubmitted sera réinitialisé par handleAnswerChange quand l'utilisateur tape
-    }
+  // Entrée ou suggestion choisie : envoi immédiat, le champ reste modifiable
+  const handleSubmit = (answerValue?: string) => {
+    if (isRevealPhase) return
+    const answer = answerValue !== undefined ? answerValue : userAnswer
+    if (answerValue !== undefined) setUserAnswer(answerValue)
+    autoSend.submit(answer)
   }
 
-  // Réinitialiser hasSubmitted quand l'utilisateur commence à taper
   const handleAnswerChange = (value: string) => {
+    if (isRevealPhase) return
     setUserAnswer(value)
-    if (hasSubmitted && value.trim().length > 0) {
-      setHasSubmitted(false) // Permettre de modifier la réponse
-    }
+    autoSend.update(value)
   }
 
+  // La saisie en attente part AVANT le vote : le serveur valide dès que le vote est
+  // unanime, et traite les messages d'un même socket dans l'ordre d'émission.
+  const handleSkipVote = onSkipVote
+    ? () => {
+        autoSend.flush()
+        onSkipVote()
+      }
+    : undefined
+
+  const trimmedAnswer = userAnswer.trim()
+  const saveStatus: AnswerSaveStatus =
+    trimmedAnswer === ''
+      ? 'empty'
+      : autoSend.hasPending || autoSend.lastSent !== trimmedAnswer || answerAckPending
+        ? 'pending'
+        : 'saved'
+
+  // Libellé au singulier pour les catégories par défaut ; catégorie personnalisée : son nom
   const getCategoryLabel = (category: string | string[]) => {
     const categoryStr = Array.isArray(category) ? category[0] : category
     const labels: Record<string, string> = {
       series: 'Série TV',
-      animes: 'Anime',
+      animes: 'Animé',
       chansons: 'Chanson',
       films: 'Film',
       jeux: 'Jeu vidéo',
     }
-    return labels[categoryStr] || 'Média'
+    return labels[categoryStr] || getCategoryInfo(categoryStr)?.name || 'Média'
   }
 
   const getCategoryId = (category: string | string[]) => {
@@ -324,16 +298,20 @@ export default function QuestionCard({
     <div className={`${gameStyles.questionCard} ${gameStyles.questionCardGameInterfaceGame}`}>
       <div className={gameStyles.gameInterfaceGameHeader}>
         <div className={gameStyles.gameInterfaceCategory}>
-          <span className={gameStyles.gameInterfaceCategoryIcon}>
+          <span className={gameStyles.gameInterfaceCategoryIcon} aria-hidden="true">
             <CategoryIcon categoryId={categoryId} iconId={categoryInfo?.emoji} size={20} />
           </span>
           <span className={gameStyles.gameInterfaceCategoryText}>
+            <span className={gameStyles.visuallyHidden}>Catégorie : </span>
             {getCategoryLabel(question.category)}
           </span>
         </div>
       </div>
 
-      <div className={`${gameStyles.mediaContainer} ${gameStyles.gameInterfaceMedia}`} data-testid="media-container">
+      <div
+        className={`${gameStyles.mediaContainer} ${gameStyles.gameInterfaceMedia}`}
+        data-testid="media-container"
+      >
         {question.mediaUrl && (
           <>
             {waitingForGo && isOnline(gameMode) && gameStep !== 'playing' && (
@@ -364,6 +342,8 @@ export default function QuestionCard({
                 }}
                 startTime={startTime}
                 startSeconds={getQuestionStartTime(question)}
+                startFraction={question.startFraction}
+                mediaDuration={question.duration}
                 muted={muted}
               />
             </div>
@@ -377,23 +357,27 @@ export default function QuestionCard({
             <AnswerInput
               value={userAnswer}
               onChange={handleAnswerChange}
-              onSubmit={(value) => handleSubmit(undefined, value)}
-              disabled={isCorrect || isRevealPhase}
+              onSubmit={handleSubmit}
+              disabled={isRevealPhase}
               inputRef={(el) => {
                 inputRefs.current['solo'] = el
               }}
-              hasSubmitted={hasSubmitted}
+              saveStatus={saveStatus}
               suggestionPool={answerSuggestions}
               isReveal={isRevealPhase}
-              isCorrect={isRevealPhase ? isCorrect : undefined}
+              isCorrect={isRevealPhase ? isCurrentPlayerCorrect : undefined}
               correctAnswer={isRevealPhase ? question.answer : undefined}
-              onSkipVote={onSkipVote}
+              onSkipVote={handleSkipVote}
               skipVotes={skipVotes}
               gameMode={gameMode}
               players={players}
               isGameEnded={isGameEnded}
               isMediaReady={isMediaReady}
               waitingForGo={waitingForGo}
+              revealSecondsRemaining={isRevealPhase ? timeRemaining : undefined}
+              revealDurationSeconds={
+                isRevealPhase ? question.timeLimit || TIMING.DEFAULT_TIME_LIMIT : undefined
+              }
             />
           </>
         ) : (
@@ -401,35 +385,40 @@ export default function QuestionCard({
             <AnswerInput
               value={userAnswer}
               onChange={handleAnswerChange}
-              onSubmit={(value) => handleSubmit(undefined, value)}
-              disabled={questionAnsweredBy !== null || isRevealPhase}
+              onSubmit={handleSubmit}
+              // Modifiable pendant tout le guess (même après envoi), figé seulement au reveal
+              disabled={isRevealPhase}
               inputRef={(el) => {
                 inputRefs.current['online'] = el
               }}
-              hasSubmitted={hasSubmitted}
+              saveStatus={saveStatus}
               suggestionPool={answerSuggestions}
               isReveal={isRevealPhase}
               isCorrect={isRevealPhase ? isCurrentPlayerCorrect : undefined}
               correctAnswer={isRevealPhase ? revealedAnswer : undefined}
-              onSkipVote={onSkipVote}
+              onSkipVote={handleSkipVote}
               skipVotes={skipVotes}
               gameMode={gameMode}
               players={players}
               isGameEnded={isGameEnded}
               isMediaReady={isMediaReady}
               waitingForGo={waitingForGo}
+              revealSecondsRemaining={isRevealPhase ? timeRemaining : undefined}
+              revealDurationSeconds={
+                isRevealPhase ? question.timeLimit || TIMING.DEFAULT_TIME_LIMIT : undefined
+              }
             />
           </>
         )}
       </div>
 
       {question.hint && (
-        <div className={gameStyles.hint}>
-          <span className={gameStyles.hintIcon}>
+        <p className={gameStyles.hint} role="note">
+          <span className={gameStyles.hintIcon} aria-hidden="true">
             💡
-          </span>{' '}
-          Indice : {question.hint}
-        </div>
+          </span>
+          <span className={gameStyles.hintLabel}>Indice :</span> {question.hint}
+        </p>
       )}
     </div>
   )

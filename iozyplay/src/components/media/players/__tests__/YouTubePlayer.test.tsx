@@ -47,6 +47,8 @@ class FakePlayer {
 
   getPlayerState = () => this.state
   getCurrentTime = () => this.currentTime
+  duration = 300
+  getDuration = () => this.duration
   getIframe = () => this.iframe
   getVideoUrl = () => `https://www.youtube.com/watch?v=${this.options.videoId}`
 
@@ -74,10 +76,10 @@ const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 
 const URL = 'https://www.youtube.com/watch?v=abc123'
 
-function setup(startSeconds = 30) {
+function setup(startSeconds = 30, timeLimit = 20) {
   const onMediaReady = vi.fn()
   const onMediaStart = vi.fn()
-  const baseProps = { mediaUrl: URL, startSeconds, onMediaReady, onMediaStart }
+  const baseProps = { mediaUrl: URL, startSeconds, timeLimit, onMediaReady, onMediaStart }
   const utils = render(
     <YouTubePlayer {...baseProps} autoPlay={false} shouldPause showVideo={false} />
   )
@@ -113,8 +115,8 @@ describe('YouTubePlayer - point de départ', () => {
   })
 })
 
-describe('YouTubePlayer - continuité au reveal', () => {
-  it('la vidéo continue à la même position, sans recréer le lecteur ni seekTo', async () => {
+describe('YouTubePlayer - relance au reveal', () => {
+  it('la vidéo repart du point de départ, sans recréer ni recharger le lecteur', async () => {
     const { player, rerender, baseProps, onMediaStart } = setup(30)
     rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} />)
     player.seekTo.mockClear()
@@ -138,15 +140,17 @@ describe('YouTubePlayer - continuité au reveal', () => {
     expect(FakePlayer.instances).toHaveLength(1)
     expect(player.destroy).not.toHaveBeenCalled()
     expect(player.loadVideoById).not.toHaveBeenCalled()
-    expect(player.seekTo).not.toHaveBeenCalled()
+    // Relance au point de départ de l'extrait (une seule fois), la lecture continue
+    expect(player.seekTo).toHaveBeenCalledTimes(1)
+    expect(player.seekTo).toHaveBeenCalledWith(30, true)
+    expect(player.currentTime).toBe(30)
     expect(player.playVideo).not.toHaveBeenCalled()
-    expect(player.currentTime).toBe(44)
     expect(onRevealVideoStart).toHaveBeenCalledTimes(1)
     // Le chrono de devinette n'est pas relancé
     expect(onMediaStart).toHaveBeenCalledTimes(1)
   })
 
-  it('reprend la lecture si la vidéo était en pause, à la position courante', () => {
+  it('relance au point de départ et reprend la lecture si la vidéo était en pause', () => {
     const { player, rerender, baseProps, onMediaStart } = setup(30)
     rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} />)
     act(() => player.setState(2)) // PAUSED
@@ -165,11 +169,26 @@ describe('YouTubePlayer - continuité au reveal', () => {
       />
     )
 
-    expect(player.seekTo).not.toHaveBeenCalled()
+    expect(player.seekTo).toHaveBeenCalledWith(30, true)
     expect(player.playVideo).toHaveBeenCalledTimes(1)
-    expect(player.currentTime).toBe(40)
+    expect(player.currentTime).toBe(30)
     expect(onRevealVideoStart).toHaveBeenCalledTimes(1)
     expect(onMediaStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('vidéo terminée (plus courte que le chrono) : boucle depuis le début sans relancer le chrono', () => {
+    const { player, rerender, baseProps, onMediaStart } = setup(30)
+    rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} />)
+    player.seekTo.mockClear()
+    player.playVideo.mockClear()
+    act(() => player.setState(0)) // ENDED
+    expect(player.seekTo).toHaveBeenCalledWith(0, true)
+    expect(player.playVideo).toHaveBeenCalledTimes(1)
+    expect(onMediaStart).toHaveBeenCalledTimes(1)
+
+    // Au reveal : relance au point de départ de l'extrait
+    rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo />)
+    expect(player.seekTo).toHaveBeenLastCalledWith(30, true)
   })
 
   it('un premier démarrage pendant le reveal ne relance pas le chrono de devinette', () => {
@@ -234,5 +253,74 @@ describe('YouTubePlayer - son coupé localement', () => {
     act(() => player.ready())
     expect(player.isMuted()).toBe(true)
     utils.unmount()
+  })
+})
+
+describe('YouTubePlayer - départ adapté à la durée de la vidéo', () => {
+  it('départ trop tardif : avancé pour que l’extrait dure jusqu’à la fin du chrono', () => {
+    const { player, rerender, baseProps } = setup(290, 20)
+    player.duration = 300 // 290 + 20 s dépasserait la fin
+    rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} />)
+    expect(player.seekTo).toHaveBeenCalledWith(280, true)
+
+    // Au reveal, même départ recalé
+    rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo />)
+    expect(player.seekTo).toHaveBeenLastCalledWith(280, true)
+  })
+
+  it('durée inconnue au départ : recalage au premier PLAYING', () => {
+    const { player, rerender, baseProps } = setup(290, 20)
+    player.duration = 0 // pas encore connue
+    // Comme l'API réelle : PLAYING arrive plus tard (après chargement), pas pendant playVideo
+    player.playVideo.mockImplementation(() => {})
+    rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} />)
+    player.seekTo.mockClear()
+    player.duration = 300
+    player.currentTime = 290
+    act(() => player.setState(1)) // PLAYING
+    expect(player.seekTo).toHaveBeenCalledWith(280, true)
+  })
+
+  it('départ compatible avec la durée : inchangé', () => {
+    const { player, rerender, baseProps } = setup(30, 20)
+    rerender(<YouTubePlayer {...baseProps} autoPlay shouldPause={false} showVideo={false} />)
+    expect(player.seekTo.mock.calls.every(([seconds]) => seconds === 30)).toBe(true)
+  })
+})
+
+describe('YouTubePlayer - départ aléatoire', () => {
+  it('durée connue (éditeur) : le lecteur est créé directement au départ tiré', () => {
+    render(
+      <YouTubePlayer
+        mediaUrl={URL}
+        startSeconds={0}
+        timeLimit={20}
+        startFraction={0.5}
+        mediaDuration={213}
+        autoPlay={false}
+        shouldPause
+      />
+    )
+    const player = FakePlayer.instances[FakePlayer.instances.length - 1]
+    expect(player.options.playerVars.start).toBe(97)
+  })
+
+  it('reveal : relance au même départ tiré', () => {
+    const props = {
+      mediaUrl: URL,
+      startSeconds: 0,
+      timeLimit: 20,
+      startFraction: 0.5,
+      mediaDuration: 213,
+    }
+    const { rerender } = render(
+      <YouTubePlayer {...props} autoPlay={false} shouldPause showVideo={false} />
+    )
+    const player = FakePlayer.instances[FakePlayer.instances.length - 1]
+    act(() => player.ready())
+    rerender(<YouTubePlayer {...props} autoPlay shouldPause={false} showVideo={false} />)
+    player.currentTime = 110
+    rerender(<YouTubePlayer {...props} autoPlay shouldPause={false} showVideo />)
+    expect(player.seekTo).toHaveBeenLastCalledWith(97, true)
   })
 })

@@ -1,5 +1,7 @@
 import gameStyles from '@/pages/GamePage/Game.module.scss'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { AnimatePresence, motion } from 'motion/react'
 import { GameService } from '@/services/gameService'
 import { soundManager } from '@/utils/sounds'
 
@@ -63,6 +65,18 @@ const formatTime = (seconds: number) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+// Seuils d'urgence du chrono (guess ET reveal, timeRemaining étant partagé entre les deux
+// phases) : au-delà de la couleur, le conteneur pulse sous le seuil critique (voir le CSS,
+// qui respecte prefers-reduced-motion).
+const TIMER_WARNING_THRESHOLD = 10
+const TIMER_DANGER_THRESHOLD = 5
+
+const getTimerUrgencyClass = (timeRemaining: number) => {
+  if (timeRemaining <= TIMER_DANGER_THRESHOLD) return gameStyles.gameInterfaceTimerSectionDanger
+  if (timeRemaining <= TIMER_WARNING_THRESHOLD) return gameStyles.gameInterfaceTimerSectionWarning
+  return ''
+}
+
 export default function GameTopBar({
   currentQuestionIndex,
   totalQuestions,
@@ -74,6 +88,22 @@ export default function GameTopBar({
   muted = false,
   onToggleMute,
 }: GameTopBarProps) {
+  // Petit « +N » qui s'envole au-dessus du score à chaque gain de points. On compare au
+  // score précédent plutôt que d'écouter un évènement dédié : ça marche quel que soit le
+  // mode (solo/en ligne) sans dépendre du flux d'évènements socket.
+  const previousScoreRef = useRef(score)
+  const [scorePop, setScorePop] = useState<{ id: number; value: number } | null>(null)
+  const scorePopIdRef = useRef(0)
+
+  useEffect(() => {
+    const delta = score - previousScoreRef.current
+    previousScoreRef.current = score
+    if (delta > 0) {
+      scorePopIdRef.current += 1
+      setScorePop({ id: scorePopIdRef.current, value: delta })
+    }
+  }, [score])
+
   const handleCopyInviteLink = async () => {
     if (!inviteLink) return
     soundManager.playClick()
@@ -170,7 +200,9 @@ export default function GameTopBar({
           </div>
         </div>
         <div className={gameStyles.gameInterfaceMeta}>
-          <div className={gameStyles.gameInterfaceTimerSection}>
+          <div
+            className={`${gameStyles.gameInterfaceTimerSection} ${getTimerUrgencyClass(timeRemaining)}`}
+          >
             <div className={gameStyles.gameInterfaceTimerIcon} aria-hidden="true">
               ⏱️
             </div>
@@ -179,6 +211,22 @@ export default function GameTopBar({
           <div className={gameStyles.gameInterfaceScoreSection}>
             <div className={gameStyles.gameInterfaceScoreLabel}>Score</div>
             <div className={gameStyles.gameInterfaceScoreValue}>{score}</div>
+            <AnimatePresence>
+              {scorePop && (
+                <motion.div
+                  key={scorePop.id}
+                  className={gameStyles.gameInterfaceScorePop}
+                  initial={{ opacity: 0, y: 0 }}
+                  animate={{ opacity: 1, y: -14 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  onAnimationComplete={() => setScorePop(null)}
+                  aria-hidden="true"
+                >
+                  +{scorePop.value}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

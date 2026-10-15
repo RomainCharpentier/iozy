@@ -10,7 +10,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { isValidStartTime, START_TIME_MAX } from '../domain/questionMedia.js';
+import { isValidDuration, isValidStartTime, START_TIME_MAX } from '../domain/questionMedia.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,6 +71,12 @@ function assertValidStartTime(question) {
   if (question.startTime !== undefined && !isValidStartTime(question.startTime)) {
     throw new InvalidQuestionsDataError(
       `startTime doit être un entier entre 0 et ${START_TIME_MAX} (secondes)`
+    );
+  }
+  // Durée du média (remplie par l'éditeur) : sert au tirage du départ aléatoire
+  if (question.duration !== undefined && !isValidDuration(question.duration)) {
+    throw new InvalidQuestionsDataError(
+      `duration doit être un nombre de secondes entre 0 et ${START_TIME_MAX}`
     );
   }
 }

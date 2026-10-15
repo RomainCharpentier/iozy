@@ -14,6 +14,13 @@ export interface Question {
   // Point de départ de l'extrait en secondes (entier ≥ 0). Absent : `t=` / `start=` de l'URL
   // YouTube s'il existe, sinon 0. Voir getQuestionStartTime (utils/timecode.ts).
   startTime?: number
+  /**
+   * Départ aléatoire de la partie en cours, dans [0, 1) : tiré par le serveur (en ligne)
+   * ou au lancement (solo), converti en secondes avec la durée du média (pickPlayableStart)
+   */
+  startFraction?: number
+  /** Durée du média en secondes, relevée par l'éditeur : départ calculable avant la lecture */
+  duration?: number
 }
 
 export type QuestionsData = Record<Category, Question[]>

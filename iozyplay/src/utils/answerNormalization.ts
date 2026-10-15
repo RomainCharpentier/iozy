@@ -24,10 +24,10 @@ export function normalizeAnswer(answer: string): string {
       // Convertir en minuscules
       .toLowerCase()
       // Supprimer seulement certains caractères de ponctuation (garder tirets, apostrophes)
-      // Supprimer : ! ? . , ; : ( ) [ ] { } " ' mais garder - et '
-      .replace(/[!?.,;:()[\]{}"]/g, '')
-      // Normaliser les apostrophes et guillemets
-      .replace(/[''""]/g, "'")
+      // Supprimer : ! ? . , ; : ( ) [ ] { } " « » “ ” mais garder - et '
+      .replace(/[!?.,;:()[\]{}"«»\u201C\u201D]/g, '')
+      // Apostrophes typographiques (’ ‘ ` ´) → apostrophe droite : « L’Attaque » = « L'Attaque »
+      .replace(/[\u2018\u2019`\u00B4]/g, "'")
       // Normaliser les tirets (différents types de tirets)
       .replace(/[–—]/g, '-')
       .trim()

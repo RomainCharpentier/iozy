@@ -6,6 +6,8 @@ import RoundScreen from '@/pages/GamePage/ui/RoundScreen'
 import EndScreen from '@/pages/GamePage/ui/EndScreen'
 import LoadingScreen from '@/pages/GamePage/ui/LoadingScreen'
 import QuitGameDialog from '@/pages/GamePage/ui/QuitGameDialog'
+import GameAnnouncer from '@/pages/GamePage/ui/GameAnnouncer'
+import type { PlayerResult } from '@/pages/GamePage/ui/GameAnnouncer'
 import { useRoomCategories } from '@/pages/GamePage/settings/useRoomCategories'
 import { useMediaMuted } from '@/hooks/useMediaMuted'
 import { useAnswerSuggestions } from '@/pages/GamePage/question/useAnswerSuggestions'
@@ -22,6 +24,11 @@ import { GameService, TIMING } from '@/services/gameService'
 import { toast } from 'sonner'
 import { soundManager } from '@/utils/sounds'
 import * as Dialog from '@radix-ui/react-dialog'
+import { MotionConfig } from 'motion/react'
+
+// Marge appliquée à l'échéance reçue par game:sync : le champ se fige un peu avant la
+// validation serveur plutôt qu'après (la dernière saisie part au gel du champ)
+const SYNC_DEADLINE_MARGIN_MS = 300
 
 interface GameProps {
   questions: Question[]
@@ -51,9 +58,7 @@ export default function Game({
     () =>
       getGameModeStrategy(
         gameMode,
-        isSolo(gameMode)
-          ? { soloAnswersRef }
-          : { roomCode: roomCode ?? null }
+        isSolo(gameMode) ? { soloAnswersRef } : { roomCode: roomCode ?? null }
       ),
     [gameMode, roomCode]
   )
@@ -69,14 +74,33 @@ export default function Game({
   const [mediaMuted, toggleMediaMuted] = useMediaMuted()
   // Thèmes du salon (suivis via room:state) pour pré-remplir « Changer les thèmes »
   const settingsCategories = useRoomCategories(isOnline(gameMode) ? roomCode : null, categories)
-  const [gameQuestions, setGameQuestions] = useState<Question[]>(
+  const [gameQuestions, setGameQuestions] = useState<Question[]>(() =>
     strategy.getInitialQuestions(questions)
   )
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const [phase, setPhase] = useState<'guess' | 'reveal'>('guess')
   const phaseRef = useRef<'guess' | 'reveal'>('guess')
   const isRevealPhase = phase === 'reveal'
+  // Index courant lisible par les handlers socket (pas de closure figée)
+  const currentQuestionIndexRef = useRef(0)
+  currentQuestionIndexRef.current = currentQuestionIndex
+  const setQuestionIndex = (index: number) => {
+    currentQuestionIndexRef.current = index
+    setCurrentQuestionIndex(index)
+  }
+  // En ligne : index de la dernière question dont le serveur a validé les réponses
+  // (game:answers-validated, game:reveal ou room:state après reconnexion)
+  const validatedQuestionIndexRef = useRef<number | null>(null)
   const setIsRevealPhase = (v: boolean) => {
+    // Une question validée par le serveur reste en reveal : un room:state, un game:sync ou
+    // un tick de chrono ne doit jamais rendre le champ à nouveau modifiable (réponses figées).
+    if (
+      !v &&
+      validatedQuestionIndexRef.current !== null &&
+      validatedQuestionIndexRef.current === currentQuestionIndexRef.current
+    ) {
+      return
+    }
     const p = v ? 'reveal' : 'guess'
     setPhase(p)
     phaseRef.current = p
@@ -86,19 +110,29 @@ export default function Game({
   const revealTimerStartedRef = useRef<boolean>(false) // Éviter double démarrage du timer reveal
   const mediaStartTimeRef = useRef<number | null>(null) // Timestamp quand le média commence vraiment à jouer
   const isTransitioningRef = useRef(false)
-  const questionAnsweredByRef = useRef<string | null>(null)
   const timerIntervalRef = useRef<number | null>(null)
+  // Dernier calcul du chrono : relancé au retour au premier plan (intervalles ralentis en fond)
+  const timerTickRef = useRef<(() => void) | null>(null)
+  // game:sync (reconnexion / arrivée en cours de question) : échéance locale du guess
+  const syncedDeadlineRef = useRef<{ questionIndex: number; deadline: number } | null>(null)
+  // Réponse du joueur pour la question en cours (contenu du champ transmis) et accusés
+  // game:answer-stored : « en cours d'envoi » tant que tous les envois ne sont pas confirmés
+  const lastAnswerRef = useRef<string | null>(null)
+  const answerSyncRef = useRef({ sent: 0, acked: 0 })
+  const [answerAckPending, setAnswerAckPending] = useState(false)
+  const [connectionLost, setConnectionLost] = useState(false)
+  const [fatalError, setFatalError] = useState<string | null>(null)
   const phaseStartTimeRef = useRef<number | null>(null) // Timestamp du début de la phase actuelle (guess ou reveal)
   const gameDurationMsRef = useRef<number | null>(null)
   const revealStartTimeRef = useRef<number | null>(null) // Pour sync serveur (multi)
   const gameEndedRef = useRef<boolean>(false)
   const successSoundPlayedRef = useRef<boolean>(false) // Pour éviter que le son de fin joue plusieurs fois
   const lastSkipVoteTimeRef = useRef<number>(0) // Pour le debounce
-  const [waitingForGo, setWaitingForGo] = useState<boolean>(
-    strategy.getInitialWaitingForGo()
-  )
+  const [waitingForGo, setWaitingForGo] = useState<boolean>(strategy.getInitialWaitingForGo())
   const mediaReadyRef = useRef<boolean>(false) // Indique si le média est préchargé
   const [gameStep, setGameStep] = useState<string>('loading') // Étape actuelle: loading, ready, starting, playing
+  const gameStepRef = useRef('loading')
+  gameStepRef.current = gameStep
   const handlePhaseEndRef = useRef<(() => void) | null>(null) // Référence à handlePhaseEnd pour l'utiliser dans startTimerCalculation
   const [skipVotes, setSkipVotes] = useState<Set<string>>(new Set()) // Joueurs qui ont voté skip
   const [correctPlayers, setCorrectPlayers] = useState<Set<string>>(new Set()) // Joueurs qui ont répondu correctement (pour surlignage vert)
@@ -130,8 +164,19 @@ export default function Game({
     strategy.onMount?.()
   }, [strategy])
 
+  // Suivi de la réponse : à remettre à zéro à chaque nouvelle question (refs + setter stables,
+  // utilisable depuis les handlers socket)
+  const resetAnswerTracking = () => {
+    lastAnswerRef.current = null
+    answerSyncRef.current = { sent: 0, acked: 0 }
+    setAnswerAckPending(false)
+  }
+
   const resetGameState = useCallback(() => {
-    setCurrentQuestionIndex(0)
+    setQuestionIndex(0)
+    validatedQuestionIndexRef.current = null
+    syncedDeadlineRef.current = null
+    resetAnswerTracking()
     setScore(0)
     setShowScore(false)
     setPhase('guess')
@@ -149,7 +194,6 @@ export default function Game({
     gameEndedRef.current = false
     successSoundPlayedRef.current = false
     isTransitioningRef.current = false
-    questionAnsweredByRef.current = null
     mediaReadyRef.current = false
     revealTimerStartedRef.current = false
     mediaStartTimeRef.current = null
@@ -193,7 +237,6 @@ export default function Game({
       setShowScore(false)
     }
     isTransitioningRef.current = false
-    questionAnsweredByRef.current = null
   }, [gameQuestions, resetGameState])
 
   useEffect(() => {
@@ -201,7 +244,7 @@ export default function Game({
     if (isSolo(gameMode) && questions.length > 0) {
       const questionsKey = JSON.stringify(questions.map((q) => q.id || q.mediaUrl))
       if (gameQuestions.length === 0 || previousQuestionsRef.current !== questionsKey) {
-        setGameQuestions(questions)
+        setGameQuestions(strategy.getInitialQuestions(questions))
         // Réinitialiser l'état pour une nouvelle partie
         resetGameState()
       }
@@ -317,18 +360,26 @@ export default function Game({
     mediaStartTimeRef.current = now
     mediaReadyRef.current = true
 
+    // Question en cours lors d'une reconnexion / arrivée tardive : le chrono part du temps
+    // restant annoncé par game:sync, pas de la durée complète
+    let startedAt = now
+    const synced = syncedDeadlineRef.current
+    if (isOnline(gameMode) && synced && synced.questionIndex === currentQuestionIndexRef.current) {
+      startedAt = synced.deadline - durationMs
+    }
+
     setIsRevealPhase(false)
     revealTimerStartedRef.current = false
     countdownWarningPlayedRef.current = false
     countdownEndPlayedRef.current = false
 
     // Initialiser le temps restant correctement AVANT de démarrer le timer
-    const initialRemaining = durationMs / 1000
+    const initialRemaining = Math.max(0, (startedAt + durationMs - now) / 1000)
     setTimeRemaining(initialRemaining)
 
     // Démarrer le timer maintenant que le média joue vraiment
     // Utiliser la même logique pour les deux modes
-    startTimerCalculation(now, durationMs, now, undefined, undefined)
+    startTimerCalculation(startedAt, durationMs, now, undefined, undefined)
   }
 
   // Nettoyer le timer de calcul du temps restant
@@ -414,6 +465,7 @@ export default function Game({
       }
 
       updateTimer()
+      timerTickRef.current = updateTimer
       // Ne démarrer le timer que s'il n'est pas déjà en cours
       if (timerIntervalRef.current === null) {
         timerIntervalRef.current = window.setInterval(updateTimer, 100)
@@ -501,7 +553,10 @@ export default function Game({
         countdownWarningPlayedRef.current = true
         soundManager.playClick()
       }
-      if (remaining <= 0.5 && isSolo(gameMode) && !countdownEndPlayedRef.current) {
+      // Son de fin de chrono : seul effet de bord ici (pas de transition de phase),
+      // donc sans risque à jouer aussi en ligne. Le passage de phase lui-même reste
+      // piloté par le serveur en ligne (cf. le `isSolo` plus haut sur handlePhaseEndRef).
+      if (remaining <= 0.5 && !countdownEndPlayedRef.current) {
         countdownEndPlayedRef.current = true
         soundManager.playCountdownEnd()
       }
@@ -515,40 +570,23 @@ export default function Game({
       const newIsRevealPhase =
         hasFullyElapsed && phaseStartTimeRef.current !== null && gameDurationMsRef.current !== null
 
-      // En mode solo, définir revealStartTimeRef et phaseStartTimeRef dès que phase devient reveal
-      // et mettre à jour gameDurationMsRef avec la durée de reveal
+      // Solo : fin du chrono = fin du guess. handlePhaseEnd valide la réponse (contenu du
+      // champ) PUIS passe au reveal. Il doit être appelé tant que la phase est encore
+      // « guess » : basculer la phase avant (comme auparavant) lui faisait sauter la
+      // validation et le reveal.
       if (newIsRevealPhase && phaseRef.current === 'guess' && isSolo(gameMode)) {
-        if (revealStartTimeRef.current === null) {
-          revealStartTimeRef.current = Date.now()
+        if (handlePhaseEndRef.current && !gameEndedRef.current) {
+          handlePhaseEndRef.current()
         }
-        if (phaseStartTimeRef.current === null) {
-          phaseStartTimeRef.current = Date.now()
-          // Mettre à jour gameDurationMsRef avec la durée de reveal
-          const currentQuestion = gameQuestions[currentQuestionIndex]
-          if (currentQuestion) {
-            gameDurationMsRef.current =
-              GameService.validateTimeLimit(currentQuestion.timeLimit) * 1000
-          }
-        }
+        return
       }
 
       setIsRevealPhase(newIsRevealPhase)
-
-      // Si le temps est écoulé, appeler handlePhaseEnd une seule fois (mode solo seulement, avant le reveal)
-      if (
-        newIsRevealPhase &&
-        phaseRef.current === 'guess' &&
-        isSolo(gameMode) &&
-        !revealTimerStartedRef.current &&
-        handlePhaseEndRef.current &&
-        !gameEndedRef.current
-      ) {
-        handlePhaseEndRef.current()
-      }
     }
 
     // Mettre à jour immédiatement
     updateTimer()
+    timerTickRef.current = updateTimer
 
     // Programmer les mises à jour régulières
     // Ne démarrer le timer que s'il n'est pas déjà en cours
@@ -606,6 +644,42 @@ export default function Game({
     // Les handlers sont branchés même si le socket n'est pas encore connecté :
     // les emits ci-dessous sont mis en tampon par socket.io jusqu'à la connexion
 
+    // Remise à zéro propre à une question (nouvelle question, ou question manquée pendant
+    // une coupure : game:start reçu avec un autre index)
+    const resetQuestionState = () => {
+      isTransitioningRef.current = false
+      setShowScore(false)
+      setValidatedAnswers({})
+      setPlayerAnswers({})
+      setWaitingForGo(true)
+      mediaReadyRef.current = false
+      setGameStep('loading')
+      clearTimerInterval()
+      setIsRevealPhase(false)
+      setTimeRemaining(0) // Reste à 0 jusqu'à ce que le média démarre
+      revealTimerStartedRef.current = false
+      mediaStartTimeRef.current = null
+      // Réinitialiser les refs du timer pour éviter les valeurs résiduelles
+      revealStartTimeRef.current = null
+      phaseStartTimeRef.current = null
+      gameDurationMsRef.current = null
+      setSkipVotes(new Set())
+      setCorrectPlayers(new Set())
+      setAnsweredPlayers(new Set())
+      strategy.clearAnswersForNextQuestion?.()
+      resetAnswerTracking()
+      // Réinitialiser le debounce pour permettre le skip sur la nouvelle question
+      lastSkipVoteTimeRef.current = 0
+    }
+
+    // Une question a été validée par le serveur : phase reveal définitive pour elle
+    const markQuestionValidated = (questionIndex: number) => {
+      validatedQuestionIndexRef.current = questionIndex
+      if (questionIndex === currentQuestionIndexRef.current) {
+        setIsRevealPhase(true)
+      }
+    }
+
     const handleRoomState = (state: any) => {
       if (state.players?.length) {
         setGamePlayers(state.players)
@@ -628,22 +702,50 @@ export default function Game({
         }
 
         const newGameStep = state.game.step || 'loading'
+        const questionIndex: number | undefined = state.game.questionIndex
+        // room:state est diffusé à chaque arrivée/départ/reconnexion d'un joueur : s'il
+        // décrit la question déjà en cours de lecture ici, ne rien réinitialiser (sinon le
+        // chrono repassait à 0 et le champ redevenait modifiable pendant le reveal).
+        const alreadyPlayingThisQuestion =
+          gameStepRef.current === 'playing' &&
+          newGameStep === 'playing' &&
+          (questionIndex === undefined || questionIndex === currentQuestionIndexRef.current)
+
         setGameStep(newGameStep)
 
-        if (state.game.questionIndex !== undefined) {
-          setCurrentQuestionIndex(state.game.questionIndex)
+        if (questionIndex !== undefined && questionIndex !== currentQuestionIndexRef.current) {
+          // Question différente (arrivée en cours de partie, game:next manqué pendant une
+          // coupure) : repartir d'un état de question vierge
+          setQuestionIndex(questionIndex)
+          if (!gameEndedRef.current) resetQuestionState()
         }
 
         // Réponse présente seulement après validation (reconnexion pendant le reveal)
-        if (typeof state.game.correctAnswer === 'string' && state.game.questionIndex !== undefined) {
+        if (
+          typeof state.game.correctAnswer === 'string' &&
+          state.game.questionIndex !== undefined
+        ) {
           setRevealedAnswer({
             questionIndex: state.game.questionIndex,
             answer: state.game.correctAnswer,
           })
         }
 
+        // Réponses déjà validées (reconnexion pendant le reveal) : rester figé en reveal
+        if (state.game.validatedAnswers?._validated === true && questionIndex !== undefined) {
+          const { _validated, ...validated } = state.game.validatedAnswers
+          if (questionIndex === currentQuestionIndexRef.current) {
+            setValidatedAnswers(validated)
+          }
+          markQuestionValidated(questionIndex)
+        }
+
+        if (alreadyPlayingThisQuestion) {
+          return
+        }
+
         // Stocker durationMs pour que handleMediaStart puisse l'utiliser
-        if (state.game.durationMs) {
+        if (state.game.durationMs && phaseStartTimeRef.current === null) {
           gameDurationMsRef.current = state.game.durationMs
         }
 
@@ -694,27 +796,26 @@ export default function Game({
         console.error('[Game] handleGameStarted: Aucune question reçue!')
       }
 
-      setCurrentQuestionIndex(questionIndex)
-      setGameStarted(true)
-      // Ne pas réinitialiser showScore si la partie est terminée
-      if (!gameEndedRef.current) {
-        setShowScore(false)
-      }
-
       if (updatedPlayers?.length) {
         setGamePlayers(updatedPlayers)
       }
 
-      setWaitingForGo(true)
-      mediaReadyRef.current = false
-      setGameStep('loading')
-      clearTimerInterval()
+      // Resynchronisation (room:rejoin après une coupure) sur la question déjà en cours :
+      // garder le chrono, la phase et la saisie ; game:sync réalignera le temps restant.
+      const isResync =
+        questionIndex === currentQuestionIndexRef.current &&
+        (phaseStartTimeRef.current !== null ||
+          mediaStartTimeRef.current !== null ||
+          phaseRef.current === 'reveal')
+      if (isResync) {
+        setGameStarted(true)
+        return
+      }
 
-      // Réinitialiser le timer au démarrage de la partie
-      setIsRevealPhase(false)
-      setTimeRemaining(0) // Sera mis à jour quand le timer démarre
-      revealTimerStartedRef.current = false
-      mediaStartTimeRef.current = null
+      setQuestionIndex(questionIndex)
+      setGameStarted(true)
+      // Nouvelle partie, arrivée en cours de partie ou question manquée pendant une coupure
+      resetQuestionState()
     }
 
     const handleGameGo = ({ durationMs }: { durationMs: number }) => {
@@ -778,21 +879,6 @@ export default function Game({
       }, 4000)
     }
 
-    const handleCorrectAnswer = ({
-      playerId,
-      players: updatedPlayers,
-    }: {
-      playerId: string
-      playerName: string
-      score: number
-      players?: Player[]
-    }) => {
-      questionAnsweredByRef.current = playerId
-      if (updatedPlayers) {
-        setGamePlayers(updatedPlayers)
-      }
-    }
-
     const handleNextQuestion = ({
       questions: serverQuestions,
       questionIndex,
@@ -813,42 +899,10 @@ export default function Game({
         questionsRef.current = serverQuestions
       }
 
-      setCurrentQuestionIndex(questionIndex)
-      questionAnsweredByRef.current = null
-      isTransitioningRef.current = false
-      setShowScore(false)
-      setValidatedAnswers({}) // Réinitialiser les réponses validées pour la nouvelle question
-      setPlayerAnswers({}) // Réinitialiser les réponses des joueurs pour la nouvelle question
-
-      setWaitingForGo(true)
-      mediaReadyRef.current = false
-      revealStartTimeRef.current = null
-      phaseStartTimeRef.current = null
-      setGameStep('loading')
-      clearTimerInterval()
-
-      // Réinitialiser le timer pour la nouvelle question
-      // Le timer sera démarré dans handleMediaStart quand le média commence vraiment à jouer
-      setIsRevealPhase(false)
-      setTimeRemaining(0) // Reste à 0 jusqu'à ce que le média démarre
-      revealTimerStartedRef.current = false
-      mediaStartTimeRef.current = null
-
-      // Réinitialiser les refs du timer pour éviter les valeurs résiduelles
-      phaseStartTimeRef.current = null
-      gameDurationMsRef.current = null
-
-      // Réinitialiser les votes skip, les joueurs corrects, les réponses stockées et les joueurs ayant répondu pour la nouvelle question
-      setSkipVotes(new Set())
-      setCorrectPlayers(new Set())
-      setAnsweredPlayers(new Set())
-      strategy.clearAnswersForNextQuestion?.()
-
-      // Réinitialiser le debounce pour permettre le skip sur la nouvelle question
-      lastSkipVoteTimeRef.current = 0
-
-      // Forcer le re-render pour réinitialiser revealStartedRef dans VideoPlayer
-      // En changeant la clé du composant QuestionCard, on force sa réinitialisation complète
+      setQuestionIndex(questionIndex)
+      // Le composant QuestionCard est remonté (clé = index) : saisie et envoi en attente
+      // de la question précédente sont abandonnés
+      resetQuestionState()
     }
 
     const handleGameEnded = ({ players: finalPlayers }: { players: Player[] }) => {
@@ -908,8 +962,19 @@ export default function Game({
           'NETWORK_ERROR',
           'INVALID_SESSION',
         ]
+        if (code === 'ROOM_NOT_FOUND' || code === 'INVALID_SESSION') {
+          // Plus rien n'arrivera pour ce salon (serveur redémarré, salon fermé) :
+          // écran explicite avec retour à l'accueil plutôt qu'une attente infinie
+          clearTimerInterval()
+          setFatalError(
+            code === 'ROOM_NOT_FOUND'
+              ? 'Ce salon n’existe plus : il a été fermé ou le serveur a redémarré.'
+              : 'Impossible de reprendre votre place dans ce salon.'
+          )
+          return
+        }
         if (criticalErrors.includes(code)) {
-          toast.error(`Erreur: ${message || 'Une erreur est survenue'}`)
+          toast.error(message || 'Une erreur est survenue')
         }
       }
     }
@@ -918,6 +983,7 @@ export default function Game({
     const handleGameSync = ({
       durationMs,
       questionIndex,
+      timeRemainingMs,
     }: {
       startedAt: number
       durationMs: number
@@ -925,16 +991,37 @@ export default function Game({
       serverTime: number
       questionIndex: number
     }) => {
-      // Synchronisation directe pour un joueur qui rejoint une partie en cours
-      // Mais ne pas démarrer le timer ici - attendre handleMediaStart
+      // Synchronisation d'un joueur qui (re)joint une question en cours. Le temps restant
+      // du serveur fixe l'échéance locale (marge : mieux vaut figer le champ un peu avant
+      // la validation serveur qu'après, pour que la dernière saisie soit bien prise).
+      const now = Date.now()
+      const deadline = now + Math.max(0, timeRemainingMs - SYNC_DEADLINE_MARGIN_MS)
+      syncedDeadlineRef.current = { questionIndex, deadline }
       setWaitingForGo(false)
       setGameStep('playing')
-      setCurrentQuestionIndex(questionIndex)
-      // Stocker les valeurs pour que handleMediaStart puisse les utiliser
+      setQuestionIndex(questionIndex)
+
+      if (timeRemainingMs <= 0) {
+        // Guess terminé côté serveur : le champ reste figé (reveal), sans chrono à relancer
+        setIsRevealPhase(true)
+        if (phaseRef.current === 'reveal' && timerIntervalRef.current === null) {
+          setTimeRemaining(0)
+        }
+        return
+      }
+
+      if (phaseRef.current === 'guess' && phaseStartTimeRef.current !== null) {
+        // Chrono déjà lancé (resynchronisation après coupure) : le réaligner sur le serveur
+        phaseStartTimeRef.current = deadline - durationMs
+        gameDurationMsRef.current = durationMs
+        timerTickRef.current?.()
+        return
+      }
+
+      // Sinon, le chrono démarrera avec le média (handleMediaStart lit syncedDeadlineRef)
       gameDurationMsRef.current = durationMs
-      // Ne pas démarrer le timer ici - attendre handleMediaStart
       setIsRevealPhase(false)
-      setTimeRemaining(0) // Sera mis à jour dans handleMediaStart
+      setTimeRemaining(Math.max(0, (deadline - now) / 1000))
     }
 
     socket.on('room:state', handleRoomState)
@@ -955,6 +1042,7 @@ export default function Game({
       if (typeof correctAnswer === 'string' && questionIndex !== undefined) {
         setRevealedAnswer({ questionIndex, answer: correctAnswer })
       }
+      markQuestionValidated(questionIndex ?? currentQuestionIndexRef.current)
 
       // Arrêter le timer existant pour le redémarrer avec la logique de reveal
       clearTimerInterval()
@@ -968,7 +1056,7 @@ export default function Game({
       revealStartTimeRef.current = now
 
       // Utiliser la durée du serveur si disponible, sinon celle de la question, sinon la valeur par défaut
-      const currentQuestion = gameQuestions[currentQuestionIndex]
+      const currentQuestion = questionsRef.current[currentQuestionIndexRef.current]
       const revealDurationMs =
         durationMs || GameService.validateTimeLimit(currentQuestion?.timeLimit) * 1000
       gameDurationMsRef.current = revealDurationMs
@@ -1006,6 +1094,7 @@ export default function Game({
 
       // Mettre à jour immédiatement
       updateRevealTimer()
+      timerTickRef.current = updateRevealTimer
 
       // Démarrer le timer
       timerIntervalRef.current = window.setInterval(updateRevealTimer, 100)
@@ -1038,7 +1127,17 @@ export default function Game({
       setCorrectPlayers(new Set(correctPlayerIds))
 
       // Stocker les réponses validées pour savoir si le joueur actuel a répondu correctement
-      setValidatedAnswers(validated)
+      const { _validated, ...validatedByPlayer } = validated as Record<string, boolean>
+      setValidatedAnswers(validatedByPlayer)
+      // Réponses figées dès la validation (game:reveal suit immédiatement)
+      markQuestionValidated(questionIndex ?? currentQuestionIndexRef.current)
+
+      // Son d'erreur : un seul essai en ligne (voir QuestionCard), donc ce point de
+      // validation serveur est le seul moment où la réponse du joueur devient définitive.
+      const currentPlayerId = getPlayerId()
+      if (currentPlayerId && validated[currentPlayerId] === false) {
+        soundManager.playError()
+      }
 
       // Stocker les réponses des joueurs pour l'affichage
       if (playerAnswersData) {
@@ -1060,13 +1159,38 @@ export default function Game({
     }
     socket.on('game:skip-vote-updated', handleSkipVoteUpdated)
 
-    const handleAnswerStored = ({ playerId }: { playerId: string }) => {
+    const handleAnswerStored = ({ playerId: storedPlayerId }: { playerId: string }) => {
       // Ajouter le joueur à la liste des joueurs ayant répondu
-      setAnsweredPlayers((prev) => new Set([...prev, playerId]))
+      setAnsweredPlayers((prev) => new Set([...prev, storedPlayerId]))
+      // Accusé de réception de notre réponse (le serveur traite nos envois dans l'ordre)
+      if (storedPlayerId === playerId) {
+        answerSyncRef.current.acked += 1
+        if (answerSyncRef.current.acked >= answerSyncRef.current.sent) {
+          setAnswerAckPending(false)
+        }
+      }
     }
     socket.on('game:answer-stored', handleAnswerStored)
 
-    socket.on('game:correct-answer', handleCorrectAnswer)
+    // Reconnexion : les messages émis pendant la coupure partent avant room:rejoin et le
+    // serveur les ignore (joueur retrouvé par socketId). On renvoie donc la réponse en cours
+    // tant que la question n'est pas validée.
+    const handleRejoined = () => {
+      setConnectionLost(false)
+      if (phaseRef.current !== 'guess') return
+      if (validatedQuestionIndexRef.current === currentQuestionIndexRef.current) return
+      if (lastAnswerRef.current === null) return
+      answerSyncRef.current = { sent: 1, acked: 0 }
+      setAnswerAckPending(true)
+      strategy.submitAnswer(lastAnswerRef.current)
+    }
+    socket.on('room:rejoined', handleRejoined)
+
+    const handleDisconnect = () => setConnectionLost(true)
+    const handleConnect = () => setConnectionLost(false)
+    socket.on('disconnect', handleDisconnect)
+    socket.on('connect', handleConnect)
+
     socket.on('game:end', handleGameEnded)
 
     socket.on('error', handleError)
@@ -1120,7 +1244,9 @@ export default function Game({
       socket.off('game:answers-validated', handleAnswersValidated)
       socket.off('game:skip-vote-updated', handleSkipVoteUpdated)
       socket.off('game:answer-stored', handleAnswerStored)
-      socket.off('game:correct-answer', handleCorrectAnswer)
+      socket.off('room:rejoined', handleRejoined)
+      socket.off('disconnect', handleDisconnect)
+      socket.off('connect', handleConnect)
       socket.off('game:end', handleGameEnded)
       socket.off('error', handleError)
       socket.off('room:joined', handleRoomJoinedOrRejoined)
@@ -1134,6 +1260,17 @@ export default function Game({
     }
   }, [gameMode, roomCode])
 
+  // Onglet en arrière-plan : les intervalles sont ralentis (jusqu'à 1/min). Le chrono est
+  // calculé depuis Date.now() (pas de dérive), mais l'affichage et la fin de phase solo
+  // attendraient le tick suivant : on recalcule dès le retour au premier plan.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') timerTickRef.current?.()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
   // Le host est maintenant déterminé depuis room:state
 
   useEffect(() => {
@@ -1142,12 +1279,19 @@ export default function Game({
     }
   }, [])
 
-
+  // Contenu du champ transmis par QuestionCard (envoi automatique) : il remplace la réponse
+  // précédente du joueur (une seule réponse par question).
   const handleAnswer = (answer: string, _timeRemaining: number, _playerId?: string) => {
     if (showScore) return
     if (isTransitioningRef.current) return
 
-    strategy.submitAnswer(answer)
+    const trimmed = answer.trim()
+    lastAnswerRef.current = trimmed
+    if (isOnline(gameMode)) {
+      answerSyncRef.current.sent += 1
+      setAnswerAckPending(true)
+    }
+    strategy.submitAnswer(trimmed)
   }
 
   const validateAnswers = useCallback(() => {
@@ -1221,8 +1365,8 @@ export default function Game({
 
       // Phase reveal : passer à la question suivante
       isTransitioningRef.current = true
-      questionAnsweredByRef.current = null
       setPlayerAnswers({}) // Réinitialiser les réponses pour la nouvelle question
+      resetAnswerTracking()
 
       const timeoutId = window.setTimeout(() => {
         phaseStartTimeRef.current = null
@@ -1251,11 +1395,8 @@ export default function Game({
         })
       }, TIMING.REVEAL_DELAY)
       timeoutRefs.current.push(timeoutId)
-    } else if (isOnline(gameMode)) {
-      // En mode multijoueur, le serveur gère le timer et décide quand passer à la question suivante
-      // Le serveur enverra game:next quand le timer expire
-      questionAnsweredByRef.current = null
     }
+    // En ligne, le serveur gère le timer et décide quand passer à la question suivante
   }
 
   // Mettre à jour la ref pour que startTimerCalculation puisse l'utiliser
@@ -1270,6 +1411,12 @@ export default function Game({
   const handleRestart = () => {
     resetGameState()
     gameInstanceKeyRef.current += 1
+    // Solo : nouveaux départs aléatoires pour la nouvelle partie (en ligne : tirés par le serveur)
+    if (isSolo(gameMode)) {
+      const replayed = strategy.getInitialQuestions(gameQuestions)
+      questionsRef.current = replayed
+      setGameQuestions(replayed)
+    }
 
     if (isOnline(gameMode) && roomCode) {
       const socket = getSocket()
@@ -1326,6 +1473,16 @@ export default function Game({
     return TIMING.DEFAULT_TIME_LIMIT
   }
 
+  // Toujours une sortie possible depuis les écrans d'attente en ligne
+  const leaveAndExit = () => {
+    leaveRoom()
+    onEndGame()
+  }
+
+  if (fatalError) {
+    return <LoadingScreen message={fatalError} showSpinner={false} onBack={leaveAndExit} />
+  }
+
   // En mode multijoueur, gérer différemment l'absence de questions
   if (isOnline(gameMode)) {
     if (!gameStarted) {
@@ -1334,6 +1491,7 @@ export default function Game({
           message="En attente du démarrage..."
           subMessage="L'hôte va démarrer la partie."
           showSpinner={true}
+          onBack={leaveAndExit}
         />
       )
     }
@@ -1345,6 +1503,7 @@ export default function Game({
           message="Chargement de la partie..."
           subMessage="Récupération des questions depuis le serveur."
           showSpinner={true}
+          onBack={leaveAndExit}
         />
       )
     }
@@ -1388,125 +1547,154 @@ export default function Game({
       ? `${window.location.origin}/?room=${roomCode}`
       : null
 
+  const displayScore = strategy.getDisplayScore(score, gamePlayers)
+  const currentRevealedAnswer = isOnline(gameMode)
+    ? revealedAnswer?.questionIndex === currentQuestionIndex
+      ? revealedAnswer.answer
+      : undefined
+    : currentQuestion.answer
+  // Résultat du joueur pour les annonces (n'existe qu'au reveal)
+  const myId = strategy.getPlayerId()
+  const myValidation = isOnline(gameMode)
+    ? validatedAnswers[myId]
+    : isRevealPhase
+      ? correctPlayers.has('solo')
+      : undefined
+  const playerResult: PlayerResult =
+    myValidation === true ? 'correct' : lastAnswerRef.current ? 'incorrect' : 'none'
+
   return (
-    <div className={gameStyles.gameScreen} data-testid="game-screen">
-      <GameTopBar
-        currentQuestionIndex={currentQuestionIndex}
-        totalQuestions={gameQuestions.length}
-        timeRemaining={timeRemaining}
-        score={strategy.getDisplayScore(score, gamePlayers)}
-        inviteLink={inviteLink}
-        muted={mediaMuted}
-        onToggleMute={toggleMediaMuted}
-        onQuit={() => setShowQuitConfirm(true)}
-        isGameEnded={showScore}
-      />
+    <MotionConfig reducedMotion="user">
+      <div className={gameStyles.gameScreen} data-testid="game-screen">
+        <GameAnnouncer
+          questionKey={`${gameInstanceKeyRef.current}-${currentQuestionIndex}`}
+          questionNumber={currentQuestionIndex + 1}
+          totalQuestions={gameQuestions.length}
+          isReveal={isRevealPhase}
+          timeRemaining={timeRemaining}
+          correctAnswer={currentRevealedAnswer}
+          result={myValidation === undefined && isOnline(gameMode) ? 'none' : playerResult}
+          score={displayScore}
+          isGameEnded={showScore}
+        />
+        {connectionLost && isOnline(gameMode) && !showScore && (
+          <div className={gameStyles.connectionBanner} role="status" data-testid="connection-lost">
+            Connexion perdue — reconnexion en cours… Votre réponse sera renvoyée automatiquement.
+          </div>
+        )}
+        <GameTopBar
+          currentQuestionIndex={currentQuestionIndex}
+          totalQuestions={gameQuestions.length}
+          timeRemaining={timeRemaining}
+          score={displayScore}
+          inviteLink={inviteLink}
+          muted={mediaMuted}
+          onToggleMute={toggleMediaMuted}
+          onQuit={() => setShowQuitConfirm(true)}
+          isGameEnded={showScore}
+        />
 
-      {/* Main: Zone media/waveform centrée */}
-      <div className={gameStyles.gameMain} data-testid="game-main">
-        <div
-          className={`${gameStyles.gameInterfaceBody} ${!isOnline(gameMode) ? gameStyles.gameInterfaceBodyNoSidebar : ''} ${showScore && isSolo(gameMode) ? gameStyles.gameInterfaceBodySoloEnd : ''}`}
-          id="game-interface-body"
-        >
-          {showScore ? (
-            <EndScreen
-              score={strategy.getDisplayScore(score, gamePlayers)}
-              totalQuestions={gameQuestions.length}
-              gameMode={gameMode}
-              players={gamePlayers}
-              isHost={isHost}
-              shouldPlaySound={!successSoundPlayedRef.current}
-              onRestart={handleRestart}
-              onChangeThemes={handleChangeThemes}
-              onQuit={() => setShowQuitConfirm(true)}
-              onSoundPlayed={handleScoreSoundPlayed}
-            />
-          ) : (
-            <RoundScreen
-              question={currentQuestion}
-              instanceKey={gameInstanceKeyRef.current}
-              currentQuestionIndex={currentQuestionIndex}
-              gameMode={gameMode}
-              players={gamePlayers}
-              questionAnsweredBy={questionAnsweredByRef.current}
-              timeRemaining={timeRemaining}
-              isRevealPhase={isRevealPhase}
-              skipVotes={skipVotes}
-              correctPlayers={correctPlayers}
-              answeredPlayers={answeredPlayers}
-              playerAnswers={playerAnswers}
-              validatedAnswers={validatedAnswers}
-              answerSuggestions={answerSuggestions}
-              revealedAnswer={
-                revealedAnswer?.questionIndex === currentQuestionIndex
-                  ? revealedAnswer.answer
-                  : undefined
-              }
-              waitingForGo={waitingForGo}
-              gameStep={gameStep}
-              muted={mediaMuted}
-              isGameEnded={gameEndedRef.current}
-              isMediaReady={isSolo(gameMode) || (mediaReadyRef.current && !waitingForGo)}
-              revealStartTime={
-                isOnline(gameMode) ? revealStartTimeRef.current || undefined : undefined
-              }
-              onAnswer={handleAnswer}
-              onPhaseEnd={handlePhaseEnd}
-              onSkipVote={handleSkipVote}
-              onMediaReady={isOnline(gameMode) ? handleMediaReady : undefined}
-              onMediaStart={handleMediaStart}
-              onRevealVideoStart={handleRevealVideoStart}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Sortie confirmée : room:leave puis retour à l'accueil (barre du haut et écran de fin) */}
-      <QuitGameDialog
-        isOpen={showQuitConfirm}
-        isOnline={isOnline(gameMode)}
-        isHost={isHost}
-        isGameEnded={showScore}
-        onLeaveRoom={leaveRoom}
-        onEndGame={onEndGame}
-        onCancel={() => setShowQuitConfirm(false)}
-      />
-
-      {/* Popup « Changer les thèmes » : accessible seulement depuis l'écran de fin (hôte) */}
-      <Dialog.Root
-        open={showSettingsPopup}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowSettingsPopup(false)
-          }
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Overlay className={gameStyles.gameModalOverlay} />
-          <Dialog.Content
-            className={gameStyles.gameModalContent}
-            onEscapeKeyDown={() => {
-              setShowSettingsPopup(false)
-            }}
+        {/* Main: Zone media/waveform centrée */}
+        <div className={gameStyles.gameMain} data-testid="game-main">
+          <div
+            className={`${gameStyles.gameInterfaceBody} ${!isOnline(gameMode) ? gameStyles.gameInterfaceBodyNoSidebar : ''} ${showScore && isSolo(gameMode) ? gameStyles.gameInterfaceBodySoloEnd : ''}`}
+            id="game-interface-body"
           >
-            <Dialog.Title style={{ display: 'none' }}>Changer les thèmes</Dialog.Title>
-            <Dialog.Description style={{ display: 'none' }}>
-              Choisir les thèmes, le timer et le nombre de questions de la prochaine partie
-            </Dialog.Description>
-            <GameSettingsPopup
-              isOpen={true}
-              currentCategories={settingsCategories}
-              currentTimeLimit={getCurrentTimeLimit()}
-              currentQuestionCount={gameQuestions.length}
-              onSave={handleSettingsSaved}
-              onClose={() => {
+            {showScore ? (
+              <EndScreen
+                score={displayScore}
+                totalQuestions={gameQuestions.length}
+                gameMode={gameMode}
+                players={gamePlayers}
+                isHost={isHost}
+                shouldPlaySound={!successSoundPlayedRef.current}
+                onRestart={handleRestart}
+                onChangeThemes={handleChangeThemes}
+                onQuit={() => setShowQuitConfirm(true)}
+                onSoundPlayed={handleScoreSoundPlayed}
+              />
+            ) : (
+              <RoundScreen
+                question={currentQuestion}
+                instanceKey={gameInstanceKeyRef.current}
+                currentQuestionIndex={currentQuestionIndex}
+                gameMode={gameMode}
+                players={gamePlayers}
+                timeRemaining={timeRemaining}
+                isRevealPhase={isRevealPhase}
+                skipVotes={skipVotes}
+                correctPlayers={correctPlayers}
+                answeredPlayers={answeredPlayers}
+                playerAnswers={playerAnswers}
+                validatedAnswers={validatedAnswers}
+                answerSuggestions={answerSuggestions}
+                revealedAnswer={isOnline(gameMode) ? currentRevealedAnswer : undefined}
+                waitingForGo={waitingForGo}
+                gameStep={gameStep}
+                muted={mediaMuted}
+                isGameEnded={gameEndedRef.current}
+                isMediaReady={isSolo(gameMode) || (mediaReadyRef.current && !waitingForGo)}
+                revealStartTime={
+                  isOnline(gameMode) ? revealStartTimeRef.current || undefined : undefined
+                }
+                answerAckPending={answerAckPending}
+                onAnswer={handleAnswer}
+                onSkipVote={handleSkipVote}
+                onMediaReady={isOnline(gameMode) ? handleMediaReady : undefined}
+                onMediaStart={handleMediaStart}
+                onRevealVideoStart={handleRevealVideoStart}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Sortie confirmée : room:leave puis retour à l'accueil (barre du haut et écran de fin) */}
+        <QuitGameDialog
+          isOpen={showQuitConfirm}
+          isOnline={isOnline(gameMode)}
+          isHost={isHost}
+          isGameEnded={showScore}
+          onLeaveRoom={leaveRoom}
+          onEndGame={onEndGame}
+          onCancel={() => setShowQuitConfirm(false)}
+        />
+
+        {/* Popup « Changer les thèmes » : accessible seulement depuis l'écran de fin (hôte) */}
+        <Dialog.Root
+          open={showSettingsPopup}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowSettingsPopup(false)
+            }
+          }}
+        >
+          <Dialog.Portal>
+            <Dialog.Overlay className={gameStyles.gameModalOverlay} />
+            <Dialog.Content
+              className={gameStyles.gameModalContent}
+              onEscapeKeyDown={() => {
                 setShowSettingsPopup(false)
               }}
-              gameMode={gameMode}
-            />
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-    </div>
+            >
+              <Dialog.Title style={{ display: 'none' }}>Changer les thèmes</Dialog.Title>
+              <Dialog.Description style={{ display: 'none' }}>
+                Choisir les thèmes, le timer et le nombre de questions de la prochaine partie
+              </Dialog.Description>
+              <GameSettingsPopup
+                isOpen={true}
+                currentCategories={settingsCategories}
+                currentTimeLimit={getCurrentTimeLimit()}
+                currentQuestionCount={gameQuestions.length}
+                onSave={handleSettingsSaved}
+                onClose={() => {
+                  setShowSettingsPopup(false)
+                }}
+                gameMode={gameMode}
+              />
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      </div>
+    </MotionConfig>
   )
 }

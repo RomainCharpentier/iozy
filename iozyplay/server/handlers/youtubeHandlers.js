@@ -2,6 +2,40 @@
  * Gestionnaires d'API pour YouTube (playlists, etc.)
  */
 
+import { parseYouTubeLengthSeconds } from '../domain/questionMedia.js';
+
+const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+
+/**
+ * GET /api/youtube/duration/:videoId - Durée d'une vidéo (secondes), pour l'éditeur.
+ * Lue sur la page de la vidéo (pas de clé d'API) : sert à tirer un départ aléatoire
+ * qui laisse assez de vidéo jusqu'à la fin du chrono.
+ */
+export async function getVideoDuration(req, res) {
+  const { videoId } = req.params;
+  if (typeof videoId !== 'string' || !YOUTUBE_VIDEO_ID.test(videoId)) {
+    return res.status(400).json({ error: 'Identifiant de vidéo invalide' });
+  }
+
+  try {
+    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: { 'User-Agent': BROWSER_USER_AGENT, 'Accept-Language': 'fr' }
+    });
+    if (!response.ok) {
+      return res.status(502).json({ error: 'Page YouTube inaccessible' });
+    }
+    const duration = parseYouTubeLengthSeconds(await response.text());
+    if (duration === null) {
+      return res.status(404).json({ error: 'Durée introuvable pour cette vidéo' });
+    }
+    res.json({ videoId, duration });
+  } catch (error) {
+    console.error('Error fetching video duration:', error);
+    res.status(502).json({ error: 'Erreur lors de la récupération de la durée' });
+  }
+}
+
 /**
  * GET /api/youtube/playlist/:playlistId - Récupère les vidéos d'une playlist YouTube
  */

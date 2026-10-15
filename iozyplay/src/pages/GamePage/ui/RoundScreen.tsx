@@ -11,7 +11,6 @@ interface RoundScreenProps {
   currentQuestionIndex: number
   gameMode: GameMode
   players: Player[]
-  questionAnsweredBy: string | null
   timeRemaining: number
   isRevealPhase: boolean
   skipVotes: Set<string>
@@ -27,8 +26,8 @@ interface RoundScreenProps {
   isGameEnded: boolean
   isMediaReady: boolean
   revealStartTime: number | undefined
+  answerAckPending: boolean
   onAnswer: (answer: string, timeRemaining: number, playerId?: string) => void
-  onPhaseEnd: () => void
   onSkipVote: () => void
   onMediaReady?: () => void
   onMediaStart?: () => void
@@ -41,7 +40,6 @@ export default function RoundScreen({
   currentQuestionIndex,
   gameMode,
   players,
-  questionAnsweredBy,
   timeRemaining,
   isRevealPhase,
   skipVotes,
@@ -57,8 +55,8 @@ export default function RoundScreen({
   isGameEnded,
   isMediaReady,
   revealStartTime,
+  answerAckPending,
   onAnswer,
-  onPhaseEnd,
   onSkipVote,
   onMediaReady,
   onMediaStart,
@@ -70,11 +68,9 @@ export default function RoundScreen({
         key={`game-${instanceKey}-q-${currentQuestionIndex}`}
         question={question}
         onAnswer={onAnswer}
-        onPhaseEnd={onPhaseEnd}
         onSkipVote={onSkipVote}
         gameMode={gameMode}
         players={players}
-        questionAnsweredBy={questionAnsweredBy}
         onMediaReady={onMediaReady}
         onMediaStart={onMediaStart}
         onRevealVideoStart={onRevealVideoStart}
@@ -91,13 +87,13 @@ export default function RoundScreen({
         revealedAnswer={revealedAnswer}
         validatedAnswers={isOnline(gameMode) ? validatedAnswers : undefined}
         muted={muted}
+        answerAckPending={answerAckPending}
       />
 
       {isOnline(gameMode) && (
         <div className={gameStyles.gamePlayersPanel}>
           <PlayersPanel
             players={players}
-            questionAnsweredBy={questionAnsweredBy}
             correctPlayers={correctPlayers}
             answeredPlayers={answeredPlayers}
             isRevealPhase={isRevealPhase}

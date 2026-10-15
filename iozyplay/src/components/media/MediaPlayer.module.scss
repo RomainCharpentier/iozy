@@ -54,3 +54,29 @@
   object-fit: contain;
   border-radius: 12px;
 }
+
+/* Extrait illisible : message lisible à la place de l'onde sonore */
+.mediaUnavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 600;
+
+  p {
+    margin: 0;
+  }
+}
+
+.mediaUnavailableHint {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}

@@ -28,6 +28,7 @@ vi.mock('@/utils/playerId', () => ({
   getPlayerId: () => 'me',
 }))
 
+import gameStyles from '@/pages/GamePage/Game.module.scss'
 import GameTopBar from '@/pages/GamePage/ui/GameTopBar'
 import QuitGameDialog, { getQuitConfirmMessage } from '@/pages/GamePage/ui/QuitGameDialog'
 import AnswerInput from '@/pages/GamePage/question/AnswerInput'
@@ -205,6 +206,97 @@ describe('Barre du haut', () => {
       expect.objectContaining({ description: INVITE })
     )
   })
+
+  it('chrono : couleur neutre au-delà de 10s, avertissement puis urgence en dessous', () => {
+    const { rerender, container } = render(
+      <GameTopBar
+        currentQuestionIndex={0}
+        totalQuestions={5}
+        timeRemaining={15}
+        score={0}
+        onToggleMute={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    const timerSection = () => container.querySelector(`.${gameStyles.gameInterfaceTimerSection}`)
+    expect(timerSection()?.className).not.toContain(gameStyles.gameInterfaceTimerSectionWarning)
+    expect(timerSection()?.className).not.toContain(gameStyles.gameInterfaceTimerSectionDanger)
+
+    rerender(
+      <GameTopBar
+        currentQuestionIndex={0}
+        totalQuestions={5}
+        timeRemaining={8}
+        score={0}
+        onToggleMute={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    expect(timerSection()?.className).toContain(gameStyles.gameInterfaceTimerSectionWarning)
+    expect(timerSection()?.className).not.toContain(gameStyles.gameInterfaceTimerSectionDanger)
+
+    rerender(
+      <GameTopBar
+        currentQuestionIndex={0}
+        totalQuestions={5}
+        timeRemaining={3}
+        score={0}
+        onToggleMute={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    expect(timerSection()?.className).toContain(gameStyles.gameInterfaceTimerSectionDanger)
+  })
+
+  it('score : un « +N » apparaît quand le score augmente', () => {
+    const { rerender } = render(
+      <GameTopBar
+        currentQuestionIndex={0}
+        totalQuestions={5}
+        timeRemaining={12}
+        score={2}
+        onToggleMute={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    expect(screen.queryByText('+1')).toBeNull()
+
+    rerender(
+      <GameTopBar
+        currentQuestionIndex={0}
+        totalQuestions={5}
+        timeRemaining={12}
+        score={3}
+        onToggleMute={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    expect(screen.getByText('+1')).toBeTruthy()
+  })
+
+  it('score : une baisse (ex: changement de question) ne déclenche pas de « +N »', () => {
+    const { rerender } = render(
+      <GameTopBar
+        currentQuestionIndex={0}
+        totalQuestions={5}
+        timeRemaining={12}
+        score={3}
+        onToggleMute={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    rerender(
+      <GameTopBar
+        currentQuestionIndex={1}
+        totalQuestions={5}
+        timeRemaining={12}
+        score={0}
+        onToggleMute={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    expect(screen.queryByText(/^\+/)).toBeNull()
+  })
 })
 
 describe('Confirmation de sortie', () => {
@@ -321,6 +413,54 @@ describe('Bouton Passer', () => {
     expect(button.title).toContain('tous les joueurs doivent voter')
   })
 
+  it('un montage déjà en reveal (ex: rejoint en cours de partie) ne verrouille pas « Suivant »', () => {
+    renderInput({ isReveal: true })
+    const button = screen.getByTestId('skip-button') as HTMLButtonElement
+    expect(button.disabled).toBe(false)
+  })
+
+  it(
+    'à la transition guess → reveal, « Suivant » reste brièvement désactivé pour éviter ' +
+      "qu'un double-clic sur « Passer » ne saute la révélation avant que le joueur l'ait lue",
+    () => {
+      vi.useFakeTimers()
+      try {
+        const { rerender } = renderInput({ isReveal: false })
+        let button = screen.getByTestId('skip-button') as HTMLButtonElement
+        expect(button.textContent).toContain('Passer')
+        expect(button.disabled).toBe(false)
+
+        rerender(
+          <AnswerInput
+            value=""
+            onChange={() => {}}
+            onSubmit={() => {}}
+            disabled={false}
+            onSkipVote={() => {}}
+            gameMode="online"
+            players={players}
+            isMediaReady
+            suggestionPool={NO_SUGGESTIONS}
+            isReveal
+          />
+        )
+        button = screen.getByTestId('skip-button') as HTMLButtonElement
+        expect(button.textContent).toContain('Suivant')
+        expect(button.disabled).toBe(true)
+        expect(button.title).toContain('vient de s')
+
+        act(() => {
+          vi.advanceTimersByTime(700)
+        })
+        button = screen.getByTestId('skip-button') as HTMLButtonElement
+        expect(button.disabled).toBe(false)
+        expect(button.title).toContain('tous les joueurs doivent voter')
+      } finally {
+        vi.useRealTimers()
+      }
+    }
+  )
+
   it('solo : « Passer » sans vote ni compteur', () => {
     renderInput({ gameMode: 'solo', players: [] })
     const button = screen.getByTestId('skip-button') as HTMLButtonElement
@@ -347,6 +487,122 @@ describe('Bouton Passer', () => {
     })
     expect(state.label).toBe('Vote envoyé · 3/3')
     expect(state.disabled).toBe(true)
+  })
+
+  it('reveal : la mini-barre de temps reflète le temps restant avant la suite', () => {
+    const { rerender } = renderInput({
+      isReveal: true,
+      saveStatus: 'saved',
+      isCorrect: true,
+      correctAnswer: 'Family',
+      revealSecondsRemaining: 10,
+      revealDurationSeconds: 20,
+    })
+    const bar = screen.getByRole('progressbar', {
+      name: 'Temps restant avant la question suivante',
+    })
+    expect(bar.getAttribute('aria-valuenow')).toBe('10')
+    expect(bar.getAttribute('aria-valuemax')).toBe('20')
+
+    rerender(
+      <AnswerInput
+        value=""
+        onChange={() => {}}
+        onSubmit={() => {}}
+        disabled
+        onSkipVote={() => {}}
+        gameMode="online"
+        players={players}
+        isMediaReady
+        suggestionPool={NO_SUGGESTIONS}
+        isReveal
+        saveStatus="saved"
+        isCorrect
+        correctAnswer="Family"
+        revealSecondsRemaining={2}
+        revealDurationSeconds={20}
+      />
+    )
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('2')
+  })
+
+  it('un joueur parti ne compte ni dans les votes ni dans le total', () => {
+    // « other » a voté puis s'est déconnecté : il reste dans skipVotes côté serveur
+    renderInput({
+      skipVotes: new Set(['me', 'other']),
+      players: [players[0], { ...players[1], connected: false }],
+    })
+    expect(screen.getByTestId('skip-button').textContent).toContain('Vote envoyé · 1/1')
+  })
+
+  it('champ : combobox accessible, suggestions en listbox reliées au champ', () => {
+    renderInput({ value: 'Na', suggestionPool: ['Naruto', 'Nana'] })
+    const field = screen.getByRole('combobox', { name: 'Votre réponse' })
+    const listbox = screen.getByRole('listbox')
+    expect(field.getAttribute('aria-controls')).toBe(listbox.id)
+    expect(field.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.keyDown(field, { key: 'ArrowDown' })
+    const active = screen.getByRole('option', { name: 'Naruto' })
+    expect(active.getAttribute('aria-selected')).toBe('true')
+    expect(field.getAttribute('aria-activedescendant')).toBe(active.id)
+  })
+
+  it('suggestions insensibles aux accents, aux majuscules et à la ponctuation', () => {
+    const pool = ['Pokémon', 'Pokémon Rouge et Bleu', "L'Attaque des Titans", 'Naruto']
+    const { rerender } = renderInput({ value: 'POKEMON', suggestionPool: pool })
+    let options = screen.getAllByRole('option').map((o) => o.textContent)
+    expect(options).toEqual(['Pokémon', 'Pokémon Rouge et Bleu'])
+
+    rerender(
+      <AnswerInput
+        value="l’attaque"
+        onChange={() => {}}
+        onSubmit={() => {}}
+        disabled={false}
+        onSkipVote={() => {}}
+        gameMode="online"
+        players={players}
+        isMediaReady
+        suggestionPool={pool}
+      />
+    )
+    options = screen.getAllByRole('option').map((o) => o.textContent)
+    expect(options).toEqual(["L'Attaque des Titans"])
+  })
+
+  it('reveal : champ en lecture seule (garde le focus) et pas de suggestions', () => {
+    renderInput({ value: 'Na', suggestionPool: ['Naruto'], disabled: true, isReveal: true })
+    const field = screen.getByRole('combobox') as HTMLInputElement
+    expect(field.readOnly).toBe(true)
+    expect(field.disabled).toBe(false)
+    expect(screen.queryByRole('listbox')).toBeNull()
+  })
+
+  it('indicateur : « … » tant que la saisie n’est pas enregistrée, ✓ ensuite', () => {
+    const { rerender } = renderInput({ value: 'Naruto', saveStatus: 'pending' })
+    expect(screen.getByTestId('answer-status-pending')).toBeTruthy()
+    expect(screen.queryByTestId('answer-status-saved')).toBeNull()
+    rerender(
+      <AnswerInput
+        value="Naruto"
+        onChange={() => {}}
+        onSubmit={() => {}}
+        disabled={false}
+        onSkipVote={() => {}}
+        gameMode="online"
+        players={players}
+        isMediaReady
+        suggestionPool={NO_SUGGESTIONS}
+        saveStatus="saved"
+      />
+    )
+    expect(screen.getByTestId('answer-status-saved')).toBeTruthy()
+    expect(screen.queryByTestId('answer-status-pending')).toBeNull()
+  })
+
+  it('hors reveal : pas de mini-barre de temps', () => {
+    renderInput({ isReveal: false })
+    expect(screen.queryByRole('progressbar')).toBeNull()
   })
 })
 
@@ -397,5 +653,61 @@ describe('Écran de fin', () => {
     // Le nom du vainqueur n'inclut pas la couronne
     expect(screen.getByText('Moi').textContent).toBe('Moi')
     expect(screen.getByText('#2')).toBeTruthy()
+  })
+
+  it('classement final : un seul format de score, « X / N »', () => {
+    renderEnd(false)
+    // Ligne d'un joueur : nom puis score, sans doublon « 2 / 5 » + « 2 »
+    const row = (name: string) =>
+      screen.getByText(name).closest(`.${gameStyles.gameInterfacePlayer}`)?.textContent
+    expect(row('Moi')).toMatch(/Moi2 \/ 5$/)
+    expect(row('Autre')).toMatch(/Autre1 \/ 5$/)
+  })
+
+  it('pas de couronne en cas d’égalité stricte (même score positif)', () => {
+    const tiedPlayers: Player[] = [
+      { id: 'me', name: 'Moi', score: 2, isHost: true, connected: true },
+      { id: 'other', name: 'Autre', score: 2, connected: true },
+    ]
+    render(
+      <EndScreen
+        score={2}
+        totalQuestions={5}
+        gameMode="online"
+        players={tiedPlayers}
+        isHost={true}
+        shouldPlaySound={false}
+        onSoundPlayed={() => {}}
+        onRestart={() => {}}
+        onChangeThemes={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    expect(screen.queryByTitle('Vainqueur')).toBeNull()
+    expect(screen.getByText('#1')).toBeTruthy()
+  })
+
+  it('pas de couronne ni de félicitations quand personne n’a marqué de point', () => {
+    const zeroPlayers: Player[] = [
+      { id: 'me', name: 'Moi', score: 0, isHost: true, connected: true },
+      { id: 'other', name: 'Autre', score: 0, connected: true },
+    ]
+    render(
+      <EndScreen
+        score={0}
+        totalQuestions={5}
+        gameMode="online"
+        players={zeroPlayers}
+        isHost={true}
+        shouldPlaySound={false}
+        onSoundPlayed={() => {}}
+        onRestart={() => {}}
+        onChangeThemes={() => {}}
+        onQuit={() => {}}
+      />
+    )
+    expect(screen.queryByTitle('Vainqueur')).toBeNull()
+    expect(screen.queryByText('Félicitations à tous les participants')).toBeNull()
+    expect(screen.getByText(/Personne n.a trouvé cette fois/)).toBeTruthy()
   })
 })

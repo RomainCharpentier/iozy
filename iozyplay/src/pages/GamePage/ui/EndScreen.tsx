@@ -51,12 +51,7 @@ export default function EndScreen({
       </section>
       {isOnline(gameMode) && (
         <div className={gameStyles.gamePlayersPanel}>
-          <PlayersPanel
-            players={players}
-            questionAnsweredBy={null}
-            isGameEnded={true}
-            totalQuestions={totalQuestions}
-          />
+          <PlayersPanel players={players} isGameEnded={true} totalQuestions={totalQuestions} />
         </div>
       )}
     </>

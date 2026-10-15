@@ -27,6 +27,50 @@ export function normalizeStartTime(value: unknown): number {
 }
 
 /**
+ * Point de départ réellement jouable : l'extrait doit durer jusqu'à la fin du chrono.
+ * Si le départ est trop tard dans la vidéo (départ + durée de lecture > durée du média),
+ * il est avancé à « durée − durée de lecture » ; si le média est plus court que la durée
+ * de lecture, on part du début. Durée inconnue (métadonnées pas encore chargées) : départ
+ * inchangé.
+ */
+export function fitStartToDuration(
+  start: number,
+  mediaDuration: number | undefined,
+  playSeconds: number | undefined
+): number {
+  return pickPlayableStart(start, mediaDuration, playSeconds)
+}
+
+/**
+ * Point de départ de la partie en cours, en secondes.
+ * - `minStart` : départ minimum de la question (startTime de l'éditeur ou t= de l'URL) ;
+ * - `fraction` (aléatoire, dans [0, 1)) : position du départ entre `minStart` et le dernier
+ *   départ jouable « durée − chrono ». Même fraction + même média → même départ pour tous.
+ * Sans fraction : `minStart`, avancé si trop tardif (fitStartToDuration). Durée inconnue :
+ * `minStart` (le départ est recalculé quand la durée est connue).
+ */
+export function pickPlayableStart(
+  minStart: number,
+  mediaDuration: number | undefined,
+  playSeconds: number | undefined,
+  fraction?: number
+): number {
+  const safeStart = normalizeStartTime(minStart)
+  if (!mediaDuration || !Number.isFinite(mediaDuration) || mediaDuration <= 0) return safeStart
+  const play = playSeconds && playSeconds > 0 ? playSeconds : 0
+  const latest = Math.max(0, Math.floor(mediaDuration - play))
+  const earliest = Math.min(safeStart, latest)
+  if (typeof fraction !== 'number' || !Number.isFinite(fraction)) return earliest
+  const clamped = Math.min(Math.max(fraction, 0), 0.9999)
+  return Math.min(latest, earliest + Math.floor(clamped * (latest - earliest + 1)))
+}
+
+/** Fraction de départ aléatoire (solo ; en ligne, c'est le serveur qui la tire) */
+export function randomStartFraction(random: () => number = Math.random): number {
+  return Math.min(0.9999, Math.max(0, Math.floor(random() * 10000) / 10000))
+}
+
+/**
  * Convertit une saisie utilisateur en secondes.
  * Formats acceptés : « 90 », « 1:30 », « 01:30 », « 1:02:03 » (h:mm:ss).
  * Une saisie vide vaut 0. Retourne null si la saisie est invalide.

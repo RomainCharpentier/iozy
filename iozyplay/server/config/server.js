@@ -6,7 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import { getAllQuestions, createQuestion, removeQuestion, updateAllQuestions } from '../handlers/questionHandlers.js';
 import { getAllCategories, createCategory, updateCategoryHandler, removeCategory } from '../handlers/categoryHandlers.js';
-import { getPlaylistVideos } from '../handlers/youtubeHandlers.js';
+import { getPlaylistVideos, getVideoDuration } from '../handlers/youtubeHandlers.js';
 import { getProfileHandler, createOrUpdateProfileHandler, deleteProfileHandler } from '../handlers/profileHandlers.js';
 
 export function createExpressApp() {
@@ -45,6 +45,7 @@ export function createExpressApp() {
 
   // Routes API YouTube
   app.get('/api/youtube/playlist/:playlistId', getPlaylistVideos);
+  app.get('/api/youtube/duration/:videoId', getVideoDuration);
 
   // Routes API Profiles
   app.get('/api/profile/:playerId', getProfileHandler);

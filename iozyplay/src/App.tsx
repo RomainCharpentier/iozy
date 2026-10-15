@@ -23,8 +23,9 @@ function GameOverlay() {
   if (!isGamePage) return null
 
   return (
-    <div className={styles.appOverlay}>
-      <div className={styles.appOverlayContent}>🎵 Devine la musique ! 🎵</div>
+    // Bandeau décoratif : le jeu ne porte pas que sur la musique (séries, films, jeux…)
+    <div className={styles.appOverlay} aria-hidden="true">
+      <div className={styles.appOverlayContent}>Blindtest</div>
     </div>
   )
 }

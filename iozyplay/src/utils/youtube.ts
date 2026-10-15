@@ -171,6 +171,30 @@ export async function getPlaylistVideos(playlistUrl: string): Promise<PlaylistVi
   }
 }
 
+/**
+ * Durée d'une vidéo YouTube en secondes (lue par le backend), ou null si indisponible.
+ * Sert au tirage du départ aléatoire (départ + chrono ≤ durée).
+ */
+export async function getYouTubeDuration(url: string): Promise<number | null> {
+  const videoId = extractYouTubeId(url)
+  if (!videoId) return null
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_SOCKET_URL ||
+      import.meta.env.VITE_API_URL ||
+      (import.meta.env.DEV ? 'http://localhost:3001' : '')
+    const response = await fetch(
+      `${API_BASE_URL}/api/youtube/duration/${encodeURIComponent(videoId)}`
+    )
+    if (!response.ok) return null
+    const data = await response.json()
+    return typeof data.duration === 'number' && data.duration > 0 ? data.duration : null
+  } catch (error) {
+    console.error('Error fetching YouTube duration:', error)
+    return null
+  }
+}
+
 export function getYouTubeEmbedUrl(
   videoId: string,
   autoplay: boolean = false,

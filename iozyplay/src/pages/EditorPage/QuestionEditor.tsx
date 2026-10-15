@@ -13,6 +13,7 @@ import {
   extractYouTubeId,
   getYouTubeMetadata,
   extractYouTubeStartTime,
+  getYouTubeDuration,
 } from '@/utils/youtube'
 import { formatTimecode, isValidStartTime, parseTimecode } from '@/utils/timecode'
 import { QuestionService } from '@/services/questionService'
@@ -53,6 +54,10 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
   const questionsPerPage = 20
   const [youtubeThumbnail, setYoutubeThumbnail] = useState<string | null>(null)
   const [youtubeTitle, setYoutubeTitle] = useState<string>('')
+  // Durée de la vidéo (secondes), relevée à l'ajout : bornes du départ aléatoire en partie
+  const [youtubeDuration, setYoutubeDuration] = useState<{ url: string; seconds: number } | null>(
+    null
+  )
   const [youtubeValid, setYoutubeValid] = useState<boolean>(false)
   const [categories, setCategories] = useState<CategoryInfo[]>([])
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([])
@@ -238,6 +243,25 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     return () => clearTimeout(saveTimeout)
   }, [localQuestions, changeCount, onSave])
 
+  // Durée de la vidéo, dès que l'URL est reconnue comme une vidéo YouTube valide
+  useEffect(() => {
+    if (!youtubeValid || !watchedMediaUrl) return
+    const url = watchedMediaUrl
+    let cancelled = false
+    getYouTubeDuration(url).then((seconds) => {
+      if (!cancelled && seconds) setYoutubeDuration({ url, seconds })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [youtubeValid, watchedMediaUrl])
+
+  // Durée de la vidéo du formulaire : relevée ci-dessus, sinon redemandée à l'enregistrement
+  const resolveDuration = async (url: string): Promise<number | undefined> => {
+    if (youtubeDuration?.url === url) return youtubeDuration.seconds
+    return (await getYouTubeDuration(url)) ?? undefined
+  }
+
   // Validation YouTube en temps réel
   useEffect(() => {
     if (!watchedMediaUrl || (!showAddForm && editingIndex === null)) {
@@ -333,6 +357,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         answer: data.answer,
         hint: data.hint || undefined,
         startTime: toStartTime(data.startTime),
+        duration: await resolveDuration(data.mediaUrl),
       }
 
       await QuestionService.addQuestion(newQuestion)
@@ -388,6 +413,10 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         answer: data.answer,
         hint: data.hint || undefined,
         startTime: toStartTime(data.startTime),
+        duration:
+          data.mediaUrl === originalQuestion.mediaUrl && originalQuestion.duration
+            ? originalQuestion.duration
+            : await resolveDuration(data.mediaUrl),
       }
 
       await QuestionService.updateQuestion(
@@ -437,6 +466,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
           mediaUrl: video.videoUrl,
           answer: video.answer,
           hint: video.hint,
+          duration: (await getYouTubeDuration(video.videoUrl)) ?? undefined,
         }
         await QuestionService.addQuestion(newQuestion)
         newQuestions.push(newQuestion)
@@ -618,10 +648,12 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 const count = categoryStats[cat.id] || 0
                 if (count === 0) return null
                 return (
-                  <div key={cat.id} className={`${styles.statItem} ${styles.statItemCategory}`} title={cat.name}>
-                    <span style={{ fontSize: '16px' }}>
-                      {cat.emoji}
-                    </span>
+                  <div
+                    key={cat.id}
+                    className={`${styles.statItem} ${styles.statItemCategory}`}
+                    title={cat.name}
+                  >
+                    <span style={{ fontSize: '16px' }}>{cat.emoji}</span>
                     <span className={styles.statCategoryName}>{cat.name}</span>
                     <span className={styles.statValue}>{count}</span>
                   </div>
@@ -679,7 +711,10 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
 
         {(showAddForm || editingIndex !== null) && (
           <div className={styles.modalOverlay} onClick={cancelEdit}>
-            <div className={`${styles.modalContent} ${styles.editorFormModal}`} onClick={(e) => e.stopPropagation()}>
+            <div
+              className={`${styles.modalContent} ${styles.editorFormModal}`}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className={styles.modalHeader}>
                 <h2>{editingIndex !== null ? 'Modifier la question' : 'Ajouter une question'}</h2>
                 <button className={styles.closeButton} onClick={cancelEdit} title="Fermer">
@@ -802,7 +837,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                   </label>
 
                   <label>
-                    Début de l'extrait (optionnel)
+                    Début minimum de l'extrait (optionnel)
                     <input
                       type="text"
                       inputMode="numeric"
@@ -818,6 +853,11 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                         <span>{errors.startTime.message}</span>
                       </div>
                     )}
+                    <span className={styles.youtubeHint} data-testid="editor-duration">
+                      {youtubeDuration?.url === watchedMediaUrl
+                        ? `Durée de la vidéo : ${formatTimecode(youtubeDuration.seconds)}. En partie, l'extrait démarre au hasard entre ce début et la fin de la vidéo moins le chrono.`
+                        : "En partie, l'extrait démarre au hasard entre ce début et la fin de la vidéo moins le chrono."}
+                    </span>
                   </label>
 
                   <div className={styles.formActions}>
