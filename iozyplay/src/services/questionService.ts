@@ -12,7 +12,13 @@ export class QuestionService {
    * Récupère toutes les questions pour les catégories sélectionnées
    */
   static async getQuestionsForCategories(categories: Category[]): Promise<Question[]> {
-    const allQuestions = await this.getAllQuestions()
+    let allQuestions: Question[]
+    try {
+      allQuestions = await this.getAllQuestions()
+    } catch {
+      // Lecture seule (jeu) : en cas d'échec, aucune question disponible
+      return []
+    }
     return allQuestions.filter((q) => {
       const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
       return questionCategories.some((cat) => categories.includes(cat))
@@ -90,14 +96,16 @@ export class QuestionService {
   }
 
   /**
-   * Charge les questions depuis le serveur
+   * Charge les questions depuis le serveur.
+   * Lève une erreur en cas d'échec : ne jamais renvoyer de données vides qui pourraient
+   * ensuite être sauvegardées et écraser le fichier.
    */
   static async loadQuestions(): Promise<QuestionsData> {
     try {
       return await questionsApi.getAll()
     } catch (error) {
       console.error('Erreur lors du chargement des questions:', error)
-      return { chansons: [], series: [], animes: [], films: [], jeux: [] }
+      throw error
     }
   }
 
@@ -106,27 +114,7 @@ export class QuestionService {
    * Supporte les catégories multiples : une question peut apparaître dans plusieurs catégories
    */
   static async saveQuestions(questions: Question[]): Promise<void> {
-    const organized: QuestionsData = {
-      chansons: [],
-      series: [],
-      animes: [],
-      films: [],
-      jeux: [],
-    }
-
-    questions.forEach((q) => {
-      const categories = Array.isArray(q.category) ? q.category : [q.category]
-      categories.forEach((cat) => {
-        if (organized[cat]) {
-          const exists = organized[cat].some(
-            (existing) => existing.id === q.id || existing.mediaUrl === q.mediaUrl
-          )
-          if (!exists) {
-            organized[cat].push(q)
-          }
-        }
-      })
-    })
+    const organized = this.organizeByCategory(questions)
 
     try {
       await questionsApi.saveAll(organized)
@@ -188,6 +176,30 @@ export class QuestionService {
       console.error('Erreur lors de la mise à jour de la question:', error)
       throw error
     }
+  }
+
+  /**
+   * Regroupe les questions par catégorie, en conservant toutes les catégories rencontrées
+   * (y compris les catégories personnalisées)
+   */
+  static organizeByCategory(questions: Question[]): QuestionsData {
+    const organized: QuestionsData = {}
+
+    questions.forEach((q) => {
+      const categories = Array.isArray(q.category) ? q.category : [q.category]
+      categories.forEach((cat) => {
+        if (!cat) return
+        const list = (organized[cat] ??= [])
+        const exists = list.some(
+          (existing) => (q.id && existing.id === q.id) || existing.mediaUrl === q.mediaUrl
+        )
+        if (!exists) {
+          list.push(q)
+        }
+      })
+    })
+
+    return organized
   }
 
   /**

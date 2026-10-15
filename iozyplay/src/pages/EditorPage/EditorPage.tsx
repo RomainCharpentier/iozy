@@ -1,6 +1,6 @@
 import styles from '@/pages/EditorPage/EditorPage.module.scss'
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { QuestionService } from '@/services/questionService'
 import type { Question } from '@/types'
@@ -13,6 +13,8 @@ export default function EditorPage() {
   const navigate = useNavigate()
   const [questions, setQuestions] = useState<Question[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  // Si le chargement échoue, l'éditeur n'est pas affiché : aucune sauvegarde possible
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<EditorTab>('questions')
   const [categoriesVersion, setCategoriesVersion] = useState(0)
 
@@ -25,25 +27,31 @@ export default function EditorPage() {
       setIsLoading(true)
       const allQuestions = await QuestionService.getAllQuestions()
       setQuestions(allQuestions)
+      setLoadError(null)
     } catch (error) {
       console.error('Erreur lors du chargement des questions:', error)
-      toast.error('Erreur lors du chargement des questions', {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue'
+      setLoadError(message)
+      toast.error('Erreur lors du chargement des questions : édition désactivée', {
         icon: '⚠️',
+        description: message,
       })
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleSave = async (updatedQuestions: Question[]) => {
+  const handleSave = useCallback(async (updatedQuestions: Question[]) => {
     try {
       await QuestionService.saveQuestions(updatedQuestions)
       setQuestions(updatedQuestions)
       // Sauvegarde automatique silencieuse
     } catch (error) {
       console.error('Erreur lors de la sauvegarde automatique:', error)
+      toast.error('Erreur lors de la sauvegarde des questions')
+      throw error
     }
-  }
+  }, [])
 
   return (
     <>
@@ -89,6 +97,16 @@ export default function EditorPage() {
             />
           ) : isLoading ? (
             <div className={styles.loadingState}>⏳ Chargement des questions...</div>
+          ) : loadError ? (
+            <div className={styles.loadingState} role="alert">
+              <p>
+                ⚠️ Impossible de charger les questions. L&apos;édition est désactivée pour éviter
+                toute perte de données.
+              </p>
+              <button type="button" className={styles.editorTab} onClick={() => loadQuestions()}>
+                Réessayer
+              </button>
+            </div>
           ) : (
             <QuestionEditor
               key={categoriesVersion}
