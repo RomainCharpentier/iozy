@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type MutableRefObject } from 'react'
 import { connectSocket, getSocket } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
+import { getSessionToken, setSessionToken } from '@/utils/sessionToken'
 import type { Player } from '@/lib/game/types'
 import { TIMING } from '@/services/gameService'
 
@@ -71,7 +72,14 @@ function useRoomSocketJoin(
     const playerId = getPlayerId()
     const joinTimeoutsRef: number[] = []
 
-    const handleRoomJoined = ({ room }: { room: { players?: Player[]; phase?: string } }) => {
+    const handleRoomJoined = ({
+      room,
+      sessionToken,
+    }: {
+      room: { players?: Player[]; phase?: string }
+      sessionToken?: string
+    }) => {
+      setSessionToken(roomCode, sessionToken)
       setPlayers(room.players || [])
       const myPlayer = room.players?.find((p) => p.id === playerId)
       setIsHost(myPlayer?.isHost ?? false)
@@ -121,13 +129,14 @@ function useRoomSocketJoin(
     socket.on('error', handleError)
 
     socket.on('reconnect', () => {
-      socket.emit('room:rejoin', { roomCode, playerId })
+      socket.emit('room:rejoin', { roomCode, playerId, sessionToken: getSessionToken(roomCode) })
     })
 
     socket.emit('room:join', {
       roomCode,
       playerId,
       playerName: playerName.trim(),
+      sessionToken: getSessionToken(roomCode),
     })
 
     return () => {
@@ -197,10 +206,13 @@ function useRoomSocketCreate(
       const handleRoomCreated = ({
         roomCode: code,
         room,
+        sessionToken,
       }: {
         roomCode: string
         room: { players?: Player[] }
+        sessionToken?: string
       }) => {
+        setSessionToken(code, sessionToken)
         setRoomCode(code)
         roomCodeRef.current = code
         setPlayers(room.players || [])
@@ -249,7 +261,13 @@ function useRoomSocketCreate(
 
       socket.on('reconnect', () => {
         const code = roomCodeRef.current
-        if (code) socket.emit('room:rejoin', { roomCode: code, playerId })
+        if (code) {
+          socket.emit('room:rejoin', {
+            roomCode: code,
+            playerId,
+            sessionToken: getSessionToken(code),
+          })
+        }
       })
 
       // Si le socket est déjà connecté (ex: navigation depuis une autre page), émettre room:create une seule fois

@@ -2,7 +2,6 @@ import styles from '@/pages/GamePage/question/AnswerInput.module.scss'
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
-import type { Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
 import { isSolo } from '@/lib/game/gameMode'
 import { getPlayerId } from '@/utils/playerId'
@@ -17,8 +16,7 @@ interface AnswerInputProps {
   showAttempts?: boolean
   inputRef?: (el: HTMLInputElement | null) => void
   hasSubmitted?: boolean
-  allQuestions?: Question[]
-  currentQuestionId?: string
+  suggestionPool?: string[] // Réponses possibles (sans lien avec la question en cours)
   isReveal?: boolean // Indique si on est en phase reveal
   isCorrect?: boolean | undefined // Indique si la réponse est correcte (pour le feedback visuel, uniquement pendant le reveal)
   correctAnswer?: string // La réponse correcte à afficher dans l'overlay pendant le reveal
@@ -41,8 +39,7 @@ export default function AnswerInput({
   showAttempts = false,
   inputRef,
   hasSubmitted = false,
-  allQuestions = [],
-  currentQuestionId,
+  suggestionPool = [],
   isReveal = false,
   isCorrect = false,
   correctAnswer,
@@ -79,7 +76,7 @@ export default function AnswerInput({
       return
     }
 
-    if (!allQuestions || allQuestions.length === 0) {
+    if (!suggestionPool || suggestionPool.length === 0) {
       setSuggestions([])
       setOpen(false)
       return
@@ -87,14 +84,7 @@ export default function AnswerInput({
 
     const searchTerm = value.toLowerCase().trim()
 
-    // Inclure toutes les questions pour les suggestions (même la question actuelle)
-    const questionsWithAnswers = allQuestions.filter((q) => q.answer && q.answer.trim().length > 0)
-
-    const allAnswers = questionsWithAnswers
-      .map((q) => q.answer.trim())
-      .filter((answer, index, self) => self.indexOf(answer) === index)
-
-    const matching = allAnswers
+    const matching = suggestionPool
       .filter((answer) => answer.toLowerCase().startsWith(searchTerm))
       .slice(0, 5)
 
@@ -113,7 +103,7 @@ export default function AnswerInput({
       setOpen(false)
     }
     setSelectedIndex(-1)
-  }, [value, allQuestions, currentQuestionId, disabled, hasSubmitted, hasSelectedSuggestion, lastSubmittedValue])
+  }, [value, suggestionPool, disabled, hasSubmitted, hasSelectedSuggestion, lastSubmittedValue])
 
   // Scroll automatique vers la suggestion sélectionnée
   useEffect(() => {

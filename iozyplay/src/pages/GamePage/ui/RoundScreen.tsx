@@ -19,7 +19,8 @@ interface RoundScreenProps {
   answeredPlayers: Set<string>
   playerAnswers: Record<string, string>
   validatedAnswers: Record<string, boolean>
-  allQuestions: Question[]
+  answerSuggestions: string[]
+  revealedAnswer?: string
   waitingForGo: boolean
   gameStep: string
   showSettingsPopup: boolean
@@ -48,7 +49,8 @@ export default function RoundScreen({
   answeredPlayers,
   playerAnswers,
   validatedAnswers,
-  allQuestions,
+  answerSuggestions,
+  revealedAnswer,
   waitingForGo,
   gameStep,
   showSettingsPopup,
@@ -86,7 +88,8 @@ export default function RoundScreen({
         startTime={revealStartTime}
         isGameEnded={isGameEnded}
         isMediaReady={isMediaReady}
-        allQuestions={allQuestions}
+        answerSuggestions={answerSuggestions}
+        revealedAnswer={revealedAnswer}
         validatedAnswers={isOnline(gameMode) ? validatedAnswers : undefined}
       />
 

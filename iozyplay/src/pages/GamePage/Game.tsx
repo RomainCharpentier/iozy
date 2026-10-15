@@ -5,12 +5,14 @@ import GameTopBar from '@/pages/GamePage/ui/GameTopBar'
 import RoundScreen from '@/pages/GamePage/ui/RoundScreen'
 import EndScreen from '@/pages/GamePage/ui/EndScreen'
 import LoadingScreen from '@/pages/GamePage/ui/LoadingScreen'
+import { useAnswerSuggestions } from '@/pages/GamePage/question/useAnswerSuggestions'
 import type { Category, Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
 import { isSolo, isOnline } from '@/lib/game/gameMode'
 import { getGameModeStrategy } from '@/lib/game/strategies'
 import { getSocket } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
+import { getSessionToken, setSessionToken } from '@/utils/sessionToken'
 import { GameService, TIMING } from '@/services/gameService'
 import { toast } from 'sonner'
 import { soundManager } from '@/utils/sounds'
@@ -91,6 +93,13 @@ export default function Game({
   const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(new Set()) // Joueurs ayant soumis pendant la phase guess
   const [validatedAnswers, setValidatedAnswers] = useState<Record<string, boolean>>({}) // Réponses validées par le serveur (mode multijoueur)
   const [playerAnswers, setPlayerAnswers] = useState<Record<string, string>>({}) // Réponses des joueurs
+  // Bonne réponse envoyée par le serveur au reveal, associée à l'index de sa question
+  // (les handlers socket ne lisent pas currentQuestionIndex : pas de closure figée)
+  const [revealedAnswer, setRevealedAnswer] = useState<{
+    questionIndex: number
+    answer: string
+  } | null>(null)
+  const answerSuggestions = useAnswerSuggestions(gameQuestions)
 
   const previousQuestionsRef = useRef<string>('')
   const gameInstanceKeyRef = useRef<number>(0)
@@ -115,6 +124,7 @@ export default function Game({
     setAnsweredPlayers(new Set())
     setValidatedAnswers({})
     setPlayerAnswers({})
+    setRevealedAnswer(null)
 
     gameEndedRef.current = false
     successSoundPlayedRef.current = false
@@ -573,7 +583,7 @@ export default function Game({
       const handleConnect = () => {
         socket.off('connect', handleConnect)
         // Rejoindre le salon après reconnexion et demander l'état
-        socket.emit('room:rejoin', { roomCode, playerId })
+        socket.emit('room:rejoin', { roomCode, playerId, sessionToken: getSessionToken(roomCode) })
         socket.emit('game:get-state', { roomCode })
       }
       socket.on('connect', handleConnect)
@@ -590,7 +600,7 @@ export default function Game({
     if (socket.connected && roomCode) {
       // Vérifier si le socket est dans la room (socket.rooms n'est pas accessible côté client)
       // On émet room:rejoin pour s'assurer que le socket est dans la room
-      socket.emit('room:rejoin', { roomCode, playerId })
+      socket.emit('room:rejoin', { roomCode, playerId, sessionToken: getSessionToken(roomCode) })
     }
 
     const handleRoomState = (state: any) => {
@@ -618,6 +628,14 @@ export default function Game({
 
         if (state.game.questionIndex !== undefined) {
           setCurrentQuestionIndex(state.game.questionIndex)
+        }
+
+        // Réponse présente seulement après validation (reconnexion pendant le reveal)
+        if (typeof state.game.correctAnswer === 'string' && state.game.questionIndex !== undefined) {
+          setRevealedAnswer({
+            questionIndex: state.game.questionIndex,
+            answer: state.game.correctAnswer,
+          })
         }
 
         // Stocker durationMs pour que handleMediaStart puisse l'utiliser
@@ -851,6 +869,7 @@ export default function Game({
           roomCode,
           playerId,
           playerName: 'Joueur', // Nom par défaut
+          sessionToken: getSessionToken(roomCode),
         })
         return
       }
@@ -860,7 +879,13 @@ export default function Game({
         console.error('[Game] Erreur serveur:', { code, message })
 
         // Erreurs critiques qui nécessitent un message utilisateur
-        const criticalErrors = ['ROOM_NOT_FOUND', 'ROOM_FULL', 'GAME_ERROR', 'NETWORK_ERROR']
+        const criticalErrors = [
+          'ROOM_NOT_FOUND',
+          'ROOM_FULL',
+          'GAME_ERROR',
+          'NETWORK_ERROR',
+          'INVALID_SESSION',
+        ]
         if (criticalErrors.includes(code)) {
           toast.error(`Erreur: ${message || 'Une erreur est survenue'}`)
         }
@@ -896,7 +921,19 @@ export default function Game({
     socket.on('game:sync', handleGameSync)
     socket.on('game:next', handleNextQuestion)
 
-    const handleGameReveal = ({ durationMs }: { questionIndex?: number; durationMs?: number }) => {
+    const handleGameReveal = ({
+      durationMs,
+      questionIndex,
+      correctAnswer,
+    }: {
+      questionIndex?: number
+      durationMs?: number
+      correctAnswer?: string
+    }) => {
+      if (typeof correctAnswer === 'string' && questionIndex !== undefined) {
+        setRevealedAnswer({ questionIndex, answer: correctAnswer })
+      }
+
       // Arrêter le timer existant pour le redémarrer avec la logique de reveal
       clearTimerInterval()
 
@@ -958,12 +995,20 @@ export default function Game({
       correctPlayers: correctPlayerIds,
       players,
       playerAnswers: playerAnswersData,
+      questionIndex,
+      correctAnswer,
     }: {
       validatedAnswers: Record<string, boolean>
       correctPlayers: string[]
       players: Player[]
       playerAnswers?: Record<string, string> // Réponses des joueurs
+      questionIndex?: number
+      correctAnswer?: string // Bonne réponse, envoyée seulement à la fin du guess
     }) => {
+      if (typeof correctAnswer === 'string' && questionIndex !== undefined) {
+        setRevealedAnswer({ questionIndex, answer: correctAnswer })
+      }
+
       // Mettre à jour les scores des joueurs
       setGamePlayers(players)
 
@@ -1006,12 +1051,18 @@ export default function Game({
 
     // Gérer la reconnexion
     socket.on('reconnect', () => {
-      socket.emit('room:rejoin', { roomCode, playerId })
+      socket.emit('room:rejoin', { roomCode, playerId, sessionToken: getSessionToken(roomCode) })
     })
 
     // S'assurer que le socket est dans la room
     // Attendre d'abord que room:joined ou room:rejoined soit reçu avant de continuer
     let hasJoinedRoom = false
+
+    // Jeton de session délivré si le fallback room:join crée le joueur
+    const handleSessionToken = ({ sessionToken }: { sessionToken?: string } = {}) => {
+      setSessionToken(roomCode, sessionToken)
+    }
+    socket.on('room:joined', handleSessionToken)
 
     const handleRoomJoinedOrRejoined = () => {
       if (!hasJoinedRoom) {
@@ -1025,7 +1076,7 @@ export default function Game({
     socket.once('room:rejoined', handleRoomJoinedOrRejoined)
 
     // Essayer de rejoindre la room
-    socket.emit('room:rejoin', { roomCode, playerId })
+    socket.emit('room:rejoin', { roomCode, playerId, sessionToken: getSessionToken(roomCode) })
 
     // Timeout de sécurité : si on ne reçoit pas room:joined/rejoined après 2 secondes,
     // essayer room:join (peut-être que le joueur n'a jamais rejoint)
@@ -1035,6 +1086,7 @@ export default function Game({
           roomCode,
           playerId,
           playerName: 'Joueur', // Nom par défaut si on n'a pas le nom
+          sessionToken: getSessionToken(roomCode),
         })
       }
     }, 2000)
@@ -1049,6 +1101,7 @@ export default function Game({
 
     return () => {
       socket.off('room:state', handleRoomState)
+      socket.off('room:joined', handleSessionToken)
       socket.off('game:start', handleGameStarted)
       socket.off('game:go', handleGameGo)
       socket.off('game:sync', handleGameSync)
@@ -1374,7 +1427,12 @@ export default function Game({
               answeredPlayers={answeredPlayers}
               playerAnswers={playerAnswers}
               validatedAnswers={validatedAnswers}
-              allQuestions={gameQuestions}
+              answerSuggestions={answerSuggestions}
+              revealedAnswer={
+                revealedAnswer?.questionIndex === currentQuestionIndex
+                  ? revealedAnswer.answer
+                  : undefined
+              }
               waitingForGo={waitingForGo}
               gameStep={gameStep}
               showSettingsPopup={showSettingsPopup}

@@ -2,8 +2,8 @@
  * Gestionnaires d'événements Socket.io pour le jeu
  */
 
-import { isHost, getRoomState, findPlayerBySocketId } from '../domain/room.js';
-import { startGame, restartGameWithCategories, restartGame, checkAnswer, storeAnswer, validateAnswers, voteSkip, resetSkipVotes, nextQuestion, getGameState } from '../domain/game.js';
+import { isHost, getRoomState, findPlayerBySocketId, toPublicPlayers, toPublicQuestion, toPublicQuestions } from '../domain/room.js';
+import { startGame, restartGameWithCategories, restartGame, checkAnswer, storeAnswer, validateAnswers, voteSkip, resetSkipVotes, nextQuestion, getGameState, getCorrectAnswer } from '../domain/game.js';
 import { roomRepository } from '../infrastructure/roomRepository.js';
 
 /**
@@ -25,10 +25,10 @@ function syncPlayerToGame(socket, room) {
   }
 
   const gameStartData = {
-    currentQuestion: room.questions[room.game.questionIndex],
-    questions: room.questions,
+    currentQuestion: toPublicQuestion(room.questions[room.game.questionIndex]),
+    questions: toPublicQuestions(room.questions),
     questionIndex: room.game.questionIndex,
-    players: room.players,
+    players: toPublicPlayers(room.players),
     defaultTimeLimit: room.defaultTimeLimit,
     durationMs: room.game.durationMs
   };
@@ -111,8 +111,10 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
       io.to(roomCode).emit('game:answers-validated', {
         validatedAnswers: validationResult.validatedAnswers,
         correctPlayers: validationResult.correctPlayers.map(p => p.id),
-        players: validationResult.players,
-        playerAnswers: playerAnswers // Envoyer les réponses des joueurs
+        players: toPublicPlayers(validationResult.players),
+        playerAnswers: playerAnswers, // Envoyer les réponses des joueurs
+        questionIndex: currentRoom.game.questionIndex,
+        correctAnswer: getCorrectAnswer(currentRoom) // Révélée seulement maintenant
       });
     }
     
@@ -124,7 +126,8 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
     // Les clients démarrent immédiatement à la réception
     io.to(roomCode).emit('game:reveal', {
       questionIndex: currentRoom.game.questionIndex,
-      durationMs: currentRoom.game.durationMs
+      durationMs: currentRoom.game.durationMs,
+      correctAnswer: getCorrectAnswer(currentRoom)
     });
     
     // Attendre la durée de la phase reveal (même durée que le guess) avant de passer à la question suivante
@@ -153,7 +156,7 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
       if (result.isFinished) {
         broadcastRoomState(io, roomCode, result.room);
         io.to(roomCode).emit('game:end', {
-          players: result.players
+          players: toPublicPlayers(result.players)
         });
       } else {
         // Réinitialiser readyPlayers et votes skip pour la nouvelle question
@@ -168,8 +171,8 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
         
         // Envoyer d'abord game:next, puis room:state pour synchroniser tous les clients
         io.to(roomCode).emit('game:next', {
-          currentQuestion: result.currentQuestion,
-          questions: result.room.questions,
+          currentQuestion: toPublicQuestion(result.currentQuestion),
+          questions: toPublicQuestions(result.room.questions),
           questionIndex: result.questionIndex,
           durationMs: result.room.game.durationMs
           // startedAt sera défini au moment du "go"
@@ -217,10 +220,10 @@ export function setupGameHandlers(socket, io) {
     
     // Envoyer l'état de démarrage (sans startedAt, sera défini au "go")
     const gameStartedData = {
-      currentQuestion: questions[0],
-      questions: questions,
+      currentQuestion: toPublicQuestion(room.questions[0]),
+      questions: toPublicQuestions(room.questions),
       questionIndex: 0,
-      players: room.players,
+      players: toPublicPlayers(room.players),
       defaultTimeLimit: room.defaultTimeLimit,
       durationMs: room.game.durationMs
     };
@@ -259,10 +262,10 @@ export function setupGameHandlers(socket, io) {
     scheduleNextQuestionTimer(io, roomCode, room);
     
     const gameStartedData = {
-      currentQuestion: room.questions[0],
-      questions: room.questions,
+      currentQuestion: toPublicQuestion(room.questions[0]),
+      questions: toPublicQuestions(room.questions),
       questionIndex: 0,
-      players: room.players,
+      players: toPublicPlayers(room.players),
       defaultTimeLimit: room.defaultTimeLimit,
       durationMs: room.game.durationMs
     };
@@ -299,10 +302,10 @@ export function setupGameHandlers(socket, io) {
     scheduleNextQuestionTimer(io, roomCode, room);
     
     const gameStartedData = {
-      currentQuestion: room.questions[0],
-      questions: room.questions,
+      currentQuestion: toPublicQuestion(room.questions[0]),
+      questions: toPublicQuestions(room.questions),
       questionIndex: 0,
-      players: room.players,
+      players: toPublicPlayers(room.players),
       defaultTimeLimit: room.defaultTimeLimit,
       durationMs: room.game.durationMs
     };
@@ -489,8 +492,10 @@ export function setupGameHandlers(socket, io) {
           io.to(roomCode).emit('game:answers-validated', {
             validatedAnswers: validationResult.validatedAnswers,
             correctPlayers: validationResult.correctPlayers.map(p => p.id),
-            players: validationResult.players,
-            playerAnswers: playerAnswers // Envoyer les réponses des joueurs
+            players: toPublicPlayers(validationResult.players),
+            playerAnswers: playerAnswers, // Envoyer les réponses des joueurs
+            questionIndex: room.game.questionIndex,
+            correctAnswer: getCorrectAnswer(room) // Révélée seulement maintenant
           });
         }
         
@@ -501,7 +506,8 @@ export function setupGameHandlers(socket, io) {
         // Passer à la phase reveal
         io.to(roomCode).emit('game:reveal', {
           questionIndex: room.game.questionIndex,
-          durationMs: room.game.durationMs
+          durationMs: room.game.durationMs,
+          correctAnswer: getCorrectAnswer(room)
         });
         
         // Programmer directement le timer pour la phase reveal (sans passer par scheduleNextQuestionTimer)
@@ -522,7 +528,7 @@ export function setupGameHandlers(socket, io) {
           if (result.isFinished) {
             broadcastRoomState(io, roomCode, result.room);
             io.to(roomCode).emit('game:end', {
-              players: result.players
+              players: toPublicPlayers(result.players)
             });
           } else {
             // Réinitialiser readyPlayers et votes skip pour la nouvelle question
@@ -535,8 +541,8 @@ export function setupGameHandlers(socket, io) {
             
             // Envoyer d'abord game:next, puis room:state pour synchroniser tous les clients
             io.to(roomCode).emit('game:next', {
-              currentQuestion: result.currentQuestion,
-              questions: result.room.questions,
+              currentQuestion: toPublicQuestion(result.currentQuestion),
+              questions: toPublicQuestions(result.room.questions),
               questionIndex: result.questionIndex,
               durationMs: result.room.game.durationMs
             });
@@ -574,7 +580,7 @@ export function setupGameHandlers(socket, io) {
         if (nextResult.isFinished) {
           broadcastRoomState(io, roomCode, nextResult.room);
           io.to(roomCode).emit('game:end', {
-            players: nextResult.players
+            players: toPublicPlayers(nextResult.players)
           });
         } else {
           // Réinitialiser readyPlayers et votes skip pour la nouvelle question
@@ -586,8 +592,8 @@ export function setupGameHandlers(socket, io) {
           roomRepository.update(roomCode, nextResult.room);
           
           io.to(roomCode).emit('game:next', {
-            currentQuestion: nextResult.currentQuestion,
-            questions: nextResult.room.questions,
+            currentQuestion: toPublicQuestion(nextResult.currentQuestion),
+            questions: toPublicQuestions(nextResult.room.questions),
             questionIndex: nextResult.questionIndex,
             durationMs: nextResult.room.game.durationMs
           });
@@ -619,7 +625,7 @@ export function setupGameHandlers(socket, io) {
     if (result.isFinished) {
       broadcastRoomState(io, roomCode, result.room);
       io.to(roomCode).emit('game:end', {
-        players: result.players
+        players: toPublicPlayers(result.players)
       });
     } else {
       // Programmer le timer pour la nouvelle question
@@ -627,7 +633,7 @@ export function setupGameHandlers(socket, io) {
       
       broadcastRoomState(io, roomCode, result.room);
       io.to(roomCode).emit('game:next', {
-        currentQuestion: result.currentQuestion,
+        currentQuestion: toPublicQuestion(result.currentQuestion),
         questionIndex: result.questionIndex,
         startedAt: result.room.game.startedAt,
         durationMs: result.room.game.durationMs
