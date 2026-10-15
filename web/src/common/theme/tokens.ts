@@ -1,5 +1,5 @@
 // The interface colors are NOT mirrored here: they live in the IozyKit charter
-// (vendor/iozykit/tokens.json, copied by `npm run kit:sync`) and reach the code
+// (tokens.json of the iozykit package, pinned in package.json) and reach the code
 // through the Tailwind classes of src/index.css (bg-surface, text-textDim...)
 // or `var(--color-*)` in an inline style. A hex value written here would be a
 // second source, out of phase with the kit at the first change.

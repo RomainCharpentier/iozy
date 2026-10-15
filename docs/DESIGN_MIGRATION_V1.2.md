@@ -1043,3 +1043,27 @@ Vérifié : `npm test`, `typecheck`, `lint`, `check:contrast` (116 paires et
 À reprendre : les `meta theme-color` d'`index.html` et le manifeste gardent
 leurs couleurs en dur (pas de variable CSS possible là) ; le README du kit note
 encore IozyCore « à faire ».
+
+
+### Lot 166 — La charte IozyKit devient une dépendance épinglée
+
+Le kit est public : la copie `web/vendor/iozykit/` et `npm run kit:sync`
+disparaissent. `package.json` déclare `iozykit` en dépendance git épinglée sur
+le commit 2fe29b8 (`github:RomainCharpentier/IozyKit#<sha>`) ; le commit
+installé se lit dans `package-lock.json`, qui tient le rôle de `VERSION`.
+`index.css` importe `iozykit/css/{tokens,base,components}.css` dans les mêmes
+couches Tailwind (Tailwind v4 résout un paquet de `node_modules`), et
+`check:contrast` lit `node_modules/iozykit/tokens.json`. Mettre le kit à jour :
+avancer le sha dans `package.json`, puis `npm install`.
+
+Le Dockerfile garde `node:24-alpine`, qui n'a pas git : avec le commit épinglé
+dans le lockfile, `npm ci` télécharge l'archive GitHub du commit sans appeler
+git (image construite pour le vérifier, les deux thèmes du kit dans le CSS
+servi). Rien ne change à l'écran.
+
+Vérifié : `npm test` (491), `typecheck`, `lint`, `check:contrast` (116 paires et
+6 avatars), `build`, `docker build` de `web/`.
+
+À reprendre : `check:deploiement` n'a pas tourné (il veut l'API derrière nginx ;
+seul un commentaire du Dockerfile change) ; IozyPlay garde sa copie du kit et
+son script de synchronisation ; le README du kit note encore IozyCore « à faire ».

@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // The fonts of the charter, self-hosted. The weights to load are listed in
-// vendor/iozykit/tokens.json (fonts.packages); the families reach the CSS
+// tokens.json of the iozykit package (fonts.packages); the families reach the CSS
 // through the kit's --iozy-font-* variables (see index.css).
 import '@fontsource/space-grotesk/500.css'
 import '@fontsource/space-grotesk/700.css'
