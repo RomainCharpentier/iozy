@@ -167,6 +167,9 @@ export default function Game({
 
     setGamePlayers(players.map((p) => ({ ...p, score: 0 })))
   }, [strategy, players])
+  // Version courante pour les handlers socket (leur effet n'est pas relancé à chaque rendu)
+  const resetGameStateRef = useRef(resetGameState)
+  resetGameStateRef.current = resetGameState
 
   useEffect(() => {
     if (gameQuestions.length === 0) return
@@ -676,6 +679,14 @@ export default function Game({
       startedAt?: number
       durationMs?: number
     }) => {
+      // Un game:start reçu après la fin d'une partie est forcément une nouvelle partie
+      // (« Rejouer » / « Changer les thèmes » de l'hôte). Ne pas compter sur un changement
+      // de la liste des questions : le nouveau tirage peut être identique à l'ancien.
+      if (gameEndedRef.current) {
+        resetGameStateRef.current()
+        gameInstanceKeyRef.current += 1
+      }
+
       if (serverQuestions?.length) {
         setGameQuestions(serverQuestions)
         questionsRef.current = serverQuestions
