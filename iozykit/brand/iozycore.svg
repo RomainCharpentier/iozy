@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="IozyCore">
+  <!-- Généré par web/scripts/make-icons.mjs - ne pas modifier à la main. -->
+  <style>
+    /* Le favicon vit dans le chrome du NAVIGATEUR, pas dans la page : il suit
+       la préférence du système, pas le thème choisi dans l'application. */
+    :root { --tuile: #bc583b; --encre: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      :root { --tuile: #d9694a; --encre: #16120f; }
+    }
+  </style>
+  <rect x="0" y="0" width="32" height="32" rx="7.5" fill="var(--tuile)"/>
+    <rect x="4" y="10.5" width="5.33" height="14.5" rx="1.5" fill="var(--encre)"/>
+    <rect x="13.33" y="7.2" width="5.33" height="17.8" rx="1.5" fill="var(--encre)"/>
+    <rect x="22.27" y="12.5" width="5.33" height="12.5" rx="1.5" fill="var(--encre)" transform="rotate(9 27.6 25)"/>
+    <rect x="3" y="25" width="26" height="2.2" rx="1.1" fill="var(--encre)"/>
+</svg>
