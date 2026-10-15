@@ -20,6 +20,16 @@ import {
 } from '../domain/room.js';
 import { getGameState } from '../domain/game.js';
 import { roomRepository } from '../infrastructure/roomRepository.js';
+import {
+  withPayload,
+  sendInvalidPayload,
+  isValidRoomCode,
+  isValidPlayerId,
+  isValidCategories,
+  normalizePlayerName,
+  normalizeAvatar,
+  normalizeTimeLimit
+} from './validation.js';
 
 /**
  * Envoie l'état de la room à tous les clients
@@ -82,15 +92,20 @@ function syncPlayerToGame(socket, room) {
 }
 
 export function setupRoomHandlers(socket, io) {
-  socket.on('room:create', async ({ playerId, playerName, categories, defaultTimeLimit = 5 }) => {
+  socket.on('room:create', withPayload(socket, 'room:create', async ({ playerId, playerName, categories, defaultTimeLimit }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
       return;
     }
 
-    const finalPlayerName = playerName || 'Hôte';
+    const finalPlayerName = normalizePlayerName(playerName, 'Hôte');
+    if (!isValidPlayerId(playerId) || finalPlayerName === null || !isValidCategories(categories)) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const roomCode = generateRoomCode();
-    const room = createRoom(roomCode, playerId, socket.id, finalPlayerName, categories, defaultTimeLimit);
+    const room = createRoom(roomCode, playerId, socket.id, finalPlayerName, categories, normalizeTimeLimit(defaultTimeLimit));
     
     roomRepository.create(room);
     socket.join(roomCode);
@@ -98,11 +113,17 @@ export function setupRoomHandlers(socket, io) {
     const state = getRoomState(room);
     socket.emit('room:created', { roomCode, room: state });
     broadcastRoomState(io, roomCode, room);
-  });
+  }));
 
-  socket.on('room:join', async ({ roomCode, playerId, playerName, playerAvatar }) => {
+  socket.on('room:join', withPayload(socket, 'room:join', async ({ roomCode, playerId, playerName, playerAvatar }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
+      return;
+    }
+
+    const finalPlayerName = normalizePlayerName(playerName, 'Joueur');
+    if (!isValidPlayerId(playerId) || !isValidRoomCode(roomCode) || finalPlayerName === null) {
+      sendInvalidPayload(socket);
       return;
     }
 
@@ -112,8 +133,6 @@ export function setupRoomHandlers(socket, io) {
       sendError(socket, 'ROOM_NOT_FOUND', 'Salon introuvable');
       return;
     }
-
-    const finalPlayerName = playerName || 'Joueur';
 
     // Vérifier si le joueur existe déjà (reconnexion)
     const existingPlayer = findPlayer(room, playerId);
@@ -149,7 +168,7 @@ export function setupRoomHandlers(socket, io) {
       return;
     }
 
-    addPlayer(room, playerId, socket.id, finalPlayerName, playerAvatar || '🎮');
+    addPlayer(room, playerId, socket.id, finalPlayerName, normalizeAvatar(playerAvatar, '🎮'));
     roomRepository.update(roomCode, room);
     
     // Joindre la room AVANT de broadcaster
@@ -163,11 +182,16 @@ export function setupRoomHandlers(socket, io) {
     setImmediate(() => {
       broadcastRoomState(io, roomCode, room);
     });
-  });
+  }));
 
-  socket.on('room:rejoin', async ({ roomCode, playerId }) => {
+  socket.on('room:rejoin', withPayload(socket, 'room:rejoin', async ({ roomCode, playerId }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
+      return;
+    }
+
+    if (!isValidPlayerId(playerId) || !isValidRoomCode(roomCode)) {
+      sendInvalidPayload(socket);
       return;
     }
 
@@ -196,21 +220,32 @@ export function setupRoomHandlers(socket, io) {
     socket.emit('room:state', state);
     syncPlayerToGame(socket, room);
     broadcastRoomState(io, roomCode, room);
-  });
+  }));
 
-  socket.on('update-player-name', ({ roomCode, playerName }) => {
+  socket.on('update-player-name', withPayload(socket, 'update-player-name', ({ roomCode, playerName }) => {
+    const finalPlayerName = normalizePlayerName(playerName, null);
+    if (!isValidRoomCode(roomCode) || !finalPlayerName) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     if (!room) {
       sendError(socket, 'ROOM_NOT_FOUND', 'Salon introuvable');
       return;
     }
 
-    updatePlayerName(room, socket.id, playerName);
+    updatePlayerName(room, socket.id, finalPlayerName);
     roomRepository.update(roomCode, room);
     broadcastRoomState(io, roomCode, room);
-  });
+  }));
 
-  socket.on('room:leave', ({ roomCode }) => {
+  socket.on('room:leave', withPayload(socket, 'room:leave', ({ roomCode }) => {
+    if (!isValidRoomCode(roomCode)) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     if (!room) return;
 
@@ -232,7 +267,7 @@ export function setupRoomHandlers(socket, io) {
       roomRepository.update(roomCode, room);
       broadcastRoomState(io, roomCode, room);
     }
-  });
+  }));
 
   // Gestion améliorée des déconnexions
   socket.on('disconnect', (reason) => {
