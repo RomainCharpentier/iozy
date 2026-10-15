@@ -5,6 +5,7 @@ export type GameMode = 'solo' | 'online'
 export interface Player {
   id: string // playerId (UUID persistant)
   name: string
+  avatar?: string // emoji choisi (défaut serveur : 🎮)
   score: number
   isHost?: boolean
   socketId?: string // socket.id (peut changer à chaque reconnexion)

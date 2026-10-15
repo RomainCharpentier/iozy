@@ -1,5 +1,6 @@
 import gameStyles from '@/pages/GamePage/Game.module.scss'
 import type { Player } from '@/lib/game/types'
+import { getPlayerAvatarLabel } from '@/utils/playerAvatar'
 
 interface PlayersPanelProps {
   players: Player[]
@@ -58,7 +59,9 @@ export default function PlayersPanel({
               {index === 0 && isGameEnded && (
                 <div className={gameStyles.gameInterfaceWinnerCrown}>👑</div>
               )}
-              <div className={gameStyles.gameInterfacePlayerAvatar}>{player.name[0]}</div>
+              <div className={gameStyles.gameInterfacePlayerAvatar}>
+                {getPlayerAvatarLabel(player)}
+              </div>
               <div className={gameStyles.gameInterfacePlayerInfo}>
                 <div className={gameStyles.gameInterfacePlayerName}>{player.name}</div>
                 {!isGameEnded && isRevealPhase && playerAnswer && (
