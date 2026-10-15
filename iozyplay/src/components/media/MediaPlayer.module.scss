@@ -7,6 +7,11 @@
   width: 100% !important;
   height: auto !important;
   min-height: 0 !important;
+  /*
+   * Soundwaves plus basses pour laisser la place au lecteur <audio> et aux paddings
+   * (~7.5rem) quand la zone média est petite (cqh = hauteur de la zone média du jeu).
+   */
+  --soundwave-height: clamp(4rem, calc(100cqh - 7.5rem), 10rem);
 }
 
 .videoPlayer {

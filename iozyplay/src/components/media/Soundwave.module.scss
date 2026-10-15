@@ -7,7 +7,8 @@
   max-width: 100%;
   box-sizing: border-box;
   padding: 1rem 0;
-  height: 160px;
+  /* Surchargeable par le conteneur (zone média du jeu) ; 160px par défaut */
+  height: var(--soundwave-height, 160px);
 }
 
 .waveBar {
