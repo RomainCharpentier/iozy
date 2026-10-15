@@ -1,13 +1,31 @@
-/* Layout principal - structure verticale simple */
+@use '../../styles/breakpoints' as bp;
+
+/*
+ * Layout de l'écran de jeu.
+ *
+ * ≥ md : l'écran occupe exactement la hauteur du viewport (pas de défilement de page).
+ *   .gameScreen (colonne, 100dvh)
+ *     ├─ barre du haut (hauteur fixe, compacte)
+ *     └─ .gameMain (flex: 1)
+ *          └─ .gameInterfaceBody (ligne)
+ *               ├─ colonne question : catégorie / zone média (flex: 1) / réponse / indice
+ *               └─ classement (défile dans son propre panneau)
+ *   La zone média absorbe la hauteur restante ; la vidéo du reveal y est dimensionnée
+ *   en 16:9 à partir de la taille de la zone (container queries).
+ *
+ * < md : flux vertical classique, la page peut défiler ; la réponse reste sous le média.
+ */
 .gameScreen {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--spacing-sm);
   width: 100%;
   max-width: 1280px;
-  margin: 0 auto;
-  padding: 1.25rem;
-  padding-top: 4.5rem;
+  /* Annule le padding vertical de .app (App.module.scss) pour occuper tout le viewport */
+  margin: calc(-1 * var(--container-padding)) auto;
+  /* Le bandeau fixe « Devine la musique » est réservé ici : rien ne passe dessous */
+  padding: var(--game-banner-height) 0 var(--spacing-sm);
+  height: max(100dvh, 30rem);
   min-height: 0;
   box-sizing: border-box;
 }
@@ -15,18 +33,21 @@
 .gameMain {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
   min-width: 0;
-  flex: 1;
+  min-height: 0;
   box-sizing: border-box;
 }
 
-/* Corps : flex horizontal sur desktop, vertical sur mobile */
+/* Corps : ligne (question + classement) sur desktop, colonne sur mobile */
 .gameInterfaceBody {
   display: flex;
   flex-direction: row;
-  gap: 1.5rem;
+  flex: 1 1 0;
+  gap: var(--spacing-md);
   min-width: 0;
-  align-items: flex-start;
+  min-height: 0;
+  align-items: stretch;
 }
 
 .gameInterfaceBodyNoSidebar {
@@ -38,11 +59,15 @@
   align-items: center;
 }
 
+/* Conteneur de l'écran de fin (Score) : défile dans son propre panneau si besoin */
 .gameInterfaceGame {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   max-width: 820px;
+  max-height: 100%;
   width: 100%;
+  overflow-y: auto;
   box-sizing: border-box;
 }
 
@@ -51,42 +76,36 @@
   margin: 0 auto;
 }
 
+/* Colonne question : catégorie, zone média (flexible), réponse, indice */
 .questionCard {
-  display: grid;
-  grid-template-rows: auto auto auto;
-  gap: 0;
-  row-gap: var(--spacing-md);
-  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
+  max-width: 960px;
   width: 100%;
+  margin: 0 auto;
   background: transparent;
   border: none;
   padding: 0;
-  align-items: start;
-  justify-items: stretch;
 }
 
 .questionCardGameInterfaceGame {
-  display: grid;
-  grid-template-rows: auto auto auto;
-  row-gap: 1.25rem;
-  align-items: start;
-  justify-items: stretch;
   min-width: 0;
 }
 
 .questionHeader {
-  grid-row: 1;
   flex-shrink: 0;
   margin-bottom: 0;
 }
 
 .gameInterfaceGameHeader {
-  grid-row: 1;
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  flex-shrink: 0;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -97,11 +116,11 @@
 .gameInterfaceCategory {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: var(--spacing-xs);
+  padding: 0.25rem 0.75rem;
   background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-tertiary));
   border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, var(--border));
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -109,87 +128,92 @@
 }
 
 .gameInterfaceCategoryIcon {
-  font-size: 1.25rem;
+  display: inline-flex;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .gameInterfaceCategoryText {
   font-weight: 500;
   color: var(--text-primary);
   font-size: 0.86rem;
+  line-height: 1.3;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Habillage visuel de la zone média */
 .mediaContainer {
-  grid-row: 2;
   margin: 0;
-  align-self: start;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 1 auto;
-  min-height: clamp(260px, 38vh, 420px);
-  max-height: clamp(300px, 45vh, 520px);
-  width: 100%;
-  min-width: 0;
-  background: linear-gradient(
+  background:
+    linear-gradient(
       180deg,
       color-mix(in srgb, var(--accent-primary) 10%, transparent),
       transparent 60%
     ),
     var(--bg-tertiary);
   border-radius: 20px;
-  padding: 1rem;
-  overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border) 72%, var(--accent-primary));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 14px 36px rgba(0, 0, 0, 0.3);
 }
 
-.mediaContainer > * {
+/*
+ * Zone média : prend toute la hauteur restante de la colonne.
+ * container-type: size permet à la scène (et aux soundwaves) de se dimensionner
+ * en unités cqw/cqh à partir de la place réellement disponible.
+ */
+.gameInterfaceMedia {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 9rem;
   width: 100%;
-  max-width: 100%;
   min-width: 0;
+  container-type: size;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 auto;
+  overflow: hidden;
+  padding: var(--spacing-sm);
+  box-sizing: border-box;
+  /* Hauteur des soundwaves (Soundwave.module.scss) : bornée par la hauteur de la zone */
+  --soundwave-height: clamp(4rem, calc(100cqh - 1rem), 10rem);
+}
+
+/* Scène du lecteur : toute la zone pendant la devinette */
+.mediaStage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
 }
 
-.gameInterfaceMedia {
-  width: 100%;
-  flex: 0 1 auto;
-  min-height: clamp(260px, 38vh, 420px);
-  max-height: clamp(300px, 45vh, 520px);
-  min-width: 0;
-  background: transparent;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
-  padding: 1rem;
-  box-sizing: border-box;
-  margin: 0;
+/* Reveal vidéo : plus grand rectangle 16:9 qui tient dans la zone */
+.mediaStageVideo {
+  width: min(100cqw, 100cqh * 16 / 9);
+  height: min(100cqh, 100cqw * 9 / 16);
+  border-radius: var(--radius-lg);
+  background: #000;
 }
 
 .gameInterfaceAnswer {
-  grid-row: 3;
   margin: 0;
-  padding: 0.25rem 0 0;
-  align-self: start;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   gap: 0;
   position: relative;
   width: 100%;
   min-width: 0;
-  flex-shrink: 0;
   border-radius: 0;
   border: none;
   background: transparent;
@@ -201,15 +225,16 @@
   width: 100%;
 }
 
+/* Barre du haut : une seule ligne compacte (progression | timer | score | actions) */
 .gameInterfaceHeader {
-  padding: 0.875rem 1.25rem;
+  padding: var(--spacing-xs) var(--spacing-md);
   background: color-mix(in srgb, var(--bg-tertiary) 88%, black);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  flex-wrap: nowrap;
+  gap: var(--spacing-sm);
   flex-shrink: 0;
   min-width: 0;
   overflow: hidden;
@@ -219,37 +244,39 @@
 }
 
 .gameInterfaceHeaderMain {
-  flex: 1 1 200px;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--spacing-md);
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .gameInterfaceMeta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-xs);
   flex-shrink: 0;
 }
 
 .gameInterfaceProgressSection {
-  flex: 1 1 140px;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .gameInterfaceProgressHeader {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   font-size: 0.95rem;
+  line-height: 1.3;
   min-width: 0;
   overflow: hidden;
+  white-space: nowrap;
 }
 
 .gameInterfaceQuestion {
@@ -272,9 +299,9 @@
 
 .gameInterfaceProgressBar {
   width: 100%;
-  height: 10px;
+  height: 8px;
   background: color-mix(in srgb, var(--bg-secondary) 85%, black);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border) 75%, var(--bg-secondary));
 }
@@ -288,34 +315,37 @@
 .gameInterfaceTimerSection {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.5rem 0.8rem;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
   background: color-mix(in srgb, var(--bg-secondary) 80%, var(--accent-primary) 8%);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--border-color, #334155) 80%, var(--accent-primary));
 }
 
 .gameInterfaceTimerIcon {
-  font-size: 1.15rem;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .gameInterfaceTimerValue {
-  font-size: 1.35rem;
+  font-size: 1.2rem;
+  line-height: 1.3;
   font-weight: 700;
   font-family: var(--font-family-mono);
   color: var(--accent-primary);
   letter-spacing: 0.02em;
 }
 
+/* Score sur une ligne (libellé + valeur) pour garder la barre compacte */
 .gameInterfaceScoreSection {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.05rem;
-  padding: 0.5rem 0.8rem;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
   background: color-mix(in srgb, var(--accent-alpha-2) 65%, var(--bg-secondary));
   border: 1px solid color-mix(in srgb, var(--accent-alpha-3) 70%, var(--border));
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .gameInterfaceScoreLabel {
@@ -323,24 +353,26 @@
   color: var(--text-secondary, #94a3b8);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .gameInterfaceScoreValue {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
+  line-height: 1.3;
   font-weight: 700;
   color: var(--accent-primary);
 }
 
 .gameInterfaceHeaderActions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--spacing-xs);
   flex-shrink: 0;
 }
 
 .gameInterfaceActionBtn {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--bg-secondary) 85%, var(--accent-primary) 6%);
   border: 1px solid color-mix(in srgb, var(--border-color, #334155) 80%, var(--accent-primary));
   color: var(--text-color, #f1f5f9);
@@ -372,23 +404,28 @@
   border-color: var(--error);
 }
 
+/* Classement : colonne de la hauteur du corps, la liste défile dans le panneau */
 .gamePlayersPanel {
-  flex: 0 0 300px;
+  flex: 0 0 clamp(13.75rem, 24vw, 18.75rem);
   min-width: 0;
-  max-width: 300px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .gameInterfaceSidebar {
-  padding: 0.75rem;
-  background: linear-gradient(
+  flex: 0 1 auto;
+  min-height: 0;
+  padding: var(--spacing-sm);
+  background:
+    linear-gradient(
       180deg,
       color-mix(in srgb, var(--accent-primary) 10%, transparent),
       transparent 55%
     ),
     color-mix(in srgb, var(--bg-tertiary) 88%, black);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   border: 1px solid color-mix(in srgb, var(--border-color, #334155) 78%, var(--accent-primary));
-  max-height: 70vh;
   overflow-y: auto;
   overflow-x: hidden;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
@@ -400,7 +437,8 @@
   justify-content: space-between;
   margin-bottom: 0.6rem;
   padding-bottom: 0.45rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-color, #334155) 75%, var(--accent-primary));
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border-color, #334155) 75%, var(--accent-primary));
 }
 
 .gameInterfaceSidebarTitleWrapper {
@@ -618,21 +656,21 @@
 }
 
 .hint {
-  grid-row: 4;
-  margin-top: 0.1rem;
+  flex-shrink: 0;
+  margin: 0;
   text-align: center;
   color: color-mix(in srgb, var(--text-secondary) 92%, white);
   font-style: normal;
-  padding: 0.38rem 0.75rem;
+  padding: 0.3rem 0.75rem;
   background: color-mix(in srgb, var(--accent-alpha-1) 80%, var(--bg-secondary));
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--accent-alpha-2) 70%, var(--border));
   font-size: 0.74rem;
-  flex-shrink: 0;
+  line-height: 1.35;
 }
 
 .hintIcon {
-  font-size: 16px;
+  font-size: 1rem;
   margin-right: 0.5rem;
 }
 
@@ -653,8 +691,13 @@
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 .gameInterfaceEndTitle {
@@ -766,13 +809,23 @@
 }
 
 @keyframes overlayShow {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes contentShow {
-  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .noQuestions {
@@ -816,7 +869,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .gameSettingsPopup {
@@ -1020,63 +1075,77 @@
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+
+/* Mobile : flux vertical, la page peut défiler ; média en 16:9 puis réponse juste dessous */
+@media (max-width: #{bp.$bp-md - 1px}) {
   .gameScreen {
-    padding: 0.75rem;
+    width: auto;
+    height: auto;
+    min-height: 100dvh;
+    /* Récupère une partie du padding horizontal de .app, sans dépasser du viewport */
+    margin-inline: calc(var(--spacing-sm) - var(--container-padding));
+  }
+
+  .gameMain,
+  .gameInterfaceBody,
+  .questionCard {
+    flex: none;
   }
 
   .gameInterfaceBody {
     flex-direction: column;
-    align-items: stretch;
+    gap: var(--spacing-sm);
   }
 
-  .gamePlayersPanel {
-    flex: 0 0 auto;
+  .questionCard {
     max-width: none;
   }
 
-  .gameInterfaceHeader {
-    flex-direction: column;
-    align-items: stretch;
+  .gameInterfaceMedia {
+    flex: none;
+    aspect-ratio: 16 / 9;
+    min-height: 12rem;
+    padding: var(--spacing-xs);
   }
 
-  .gameInterfaceHeaderMain {
-    flex-direction: column;
-    align-items: stretch;
+  .gamePlayersPanel {
+    flex: none;
   }
 
-  .gameInterfaceProgressSection {
-    flex: 1 1 auto;
-  }
-
-  .gameInterfaceMeta {
-    flex-direction: row;
-    justify-content: space-between;
+  .gameInterfaceGame {
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
-@media (max-width: 640px) {
-  .gameScreen {
-    padding: 0.5rem;
-    gap: 0.75rem;
-  }
-
-  .mediaContainer,
-  .gameInterfaceMedia {
-    min-height: 180px;
-    max-height: 260px;
-    padding: 0.75rem;
-  }
-
+/* Petit mobile : la barre du haut passe sur deux lignes (progression / timer, score, actions) */
+@media (max-width: #{bp.$bp-sm - 1px}) {
   .gameInterfaceHeader {
-    padding: 0.6rem 0.75rem;
+    flex-wrap: wrap;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    row-gap: var(--spacing-xs);
   }
 
-  .gameInterfaceTimerValue {
-    font-size: 1.15rem;
+  .gameInterfaceHeaderMain {
+    display: contents;
   }
 
+  .gameInterfaceProgressSection {
+    flex: 1 1 100%;
+  }
+
+  .gameInterfaceTimerSection,
+  .gameInterfaceScoreSection {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .gameInterfaceTimerValue,
   .gameInterfaceScoreValue {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
+  }
+
+  .gameInterfaceActionBtn {
+    width: 34px;
+    height: 34px;
   }
 }

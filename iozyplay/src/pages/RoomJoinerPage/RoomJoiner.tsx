@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRoomSocketJoin } from '@/hooks/useRoomSocket'
 import { soundManager } from '@/utils/sounds'
+import { getPlayerAvatarLabel } from '@/utils/playerAvatar'
 
 interface RoomJoinerProps {
   roomCode: string
@@ -117,6 +118,7 @@ export default function RoomJoiner({
                 className={`${styles.playerBadge} ${player.isHost ? styles.host : ''} ${!player.connected ? styles.disconnected : ''}`}
                 title={player.isHost ? 'Hôte' : 'Joueur'}
               >
+                <span aria-hidden="true">{getPlayerAvatarLabel(player)}</span>
                 {player.name}
                 {player.isHost && <span className={styles.hostBadge}>👑</span>}
                 {!player.connected && (

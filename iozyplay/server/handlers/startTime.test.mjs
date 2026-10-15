@@ -76,21 +76,38 @@ describe('startTime - conservé de game:start jusqu\'aux clients', () => {
 
     const start = io._getRoomEvents(ROOM).find(e => e.event === 'game:start');
     assert.ok(start, 'game:start émis');
-    assert.strictEqual(start.data.currentQuestion.startTime, 42);
-    assert.strictEqual(start.data.currentQuestion.answer, undefined);
-    assert.strictEqual(start.data.questions[0].startTime, 42);
+    const byId = Object.fromEntries(start.data.questions.map(q => [q.id, q]));
+    assert.strictEqual(byId.q1.startTime, 42);
+    assert.strictEqual(byId.q1.answer, undefined);
     // Absent : reste absent
-    assert.strictEqual('startTime' in start.data.questions[1], false);
+    assert.strictEqual('startTime' in byId.q2, false);
     // Invalides : retirés (le client démarre alors à 0 ou au t= de l'URL)
-    assert.strictEqual('startTime' in start.data.questions[2], false);
-    assert.strictEqual('startTime' in start.data.questions[3], false);
+    assert.strictEqual('startTime' in byId.q3, false);
+    assert.strictEqual('startTime' in byId.q4, false);
+    // currentQuestion = première question de la partie, startTime compris
+    assert.deepStrictEqual(start.data.currentQuestion, start.data.questions[0]);
+  });
+
+  test('tirage (questionCount) puis « Rejouer » : startTime suit chaque question', () => {
+    host._trigger('game:start', { roomCode: ROOM, questions: QUESTIONS.map(q => ({ ...q })), defaultTimeLimit: 5, questionCount: 2 });
+    host._trigger('game:restart', { roomCode: ROOM });
+
+    const starts = io._getRoomEvents(ROOM).filter(e => e.event === 'game:start');
+    assert.strictEqual(starts.length, 2);
+    for (const start of starts) {
+      for (const question of start.data.questions) {
+        if (question.id === 'q1') assert.strictEqual(question.startTime, 42);
+        else assert.strictEqual('startTime' in question, false);
+      }
+    }
   });
 
   test('room:state (resync, reconnexion) conserve startTime', () => {
     host._trigger('game:start', { roomCode: ROOM, questions: QUESTIONS.map(q => ({ ...q })), defaultTimeLimit: 5 });
     const state = JSON.parse(JSON.stringify(getRoomState(roomRepository.get(ROOM))));
-    assert.strictEqual(state.questions[0].startTime, 42);
-    assert.strictEqual(state.questions[0].answer, undefined);
+    const q1 = state.questions.find(q => q.id === 'q1');
+    assert.strictEqual(q1.startTime, 42);
+    assert.strictEqual(q1.answer, undefined);
   });
 
   test('game:next conserve startTime de la question suivante', () => {

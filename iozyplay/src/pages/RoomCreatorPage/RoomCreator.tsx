@@ -230,9 +230,10 @@ export default function RoomCreator({
         return
       }
 
-      const shuffledQuestions = QuestionService.shuffleQuestions(allQuestions)
-      const limitedQuestions = shuffledQuestions.slice(0, questionCount)
-      const questionsWithTimer = QuestionService.applyDefaultTimeLimit(limitedQuestions, timeLimit)
+      // On envoie tout le pool : le serveur tire `questionCount` questions au hasard,
+      // et refait un tirage à chaque « Rejouer » sans redemander les questions
+      const pool = QuestionService.buildQuestionPool(allQuestions)
+      const questionsWithTimer = QuestionService.applyDefaultTimeLimit(pool, timeLimit)
 
       soundManager.playStart()
       isStartingGameRef.current = true

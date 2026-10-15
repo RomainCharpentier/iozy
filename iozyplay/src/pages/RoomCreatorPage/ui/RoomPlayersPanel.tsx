@@ -1,6 +1,7 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
 import styles from '@/pages/RoomCreatorPage/ui/RoomPlayersPanel.module.scss'
 import type { Player } from '@/lib/game/types'
+import { getPlayerAvatarLabel } from '@/utils/playerAvatar'
 
 interface RoomPlayersPanelProps {
   players: Player[]
@@ -41,6 +42,7 @@ export default function RoomPlayersPanel({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
               {player.isHost && <span>👑</span>}
+              <span aria-hidden="true">{getPlayerAvatarLabel(player)}</span>
               <span>{player.name}</span>
             </div>
           </div>

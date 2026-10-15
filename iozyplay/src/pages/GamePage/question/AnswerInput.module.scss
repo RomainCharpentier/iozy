@@ -1,3 +1,5 @@
+@use '../../../styles/breakpoints' as bp;
+
 .answerInputWrapper {
   position: relative;
   width: 100%;
@@ -20,6 +22,15 @@
 }
 
 .answerActionsReveal {
+}
+
+/*
+ * Le bloc « Réponse correcte » est positionné sous le champ (absolute) : on lui réserve
+ * sa hauteur dans le flux pour qu'il ne déborde pas du viewport ni ne recouvre l'indice.
+ * 4.5rem = hauteur du bloc (~3.75rem, line-heights fixés plus bas) + écart de 0.55rem.
+ */
+.answerActions:has(> .overlay) {
+  margin-bottom: 4.5rem;
 }
 
 .answerActionsCorrect {
@@ -132,6 +143,18 @@
   box-sizing: border-box;
 }
 
+/*
+ * Desktop : le champ est en bas d'un écran à hauteur fixe, les suggestions s'ouvrent
+ * donc vers le haut (par-dessus la zone média) pour rester visibles sans défiler.
+ */
+@media (min-width: #{bp.$bp-md}) {
+  .suggestions {
+    top: auto;
+    bottom: calc(100% + 0.5rem);
+    max-height: min(300px, 40dvh);
+  }
+}
+
 .suggestion {
   padding: 0.875rem 1.25rem;
   font-size: 0.875rem;
@@ -207,6 +230,7 @@
 }
 
 .overlayLabel {
+  line-height: 1.2;
   font-size: 0.62rem;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -215,6 +239,7 @@
 }
 
 .overlayAnswer {
+  line-height: 1.3;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--success);

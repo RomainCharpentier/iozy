@@ -3,13 +3,15 @@
  */
 import type { Category, Question, QuestionsData } from '@/types'
 import { questionsApi, ApiError } from '@/api'
+import { QUESTION_COUNT } from '@/services/gameService'
 
 /**
  * Service de questions - API publique
  */
 export class QuestionService {
   /**
-   * Récupère toutes les questions pour les catégories sélectionnées
+   * Récupère toutes les questions pour les catégories sélectionnées, sans doublon
+   * (une question rangée dans plusieurs catégories n'apparaît qu'une fois)
    */
   static async getQuestionsForCategories(categories: Category[]): Promise<Question[]> {
     let allQuestions: Question[]
@@ -19,14 +21,32 @@ export class QuestionService {
       // Lecture seule (jeu) : en cas d'échec, aucune question disponible
       return []
     }
-    return allQuestions.filter((q) => {
-      const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
-      return questionCategories.some((cat) => categories.includes(cat))
+    return this.dedupeQuestions(
+      allQuestions.filter((q) => {
+        const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
+        return questionCategories.some((cat) => categories.includes(cat))
+      })
+    )
+  }
+
+  /**
+   * Retire les doublons (même id ou même mediaUrl) en gardant la première occurrence.
+   * Même règle que dedupeQuestions côté serveur (server/domain/questionDraw.js).
+   */
+  static dedupeQuestions(questions: Question[]): Question[] {
+    const seen = new Set<string>()
+    return questions.filter((q) => {
+      const keys = [q.id ? `id:${q.id}` : null, q.mediaUrl ? `url:${q.mediaUrl}` : null].filter(
+        (key): key is string => key !== null
+      )
+      if (keys.some((key) => seen.has(key))) return false
+      keys.forEach((key) => seen.add(key))
+      return true
     })
   }
 
   /**
-   * Mélange un tableau de questions (algorithme Fisher-Yates)
+   * Mélange un tableau de questions (algorithme Fisher-Yates), sans modifier l'entrée
    */
   static shuffleQuestions(questions: Question[]): Question[] {
     const shuffled = [...questions]
@@ -35,6 +55,15 @@ export class QuestionService {
       ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
     return shuffled
+  }
+
+  /**
+   * Prépare le pool envoyé au serveur (game:start / game:restart-with-categories) :
+   * dédupliqué, mélangé et borné à QUESTION_COUNT.POOL_MAX.
+   * Le serveur tire lui-même les questions de chaque partie dans ce pool, y compris au « Rejouer ».
+   */
+  static buildQuestionPool(questions: Question[]): Question[] {
+    return this.shuffleQuestions(this.dedupeQuestions(questions)).slice(0, QUESTION_COUNT.POOL_MAX)
   }
 
   /**

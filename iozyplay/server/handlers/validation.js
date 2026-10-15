@@ -5,11 +5,11 @@
 
 export const INVALID_PAYLOAD = 'INVALID_PAYLOAD';
 
-// Bornes alignées sur le client (src/services/gameService.ts, TIMING), avec une marge haute
+// Bornes alignées sur le client (src/services/gameService.ts, TIMING)
 export const TIME_LIMIT = {
-  DEFAULT: 5,
-  MIN: 5,
-  MAX: 120
+  DEFAULT: 20,
+  MIN: 10,
+  MAX: 60
 };
 
 export const LIMITS = {
@@ -89,6 +89,15 @@ export function normalizeTimeLimit(value, fallback = TIME_LIMIT.DEFAULT) {
     return Math.min(TIME_LIMIT.MAX, Math.max(TIME_LIMIT.MIN, Math.round(base)));
   }
   return Math.min(TIME_LIMIT.MAX, Math.max(TIME_LIMIT.MIN, Math.round(value)));
+}
+
+/**
+ * Normalise le nombre de questions demandé pour une partie.
+ * Absent ou non numérique → null (toutes les questions reçues) ; sinon entier borné à [1, QUESTIONS_MAX].
+ */
+export function normalizeQuestionCount(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.min(LIMITS.QUESTIONS_MAX, Math.max(1, Math.round(value)));
 }
 
 /**

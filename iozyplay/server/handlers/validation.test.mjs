@@ -2,7 +2,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert'
 import { setupGameHandlers } from './gameHandlers.js'
 import { setupRoomHandlers } from './roomHandlers.js'
-import { normalizeTimeLimit, safeTimerCallback, TIME_LIMIT } from './validation.js'
+import { normalizeTimeLimit, normalizeQuestionCount, safeTimerCallback, TIME_LIMIT, LIMITS } from './validation.js'
 import { createRoom, addPlayer } from '../domain/room.js'
 import { storeAnswer, validateAnswers, startGame } from '../domain/game.js'
 import { normalizeAnswer, compareAnswers } from '../domain/answerUtils.js'
@@ -64,7 +64,7 @@ describe('answerUtils - réponses non-string', () => {
   })
 
   test('validateAnswers ne plante pas avec une réponse non-string stockée', () => {
-    const room = createRoom(ROOM, 'host-id', 'socket-host', 'Host', [], 5)
+    const room = createRoom(ROOM, 'host-id', 'socket-host', 'Host', [], 20)
     addPlayer(room, 'p1', 'socket-p1', 'P1')
     startGame(room, [{ id: 'q1', answer: 'Song 1' }], 5)
     storeAnswer(room, 'socket-host', { evil: true })
@@ -88,6 +88,27 @@ describe('normalizeTimeLimit', () => {
     assert.strictEqual(normalizeTimeLimit(-10), TIME_LIMIT.MIN)
     assert.strictEqual(normalizeTimeLimit(10_000), TIME_LIMIT.MAX)
     assert.strictEqual(normalizeTimeLimit(15), 15)
+    assert.strictEqual(normalizeTimeLimit(5), TIME_LIMIT.MIN)
+  })
+
+  test('plage par défaut : 20 s, entre 10 et 60 s', () => {
+    assert.deepStrictEqual(TIME_LIMIT, { DEFAULT: 20, MIN: 10, MAX: 60 })
+  })
+})
+
+describe('normalizeQuestionCount', () => {
+  test('absent ou non numérique → null (toutes les questions)', () => {
+    for (const value of [undefined, null, NaN, Infinity, '3', {}, []]) {
+      assert.strictEqual(normalizeQuestionCount(value), null)
+    }
+  })
+
+  test('entier borné à [1, QUESTIONS_MAX]', () => {
+    assert.strictEqual(normalizeQuestionCount(3), 3)
+    assert.strictEqual(normalizeQuestionCount(2.6), 3)
+    assert.strictEqual(normalizeQuestionCount(0), 1)
+    assert.strictEqual(normalizeQuestionCount(-4), 1)
+    assert.strictEqual(normalizeQuestionCount(10_000), LIMITS.QUESTIONS_MAX)
   })
 })
 
@@ -113,7 +134,7 @@ describe('Handlers - payloads invalides', () => {
     io = createMockIO()
     hostSocket = createMockSocket('socket-host')
     playerSocket = createMockSocket('socket-p1')
-    const room = createRoom(ROOM, 'host-id', 'socket-host', 'Host', ['pop'], 5)
+    const room = createRoom(ROOM, 'host-id', 'socket-host', 'Host', ['pop'], 20)
     addPlayer(room, 'p1', 'socket-p1', 'P1')
     roomRepository.create(room)
     for (const socket of [hostSocket, playerSocket]) {
@@ -177,8 +198,9 @@ describe('Handlers - payloads invalides', () => {
     const cases = [
       [0, TIME_LIMIT.MIN],
       [-5, TIME_LIMIT.MIN],
-      [NaN, 5],
-      ['abc', 5],
+      // Valeur invalide → on garde celle de la room (bornée au MIN par le cas précédent)
+      [NaN, TIME_LIMIT.MIN],
+      ['abc', TIME_LIMIT.MIN],
       [99999, TIME_LIMIT.MAX],
       [10, 10]
     ]

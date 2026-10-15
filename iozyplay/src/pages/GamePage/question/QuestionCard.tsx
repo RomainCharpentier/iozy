@@ -4,6 +4,7 @@ import type { Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
 import { isSolo, isOnline } from '@/lib/game/gameMode'
 import MediaPlayer from '@/components/media/MediaPlayer'
+import { isYouTubeUrl } from '@/utils/youtube'
 import AnswerInput from '@/pages/GamePage/question/AnswerInput'
 import MediaSyncOverlay from '@/pages/GamePage/question/MediaSyncOverlay'
 import { TIMING } from '@/services/gameService'
@@ -310,6 +311,10 @@ export default function QuestionCard({
     return categories.find((c) => c.id === categoryId)
   }
 
+  // Au reveal d'une vidéo (fichier ou YouTube), la scène média adopte un ratio 16:9
+  const isVideoReveal =
+    isRevealPhase && (question.type === 'video' || isYouTubeUrl(question.mediaUrl))
+
   const categoryId = getCategoryId(question.category)
   const categoryInfo = getCategoryInfo(categoryId)
 
@@ -332,28 +337,33 @@ export default function QuestionCard({
             {waitingForGo && isOnline(gameMode) && gameStep !== 'playing' && (
               <MediaSyncOverlay gameStep={gameStep} mediaReady={mediaReady} />
             )}
-            <MediaPlayer
-              type={question.type}
-              mediaUrl={question.mediaUrl}
-              autoPlay={
-                isSolo(gameMode) ||
-                (isOnline(gameMode) && shouldStartMedia && !waitingForGo && mediaReady)
-              }
-              showVideo={isRevealPhase}
-              restartVideo={false}
-              timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
-              onVideoRestarted={() => {}}
-              shouldPause={shouldPause || (isOnline(gameMode) && waitingForGo)}
-              onRevealVideoStart={onRevealVideoStart}
-              onMediaReady={handleMediaReady}
-              onMediaStart={() => {
-                if (onMediaStart) {
-                  onMediaStart()
+            {/* Scène du lecteur : passe en 16:9 contraint par la hauteur au reveal vidéo */}
+            <div
+              className={`${gameStyles.mediaStage} ${isVideoReveal ? gameStyles.mediaStageVideo : ''}`}
+            >
+              <MediaPlayer
+                type={question.type}
+                mediaUrl={question.mediaUrl}
+                autoPlay={
+                  isSolo(gameMode) ||
+                  (isOnline(gameMode) && shouldStartMedia && !waitingForGo && mediaReady)
                 }
-              }}
-              startTime={startTime}
-              startSeconds={getQuestionStartTime(question)}
-            />
+                showVideo={isRevealPhase}
+                restartVideo={false}
+                timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
+                onVideoRestarted={() => {}}
+                shouldPause={shouldPause || (isOnline(gameMode) && waitingForGo)}
+                onRevealVideoStart={onRevealVideoStart}
+                onMediaReady={handleMediaReady}
+                onMediaStart={() => {
+                  if (onMediaStart) {
+                    onMediaStart()
+                  }
+                }}
+                startTime={startTime}
+                startSeconds={getQuestionStartTime(question)}
+              />
+            </div>
           </>
         )}
       </div>

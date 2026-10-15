@@ -1277,7 +1277,8 @@ export default function Game({
       }
     } else {
       if (onRestartWithNewCategories) {
-        onRestartWithNewCategories(newCategories, newQuestions)
+        // newQuestions est le pool mélangé : en solo, on garde les questionCount premières
+        onRestartWithNewCategories(newCategories, newQuestions.slice(0, questionCount))
       } else {
         window.location.reload()
       }

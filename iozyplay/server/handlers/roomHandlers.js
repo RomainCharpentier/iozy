@@ -21,7 +21,8 @@ import {
   verifySessionToken,
   toPublicPlayers,
   toPublicQuestion,
-  toPublicQuestions
+  toPublicQuestions,
+  DEFAULT_AVATAR
 } from '../domain/room.js';
 import { getGameState } from '../domain/game.js';
 import { roomRepository } from '../infrastructure/roomRepository.js';
@@ -97,7 +98,7 @@ function syncPlayerToGame(socket, room) {
 }
 
 export function setupRoomHandlers(socket, io) {
-  socket.on('room:create', withPayload(socket, 'room:create', async ({ playerId, playerName, categories, defaultTimeLimit }) => {
+  socket.on('room:create', withPayload(socket, 'room:create', async ({ playerId, playerName, playerAvatar, categories, defaultTimeLimit }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
       return;
@@ -110,7 +111,15 @@ export function setupRoomHandlers(socket, io) {
     }
 
     const roomCode = generateRoomCode();
-    const room = createRoom(roomCode, playerId, socket.id, finalPlayerName, categories, normalizeTimeLimit(defaultTimeLimit));
+    const room = createRoom(
+      roomCode,
+      playerId,
+      socket.id,
+      finalPlayerName,
+      categories,
+      normalizeTimeLimit(defaultTimeLimit),
+      normalizeAvatar(playerAvatar, DEFAULT_AVATAR)
+    );
     // Jeton secret renvoyé uniquement au créateur (protège l'identité de l'hôte)
     const sessionToken = issueSessionToken(room, playerId);
     
@@ -149,9 +158,10 @@ export function setupRoomHandlers(socket, io) {
         sendError(socket, 'INVALID_SESSION', 'Session invalide pour ce joueur');
         return;
       }
-      // Reconnecter le joueur et mettre à jour le nom
+      // Reconnecter le joueur et mettre à jour le nom (l'avatar n'est remplacé que s'il est valide)
       reconnectPlayer(room, playerId, socket.id);
       if (finalPlayerName) existingPlayer.name = finalPlayerName;
+      existingPlayer.avatar = normalizeAvatar(playerAvatar, existingPlayer.avatar || DEFAULT_AVATAR);
       roomRepository.cancelGracePeriod(roomCode, playerId);
       roomRepository.update(roomCode, room);
       socket.join(roomCode);
@@ -169,7 +179,7 @@ export function setupRoomHandlers(socket, io) {
     if (!isWaiting(room)) {
       // La partie a déjà commencé, permettre la reconnexion
       // Le joueur recevra l'état actuel de la partie
-      addPlayer(room, playerId, socket.id, finalPlayerName);
+      addPlayer(room, playerId, socket.id, finalPlayerName, normalizeAvatar(playerAvatar, DEFAULT_AVATAR));
       const newSessionToken = issueSessionToken(room, playerId);
       roomRepository.update(roomCode, room);
       socket.join(roomCode);
@@ -181,7 +191,7 @@ export function setupRoomHandlers(socket, io) {
       return;
     }
 
-    addPlayer(room, playerId, socket.id, finalPlayerName, normalizeAvatar(playerAvatar, '🎮'));
+    addPlayer(room, playerId, socket.id, finalPlayerName, normalizeAvatar(playerAvatar, DEFAULT_AVATAR));
     const newSessionToken = issueSessionToken(room, playerId);
     roomRepository.update(roomCode, room);
     

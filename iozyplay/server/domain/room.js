@@ -5,6 +5,9 @@
 
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 
+// Avatar attribué quand le client n'en fournit pas (ou en fournit un invalide)
+export const DEFAULT_AVATAR = '🎮';
+
 /**
  * Génère un code de salon unique
  */
@@ -15,7 +18,7 @@ export function generateRoomCode() {
 /**
  * Crée un nouveau salon
  */
-export function createRoom(roomCode, hostPlayerId, hostSocketId, hostName, categories, defaultTimeLimit = 5, hostAvatar = '🎮') {
+export function createRoom(roomCode, hostPlayerId, hostSocketId, hostName, categories, defaultTimeLimit = 5, hostAvatar = DEFAULT_AVATAR) {
   return {
     code: roomCode,
     hostPlayerId, // UUID persistant du host
@@ -23,7 +26,7 @@ export function createRoom(roomCode, hostPlayerId, hostSocketId, hostName, categ
       id: hostPlayerId, // UUID persistant
       socketId: hostSocketId, // socket.id (peut changer)
       name: hostName || 'Hôte',
-      avatar: hostAvatar,
+      avatar: hostAvatar || DEFAULT_AVATAR,
       score: 0,
       isHost: true,
       connected: true
@@ -83,9 +86,10 @@ export function findPlayer(room, playerId) {
 }
 
 /**
- * Ajoute un joueur à un salon
+ * Ajoute un joueur à un salon.
+ * Sans avatar fourni : DEFAULT_AVATAR pour un nouveau joueur, avatar conservé pour un joueur existant.
  */
-export function addPlayer(room, playerId, socketId, playerName, playerAvatar = '🎮') {
+export function addPlayer(room, playerId, socketId, playerName, playerAvatar) {
   if (!room) return null;
   
   // Vérifier si le joueur existe déjà par playerId
@@ -106,7 +110,7 @@ export function addPlayer(room, playerId, socketId, playerName, playerAvatar = '
     id: playerId, // UUID persistant
     socketId, // socket.id actuel
     name: playerName,
-    avatar: playerAvatar,
+    avatar: playerAvatar || DEFAULT_AVATAR,
     score: 0,
     isHost: false,
     connected: true
@@ -169,7 +173,7 @@ export function toPublicPlayer(player) {
   return {
     id: player.id,
     name: player.name,
-    avatar: player.avatar,
+    avatar: player.avatar || DEFAULT_AVATAR,
     score: player.score,
     isHost: player.isHost || false,
     connected: player.connected || false

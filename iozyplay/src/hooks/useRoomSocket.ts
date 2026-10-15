@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, type MutableRefObject } from 
 import { connectSocket, getSocket, setCurrentRoom, clearCurrentRoom } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
 import { getSessionToken, setSessionToken } from '@/utils/sessionToken'
+import { getLocalPlayerAvatar } from '@/utils/playerAvatar'
 import type { Player } from '@/lib/game/types'
 import { TIMING } from '@/services/gameService'
 
@@ -159,6 +160,7 @@ export function useRoomSocketJoin(
       roomCode,
       playerId,
       playerName: trimmedName,
+      playerAvatar: getLocalPlayerAvatar(),
       sessionToken: getSessionToken(roomCode),
     })
 
@@ -223,6 +225,7 @@ export function useRoomSocketCreate(
         socket.emit('room:create', {
           playerId,
           playerName: playerName || 'Hôte',
+          playerAvatar: getLocalPlayerAvatar(),
           categories,
           defaultTimeLimit: timeLimit,
         })
