@@ -7,7 +7,7 @@ import type { Player } from '@/lib/game/types'
 import { isSolo } from '@/lib/game/gameMode'
 import { getSocket, disconnectSocketIfConnected } from '@/utils/socket'
 import { soundManager } from '@/utils/sounds'
-import { useRoomSocket, type UseRoomSocketCreateResult } from '@/hooks/useRoomSocket'
+import { useRoomSocketCreate } from '@/hooks/useRoomSocket'
 import { TIMING, QUESTION_COUNT } from '@/services/gameService'
 import { QuestionService } from '@/services/questionService'
 import RoomConnectingState from '@/pages/RoomCreatorPage/ui/RoomConnectingState'
@@ -53,8 +53,8 @@ export default function RoomCreator({
   const [soloPlayers, setSoloPlayers] = useState<Player[]>([])
   const [soloCurrentPlayerName, setSoloCurrentPlayerName] = useState('')
 
-  const socketRoom = useRoomSocket({
-    mode: 'create',
+  // onRoomCreated peut rester inline : le hook le garde dans une ref (pas de re-run d'effet)
+  const socketCreate = useRoomSocketCreate({
     categories: categories as string[],
     playerName: playerName || 'Hôte',
     timeLimit,
@@ -67,7 +67,6 @@ export default function RoomCreator({
     },
   })
 
-  const socketCreate = socketRoom as UseRoomSocketCreateResult
   const roomCode = isSoloMode ? null : socketCreate.roomCode
   const players: Player[] = isSoloMode ? soloPlayers : socketCreate.players
   const shareLink = isSoloMode ? '' : socketCreate.shareLink

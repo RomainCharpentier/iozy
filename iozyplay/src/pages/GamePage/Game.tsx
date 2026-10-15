@@ -9,7 +9,7 @@ import type { Category, Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
 import { isSolo, isOnline } from '@/lib/game/gameMode'
 import { getGameModeStrategy } from '@/lib/game/strategies'
-import { getSocket } from '@/utils/socket'
+import { getSocket, connectSocket, setCurrentRoom, clearCurrentRoom } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
 import { GameService, TIMING } from '@/services/gameService'
 import { toast } from 'sonner'
@@ -554,10 +554,12 @@ export default function Game({
   useEffect(() => {
     if (!isOnline(gameMode) || !roomCode) return
 
-    const socket = getSocket()
-    if (!socket) return
+    // connectSocket est idempotent : réutilise le singleton (connecté ou en cours de connexion)
+    const socket = connectSocket()
 
     const playerId = getPlayerId()
+    // Room active : room:rejoin sera émis automatiquement à chaque reconnexion (utils/socket.ts)
+    setCurrentRoom(roomCode)
 
     // Gérer beforeunload pour quitter proprement
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -568,30 +570,8 @@ export default function Game({
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
 
-    // Attendre que le socket soit connecté avant de continuer
-    if (!socket.connected) {
-      const handleConnect = () => {
-        socket.off('connect', handleConnect)
-        // Rejoindre le salon après reconnexion et demander l'état
-        socket.emit('room:rejoin', { roomCode, playerId })
-        socket.emit('game:get-state', { roomCode })
-      }
-      socket.on('connect', handleConnect)
-      return () => {
-        socket.off('connect', handleConnect)
-        window.removeEventListener('beforeunload', handleBeforeUnload)
-        clearTimerInterval()
-      }
-    }
-
-    // S'assurer que le socket est dans la room
-    // Le socket devrait déjà être dans la room via room:join ou room:rejoin,
-    // mais on vérifie et on rejoint si nécessaire
-    if (socket.connected && roomCode) {
-      // Vérifier si le socket est dans la room (socket.rooms n'est pas accessible côté client)
-      // On émet room:rejoin pour s'assurer que le socket est dans la room
-      socket.emit('room:rejoin', { roomCode, playerId })
-    }
+    // Les handlers sont branchés même si le socket n'est pas encore connecté :
+    // les emits ci-dessous sont mis en tampon par socket.io jusqu'à la connexion
 
     const handleRoomState = (state: any) => {
       if (state.players?.length) {
@@ -1004,11 +984,6 @@ export default function Game({
 
     socket.on('error', handleError)
 
-    // Gérer la reconnexion
-    socket.on('reconnect', () => {
-      socket.emit('room:rejoin', { roomCode, playerId })
-    })
-
     // S'assurer que le socket est dans la room
     // Attendre d'abord que room:joined ou room:rejoined soit reçu avant de continuer
     let hasJoinedRoom = false
@@ -1060,7 +1035,10 @@ export default function Game({
       socket.off('game:correct-answer', handleCorrectAnswer)
       socket.off('game:end', handleGameEnded)
       socket.off('error', handleError)
-      socket.off('reconnect')
+      socket.off('room:joined', handleRoomJoinedOrRejoined)
+      socket.off('room:rejoined', handleRoomJoinedOrRejoined)
+      clearTimeout(joinTimeout)
+      clearCurrentRoom(roomCode)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       clearTimerInterval()
       timeoutRefs.current.forEach((timeoutId) => clearTimeout(timeoutId))
