@@ -8,9 +8,11 @@ export const TIMING = {
   REVEAL_DELAY: 5000,
   COUNTDOWN_WARNING_THRESHOLD: 3,
   TIMER_INTERVAL: 1000,
-  DEFAULT_TIME_LIMIT: 5,
-  MIN_TIME_LIMIT: 5,
-  MAX_TIME_LIMIT: 30,
+  // Durée d'une question (secondes) : bornes alignées sur le serveur (server/handlers/validation.js)
+  DEFAULT_TIME_LIMIT: 20,
+  MIN_TIME_LIMIT: 10,
+  MAX_TIME_LIMIT: 60,
+  TIME_LIMIT_STEP: 5,
   CONNECTION_TIMEOUT: 10000,
   GAME_START_DELAY: 500,
   ROOM_JOIN_DELAY: 1000,
@@ -21,6 +23,8 @@ export const QUESTION_COUNT = {
   DEFAULT: 20,
   MIN: 1,
   MAX: 50,
+  // Taille max du pool envoyé au serveur (LIMITS.QUESTIONS_MAX côté serveur)
+  POOL_MAX: 500,
 } as const
 
 /**
@@ -51,7 +55,7 @@ export class GameService {
    * Retourne une valeur entre MIN_TIME_LIMIT et MAX_TIME_LIMIT
    */
   static validateTimeLimit(timeLimit?: number | null): number {
-    if (!timeLimit || timeLimit <= 0) {
+    if (!timeLimit || !Number.isFinite(timeLimit) || timeLimit <= 0) {
       return TIMING.DEFAULT_TIME_LIMIT
     }
     if (timeLimit < TIMING.MIN_TIME_LIMIT) {
