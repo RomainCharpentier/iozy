@@ -1,6 +1,161 @@
 {
-  "chansons": [],
-  "series": [],
+  "chansons": [
+    {
+      "id": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "answer": "Never Gonna Give You Up",
+      "hint": "Années 80",
+      "duration": 213
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+      "answer": "Despacito",
+      "hint": "Tube de l'été 2017",
+      "duration": 282
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=9bZkp7q19f0",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=9bZkp7q19f0",
+      "answer": "Gangnam Style",
+      "hint": "K-pop",
+      "duration": 252
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=fJ9rUzIMcZQ",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=fJ9rUzIMcZQ",
+      "answer": "Bohemian Rhapsody",
+      "hint": "Queen",
+      "duration": 359
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=djV11Xbc914",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=djV11Xbc914",
+      "answer": "Take On Me",
+      "hint": "Années 80",
+      "duration": 244
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=JGwWNGJdvx8",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=JGwWNGJdvx8",
+      "answer": "Shape of You",
+      "duration": 263
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=OPf0YbXqDm0",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=OPf0YbXqDm0",
+      "answer": "Uptown Funk",
+      "duration": 270
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=Zi_XLOBDo_Y",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=Zi_XLOBDo_Y",
+      "answer": "Billie Jean",
+      "hint": "Roi de la pop",
+      "duration": 296
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=FTQbiNvZqaY",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=FTQbiNvZqaY",
+      "answer": "Africa",
+      "duration": 271
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=hTWKbfoikeg",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=hTWKbfoikeg",
+      "answer": "Smells Like Teen Spirit",
+      "hint": "Grunge",
+      "duration": 278
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=1w7OgIMMRc4",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=1w7OgIMMRc4",
+      "answer": "Sweet Child O' Mine",
+      "duration": 303
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=YQHsXMglC9A",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=YQHsXMglC9A",
+      "answer": "Hello",
+      "duration": 367
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=WNIPqafd4As",
+      "category": "chansons",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=WNIPqafd4As",
+      "answer": "My Heart Will Go On",
+      "hint": "Bande originale",
+      "duration": 442
+    }
+  ],
+  "series": [
+    {
+      "id": "https://www.youtube.com/watch?v=s7L2PVdrb_8",
+      "category": "series",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=s7L2PVdrb_8",
+      "answer": "Game of Thrones",
+      "duration": 102
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=S8PNXgLhkT0",
+      "category": "series",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=S8PNXgLhkT0",
+      "answer": "Friends",
+      "duration": 187
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=F1HNuAE9WdU",
+      "category": "series",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=F1HNuAE9WdU",
+      "answer": "Breaking Bad",
+      "duration": 18
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=aPzS3QYb868",
+      "category": "series",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=aPzS3QYb868",
+      "answer": "Les Simpson",
+      "hint": "Springfield",
+      "duration": 100
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=uyIVAm9PVrI",
+      "category": "series",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=uyIVAm9PVrI",
+      "answer": "The Office",
+      "duration": 32
+    }
+  ],
   "animes": [
     {
       "id": "https://www.youtube.com/watch?v=MqKDozk20eA",
@@ -8,9 +163,177 @@
       "type": "video",
       "mediaUrl": "https://www.youtube.com/watch?v=MqKDozk20eA",
       "answer": "Family",
-      "hint": "nn"
+      "hint": "nn",
+      "duration": 90
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=q1aq9GEHR8Q",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=q1aq9GEHR8Q",
+      "answer": "Naruto",
+      "hint": "Ninja",
+      "duration": 101
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=zVgKnfN9i34",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=zVgKnfN9i34",
+      "answer": "Naruto Shippuden",
+      "hint": "Ninja, la suite",
+      "duration": 99
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=8OkpRK2_gVs",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=8OkpRK2_gVs",
+      "answer": "L'Attaque des Titans",
+      "duration": 92
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=IHhNTt3oxtY",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=IHhNTt3oxtY",
+      "answer": "One Piece",
+      "hint": "Pirates",
+      "duration": 240
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=qQmTdijhjD4",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=qQmTdijhjD4",
+      "answer": "Dragon Ball Z",
+      "duration": 119
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=EtGhFQ88mjc",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=EtGhFQ88mjc",
+      "answer": "Death Note",
+      "duration": 229
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=JuYeHPFR3f0",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=JuYeHPFR3f0",
+      "answer": "Pokémon",
+      "duration": 202
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=LGQCPOMcYJQ",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=LGQCPOMcYJQ",
+      "answer": "Sailor Moon",
+      "duration": 93
     }
   ],
-  "films": [],
-  "jeux": []
+  "films": [
+    {
+      "id": "https://www.youtube.com/watch?v=_D0ZQPqeJkk",
+      "category": "films",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=_D0ZQPqeJkk",
+      "answer": "Star Wars",
+      "duration": 351
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=-NqaupGcCpw",
+      "category": "films",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=-NqaupGcCpw",
+      "answer": "Jurassic Park",
+      "duration": 375
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=wtHra9tFISY",
+      "category": "films",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=wtHra9tFISY",
+      "answer": "Harry Potter",
+      "duration": 309
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=yRh-dzrI4Z4",
+      "category": "films",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=yRh-dzrI4Z4",
+      "answer": "Pirates des Caraïbes",
+      "duration": 884
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=GibiNy4d4gc",
+      "category": "films",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=GibiNy4d4gc",
+      "answer": "Le Roi Lion",
+      "hint": "Disney",
+      "duration": 247
+    }
+  ],
+  "jeux": [
+    {
+      "id": "https://www.youtube.com/watch?v=NmCCQxVBfyM",
+      "category": "jeux",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=NmCCQxVBfyM",
+      "answer": "Tetris",
+      "duration": 84
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=NTa6Xbzfq1U",
+      "category": "jeux",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=NTa6Xbzfq1U",
+      "answer": "Super Mario Bros.",
+      "duration": 82
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=exQIatKQyQk",
+      "category": "jeux",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=exQIatKQyQk",
+      "answer": "Zelda",
+      "duration": 90
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=NdJQopRuH1E",
+      "category": "jeux",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=NdJQopRuH1E",
+      "answer": "Pokémon Rouge et Bleu",
+      "hint": "Game Boy",
+      "duration": 115
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=G-i8HYi1QH0",
+      "category": "jeux",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=G-i8HYi1QH0",
+      "answer": "Sonic",
+      "duration": 142
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=aBkTkxKDduc",
+      "category": "jeux",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=aBkTkxKDduc",
+      "answer": "Minecraft",
+      "duration": 216
+    },
+    {
+      "id": "https://www.youtube.com/watch?v=8avMLHvLwRQ",
+      "category": "jeux",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=8avMLHvLwRQ",
+      "answer": "Wii",
+      "duration": 559
+    }
+  ]
 }
