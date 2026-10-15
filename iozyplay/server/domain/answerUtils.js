@@ -12,7 +12,8 @@
  * - Supprime les caractères spéciaux non nécessaires
  */
 export function normalizeAnswer(answer) {
-    if (!answer) return '';
+    // Défensif : toute valeur non-string (nombre, objet, null…) donne une chaîne vide
+    if (typeof answer !== 'string' || !answer) return '';
     
     return answer
         .trim()
@@ -65,6 +66,11 @@ function levenshteinDistance(str1, str2) {
 export function compareAnswers(answer1, answer2) {
     const normalized1 = normalizeAnswer(answer1);
     const normalized2 = normalizeAnswer(answer2);
+
+    // Une réponse vide (ou non-string) n'est jamais correcte
+    if (!normalized1 || !normalized2) {
+        return false;
+    }
     
     if (normalized1 === normalized2) {
         return true;

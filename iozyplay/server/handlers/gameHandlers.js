@@ -5,6 +5,16 @@
 import { isHost, getRoomState, findPlayerBySocketId } from '../domain/room.js';
 import { startGame, restartGameWithCategories, restartGame, checkAnswer, storeAnswer, validateAnswers, voteSkip, resetSkipVotes, nextQuestion, getGameState } from '../domain/game.js';
 import { roomRepository } from '../infrastructure/roomRepository.js';
+import {
+  withPayload,
+  safeTimerCallback,
+  sendInvalidPayload,
+  isValidRoomCode,
+  isValidQuestionList,
+  isValidCategories,
+  normalizeTimeLimit,
+  normalizeAnswerInput
+} from './validation.js';
 
 /**
  * Envoie l'état de la room à tous les clients
@@ -88,7 +98,7 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
     timeRemaining
   });
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(safeTimerCallback('scheduleNextQuestionTimer:guess', () => {
     const currentRoom = roomRepository.get(roomCode);
     if (!currentRoom || currentRoom.gameState !== 'playing') return;
     
@@ -135,7 +145,7 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
       defaultTimeLimit: currentRoom.defaultTimeLimit
     });
     
-    const revealTimer = setTimeout(() => {
+    const revealTimer = setTimeout(safeTimerCallback('scheduleNextQuestionTimer:reveal', () => {
       const revealRoom = roomRepository.get(roomCode);
       if (!revealRoom || revealRoom.gameState !== 'playing') return;
       
@@ -180,18 +190,23 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
         
         // Ne pas programmer le timer maintenant, attendre que tous soient prêts
       }
-    }, room.game.durationMs); // Durée de la phase reveal (même durée que le guess)
+    }), room.game.durationMs); // Durée de la phase reveal (même durée que le guess)
     
     // Sauvegarder le timer de reveal (remplace le timer initial qui vient de se terminer)
     roomRepository.setGameTimer(roomCode, revealTimer);
-  }, timeRemaining);
+  }), timeRemaining);
   
   // Sauvegarder le timer initial (pour la phase guess)
   roomRepository.setGameTimer(roomCode, timer);
 }
 
 export function setupGameHandlers(socket, io) {
-  socket.on('game:start', async ({ roomCode, questions, defaultTimeLimit }) => {
+  socket.on('game:start', withPayload(socket, 'game:start', async ({ roomCode, questions, defaultTimeLimit }) => {
+    if (!isValidRoomCode(roomCode) || (questions != null && !isValidQuestionList(questions))) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     
     if (!room) {
@@ -212,7 +227,7 @@ export function setupGameHandlers(socket, io) {
     // Nettoyer les timers précédents
     roomRepository.clearGameTimer(roomCode);
 
-    startGame(room, questions, defaultTimeLimit);
+    startGame(room, questions, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit));
     roomRepository.update(roomCode, room);
     
     // Envoyer l'état de démarrage (sans startedAt, sera défini au "go")
@@ -229,9 +244,14 @@ export function setupGameHandlers(socket, io) {
     io.to(roomCode).emit('game:start', gameStartedData);
     
     // Pas de timeout de sécurité - on attend vraiment que tous les joueurs soient prêts
-  });
+  }));
 
-  socket.on('game:restart-with-categories', async ({ roomCode, questions, categories, defaultTimeLimit }) => {
+  socket.on('game:restart-with-categories', withPayload(socket, 'game:restart-with-categories', async ({ roomCode, questions, categories, defaultTimeLimit }) => {
+    if (!isValidRoomCode(roomCode) || (questions != null && !isValidQuestionList(questions)) || !isValidCategories(categories)) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     
     if (!room) {
@@ -252,7 +272,7 @@ export function setupGameHandlers(socket, io) {
     // Nettoyer les timers précédents
     roomRepository.clearGameTimer(roomCode);
     
-    restartGameWithCategories(room, questions, categories, defaultTimeLimit);
+    restartGameWithCategories(room, questions, categories, normalizeTimeLimit(defaultTimeLimit, room.defaultTimeLimit));
     roomRepository.update(roomCode, room);
     
     // Programmer le timer
@@ -269,9 +289,14 @@ export function setupGameHandlers(socket, io) {
     
     broadcastRoomState(io, roomCode, room);
     io.to(roomCode).emit('game:start', gameStartedData);
-  });
+  }));
 
-  socket.on('game:restart', ({ roomCode }) => {
+  socket.on('game:restart', withPayload(socket, 'game:restart', ({ roomCode }) => {
+    if (!isValidRoomCode(roomCode)) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     
     if (!room) {
@@ -309,9 +334,14 @@ export function setupGameHandlers(socket, io) {
     
     broadcastRoomState(io, roomCode, room);
     io.to(roomCode).emit('game:start', gameStartedData);
-  });
+  }));
 
-  socket.on('game:get-state', ({ roomCode }) => {
+  socket.on('game:get-state', withPayload(socket, 'game:get-state', ({ roomCode }) => {
+    if (!isValidRoomCode(roomCode)) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     
     if (!room) {
@@ -330,9 +360,14 @@ export function setupGameHandlers(socket, io) {
     } else {
       socket.emit('game:state', { gameState: gameState.gameState });
     }
-  });
+  }));
 
-  socket.on('game:ready', ({ roomCode }) => {
+  socket.on('game:ready', withPayload(socket, 'game:ready', ({ roomCode }) => {
+    if (!isValidRoomCode(roomCode)) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     console.log('[game:ready] Événement reçu', { roomCode, socketId: socket.id });
     
     const room = roomRepository.get(roomCode);
@@ -404,9 +439,15 @@ export function setupGameHandlers(socket, io) {
       console.log('[game:ready] ⏳ Pas encore tous prêts ou goAt déjà défini', { allReady, hasGoAt: !!room.game.goAt });
       broadcastRoomState(io, roomCode, room);
     }
-  });
+  }));
 
-  socket.on('game:answer', ({ roomCode, answer }) => {
+  socket.on('game:answer', withPayload(socket, 'game:answer', ({ roomCode, answer }) => {
+    const safeAnswer = normalizeAnswerInput(answer);
+    if (!isValidRoomCode(roomCode) || safeAnswer === null) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     if (!room) return;
 
@@ -414,7 +455,7 @@ export function setupGameHandlers(socket, io) {
     if (!player) return;
 
     // Stocker la réponse sans la valider (validation à la fin du guess)
-    const result = storeAnswer(room, socket.id, answer);
+    const result = storeAnswer(room, socket.id, safeAnswer);
     
     if (!result.isValid) return;
 
@@ -424,9 +465,14 @@ export function setupGameHandlers(socket, io) {
     socket.emit('game:answer-stored', {
       playerId: player.id
     });
-  });
+  }));
 
-  socket.on('game:skip-vote', ({ roomCode }) => {
+  socket.on('game:skip-vote', withPayload(socket, 'game:skip-vote', ({ roomCode }) => {
+    if (!isValidRoomCode(roomCode)) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     if (!room) {
       return;
@@ -508,7 +554,7 @@ export function setupGameHandlers(socket, io) {
         // car on est déjà en phase reveal
         const revealDurationMs = room.game.durationMs;
         
-        const revealTimer = setTimeout(() => {
+        const revealTimer = setTimeout(safeTimerCallback('game:skip-vote:reveal', () => {
           const revealRoom = roomRepository.get(roomCode);
           if (!revealRoom || revealRoom.gameState !== 'playing') return;
           
@@ -544,7 +590,7 @@ export function setupGameHandlers(socket, io) {
             // Ensuite envoyer room:state pour forcer la synchronisation
             broadcastRoomState(io, roomCode, result.room);
           }
-        }, revealDurationMs);
+        }), revealDurationMs);
         
         roomRepository.setGameTimer(roomCode, revealTimer);
       } else {
@@ -597,9 +643,14 @@ export function setupGameHandlers(socket, io) {
         }
       }
     }
-  });
+  }));
 
-  socket.on('game:next', ({ roomCode }) => {
+  socket.on('game:next', withPayload(socket, 'game:next', ({ roomCode }) => {
+    if (!isValidRoomCode(roomCode)) {
+      sendInvalidPayload(socket);
+      return;
+    }
+
     const room = roomRepository.get(roomCode);
     if (!room) return;
 
@@ -633,6 +684,6 @@ export function setupGameHandlers(socket, io) {
         durationMs: result.room.game.durationMs
       });
     }
-  });
+  }));
 }
 

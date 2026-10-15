@@ -113,7 +113,7 @@ describe('Game Handlers - Synchronization', () => {
     assert.strictEqual(goEvent.data.durationMs, 5000)
   })
 
-  test('should send game:go with correct timing (1.5s in future)', () => {
+  test('should send game:go with correct timing (1s in future)', () => {
     const questions = [{ id: 'q1', answer: 'Song 1', timeLimit: 5 }]
     
     hostSocket._trigger('game:start', {
@@ -133,8 +133,8 @@ describe('Game Handlers - Synchronization', () => {
     
     assert.ok(goEvent)
     const goAt = goEvent.data.goAt
-    const expectedMin = beforeReady + 1500
-    const expectedMax = afterReady + 1500
+    const expectedMin = beforeReady + 1000
+    const expectedMax = afterReady + 1000
     
     assert.ok(goAt >= expectedMin)
     assert.ok(goAt <= expectedMax)
