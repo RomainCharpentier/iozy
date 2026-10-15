@@ -21,26 +21,26 @@
 }
 
 .app-overlay-content {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-base);
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--accent-text);
   text-align: center;
-  opacity: 0.9;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
+/* Carte : une surface, une ligne, une ombre douce ; 16 px de rayon. */
 .card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
 }
 
 .card:hover {
@@ -70,13 +70,25 @@
   margin-top: var(--spacing-xs);
 }
 
+/* Les règles globales de la charte (titres, curseur, survol, focus, sélection,
+   squelette `.iozy-skeleton`, `.iozy-sr-only`, curseurs natifs, mouvement
+   réduit) viennent d'IozyKit : vendor/iozykit/css/base.css, chargé par main.tsx.
+   Ce fichier ne garde que les classes globales historiques de l'app. */
+
 .btn {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: 0.5rem;
-  font-size: var(--font-size-base);
+  padding: 0.5rem 1rem;
+  min-height: var(--control-height);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    filter var(--transition-fast);
   border: none;
   display: inline-flex;
   align-items: center;
@@ -85,32 +97,33 @@
   text-decoration: none;
   line-height: 1;
   height: fit-content;
+  user-select: none;
 }
 
+/* Pression : la surface se rétracte de 2 %. */
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Désactivé = surface éteinte + texte discret, jamais l'accent à 50 % (blanc
+   sur rose pâle en thème clair). */
 .btn:disabled {
-  opacity: var(--opacity-disabled);
+  background: var(--bg-tertiary);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
 }
 
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-[tabindex]:not([tabindex='-1']):focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
-
+/* Bouton primaire : l'accent en aplat, son encre, son ombre teintée. */
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
+  background: var(--accent-primary);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-md), var(--shadow-accent);
 }
 
 .btn-secondary {
@@ -136,34 +149,34 @@ a:focus-visible {
 }
 
 .btn-large {
-  padding: var(--spacing-md) var(--spacing-xl);
-  font-size: var(--font-size-lg);
+  padding: 0.75rem 1.5rem;
+  min-height: 3rem;
+  font-size: var(--font-size-base);
 }
 
+/* Champ : 44 px, ligne intérieure, anneau d'accent au focus. */
 .input {
   padding: var(--spacing-sm) var(--spacing-md);
+  min-height: var(--control-height);
   background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--font-size-base);
-  transition: all 0.3s ease;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
   width: 100%;
 }
 
 .input:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: var(--focus-ring);
-}
-
-.input:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
 .input::placeholder {
-  color: var(--text-secondary);
+  color: var(--color-text-tertiary);
 }
 
 .badge {
@@ -173,7 +186,7 @@ a:focus-visible {
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-primary);
@@ -186,7 +199,7 @@ a:focus-visible {
 }
 
 .badge-success {
-  background: rgba(16, 185, 129, 0.2);
+  background: var(--success-alpha);
   border-color: var(--success);
   color: var(--success);
 }

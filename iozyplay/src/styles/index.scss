@@ -5,9 +5,7 @@
 }
 
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-family-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, var(--bg-color) 0%, var(--gradient-end) 100%);
@@ -110,12 +108,12 @@ body {
 
 .menu-button.primary {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  color: var(--accent-ink);
 }
 
 .menu-button.primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 10px 30px var(--accent-alpha-4);
 }
 
 .menu-button.secondary {
@@ -126,7 +124,7 @@ body {
 
 .menu-button.secondary:hover:not(:disabled) {
   border-color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
   transform: translateY(-2px);
 }
 
@@ -182,7 +180,7 @@ body {
 .room-code-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-alpha-1);
 }
 
 /* Category Selector */
@@ -224,13 +222,13 @@ body {
 .category-card:hover {
   transform: translateY(-5px);
   border-color: var(--primary-color);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 10px 30px var(--accent-alpha-3);
 }
 
 .category-card.selected {
   border-color: var(--primary-color);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, var(--accent-alpha-2), var(--accent-alpha-2));
+  box-shadow: 0 10px 30px var(--accent-alpha-4);
 }
 
 .category-emoji {
@@ -243,7 +241,7 @@ body {
 
 .start-button {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  color: var(--accent-ink);
   border: none;
   padding: 1rem 3rem;
   font-size: 1.2rem;
@@ -256,7 +254,7 @@ body {
 
 .start-button:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 10px 30px var(--accent-alpha-4);
 }
 
 .start-button:disabled {
@@ -284,7 +282,7 @@ body {
 
 .join-room-button:hover {
   border-color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
   transform: translateY(-2px);
 }
 
@@ -350,7 +348,7 @@ body {
 .mode-button.active {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   border-color: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .players-config {
@@ -427,7 +425,7 @@ body {
 .player-name-input input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-alpha-1);
 }
 
 .setup-actions {
@@ -452,7 +450,7 @@ body {
 .back-button:hover {
   border-color: var(--error-color);
   background: var(--error-color);
-  color: white;
+  color: var(--error-ink);
 }
 
 /* Game */
@@ -488,7 +486,7 @@ body {
   height: 100%;
   background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
   transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 10px var(--accent-alpha-4);
 }
 
 .question-counter {
@@ -504,7 +502,7 @@ body {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--primary-color);
-  text-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+  text-shadow: 0 2px 4px var(--accent-alpha-3);
 }
 
 /* Multijoueur Scores dans le header */
@@ -611,7 +609,7 @@ body {
 
 /* Audio Player */
 .audio-player {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  background: linear-gradient(135deg, var(--accent-alpha-1), var(--accent-alpha-1));
   border-radius: 1.5rem;
   padding: 3rem 2rem;
   border: 2px solid var(--border-color);
@@ -678,7 +676,7 @@ body {
 .play-pause-button {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   border: none;
-  color: white;
+  color: var(--accent-ink);
   width: 100px;
   height: 100px;
   border-radius: 50%;
@@ -688,12 +686,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 8px 30px var(--accent-alpha-4);
 }
 
 .play-pause-button:hover {
   transform: scale(1.15);
-  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.7);
+  box-shadow: 0 12px 40px var(--accent-alpha-4);
 }
 
 .play-pause-button:active {
@@ -736,13 +734,13 @@ body {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 2px 10px var(--accent-alpha-4);
   transition: all 0.2s ease;
 }
 
 .audio-progress::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.7);
+  box-shadow: 0 4px 15px var(--accent-alpha-4);
 }
 
 .audio-progress::-moz-range-thumb {
@@ -752,13 +750,13 @@ body {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   cursor: pointer;
   border: none;
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 2px 10px var(--accent-alpha-4);
   transition: all 0.2s ease;
 }
 
 .audio-progress::-moz-range-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.7);
+  box-shadow: 0 4px 15px var(--accent-alpha-4);
 }
 
 .audio-progress::-moz-range-track {
@@ -798,7 +796,7 @@ body {
 .youtube-player {
   width: 100%;
   max-width: 800px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  background: linear-gradient(135deg, var(--accent-alpha-1), var(--accent-alpha-1));
   border-radius: 1.5rem;
   padding: 2rem;
   border: 2px solid var(--border-color);
@@ -827,7 +825,7 @@ body {
 
 .toggle-video-button:hover {
   border-color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
   transform: translateY(-2px);
 }
 
@@ -914,19 +912,19 @@ body {
 .option-button:hover:not(:disabled) {
   border-color: var(--primary-color);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 5px 15px var(--accent-alpha-3);
 }
 
 .option-button.correct {
   background: var(--success-color);
   border-color: var(--success-color);
-  color: white;
+  color: var(--success-ink);
 }
 
 .option-button.incorrect {
   background: var(--error-color);
   border-color: var(--error-color);
-  color: white;
+  color: var(--error-ink);
 }
 
 .option-button.disabled {
@@ -941,7 +939,7 @@ body {
   align-items: center;
   margin: 0;
   padding: 1.5rem;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  background: linear-gradient(135deg, var(--accent-alpha-1), var(--accent-alpha-1));
   border-radius: 1rem;
   border: 2px solid var(--border-color);
   backdrop-filter: blur(10px);
@@ -955,11 +953,11 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  text-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  text-shadow: 0 2px 8px var(--accent-alpha-4);
 }
 
 .timer-display.warning {
-  color: #f59e0b;
+  color: var(--warning);
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -1054,7 +1052,7 @@ body {
 
 .answer-input-container:focus-within {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 4px var(--accent-alpha-1);
   background: rgba(30, 41, 59, 0.7);
 }
 
@@ -1092,7 +1090,7 @@ body {
 .submit-button {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   border: none;
-  color: white;
+  color: var(--accent-ink);
   padding: 1.25rem 2.5rem;
   border-radius: 0.75rem;
   font-size: 1.1rem;
@@ -1100,13 +1098,13 @@ body {
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 15px var(--accent-alpha-3);
   min-width: 120px;
 }
 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 6px 25px var(--accent-alpha-4);
 }
 
 .submit-button:active:not(:disabled) {
@@ -1150,8 +1148,8 @@ body {
 
 .answer-feedback.time-up {
   background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-  border-color: #f59e0b;
+  color: var(--warning);
+  border-color: var(--warning);
 }
 
 .answer-feedback.incorrect {
@@ -1165,9 +1163,9 @@ body {
   color: var(--text-secondary);
   font-style: italic;
   padding: 1.25rem 1.5rem;
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
   border-radius: 0.75rem;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid var(--accent-alpha-2);
   font-size: 1rem;
   line-height: 1.6;
 }
@@ -1187,9 +1185,9 @@ body {
 
 .quit-button:hover {
   background: var(--error-color);
-  color: white;
+  color: var(--error-ink);
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 15px var(--error-alpha);
 }
 
 /* Score Screen */
@@ -1250,7 +1248,7 @@ body {
   padding: 1.5rem;
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   border-radius: 1rem;
-  color: white;
+  color: var(--accent-ink);
 }
 
 .winner-announcement h3 {
@@ -1318,7 +1316,7 @@ body {
 
 .restart-button {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  color: var(--accent-ink);
   border: none;
   padding: 1rem 2rem;
   font-size: 1.1rem;
@@ -1330,7 +1328,7 @@ body {
 
 .restart-button:hover {
   transform: scale(1.05);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 10px 30px var(--accent-alpha-4);
 }
 
 .restart-button.secondary {
@@ -1341,7 +1339,7 @@ body {
 
 .restart-button.secondary:hover {
   border-color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
   transform: scale(1.05);
 }
 
@@ -1454,8 +1452,8 @@ body {
 
 .clear-button:hover {
   background: var(--bg-tertiary);
-  border-color: var(--error-color, #ef4444);
-  color: var(--error-color, #ef4444);
+  border-color: var(--error-color);
+  color: var(--error-color);
 }
 
 .playlist-input-section input {
@@ -1487,7 +1485,7 @@ body {
 .load-button {
   padding: 0.75rem 1.5rem;
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
   border: none;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -1626,15 +1624,15 @@ body {
 }
 
 .playlist-badge {
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
   color: var(--primary-color);
   border: 2px solid var(--primary-color);
 }
 
 .video-badge {
   background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  border: 2px solid #22c55e;
+  color: var(--success);
+  border: 2px solid var(--success);
 }
 
 .video-header-single {
@@ -1704,7 +1702,7 @@ body {
 .remove-video-button {
   background: transparent;
   border: none;
-  color: var(--error-color, #ef4444);
+  color: var(--error-color);
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   display: flex;
@@ -1769,7 +1767,7 @@ body {
 
 .video-external-link:hover {
   color: var(--primary-color);
-  background: rgba(var(--primary-color-rgb, 99, 102, 241), 0.1);
+  background: var(--accent-alpha-1);
 }
 
 .video-warning {
@@ -1780,7 +1778,7 @@ body {
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: 0.5rem;
-  color: #f59e0b;
+  color: var(--warning);
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -1829,7 +1827,7 @@ body {
 .edit-answer-button:hover {
   border-color: var(--primary-color);
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .video-edit-form {
@@ -1873,7 +1871,7 @@ body {
 
 .save-edit-button {
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .save-edit-button:hover {
@@ -1911,7 +1909,7 @@ body {
 .import-button {
   padding: 0.75rem 2rem;
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
   border: none;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -2048,7 +2046,7 @@ body {
   color: var(--primary-color);
   margin: 0;
   padding: 1rem;
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
   border-radius: 0.5rem;
   border: 2px solid var(--primary-color);
 }
@@ -2061,7 +2059,7 @@ body {
 .modal-button {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   border: none;
-  color: white;
+  color: var(--accent-ink);
   padding: 1rem 3rem;
   font-size: 1.1rem;
   font-weight: 600;
@@ -2072,13 +2070,13 @@ body {
 
 .modal-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 10px 30px var(--accent-alpha-4);
 }
 
 .no-questions button {
   margin-top: 1rem;
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
   border: none;
   padding: 0.8rem 2rem;
   border-radius: 0.5rem;
@@ -2217,7 +2215,7 @@ body {
   background: var(--primary-color);
   border-color: var(--primary-color);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px var(--accent-alpha-3);
 }
 
 .editor-toggle-button:active {
@@ -2332,7 +2330,7 @@ body {
 }
 
 .stat-item-total {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  background: linear-gradient(135deg, var(--accent-alpha-1), var(--accent-alpha-1));
   border-color: var(--color-primary);
 }
 
@@ -2441,8 +2439,8 @@ body {
 }
 
 .save-button {
-  background: linear-gradient(135deg, var(--success-color), #059669);
-  color: white;
+  background: linear-gradient(135deg, var(--success-color), var(--success-dark));
+  color: var(--success-ink);
 }
 
 .save-button:hover {
@@ -2459,7 +2457,7 @@ body {
 .close-button:hover {
   background: var(--error-color);
   border-color: var(--error-color);
-  color: white;
+  color: var(--error-ink);
 }
 
 .editor-filters {
@@ -2506,7 +2504,7 @@ body {
 .search-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-alpha-1);
 }
 
 .search-clear {
@@ -2574,7 +2572,7 @@ body {
 
 .add-button {
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  color: white;
+  color: var(--accent-ink);
   border: none;
   padding: var(--space-3) var(--space-6);
   border-radius: var(--radius-md);
@@ -2643,7 +2641,7 @@ body {
 .question-form select:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-alpha-1);
 }
 
 .question-form input.input-error {
@@ -2677,7 +2675,7 @@ body {
 
 .info-badge {
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
   padding: 0.25rem 0.75rem;
   border-radius: 0.5rem;
   font-weight: 600;
@@ -2789,7 +2787,7 @@ body {
 
 .submit-button {
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  color: white;
+  color: var(--accent-ink);
 }
 
 .submit-button:hover:not(:disabled) {
@@ -2812,7 +2810,7 @@ body {
 .cancel-button:hover {
   background: var(--color-error);
   border-color: var(--color-error);
-  color: white;
+  color: var(--error-ink);
 }
 
 .questions-grid {
@@ -2851,7 +2849,7 @@ body {
 
 .question-meta-badge {
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
   padding: 0.2rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -2860,7 +2858,7 @@ body {
 
 .question-id {
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
   padding: 0.25rem 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.85rem;
@@ -2869,7 +2867,7 @@ body {
 
 .question-category {
   background: var(--secondary-color);
-  color: white;
+  color: var(--accent-ink);
   padding: 0.25rem 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.85rem;
@@ -3132,7 +3130,7 @@ body {
 
 .edit-button-small {
   background: var(--color-primary);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .edit-button-small:hover {
@@ -3143,7 +3141,7 @@ body {
 
 .delete-button-small {
   background: var(--color-error);
-  color: white;
+  color: var(--error-ink);
 }
 
 .delete-button-small:hover {
@@ -3166,7 +3164,7 @@ body {
 
 .edit-button {
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .edit-button:hover {
@@ -3176,11 +3174,11 @@ body {
 
 .delete-button {
   background: var(--error-color);
-  color: white;
+  color: var(--error-ink);
 }
 
 .delete-button:hover {
-  background: #dc2626;
+  background: var(--error-dark);
   transform: translateY(-2px);
 }
 
@@ -3309,7 +3307,7 @@ body {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   border: none;
   border-radius: 0.5rem;
-  color: white;
+  color: var(--accent-ink);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -3318,7 +3316,7 @@ body {
 
 .copy-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 5px 15px var(--accent-alpha-4);
 }
 
 .copy-button.copied {
@@ -3396,7 +3394,7 @@ body {
 
 .player-badge.host {
   border-color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
 }
 
 .host-badge {
@@ -3499,7 +3497,7 @@ body {
 .player-name-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-alpha-1);
 }
 
 /* Category Selector Popup */
@@ -3559,7 +3557,7 @@ body {
 .close-popup-button:hover {
   border-color: var(--error-color);
   background: var(--error-color);
-  color: white;
+  color: var(--error-ink);
 }
 
 @media (max-width: 768px) {
@@ -3709,7 +3707,7 @@ body {
 
 .timer-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 10px var(--accent-alpha-4);
 }
 
 .timer-slider::-moz-range-thumb {
@@ -3724,7 +3722,7 @@ body {
 
 .timer-slider::-moz-range-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 10px var(--accent-alpha-4);
 }
 
 .timer-preview {
@@ -3767,13 +3765,13 @@ body {
 
 .config-button.primary {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  color: var(--accent-ink);
   border: none;
 }
 
 .config-button.primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 5px 15px var(--accent-alpha-4);
 }
 
 .config-button.secondary {
@@ -3783,7 +3781,7 @@ body {
 
 .config-button.secondary:hover {
   border-color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
 }
 
 .config-button:disabled {

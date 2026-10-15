@@ -570,6 +570,34 @@ describe('Bouton Passer', () => {
     expect(options).toEqual(["L'Attaque des Titans"])
   })
 
+  it('suggestions : la saisie peut être au milieu de la réponse, préfixes en premier', () => {
+    const pool = ["L'Attaque des Titans", 'Naruto', 'Naruto Shippuden', 'Titanic']
+    const { rerender } = renderInput({ value: 'aruto', suggestionPool: pool })
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Naruto',
+      'Naruto Shippuden',
+    ])
+
+    rerender(
+      <AnswerInput
+        value="titan"
+        onChange={() => {}}
+        onSubmit={() => {}}
+        disabled={false}
+        onSkipVote={() => {}}
+        gameMode="online"
+        players={players}
+        isMediaReady
+        suggestionPool={pool}
+      />
+    )
+    // « Titanic » commence par la saisie : avant « L'Attaque des Titans » (début d'un mot)
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Titanic',
+      "L'Attaque des Titans",
+    ])
+  })
+
   it('reveal : champ en lecture seule (garde le focus) et pas de suggestions', () => {
     renderInput({ value: 'Na', suggestionPool: ['Naruto'], disabled: true, isReveal: true })
     const field = screen.getByRole('combobox') as HTMLInputElement
@@ -599,6 +627,27 @@ describe('Bouton Passer', () => {
     expect(screen.getByTestId('answer-status-saved')).toBeTruthy()
     expect(screen.queryByTestId('answer-status-pending')).toBeNull()
   })
+
+  it.each([
+    ['Naruto', true, 'correct', 'Bien joué !'],
+    ['Bleach', false, 'incorrect', 'Raté !'],
+    ['', undefined, 'none', 'Pas de réponse'],
+  ] as const)(
+    'reveal : bandeau selon le résultat (« %s » → %s)',
+    (value, isCorrect, result, title) => {
+      renderInput({
+        value,
+        disabled: true,
+        isReveal: true,
+        isCorrect,
+        correctAnswer: 'Naruto',
+      })
+      const banner = screen.getByTestId('reveal-result')
+      expect(banner.getAttribute('data-result')).toBe(result)
+      expect(banner.textContent).toContain(title)
+      expect(banner.textContent).toContain('Naruto')
+    }
+  )
 
   it('hors reveal : pas de mini-barre de temps', () => {
     renderInput({ isReveal: false })

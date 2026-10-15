@@ -1,6 +1,19 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from '@/App'
+// Polices de la charte (auto-hébergées, mêmes graisses qu'IozyCore) :
+// Space Grotesk pour les titres, Inter pour le texte. Voir docs/CHARTE.md.
+import '@fontsource/space-grotesk/500.css'
+import '@fontsource/space-grotesk/700.css'
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/inter/700.css'
+// La charte de la famille Iozy (IozyKit), copie vendorisée : `npm run kit:sync`.
+// Tokens d'abord : les styles de l'app sont des alias dessus.
+import '../vendor/iozykit/css/tokens.css'
+import '../vendor/iozykit/css/base.css'
+import '../vendor/iozykit/css/components.css'
 import '@/styles/main.scss'
 import '@/services/settingsService'
 import { registerServiceWorker } from '@/utils/serviceWorker'

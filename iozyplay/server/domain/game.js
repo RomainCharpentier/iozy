@@ -10,6 +10,10 @@ import { withStartFractions } from './questionMedia.js';
 // Durée par défaut d'une question (secondes), alignée sur TIME_LIMIT.DEFAULT (handlers/validation.js)
 const DEFAULT_TIME_LIMIT = 20;
 
+// Transition minimale entre deux questions (ms) : écran « Question N sur M » côté client,
+// pendant lequel l'extrait suivant se charge. Le « go » n'est pas donné avant sa fin.
+export const QUESTION_TRANSITION_MS = 3000;
+
 /**
  * Enregistre le pool de questions de la room et tire la sélection de la partie.
  * - `questionCount` absent (null/undefined) : on garde toutes les questions reçues, dans l'ordre
@@ -331,6 +335,8 @@ export function nextQuestion(room) {
         questionIndex: room.currentQuestionIndex,
         startedAt: null, // Sera défini au moment du "go"
         goAt: null, // Timestamp du signal "go"
+        // Début du chrono au plus tôt à la fin de la transition entre questions
+        transitionUntil: Date.now() + QUESTION_TRANSITION_MS,
         durationMs: durationMs,
         answers: {}, // Réinitialiser pour la nouvelle question
         readyPlayers: new Set(), // Réinitialiser pour la nouvelle question

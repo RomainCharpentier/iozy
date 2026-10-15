@@ -1,6 +1,6 @@
-# Blindtest WebApp
+# IozyPlay
 
-Jeu de blindtest multijoueur (deviner séries, animes, chansons, films, jeux à partir d'un média audio/vidéo/image/YouTube).
+Jeu de blindtest multijoueur (deviner séries, animes, chansons, films, jeux à partir d'un média audio/vidéo/image/YouTube). Membre de la famille Iozy (IozyCore = le catalogue de collection, IozyPlay = le jeu). La charte graphique partagée vit dans le dépôt voisin **IozyKit** (`../IozyKit`, copié dans `vendor/iozykit/` par `npm run kit:sync`, jamais modifié à la main) ; ce qui est propre à l'app : [docs/CHARTE.md](docs/CHARTE.md).
 Front React 19 + Vite 7 + TypeScript (`src/`) ; back Node ≥22 Express + Socket.IO en JS ESM (`server/`).
 Détails par zone : [src/CLAUDE.md](src/CLAUDE.md) et [server/CLAUDE.md](server/CLAUDE.md). Dette connue : [docs/REVIEW.md](docs/REVIEW.md).
 
@@ -13,6 +13,7 @@ npm run test:unit      # tests front (vitest + jsdom, src/**/*.test.ts[x])
 npm run typecheck      # tsc --noEmit — le seul check TS fiable
 npm run lint           # eslint src (ne bloque jamais : --max-warnings 999)
 npm run format         # prettier sur src/
+npm run kit:sync       # recopie la charte IozyKit (../IozyKit) dans vendor/iozykit/
 ```
 
 Avant de considérer une tâche finie : `npm run typecheck && npm run lint && npm test && npm run test:unit`.

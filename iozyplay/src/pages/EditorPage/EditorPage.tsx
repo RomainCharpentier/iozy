@@ -6,6 +6,8 @@ import { QuestionService } from '@/services/questionService'
 import type { Question } from '@/types'
 import QuestionEditor from '@/pages/EditorPage/QuestionEditor'
 import CategoryManager from '@/pages/EditorPage/CategoryManager'
+import BackLink from '@/components/common/BackLink'
+import { FolderOpen, ListMusic } from 'lucide-react'
 
 type EditorTab = 'questions' | 'categories'
 
@@ -55,34 +57,29 @@ export default function EditorPage() {
 
   return (
     <>
-      <header className={styles.appHeader}>
-        <button
-          type="button"
-          className={styles.editorToggleButton}
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            navigate('/')
-          }}
-          aria-label="Retour au menu"
-        >
-          ← Retour au menu
-        </button>
-      </header>
+      <BackLink to="/" label="Jouer" />
 
       <div className={styles.editorContainer}>
-        <div className={styles.editorTabs}>
+        <div className={styles.editorTabs} role="tablist" aria-label="Sections de l'éditeur">
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'questions'}
             className={`${styles.editorTab} ${activeTab === 'questions' ? styles.active : ''}`}
             onClick={() => setActiveTab('questions')}
           >
-            📝 Questions
+            <ListMusic size={16} aria-hidden="true" />
+            Questions
           </button>
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'categories'}
             className={`${styles.editorTab} ${activeTab === 'categories' ? styles.active : ''}`}
             onClick={() => setActiveTab('categories')}
           >
-            📁 Catégories
+            <FolderOpen size={16} aria-hidden="true" />
+            Catégories
           </button>
         </div>
 
@@ -96,12 +93,14 @@ export default function EditorPage() {
               }}
             />
           ) : isLoading ? (
-            <div className={styles.loadingState}>⏳ Chargement des questions...</div>
+            <div className={styles.loadingState} role="status">
+              Chargement des questions…
+            </div>
           ) : loadError ? (
             <div className={styles.loadingState} role="alert">
               <p>
-                ⚠️ Impossible de charger les questions. L&apos;édition est désactivée pour éviter
-                toute perte de données.
+                Impossible de charger les questions. L&apos;édition est désactivée pour éviter toute
+                perte de données.
               </p>
               <button type="button" className={styles.editorTab} onClick={() => loadQuestions()}>
                 Réessayer

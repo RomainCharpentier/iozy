@@ -13,6 +13,8 @@ import { QuestionService } from '@/services/questionService'
 import RoomConnectingState from '@/pages/RoomCreatorPage/ui/RoomConnectingState'
 import RoomPlayersPanel from '@/pages/RoomCreatorPage/ui/RoomPlayersPanel'
 import RoomConfigPanel from '@/pages/RoomCreatorPage/ui/RoomConfigPanel'
+import SectionHeader from '@/components/common/SectionHeader'
+import { Check, Share2 } from 'lucide-react'
 
 interface RoomCreatorProps {
   categories: Category[]
@@ -333,29 +335,41 @@ export default function RoomCreator({
 
   return (
     <div className={styles.layout}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.headerTitle}>
-            {isSoloMode ? '🎮 Partie Solo' : `Salon ${roomCode}`}
-          </h1>
-          <p className={ds.textSecondary}>
-            {isSoloMode
-              ? 'Configurez votre partie et commencez à jouer'
-              : (() => {
-                  const host = players.find((p: Player) => p.isHost)
-                  return host ? `👑 Host: ${host.name}` : null
-                })()}
-          </p>
-        </div>
-        {!isSoloMode && (
-          <div className={styles.headerActions}>
-            <button className={`${ds.btn} ${ds.btnSecondary}`} onClick={handleCopyLink}>
-              {copied ? '✓ Copié !' : '📋 Partager'}
+      {/* En-tête d'écran : le code du salon, qui est l'hôte, l'action de partage. */}
+      <SectionHeader
+        level={1}
+        title={
+          isSoloMode ? (
+            'Partie solo'
+          ) : (
+            <>
+              Salon <span className={styles.code}>{roomCode}</span>
+            </>
+          )
+        }
+        subtitle={
+          isSoloMode
+            ? 'Configurez votre partie et commencez à jouer'
+            : (() => {
+                const host = players.find((p: Player) => p.isHost)
+                const count = players.length
+                const joueurs = `${count} joueur${count > 1 ? 's' : ''}`
+                return host ? `Hôte : ${host.name} · ${joueurs}.` : `${joueurs}.`
+              })()
+        }
+        action={
+          !isSoloMode && (
+            <button
+              type="button"
+              className={`${ds.btn} ${ds.btnSecondary}`}
+              onClick={handleCopyLink}
+            >
+              {copied ? <Check size={16} /> : <Share2 size={16} />}
+              {copied ? 'Lien copié' : 'Partager le lien'}
             </button>
-          </div>
-        )}
-      </div>
+          )
+        }
+      />
 
       {/* Main Layout: 2 Columns */}
       <div className={`${ds.grid2} ${styles.mainGrid}`}>

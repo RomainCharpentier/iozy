@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev-all",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "PORT=3001 npm run dev:all"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd .claude/worktrees/integration && node server/index.js"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd .claude/worktrees/integration && npx vite --port 3000 --strictPort"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "verify-isolated",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "PORT=3101 node server/index.js & VITE_SOCKET_URL=http://localhost:3101 VITE_API_URL=http://localhost:3101 npx vite --port 3000 --strictPort"
+      ],
+      "port": 3000
+    }
+  ]
+}

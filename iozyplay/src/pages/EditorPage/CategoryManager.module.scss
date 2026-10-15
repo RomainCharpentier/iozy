@@ -211,7 +211,7 @@
 
 .submitButton {
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  color: white;
+  color: var(--accent-ink);
 }
 
 .submitButton:hover:not(:disabled) {
@@ -220,7 +220,10 @@
 }
 
 .submitButton:disabled {
-  opacity: 0.5;
+  background: var(--bg-tertiary);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
   transform: none;
 }
@@ -234,12 +237,12 @@
 .cancelButton:hover {
   background: var(--color-error);
   border-color: var(--color-error);
-  color: white;
+  color: var(--error-ink);
 }
 
 .addButton {
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  color: white;
+  color: var(--accent-ink);
   border: none;
   padding: var(--space-3) var(--space-6);
   border-radius: var(--radius-md);
@@ -321,7 +324,7 @@
 .emojiOption.selected {
   border-color: var(--primary-color);
   background: var(--primary-color);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 10px var(--accent-alpha-4);
 }
 
 .selectedIconPreview {
@@ -442,7 +445,7 @@
 
 .editButtonSmall {
   background: var(--color-primary);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .editButtonSmall:hover {
@@ -453,7 +456,7 @@
 
 .deleteButtonSmall {
   background: var(--color-error);
-  color: white;
+  color: var(--error-ink);
 }
 
 .deleteButtonSmall:hover {

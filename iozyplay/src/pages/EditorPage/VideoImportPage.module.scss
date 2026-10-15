@@ -93,8 +93,8 @@
 
 .clearButton:hover {
   background: var(--bg-tertiary);
-  border-color: var(--error-color, #ef4444);
-  color: var(--error-color, #ef4444);
+  border-color: var(--error-color);
+  color: var(--error-color);
 }
 
 .inputRow {
@@ -122,7 +122,7 @@
 .loadButton {
   padding: 0.75rem 1.5rem;
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
   border: none;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -144,8 +144,12 @@
 }
 
 .loadButton:disabled {
-  opacity: 0.6;
+  background: var(--bg-tertiary);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
+  transform: none;
 }
 
 .categoriesSelection {
@@ -322,7 +326,7 @@
 .removeVideoButton {
   background: transparent;
   border: none;
-  color: var(--error-color, #ef4444);
+  color: var(--error-color);
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   display: flex;
@@ -387,7 +391,7 @@
 
 .videoExternalLink:hover {
   color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
 }
 
 .videoWarning {
@@ -398,7 +402,7 @@
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: 0.5rem;
-  color: #f59e0b;
+  color: var(--warning);
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -445,7 +449,7 @@
 
 .saveEditButton {
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .saveEditButton:hover {
@@ -502,7 +506,7 @@
 .editAnswerButton:hover {
   border-color: var(--primary-color);
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .videoImportFooter {
@@ -533,7 +537,7 @@
 
 .importButton {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  color: var(--accent-ink);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
@@ -545,12 +549,16 @@
 
 .importButton:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 5px 15px var(--accent-alpha-4);
 }
 
 .importButton:disabled {
-  opacity: 0.6;
+  background: var(--bg-tertiary);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
+  transform: none;
 }
 
 .importProgress {
@@ -559,7 +567,7 @@
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
   border-radius: 0.5rem;
   font-weight: 600;
   flex: 1;

@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import { setupGameHandlers } from './gameHandlers.js'
 import { createRoom, addPlayer } from '../domain/room.js'
 import { roomRepository } from '../infrastructure/roomRepository.js'
+import { QUESTION_TRANSITION_MS } from '../domain/game.js'
 
 // Mock Socket.IO simple
 function createMockSocket(socketId) {
@@ -166,6 +167,41 @@ describe('Game Handlers - Synchronization', () => {
     assert.strictEqual(updatedRoom.game.goAt, null)
     assert.strictEqual(updatedRoom.game.startedAt, null)
   })
+
+  test('entre deux questions : pas de game:go avant la fin de la transition', (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() })
+    const questions = [
+      { id: 'q1', answer: 'Song 1', timeLimit: 20 },
+      { id: 'q2', answer: 'Song 2', timeLimit: 20 }
+    ]
+    const allReady = () => {
+      player1Socket._trigger('game:ready', { roomCode: 'TEST123' })
+      player2Socket._trigger('game:ready', { roomCode: 'TEST123' })
+      hostSocket._trigger('game:ready', { roomCode: 'TEST123' })
+    }
+    const goEvents = () => io._getRoomEvents('TEST123').filter(e => e.event === 'game:go')
+
+    hostSocket._trigger('game:start', { roomCode: 'TEST123', questions, defaultTimeLimit: 20 })
+    allReady()
+    assert.strictEqual(goEvents().length, 1) // 1re question : départ immédiat (+1 s)
+
+    hostSocket._trigger('game:next', { roomCode: 'TEST123' })
+    const nextAt = Date.now()
+    allReady() // médias chargés tout de suite
+
+    // Transition en cours : ni « go » ni chrono serveur
+    assert.strictEqual(goEvents().length, 1)
+    assert.strictEqual(roomRepository.get('TEST123').game.startedAt, null)
+
+    t.mock.timers.tick(QUESTION_TRANSITION_MS - 1000 - 1)
+    assert.strictEqual(goEvents().length, 1)
+
+    t.mock.timers.tick(1)
+    assert.strictEqual(goEvents().length, 2)
+    const go = goEvents()[1].data
+    // Départ effectif à la fin de la transition, annoncé 1 s avant
+    assert.strictEqual(go.goAt, nextAt + QUESTION_TRANSITION_MS)
+    assert.strictEqual(roomRepository.get('TEST123').game.startedAt, go.goAt)
+    roomRepository.clearGameTimer('TEST123')
+  })
 })
-
-

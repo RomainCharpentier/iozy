@@ -16,6 +16,14 @@ import { normalizeAnswer } from '@/utils/answerNormalization'
  */
 export type AnswerSaveStatus = 'empty' | 'pending' | 'saved'
 
+type RevealResult = 'correct' | 'incorrect' | 'none'
+
+const REVEAL_RESULT: Record<RevealResult, { icon: string; title: string }> = {
+  correct: { icon: '✓', title: 'Bien joué !' },
+  incorrect: { icon: '✗', title: 'Raté !' },
+  none: { icon: '⏱', title: 'Pas de réponse' },
+}
+
 interface AnswerInputProps {
   value: string
   onChange: (value: string) => void
@@ -83,12 +91,23 @@ export default function AnswerInput({
     }
 
     // Même normalisation que la validation : sans accents, majuscules ni ponctuation
-    // (« pokemon » propose « Pokémon », « l’attaque » propose « L'Attaque des Titans »)
+    // (« pokemon » propose « Pokémon »). La saisie peut être n'importe où dans la réponse
+    // (« aruto » → « Naruto », « titans » → « L'Attaque des Titans ») ; classement :
+    // début de la réponse, puis début d'un mot, puis milieu d'un mot.
     const searchTerm = normalizeAnswer(value)
+    const rank = (answer: string) => {
+      const normalized = normalizeAnswer(answer)
+      if (normalized.startsWith(searchTerm)) return 0
+      if (normalized.split(/[\s'-]+/).some((word) => word.startsWith(searchTerm))) return 1
+      return normalized.includes(searchTerm) ? 2 : -1
+    }
     const matching = searchTerm
       ? suggestionPool
-          .filter((answer) => normalizeAnswer(answer).startsWith(searchTerm))
+          .map((answer) => ({ answer, rank: rank(answer) }))
+          .filter(({ rank }) => rank >= 0)
+          .sort((a, b) => a.rank - b.rank)
           .slice(0, 5)
+          .map(({ answer }) => answer)
       : []
 
     setSuggestions(matching)
@@ -156,6 +175,12 @@ export default function AnswerInput({
   // Jamais de suggestions pendant le reveal
   const shouldOpen = open && suggestions.length > 0 && !isReveal && !disabled
   const hasAnswer = value.trim().length > 0
+  // Résultat affiché au reveal : champ vide = pas de réponse, sinon juste ou faux
+  const revealResult: RevealResult = !hasAnswer
+    ? 'none'
+    : isCorrect === true
+      ? 'correct'
+      : 'incorrect'
 
   // Animation pour le reveal - on garde les ombres dans le CSS et on anime seulement les propriétés supportées
   const revealAnimation = isReveal
@@ -330,17 +355,33 @@ export default function AnswerInput({
               </div>
             )}
             {isReveal && correctAnswer && (
-              // Ce bloc affiche TOUJOURS la bonne réponse (jamais la réponse du joueur) :
-              // il reste donc toujours au style "succès", même si le joueur s'est trompé.
-              // Le feedback ✓ / ✗ propre au joueur reste sur le champ de saisie lui-même
-              // (bordure + texte via inputCorrect / inputIncorrect ci-dessus).
-              <div className={styles.overlay}>
-                <div className={styles.overlayIcon} aria-hidden="true">
-                  ✓
-                </div>
+              // Résultat du joueur + rappel de la bonne réponse. Le style suit le résultat :
+              // un bandeau vert « succès » quand on s'est trompé laissait croire qu'on avait gagné.
+              <motion.div
+                className={`${styles.overlay} ${styles[`overlay_${revealResult}`]}`}
+                data-testid="reveal-result"
+                data-result={revealResult}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                <motion.div
+                  className={styles.overlayIcon}
+                  aria-hidden="true"
+                  initial={{ scale: 0.4 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 18, delay: 0.05 }}
+                >
+                  {REVEAL_RESULT[revealResult].icon}
+                </motion.div>
                 <div className={styles.overlayContent}>
-                  <div className={styles.overlayLabel}>Bonne réponse</div>
-                  <div className={styles.overlayAnswer}>{correctAnswer}</div>
+                  <div className={styles.overlayTitle}>{REVEAL_RESULT[revealResult].title}</div>
+                  <div className={styles.overlayAnswerLine}>
+                    <span className={styles.overlayLabel}>
+                      {revealResult === 'correct' ? 'La réponse :' : 'La bonne réponse :'}
+                    </span>{' '}
+                    <span className={styles.overlayAnswer}>{correctAnswer}</span>
+                  </div>
                 </div>
                 {typeof revealSecondsRemaining === 'number' &&
                   typeof revealDurationSeconds === 'number' &&
@@ -361,7 +402,7 @@ export default function AnswerInput({
                       />
                     </div>
                   )}
-              </div>
+              </motion.div>
             )}
           </motion.div>
         </Popover.Anchor>

@@ -28,7 +28,7 @@
 .searchInput:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-alpha-1);
   background: var(--color-card-bg);
 }
 
@@ -41,7 +41,7 @@
   border: none;
   cursor: pointer;
   padding: 0.25rem;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1;
   transition: color 0.2s ease;
@@ -54,8 +54,8 @@
 }
 
 .searchClear:hover {
-  color: var(--text-color, #f1f5f9);
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-color);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
 }
 
 .cardsContainer {
@@ -71,17 +71,17 @@
 }
 
 .cardsContainer::-webkit-scrollbar-track {
-  background: var(--bg-color, #0f172a);
+  background: var(--bg-color);
   border-radius: 4px;
 }
 
 .cardsContainer::-webkit-scrollbar-thumb {
-  background: var(--border-color, #334155);
+  background: var(--border-color);
   border-radius: 4px;
 }
 
 .cardsContainer::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary, #94a3b8);
+  background: var(--text-secondary);
 }
 
 .cardsGrid {
@@ -96,7 +96,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.5;
@@ -115,13 +115,13 @@
 .selectionCount {
   margin-top: 0.75rem;
   padding: 0.625rem 0.75rem;
-  background: var(--card-bg, #1e293b);
-  border: 1px solid var(--border-color, #334155);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.5;
-  color: var(--text-color, #f1f5f9);
+  color: var(--text-color);
   text-align: center;
 }
 
@@ -132,35 +132,35 @@
   align-items: center;
   justify-content: center;
   padding: 1rem 0.75rem;
-  background: var(--card-bg, #1e293b);
-  border: 2px solid var(--border-color, #334155);
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   min-height: 100px;
   text-align: center;
   gap: 0.625rem;
-  color: var(--text-color, #f1f5f9);
+  color: var(--text-color);
 }
 
 .card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border-color: var(--primary-color, #6366f1);
-  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary-color);
+  background: var(--accent-alpha-1);
 }
 
 .cardSelected {
-  background: linear-gradient(135deg, var(--primary-color, #6366f1), var(--primary-dark, #4f46e5));
-  border-color: var(--primary-color, #6366f1);
-  color: white;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  border-color: var(--primary-color);
+  color: var(--accent-ink);
+  box-shadow: 0 4px 16px var(--accent-alpha-4);
 }
 
 .cardSelected:hover {
-  background: linear-gradient(135deg, var(--primary-dark, #4f46e5), var(--primary-color, #6366f1));
-  border-color: var(--primary-dark, #4f46e5);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+  border-color: var(--primary-dark);
+  box-shadow: 0 6px 20px var(--accent-alpha-4);
 }
 
 .emojiLarge {
@@ -179,12 +179,12 @@
   font-weight: 500;
   line-height: 1.4;
   word-break: break-word;
-  color: var(--text-color, #f1f5f9);
+  color: var(--text-color);
   letter-spacing: 0.01em;
 }
 
 .cardSelected .nameText {
-  color: white;
+  color: var(--accent-ink);
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
@@ -194,7 +194,7 @@
   top: 0.5rem;
   right: 0.5rem;
   background: rgba(255, 255, 255, 0.95);
-  color: var(--primary-color, #6366f1);
+  color: var(--primary-color);
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -204,12 +204,12 @@
   font-size: 0.875rem;
   font-weight: bold;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  border: 2px solid var(--primary-color, #6366f1);
+  border: 2px solid var(--primary-color);
 }
 
 .cardSelected .selectedIndicator {
   background: white;
-  color: var(--primary-color, #6366f1);
+  color: var(--primary-color);
   border-color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
@@ -221,9 +221,9 @@
   margin-top: 0.75rem;
   padding: 0.75rem;
   background: rgba(239, 68, 68, 0.1);
-  border: 1px solid var(--error-color, #ef4444);
+  border: 1px solid var(--error-color);
   border-radius: 8px;
-  color: var(--error-color, #ef4444);
+  color: var(--error-color);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.5;

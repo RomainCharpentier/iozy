@@ -12,7 +12,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 import type { Player } from '@/lib/game/types'
 import type { Question } from '@/types'
 
-const { fakeSocket, mediaProps } = vi.hoisted(() => {
+const { fakeSocket, mediaProps, soundSpies } = vi.hoisted(() => {
   const handlers = new Map<string, Set<(...args: any[]) => void>>()
   const fakeSocket = {
     connected: true,
@@ -46,7 +46,11 @@ const { fakeSocket, mediaProps } = vi.hoisted(() => {
       fakeSocket.emitted = []
     },
   }
-  return { fakeSocket, mediaProps: { current: null as any } }
+  return {
+    fakeSocket,
+    mediaProps: { current: null as any },
+    soundSpies: {} as Record<string, ReturnType<typeof vi.fn>>,
+  }
 })
 
 vi.mock('@/utils/socket', () => ({
@@ -74,7 +78,8 @@ vi.mock('@/pages/GamePage/question/useAnswerSuggestions', () => ({
 }))
 
 vi.mock('@/utils/sounds', () => ({
-  soundManager: new Proxy({}, { get: () => () => {} }),
+  // Chaque son est un espion (vi.fn), créé à la première utilisation
+  soundManager: new Proxy({}, { get: (_target, name: string) => (soundSpies[name] ??= vi.fn()) }),
 }))
 
 vi.mock('sonner', () => ({
@@ -138,7 +143,10 @@ const server = (event: string, payload?: any) =>
 /** Aucun retour juste/faux visible ni annoncé */
 const expectNoCorrectnessFeedback = () => {
   const text = document.body.textContent ?? ''
-  expect(text).not.toMatch(/Correct !|Incorrect|incorrecte|est correcte|Bonne réponse/)
+  expect(text).not.toMatch(
+    /Correct !|Incorrect|incorrecte|est correcte|Bonne réponse|bonne réponse|Bien joué|Raté/
+  )
+  expect(screen.queryByTestId('reveal-result')).toBeNull()
   expect(input().getAttribute('placeholder')).not.toBe('Pas de réponse')
 }
 
@@ -362,7 +370,12 @@ describe('Réponse en ligne', () => {
 
     serverReveal({ me: false }, { me: 'Bleach' })
     expect(input().readOnly).toBe(true)
-    expect(screen.getByText('Bonne réponse')).toBeTruthy()
+    // Réponse fausse : bandeau « Raté ! » (pas un bandeau vert de réussite)
+    const banner = screen.getByTestId('reveal-result')
+    expect(banner.getAttribute('data-result')).toBe('incorrect')
+    expect(banner.textContent).toContain('Raté !')
+    expect(banner.textContent).toContain('Naruto')
+    expect(banner.textContent).not.toContain('Bien joué')
     expect(screen.getByTestId('game-announcer').textContent).toContain(
       'Votre réponse est incorrecte.'
     )
@@ -459,6 +472,29 @@ describe('Réponse en ligne', () => {
     expect(screen.getByTestId('game-topbar').textContent).toMatch(/0:0[6-8]/)
   })
 
+  it('transition entre questions : écran « Question N sur M » puis signal sonore', () => {
+    startOnlineGame()
+    serverReveal({}, {})
+    server('game:next', { questions: publicQuestions, questionIndex: 1 })
+    const intro = screen.getByTestId('question-intro')
+    expect(intro.textContent).toContain('Question 2')
+    expect(intro.textContent).toContain('sur 2')
+    expect(intro.textContent).toContain('Animé')
+
+    // Pendant la transition, l'extrait se charge mais ne joue pas
+    expect(mediaProps.current.shouldPause).toBe(true)
+
+    server('game:go', { durationMs: DURATION_MS })
+    expect(screen.queryByTestId('question-intro')).toBeNull()
+    soundSpies.playStart?.mockClear()
+    act(() => {
+      mediaProps.current.onMediaStart()
+    })
+    // Début du chrono : signal sonore (pas de message à l'écran)
+    expect(soundSpies.playStart).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('À vous !')).toBeNull()
+  })
+
   it('question suivante : la saisie en attente de la question précédente ne part pas', () => {
     startOnlineGame()
     serverReveal({}, {})
@@ -515,6 +551,7 @@ describe('Réponse en solo', () => {
     advance(DURATION_MS)
     expect(input().readOnly).toBe(true)
     expect(scoreText()).toContain('Score1')
+    expect(screen.getByTestId('reveal-result').getAttribute('data-result')).toBe('correct')
     expect(screen.getByTestId('game-announcer').textContent).toContain(
       'Votre réponse est correcte.'
     )
@@ -551,12 +588,33 @@ describe('Réponse en solo', () => {
     expect(fraction).toBeLessThan(1)
   })
 
+  it('solo : transition entre questions, extrait chargé en pause puis lancé', () => {
+    startSoloGame()
+    fireEvent.click(skipButton()) // fin du guess → reveal
+    advance(DURATION_MS) // fin du reveal
+    const intro = screen.getByTestId('question-intro')
+    expect(intro.textContent).toContain('Question 2')
+    expect(intro.textContent).toContain('Préparez-vous')
+    expect(mediaProps.current.shouldPause).toBe(true)
+    expect(mediaProps.current.autoPlay).toBe(false)
+    // « Passer » inactif pendant la transition
+    expect(skipButton().disabled).toBe(true)
+
+    advance(3000)
+    expect(screen.queryByTestId('question-intro')).toBeNull()
+    expect(mediaProps.current.autoPlay).toBe(true)
+    expect(mediaProps.current.shouldPause).toBe(false)
+    expect(input().readOnly).toBe(false)
+  })
+
   it('champ vidé avant la fin : pas de réponse', () => {
     startSoloGame()
     type('Naruto')
     type('')
     fireEvent.click(skipButton())
     expect(scoreText()).toContain('Score0')
+    expect(screen.getByTestId('reveal-result').getAttribute('data-result')).toBe('none')
+    expect(screen.getByTestId('reveal-result').textContent).toContain('Pas de réponse')
     expect(screen.getByTestId('game-announcer').textContent).toContain('Vous n’avez pas répondu.')
   })
 })

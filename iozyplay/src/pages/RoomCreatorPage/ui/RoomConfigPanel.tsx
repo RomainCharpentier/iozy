@@ -1,9 +1,11 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
 import styles from '@/pages/RoomCreatorPage/ui/RoomConfigPanel.module.scss'
+import { ArrowLeft, Play } from 'lucide-react'
 import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
 import { loadCategories } from '@/services/categoryService'
 import { TIMING } from '@/services/gameService'
 import { soundManager } from '@/utils/sounds'
+import SectionHeader from '@/components/common/SectionHeader'
 import { useState, useEffect } from 'react'
 
 interface RoomConfigPanelProps {
@@ -104,23 +106,29 @@ export default function RoomConfigPanel({
     }
   }
 
-  return (
-    <div className={`${ds.card} ${styles.panel}`}>
-      <div className={ds.cardHeader}>
-        <h2 className={ds.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          Configuration
-        </h2>
-      </div>
+  const safeCount =
+    Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT
+  const safeMax = Number.isFinite(maxCount) && !Number.isNaN(maxCount) ? maxCount : MIN_COUNT
 
-      {/* Categories */}
+  return (
+    <section className={`${ds.card} ${styles.panel}`} aria-labelledby="room-config">
+      <SectionHeader
+        title={<span id="room-config">Configuration</span>}
+        subtitle={
+          availableCount > 0
+            ? `${availableCount} question${availableCount > 1 ? 's' : ''} disponible${availableCount > 1 ? 's' : ''} dans ces thèmes.`
+            : 'Aucune question disponible dans ces thèmes.'
+        }
+      />
+
       <div className={styles.section}>
-        <label className={styles.label}>Thèmes sélectionnés</label>
-        <div className={ds.gridAuto} style={{ gap: 'var(--spacing-xs)' }}>
+        <span className={styles.label}>Thèmes</span>
+        <div className={styles.chips}>
           {selectedCategories.map((category) => {
             const catInfo = getCategoryInfo(category)
             return (
-              <span key={category} className={`${ds.badge} ${ds.badgePrimary}`}>
-                <span style={{ fontSize: '16px', marginRight: '4px' }}>{catInfo.emoji}</span>{' '}
+              <span key={category} className={ds.chip}>
+                <span aria-hidden="true">{catInfo.emoji}</span>
                 {catInfo.name}
               </span>
             )
@@ -128,13 +136,13 @@ export default function RoomConfigPanel({
         </div>
       </div>
 
-      {/* Timer Slider */}
       <div className={styles.section}>
-        <label className={styles.label}>
-          Timer par question: <strong>{timeLimit}s</strong>
+        <label className={styles.label} htmlFor="room-time-limit">
+          Chrono par question
         </label>
         <div className={styles.sliderRow}>
           <input
+            id="room-time-limit"
             type="range"
             min={TIMING.MIN_TIME_LIMIT}
             max={TIMING.MAX_TIME_LIMIT}
@@ -145,97 +153,56 @@ export default function RoomConfigPanel({
               onTimeLimitChange(value)
               soundManager.playClick()
             }}
-            style={{
-              flex: 1,
-              height: '6px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '3px',
-              outline: 'none',
-              WebkitAppearance: 'none',
-            }}
+            className={styles.slider}
           />
-          <span className={styles.sliderValue}>{timeLimit}s</span>
+          <output className={styles.sliderValue} htmlFor="room-time-limit">
+            {timeLimit} s
+          </output>
         </div>
       </div>
 
-      {/* Question Count Slider */}
       <div className={styles.section}>
-        <label className={styles.label}>
-          Nombre de questions:{' '}
-          <strong>
-            {Number.isFinite(currentCount) && !Number.isNaN(currentCount)
-              ? currentCount
-              : MIN_COUNT}
-          </strong>
+        <label className={styles.label} htmlFor="room-question-count">
+          Nombre de questions
         </label>
         <div className={styles.sliderRow}>
           <input
+            id="room-question-count"
             type="range"
             min={MIN_COUNT}
-            max={Number.isFinite(maxCount) && !Number.isNaN(maxCount) ? maxCount : MIN_COUNT}
-            value={
-              Number.isFinite(currentCount) && !Number.isNaN(currentCount)
-                ? currentCount
-                : MIN_COUNT
-            }
-            onChange={(e) => {
-              const value = parseInt(e.target.value, 10)
-              handleQuestionCountChange(value)
-            }}
+            max={safeMax}
+            value={safeCount}
+            onChange={(e) => handleQuestionCountChange(parseInt(e.target.value, 10))}
             disabled={availableCount === 0}
-            style={{
-              flex: 1,
-              height: '6px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '3px',
-              outline: 'none',
-              WebkitAppearance: 'none',
-              opacity: availableCount === 0 ? 0.5 : 1,
-            }}
+            className={styles.slider}
           />
-          <span className={styles.sliderValue}>
-            {Number.isFinite(currentCount) && !Number.isNaN(currentCount)
-              ? currentCount
-              : MIN_COUNT}
-          </span>
+          <output className={styles.sliderValue} htmlFor="room-question-count">
+            {safeCount}
+          </output>
         </div>
-        <p
-          className={ds.textSecondary}
-          style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)' }}
-        >
-          {availableCount > 0
-            ? `${availableCount} questions disponibles`
-            : 'Aucune question disponible'}
-        </p>
       </div>
 
-      {/* Actions */}
+      {startError && (
+        <p className={styles.errorMessage} role="status">
+          {startError}
+        </p>
+      )}
+
       <div className={styles.actions}>
-        <button className={`${ds.btn} ${ds.btnSecondary}`} onClick={onBack}>
-          ← Retour
+        <button type="button" className={`${ds.btn} ${ds.btnTertiary}`} onClick={onBack}>
+          <ArrowLeft size={15} />
+          Quitter le salon
         </button>
         <button
-          className={`${ds.btn} ${ds.btnPrimary} ${ds.btnLarge}`}
+          type="button"
+          className={`${ds.btn} ${ds.btnPrimary}`}
           onClick={onStartGame}
           disabled={!canStart || isStarting}
         >
-          {isStarting ? (
-            <>
-              <span className={ds.spinner} style={{ fontSize: '16px', marginRight: '0.5rem' }}></span>
-              Démarrage...
-            </>
-          ) : (
-            '▶ Démarrer la partie'
-          )}
+          <Play size={16} />
+          {isStarting ? 'Démarrage…' : 'Démarrer la partie'}
         </button>
       </div>
-
-      {/* Error Messages */}
-      {startError && (
-        <div className={styles.errorMessage}>
-          {startError}
-        </div>
-      )}
-    </div>
+    </section>
   )
 }

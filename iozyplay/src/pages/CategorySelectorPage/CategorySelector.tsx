@@ -1,12 +1,16 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
 import styles from '@/pages/CategorySelectorPage/CategorySelector.module.scss'
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import { ArrowRight, Check, FolderOpen } from 'lucide-react'
 import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
 import { loadCategories } from '@/services/categoryService'
 import type { Player } from '@/lib/game/types'
 import { soundManager } from '@/utils/sounds'
 import CategoryIcon from '@/components/common/CategoryIcon'
+import SectionHeader from '@/components/common/SectionHeader'
+import EmptyState from '@/components/common/EmptyState'
 import { QuestionService } from '@/services/questionService'
 import { settingsService } from '@/services/settingsService'
 interface CategorySelectorProps {
@@ -17,6 +21,8 @@ interface CategorySelectorProps {
     playerName: string
   ) => void | Promise<void>
 }
+
+const SKELETON_TILES = 5
 
 export default function CategorySelector({ onStartGame }: CategorySelectorProps) {
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([])
@@ -89,55 +95,83 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
     await onStartGame(selectedCategories, 'online', players, name)
   }
 
-  return (
-    <div className={styles.categorySelector}>
-      <h2>Créer une partie</h2>
+  const count = selectedCategories.length
 
-      {isLoadingCategories ? (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} style={{ margin: '0 auto' }}></div>
-          <p className={ds.textSecondary}>Chargement des catégories...</p>
-        </div>
-      ) : categories.length === 0 ? (
-        <div className={styles.emptyState}>
-          <p style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-md)' }}>
-            Aucune catégorie avec des questions disponibles
-          </p>
-          <p style={{ fontSize: 'var(--font-size-sm)' }}>
-            Ajoutez des questions dans l'éditeur pour pouvoir jouer
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className={styles.categoriesGrid}>
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                className={`${styles.categoryCard} ${selectedCategories.includes(category.id) ? styles.selected : ''}`}
-                onClick={() => toggleCategory(category.id)}
-                aria-label={`${selectedCategories.includes(category.id) ? 'Désélectionner' : 'Sélectionner'} la catégorie ${category.name}`}
-                aria-pressed={selectedCategories.includes(category.id)}
-              >
-                <span className={styles.categoryEmoji}>
-                  <CategoryIcon categoryId={category.id} iconId={category.emoji} size={32} />
-                </span>
-                <span className={styles.categoryName}>{category.name}</span>
-              </button>
-            ))}
-          </div>
+  // Le sous-titre dit quelque chose de vrai et de calculé, jamais un slogan.
+  const subtitle = isLoadingCategories
+    ? 'Chargement des thèmes…'
+    : categories.length === 0
+      ? "Aucun thème ne contient de question pour l'instant."
+      : count === 0
+        ? `Choisis un ou plusieurs thèmes parmi ${categories.length}.`
+        : `${count} thème${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''} sur ${categories.length}.`
+
+  return (
+    <div className={styles.selector}>
+      <SectionHeader
+        level={1}
+        title="Créer une partie"
+        subtitle={subtitle}
+        action={
           <button
-            className={styles.startButton}
+            type="button"
+            className={`${ds.btn} ${ds.btnPrimary}`}
             onClick={handleStartGame}
-            disabled={selectedCategories.length === 0}
+            disabled={count === 0}
             aria-label={
-              selectedCategories.length === 0
+              count === 0
                 ? 'Sélectionnez au moins une catégorie pour commencer'
                 : 'Commencer la partie'
             }
           >
             Continuer
+            <ArrowRight size={16} />
           </button>
-        </>
+        }
+      />
+
+      {isLoadingCategories ? (
+        <div className={styles.grid} role="status">
+          <span className="iozy-sr-only">Chargement des thèmes…</span>
+          {Array.from({ length: SKELETON_TILES }, (_, i) => (
+            <div key={i} aria-hidden="true" className={`iozy-skeleton ${styles.tileSkeleton}`} />
+          ))}
+        </div>
+      ) : categories.length === 0 ? (
+        <EmptyState
+          icon={FolderOpen}
+          title="Aucun thème jouable"
+          detail="Ajoute des questions dans l'éditeur pour pouvoir jouer."
+          action={
+            <Link to="/editor" className={`${ds.btn} ${ds.btnSecondary}`}>
+              Ouvrir l'éditeur
+            </Link>
+          }
+        />
+      ) : (
+        <div className={styles.grid}>
+          {categories.map((category) => {
+            const selected = selectedCategories.includes(category.id)
+            return (
+              <button
+                key={category.id}
+                type="button"
+                className={`${styles.tile} ${selected ? styles.tileSelected : ''}`}
+                onClick={() => toggleCategory(category.id)}
+                aria-label={`${selected ? 'Désélectionner' : 'Sélectionner'} la catégorie ${category.name}`}
+                aria-pressed={selected}
+              >
+                <span className={styles.tileCheck} aria-hidden="true">
+                  <Check size={14} strokeWidth={3} />
+                </span>
+                <span className={styles.tileEmoji}>
+                  <CategoryIcon categoryId={category.id} iconId={category.emoji} size={32} />
+                </span>
+                <span className={styles.tileName}>{category.name}</span>
+              </button>
+            )
+          })}
+        </div>
       )}
     </div>
   )

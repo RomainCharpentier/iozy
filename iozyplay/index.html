@@ -1,20 +1,25 @@
 <!doctype html>
-<html lang="fr">
+<!-- `dark-theme` d'emblée : le défaut de l'app est sombre alors que la charte
+     (IozyKit) pose le clair sur :root ; settingsService ajuste ensuite. -->
+<html lang="fr" class="dark-theme">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#6366f1" />
-    <meta name="description" content="No Peeking - Blindtest WebApp. Devine les chansons, séries TV, animes, films et jeux vidéo !" />
-    <meta name="keywords" content="blindtest, quiz, musique, séries, animes, films, jeux vidéo, multijoueur" />
-    <meta name="author" content="No Peeking" />
-    <meta property="og:title" content="No Peeking - Blindtest WebApp" />
+    <!-- Couleur de la barre système, posée AVANT le premier octet de CSS.
+         Deux déclarations : l'app a deux thèmes, le navigateur prend la première qui correspond. -->
+    <meta name="theme-color" content="#16120f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#faf6f2" media="(prefers-color-scheme: light)" />
+    <meta name="description" content="IozyPlay — le blindtest multijoueur. Devine les chansons, séries TV, animes, films et jeux vidéo !" />
+    <meta name="keywords" content="iozyplay, blindtest, quiz, musique, séries, animes, films, jeux vidéo, multijoueur" />
+    <meta name="author" content="IozyPlay" />
+    <meta property="og:title" content="IozyPlay — le blindtest multijoueur" />
     <meta property="og:description" content="Devine les chansons, séries TV, animes, films et jeux vidéo !" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/logo.svg" />
     <link rel="manifest" href="/manifest.json" />
-    <title>No Peeking - Blindtest WebApp</title>
+    <title>IozyPlay</title>
     <script>
       // Désinscrire immédiatement le service worker en développement pour éviter le cache
       // Ce script s'exécute AVANT que le service worker n'intercepte les requêtes

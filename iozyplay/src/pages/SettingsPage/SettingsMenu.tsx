@@ -1,15 +1,22 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
 import styles from '@/pages/SettingsPage/SettingsMenu.module.scss'
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import { Moon, RotateCcw, Sun, Volume2 } from 'lucide-react'
 import { settingsService, UserSettings } from '@/services/settingsService'
 import { soundManager } from '@/utils/sounds'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
+import BackLink from '@/components/common/BackLink'
+import SectionHeader from '@/components/common/SectionHeader'
+import { destinationLabelFor } from '@/components/layout/navItems'
 
+/** Les réglages, comme la page Profil d'IozyCore : une colonne étroite, une
+ *  carte par sujet, chaque changement enregistré aussitôt (pas de bouton
+ *  « Enregistrer »), et la zone de danger à part, teintée. */
 export default function SettingsMenu() {
-  const navigate = useNavigate()
+  // Le lien retour NOMME d'où l'on vient (l'en-tête passe son origine en state).
+  const back = destinationLabelFor((useLocation().state as { from?: string } | null)?.from)
   const [settings, setSettings] = useState<UserSettings>(settingsService.getSettings())
-  const [activeSection, setActiveSection] = useState<'account' | 'sound' | 'interface'>('account')
   const [showResetDialog, setShowResetDialog] = useState(false)
 
   useEffect(() => {
@@ -35,10 +42,6 @@ export default function SettingsMenu() {
     }
   }
 
-  const handleReset = () => {
-    setShowResetDialog(true)
-  }
-
   const confirmReset = () => {
     settingsService.resetSettings()
     const defaultSettings = settingsService.getSettings()
@@ -49,260 +52,138 @@ export default function SettingsMenu() {
   }
 
   return (
-    <div className={styles.settingsLayout}>
-      <div className={styles.settingsContainer}>
-        {/* Header */}
-        <div className={styles.settingsHeader}>
-          <button
-            className={`${ds.btn} ${ds.btnSecondary} ${ds.btnIcon} ${styles.headerBack}`}
-            onClick={() => {
-              soundManager.playClick()
-              navigate(-1)
-            }}
-            aria-label="Retour"
-          >
-            ← Retour
-          </button>
-          <h1 className={styles.settingsTitle}>
-            <span className={styles.titleIcon}>⚙️</span> Réglages
-          </h1>
-          <div className={styles.headerSpacer} aria-hidden="true" />
+    <div className={styles.page}>
+      <BackLink to={back.to} label={back.label} />
+      <SectionHeader
+        level={1}
+        title="Réglages"
+        subtitle="Ces réglages restent sur cet appareil et s'appliquent aussitôt."
+      />
+
+      <section className={`${ds.card} ${styles.card}`} aria-labelledby="settings-account">
+        <SectionHeader
+          title={<span id="settings-account">Compte</span>}
+          subtitle="Le nom que les autres joueurs voient pendant les parties."
+        />
+        <label className={styles.field}>
+          <span className={styles.label}>Nom d'utilisateur</span>
+          <input
+            type="text"
+            className={ds.input}
+            value={settings.username}
+            onChange={(e) => handleSettingChange('username', e.target.value)}
+            placeholder="Votre nom"
+            maxLength={20}
+          />
+        </label>
+      </section>
+
+      <section className={`${ds.card} ${styles.card}`} aria-labelledby="settings-sound">
+        <SectionHeader
+          title={<span id="settings-sound">Son</span>}
+          subtitle="Les sons de l'interface : clics, départ de manche, bonne réponse."
+        />
+
+        <div className={styles.row}>
+          <label htmlFor="soundEnabled" className={styles.rowLabel}>
+            Activer les sons
+          </label>
+          <span className={styles.toggleSwitch}>
+            <input
+              type="checkbox"
+              id="soundEnabled"
+              checked={settings.soundEnabled}
+              onChange={(e) => handleSettingChange('soundEnabled', e.target.checked)}
+            />
+            <label htmlFor="soundEnabled" className={styles.toggleLabel} aria-hidden="true">
+              <span className={styles.toggleSlider}></span>
+            </label>
+          </span>
         </div>
 
-        <div className={styles.settingsContent}>
-          {/* Sidebar Navigation */}
-          <div className={styles.settingsSidebar}>
-            <button
-              className={`${styles.settingsNavItem} ${activeSection === 'account' ? styles.active : ''}`}
-              onClick={() => {
-                setActiveSection('account')
-                soundManager.playClick()
-              }}
-            >
-              <span className={styles.navIcon} style={{ fontSize: '18px' }}>
-                👤
-              </span>
-              <span className={styles.navLabel}>Compte</span>
-            </button>
-            <button
-              className={`${styles.settingsNavItem} ${activeSection === 'sound' ? styles.active : ''}`}
-              onClick={() => {
-                setActiveSection('sound')
-                soundManager.playClick()
-              }}
-            >
-              <span className={styles.navIcon} style={{ fontSize: '18px' }}>
-                🔊
-              </span>
-              <span className={styles.navLabel}>Son</span>
-            </button>
-            <button
-              className={`${styles.settingsNavItem} ${activeSection === 'interface' ? styles.active : ''}`}
-              onClick={() => {
-                setActiveSection('interface')
-                soundManager.playClick()
-              }}
-            >
-              <span className={styles.navIcon} style={{ fontSize: '18px' }}>
-                🎨
-              </span>
-              <span className={styles.navLabel}>Interface</span>
-            </button>
+        <div className={styles.field}>
+          <div className={styles.row}>
+            <label htmlFor="soundVolume" className={styles.label}>
+              Volume
+            </label>
+            <output htmlFor="soundVolume" className={styles.value}>
+              {settings.soundVolume} %
+            </output>
           </div>
-
-          {/* Main Content */}
-          <div className={styles.settingsMain}>
-            {/* Section Compte */}
-            {activeSection === 'account' && (
-              <div className={styles.settingsSection}>
-                <h2 className={styles.sectionTitle}>Profil</h2>
-
-                <div className={styles.settingGroup}>
-                  <label className={styles.settingLabel}>
-                    <span className={styles.labelText}>Nom d'utilisateur</span>
-                    <span
-                      className={styles.labelDescription}
-                      style={{ fontSize: 'var(--font-size-sm)', marginTop: 'var(--spacing-xs)' }}
-                    >
-                      Affiché dans les parties multijoueur
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    className={ds.input}
-                    value={settings.username}
-                    onChange={(e) => handleSettingChange('username', e.target.value)}
-                    placeholder="Votre nom"
-                    maxLength={20}
-                    style={{ marginTop: 'var(--spacing-md)' }}
-                    aria-label="Nom d'utilisateur"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Section Son */}
-            {activeSection === 'sound' && (
-              <div className={styles.settingsSection}>
-                <h2 className={styles.sectionTitle}>Réglages audio</h2>
-
-                <div className={styles.settingGroup}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 'var(--spacing-md)',
-                    }}
-                  >
-                    <label className={styles.settingLabel} style={{ marginBottom: 0 }}>
-                      <span className={styles.labelText}>Activer les sons</span>
-                    </label>
-                    <div className={styles.toggleSwitch}>
-                      <input
-                        type="checkbox"
-                        id="soundEnabled"
-                        checked={settings.soundEnabled}
-                        onChange={(e) => handleSettingChange('soundEnabled', e.target.checked)}
-                        aria-label="Activer les sons"
-                      />
-                      <label htmlFor="soundEnabled" className={styles.toggleLabel}>
-                        <span className={styles.toggleSlider}></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.settingGroup}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 'var(--spacing-sm)',
-                    }}
-                  >
-                    <label className={styles.settingLabel} style={{ marginBottom: 0 }}>
-                      <span className={styles.labelText}>Volume</span>
-                    </label>
-                    <span
-                      style={{
-                        fontSize: 'var(--font-size-lg)',
-                        fontWeight: 600,
-                        color: 'var(--accent-primary)',
-                      }}
-                    >
-                      {settings.soundVolume}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={settings.soundVolume}
-                    onChange={(e) => handleSettingChange('soundVolume', parseInt(e.target.value))}
-                    className={styles.slider}
-                    disabled={!settings.soundEnabled}
-                    aria-label="Volume du son"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={settings.soundVolume}
-                  />
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginTop: 'var(--spacing-xs)',
-                      fontSize: 'var(--font-size-xs)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    <span>0%</span>
-                    <span>50%</span>
-                    <span>100%</span>
-                  </div>
-                </div>
-
-                <div className={styles.settingGroup} style={{ marginTop: 'var(--spacing-xl)' }}>
-                  <button
-                    className={`${ds.btn} ${ds.btnSecondary}`}
-                    onClick={() => {
-                      if (settings.soundEnabled) {
-                        soundManager.playSuccess()
-                      }
-                    }}
-                    disabled={!settings.soundEnabled}
-                    style={{ width: '100%' }}
-                  >
-                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🔊</span> Tester le
-                    son
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Section Interface */}
-            {activeSection === 'interface' && (
-              <div className={styles.settingsSection}>
-                <h2 className={styles.sectionTitle}>Apparence</h2>
-
-                <div className={styles.settingGroup}>
-                  <label className={styles.settingLabel}>
-                    <span className={styles.labelText}>Thème</span>
-                  </label>
-                  <div className={styles.radioGroup}>
-                    <label className={styles.radioOption}>
-                      <input
-                        type="radio"
-                        name="theme"
-                        value="dark"
-                        checked={settings.theme === 'dark'}
-                        onChange={(e) => handleSettingChange('theme', e.target.value as 'dark')}
-                      />
-                      <span>
-                        <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🌙</span> Sombre
-                      </span>
-                    </label>
-                    <label className={styles.radioOption}>
-                      <input
-                        type="radio"
-                        name="theme"
-                        value="light"
-                        checked={settings.theme === 'light'}
-                        onChange={(e) => handleSettingChange('theme', e.target.value as 'light')}
-                      />
-                      <span>
-                        <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>☀️</span> Clair
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <input
+            id="soundVolume"
+            type="range"
+            min="0"
+            max="100"
+            value={settings.soundVolume}
+            onChange={(e) => handleSettingChange('soundVolume', parseInt(e.target.value))}
+            className={styles.slider}
+            disabled={!settings.soundEnabled}
+          />
         </div>
 
-        {/* Footer Actions */}
-        <div className={styles.settingsFooter}>
+        <div>
           <button
-            className={`${ds.btn} ${ds.btnDanger}`}
-            onClick={handleReset}
-            aria-label="Réinitialiser tous les réglages"
-          >
-            🔄 Réinitialiser
-          </button>
-          <button
-            className={`${ds.btn} ${ds.btnPrimary}`}
+            type="button"
+            className={`${ds.btn} ${ds.btnSecondary}`}
             onClick={() => {
-              soundManager.playSuccess()
-              navigate(-1)
+              if (settings.soundEnabled) {
+                soundManager.playSuccess()
+              }
             }}
-            aria-label="Enregistrer et fermer"
+            disabled={!settings.soundEnabled}
           >
-            ✓ Enregistrer et fermer
+            <Volume2 size={16} aria-hidden="true" />
+            Tester le son
           </button>
         </div>
-      </div>
+      </section>
+
+      <section className={`${ds.card} ${styles.card}`} aria-labelledby="settings-appearance">
+        <SectionHeader
+          title={<span id="settings-appearance">Apparence</span>}
+          subtitle="Le thème se change aussi depuis l'en-tête, en un clic."
+        />
+        <div role="radiogroup" aria-label="Thème" className={styles.segmented}>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={settings.theme === 'dark'}
+            className={`${ds.chip} ${settings.theme === 'dark' ? ds.chipActive : ''}`}
+            onClick={() => handleSettingChange('theme', 'dark')}
+          >
+            <Moon size={14} aria-hidden="true" />
+            Sombre
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={settings.theme === 'light'}
+            className={`${ds.chip} ${settings.theme === 'light' ? ds.chipActive : ''}`}
+            onClick={() => handleSettingChange('theme', 'light')}
+          >
+            <Sun size={14} aria-hidden="true" />
+            Clair
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.dangerZone} aria-labelledby="settings-reset">
+        <SectionHeader
+          title={<span id="settings-reset">Réinitialiser</span>}
+          subtitle="Remet le nom, le son et le thème à leurs valeurs d'origine."
+          action={
+            <button
+              type="button"
+              className={`${ds.btn} ${ds.btnDanger}`}
+              onClick={() => setShowResetDialog(true)}
+            >
+              <RotateCcw size={16} aria-hidden="true" />
+              Réinitialiser
+            </button>
+          }
+        />
+      </section>
 
       <ConfirmDialog
         isOpen={showResetDialog}

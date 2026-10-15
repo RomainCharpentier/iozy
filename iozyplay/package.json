@@ -1,5 +1,5 @@
 {
-  "name": "blindtest-webapp",
+  "name": "iozyplay",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -17,14 +17,18 @@
     "lint:fix": "eslint src --fix --max-warnings 999",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
-    "typecheck": "tsc --noEmit --skipLibCheck"
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "kit:sync": "node scripts/sync-iozykit.mjs"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-popover": "^1.1.15",
     "cors": "^2.8.5",
     "express": "^4.21.0",
+    "lucide-react": "^1.57.0",
     "motion": "^12.34.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

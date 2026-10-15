@@ -1,20 +1,30 @@
 .container {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 4rem);
-  flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 0.75rem;
+  min-height: 50vh;
+  text-align: center;
+}
+
+.container > * {
+  width: 100%;
+  max-width: 28rem;
 }
 
 .title {
-  font-size: var(--font-size-xl);
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid var(--border);
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--border-hover);
   border-top-color: var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -24,14 +34,4 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-.errorBlock {
-  text-align: center;
-  max-width: 600px;
-}
-
-.errorText {
-  color: var(--error);
-  margin-bottom: var(--spacing-md);
 }

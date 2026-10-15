@@ -113,7 +113,7 @@
 }
 
 .iconInfo {
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--accent-alpha-1);
   color: var(--color-primary);
 }
 
@@ -156,11 +156,12 @@
 }
 
 .buttonConfirm {
-  color: white;
+  color: var(--accent-ink);
 }
 
 .buttonDanger {
   background: var(--color-error);
+  color: var(--error-ink);
 }
 
 .buttonDanger:hover {
@@ -171,6 +172,7 @@
 
 .buttonWarning {
   background: var(--color-warning);
+  color: var(--warning-ink);
 }
 
 .buttonWarning:hover {

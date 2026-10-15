@@ -1,63 +1,21 @@
-.dark-theme {
-  --bg-color: #0f172a;
-  --card-bg: #1e293b;
-  --text-color: #f1f5f9;
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
-  --color-card-bg: #1e293b;
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-border: #334155;
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --border: #334155;
-  --border-color: #334155;
-  --border-hover: #475569;
-}
+/* Préférences d'interface posées sur <html> par settingsService.
+   Les couleurs des deux thèmes vivent dans design-tokens.scss (:root = sombre,
+   .light-theme = clair) : ce fichier ne redéfinit AUCUNE couleur. */
 
-.light-theme {
-  --bg-color: #f8fafc;
-  --card-bg: #ffffff;
-  --text-color: #0f172a;
-  --color-bg-primary: #f8fafc;
-  --color-bg-secondary: #f1f5f9;
-  --color-bg-tertiary: #e2e8f0;
-  --color-card-bg: #ffffff;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-border: #cbd5e1;
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --bg-tertiary: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --border: #cbd5e1;
-  --border-color: #cbd5e1;
-  --border-hover: #94a3b8;
-}
-
-.dark-theme body {
-  background: linear-gradient(135deg, var(--bg-color) 0%, var(--gradient-end) 100%);
-  color: var(--text-color);
-}
-
-.light-theme {
-  --gradient-end: #e2e8f0;
-}
-
+.dark-theme body,
 .light-theme body {
   background: linear-gradient(135deg, var(--bg-color) 0%, var(--gradient-end) 100%);
   color: var(--text-color);
 }
 
-.light-theme .btn-primary,
-.light-theme .menu-button.primary,
-.light-theme [class*='btnPrimary'] {
-  color: #ffffff;
+/* Les contrôles natifs (liste d'un <select>, barres de défilement, champs date)
+   suivent le thème de l'APP, pas celui du système. */
+.dark-theme {
+  color-scheme: dark;
+}
+
+.light-theme {
+  color-scheme: light;
 }
 
 [data-font-size='small'] {

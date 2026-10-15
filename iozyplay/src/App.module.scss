@@ -35,17 +35,14 @@
 }
 
 .appOverlayContent {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-base);
   font-weight: 700;
-  color: var(--text-primary);
+  /* L'accent comme texte (pas l'accent de remplissage : 3.5:1 en sombre). */
+  color: var(--accent-text);
   text-align: center;
-  opacity: 0.9;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .spinner {

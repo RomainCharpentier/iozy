@@ -25,3 +25,23 @@
   opacity: 0.9;
   margin-top: var(--spacing-sm);
 }
+
+.questionNumber {
+  margin: 0;
+  font-size: var(--font-size-xl, 1.5rem);
+  font-weight: 800;
+  color: var(--accent-primary);
+}
+
+.total {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.category {
+  margin: 0.25rem 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}

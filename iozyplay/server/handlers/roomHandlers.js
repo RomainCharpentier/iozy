@@ -86,7 +86,8 @@ function syncPlayerToGame(socket, room) {
       serverTime: now,
       questionIndex: room.game.questionIndex
     });
-  } else if (room.game.goAt) {
+  } else if (room.game.goAt && room.game.goAt - Date.now() <= 1000) {
+    // « go » imminent ; pendant la transition, le joueur recevra le game:go diffusé à tous
     // La partie attend le signal "go", envoyer les informations de synchronisation
     socket.emit('game:go', {
       goAt: room.game.goAt,

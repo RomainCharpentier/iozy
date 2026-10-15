@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useGameState } from '@/lib/game/GameContext'
 import CategorySelector from '@/pages/CategorySelectorPage/CategorySelector'
+import BackLink from '@/components/common/BackLink'
 import type { Category } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
 import { QuestionService } from '@/services/questionService'
@@ -61,20 +62,16 @@ export default function CategorySelectorPage() {
   }
 
   return (
-    <>
-      <header className={styles.appHeader}>
-        <button className={styles.editorToggleButton} onClick={() => navigate('/')}>
-          ← Retour au menu
-        </button>
-      </header>
+    <div className={styles.page}>
+      <BackLink to="/" label="Jouer" />
       {isLoadingQuestions ? (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} style={{ margin: '0 auto' }}></div>
-          <p className={ds.textSecondary}>Chargement des questions...</p>
+        <div className={styles.loadingState} role="status">
+          <div className={styles.spinner} aria-hidden="true"></div>
+          <p className={ds.textSecondary}>Chargement des questions…</p>
         </div>
       ) : (
         <CategorySelector onStartGame={handleStartGame} />
       )}
-    </>
+    </div>
   )
 }

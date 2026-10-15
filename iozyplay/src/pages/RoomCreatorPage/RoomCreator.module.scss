@@ -1,32 +1,18 @@
 .layout {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 4rem);
-  max-width: 100%;
-  margin: 0;
+  gap: 1.5rem;
   width: 100%;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-lg);
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--border);
-}
-
-.headerTitle {
-  font-size: var(--font-size-xl);
-  margin-bottom: var(--spacing-xs);
-}
-
-.headerActions {
-  display: flex;
-  gap: var(--spacing-sm);
+/* Le code du salon : chiffres à largeur fixe, en accent. */
+.code {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--accent-text);
 }
 
 .mainGrid {
-  flex: 1;
   align-items: start;
 }

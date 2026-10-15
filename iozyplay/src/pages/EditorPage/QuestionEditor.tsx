@@ -635,9 +635,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       />
       <div className={styles.editorPanel}>
         <div className={styles.panelHeader}>
-          <h2>
-            <span style={{ marginRight: '0.5rem', fontSize: '20px' }}>✏️</span> Questions
-          </h2>
+          <h2>Questions</h2>
           <div className={styles.editorStats}>
             <div className={`${styles.statItem} ${styles.statItemTotal}`}>
               <span className={styles.statLabel}>Total:</span>

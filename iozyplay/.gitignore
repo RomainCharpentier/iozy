@@ -31,3 +31,7 @@ dist-ssr
 
 # Netlify
 .netlify
+
+# Claude Code: agent worktrees and local review snapshots stay on the machine
+.claude/worktrees/
+.claude/*.tar.gz

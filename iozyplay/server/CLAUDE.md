@@ -17,7 +17,7 @@
 ## Cycle d'une question
 
 1. `game:start` / `game:next` → chaque client émet `game:ready` quand son média est chargé.
-2. Tous les joueurs **connectés** prêts → `goAt = now + 1000`, émission de `game:go`, timer de devinette.
+2. Tous les joueurs **connectés** prêts → `goAt = max(now + 1000, transitionUntil)`, `game:go` émis 1 s avant `goAt` (différé pendant la transition de `QUESTION_TRANSITION_MS` = 3 s posée par `nextQuestion`, pas pour la 1re question), puis `startedAt = goAt` et timer de devinette.
 3. Fin du timer (ou skip unanime) → `validateAnswers` → `game:answers-validated` + `game:reveal` → second timer → `game:next` ou `game:end`.
 
 Il n'y a pas de champ « phase » : devinette vs reveal se déduit de `game.validatedAnswers._validated`. `setGameTimer` remplace le timer précédent de la room. La logique reveal → next est dupliquée à 3 endroits de `gameHandlers.js` : les modifier ensemble.

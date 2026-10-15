@@ -1,7 +1,8 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
 import styles from '@/pages/RoomCreatorPage/ui/RoomPlayersPanel.module.scss'
 import type { Player } from '@/lib/game/types'
-import { getPlayerAvatarLabel } from '@/utils/playerAvatar'
+import SectionHeader from '@/components/common/SectionHeader'
+import PlayerList from '@/components/common/PlayerList'
 
 interface RoomPlayersPanelProps {
   players: Player[]
@@ -21,77 +22,66 @@ export default function RoomPlayersPanel({
   currentPlayerName,
   onPlayerNameChange,
   onSetName,
-  onCopyLink,
-  copied,
 }: RoomPlayersPanelProps) {
+  const connected = players.filter((p) => p.connected !== false).length
+
   return (
-    <div className={`${ds.card} ${styles.panel}`}>
-      <div className={ds.cardHeader}>
-        <h2 className={ds.cardTitle}>Joueurs ({players.length})</h2>
+    <section className={`${ds.card} ${styles.panel}`} aria-labelledby="room-players">
+      <SectionHeader
+        title={<span id="room-players">Joueurs</span>}
+        subtitle={
+          players.length === 0
+            ? 'Partage le lien pour que les autres rejoignent.'
+            : `${connected} connecté${connected > 1 ? 's' : ''} sur ${players.length}.`
+        }
+      />
+
+      <PlayerList players={players} />
+
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="room-share-link">
+          Lien d'invitation
+        </label>
+        <input
+          id="room-share-link"
+          type="text"
+          value={shareLink}
+          readOnly
+          className={`${ds.input} ${styles.linkInput}`}
+          onFocus={(e) => e.currentTarget.select()}
+        />
       </div>
 
-      <div className={styles.playersList}>
-        {players.map((player) => (
-          <div
-            key={player.id}
-            className={styles.playerBadge}
-            style={{
-              background: player.isHost ? 'rgba(99, 102, 241, 0.2)' : 'var(--bg-tertiary)',
-              borderColor: player.isHost ? 'var(--accent-primary)' : 'var(--border)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
-              {player.isHost && <span>👑</span>}
-              <span aria-hidden="true">{getPlayerAvatarLabel(player)}</span>
-              <span>{player.name}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Share Link Section */}
-      <div className={styles.shareSection}>
-        <label className={styles.label}>Lien de partage</label>
-        <div className={styles.inputRow}>
-          <input
-            type="text"
-            value={shareLink}
-            readOnly
-            className={ds.input}
-            style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--spacing-xs)' }}
-          />
-        </div>
-      </div>
-
-      {/* Player Name Input */}
-      <div className={styles.nameSection}>
-        <label className={styles.label}>
-          Votre nom {currentPlayerName && `(${currentPlayerName})`}
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="room-player-name">
+          Votre nom{currentPlayerName ? ` (actuellement ${currentPlayerName})` : ''}
         </label>
         <div className={styles.inputRow}>
           <input
+            id="room-player-name"
             type="text"
             value={playerName}
             onChange={(e) => onPlayerNameChange(e.target.value)}
             placeholder={currentPlayerName || 'Entrez votre nom'}
             maxLength={20}
             className={ds.input}
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === 'Enter' && playerName.trim()) {
+                e.preventDefault()
                 onSetName()
               }
             }}
           />
           <button
+            type="button"
             className={`${ds.btn} ${ds.btnSecondary}`}
             onClick={onSetName}
             disabled={!playerName.trim() || playerName.trim() === currentPlayerName}
-            style={{ whiteSpace: 'nowrap' }}
           >
             {currentPlayerName ? 'Modifier' : 'Valider'}
           </button>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

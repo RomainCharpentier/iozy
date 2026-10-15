@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 import { GameProvider } from '@/lib/game/GameContext'
 import { UpdateNotification } from '@/components/common/UpdateNotification'
 import ErrorBoundary from '@/components/common/ErrorBoundary'
+import AppShell from '@/components/layout/AppShell'
 
 const HomePage = lazy(() => import('@/pages/HomePage/HomePage'))
 const UsernamePage = lazy(() => import('@/pages/UsernamePage/UsernamePage'))
@@ -23,9 +24,9 @@ function GameOverlay() {
   if (!isGamePage) return null
 
   return (
-    // Bandeau décoratif : le jeu ne porte pas que sur la musique (séries, films, jeux…)
+    // Bandeau décoratif : la marque, pas « musique » (le jeu couvre aussi séries, films, jeux…)
     <div className={styles.appOverlay} aria-hidden="true">
-      <div className={styles.appOverlayContent}>Blindtest</div>
+      <div className={styles.appOverlayContent}>IozyPlay</div>
     </div>
   )
 }
@@ -34,10 +35,12 @@ function App() {
   return (
     <GameProvider>
       <BrowserRouter>
-        <div className={styles.app}>
-          <Toaster position="top-right" richColors closeButton />
-          <UpdateNotification />
-          <GameOverlay />
+        <Toaster position="top-right" richColors closeButton />
+        <UpdateNotification />
+        <GameOverlay />
+        {/* La coquille (en-tête, grille, barre au pouce) habille tout sauf la
+            partie et la porte d'entrée, qui gardent l'ancien conteneur. */}
+        <AppShell>
           <ErrorBoundary>
             <Suspense
               fallback={
@@ -71,7 +74,7 @@ function App() {
               </Routes>
             </Suspense>
           </ErrorBoundary>
-        </div>
+        </AppShell>
       </BrowserRouter>
     </GameProvider>
   )

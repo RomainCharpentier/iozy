@@ -3,67 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hors ligne - No Peeking</title>
+  <title>Hors ligne - IozyPlay</title>
   <style>
+    /* Page servie par le service worker sans aucune autre ressource : les
+       couleurs de la charte (docs/CHARTE.md) sont donc recopiées ici, en
+       suivant la préférence du système puisque l'app n'est pas chargée. */
+    :root {
+      --bg: #faf6f2;
+      --text: #231e1a;
+      --text-dim: #544a43;
+      --accent: #bc583b;
+      --accent-press: #933d24;
+      --accent-ink: #ffffff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #16120f;
+        --text: #f4eee7;
+        --text-dim: #c2b5a9;
+        --accent: #d9694a;
+        --accent-press: #f0a184;
+        --accent-ink: #16120f;
+      }
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-      color: #ffffff;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: var(--bg);
+      color: var(--text);
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       padding: 20px;
     }
-    
+
     .offline-container {
       text-align: center;
       max-width: 500px;
     }
-    
+
     .offline-icon {
       font-size: 80px;
       margin-bottom: 20px;
     }
-    
+
     h1 {
+      font-family: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 32px;
+      letter-spacing: -0.01em;
       margin-bottom: 16px;
-      color: #ffffff;
+      color: var(--text);
     }
-    
+
     p {
       font-size: 18px;
-      color: #b0b0b0;
+      color: var(--text-dim);
       margin-bottom: 24px;
       line-height: 1.6;
     }
-    
+
     .retry-button {
-      background: #6366f1;
-      color: #ffffff;
+      background: var(--accent);
+      color: var(--accent-ink);
       border: none;
+      min-height: 44px;
       padding: 12px 24px;
+      font: inherit;
       font-size: 16px;
-      border-radius: 8px;
+      font-weight: 600;
+      border-radius: 12px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.15s, transform 0.15s;
     }
-    
+
     .retry-button:hover {
-      background: #4f46e5;
+      background: var(--accent-press);
     }
-    
+
     .retry-button:active {
-      background: #4338ca;
+      transform: scale(0.98);
     }
   </style>
 </head>
@@ -81,17 +107,3 @@
   </div>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-

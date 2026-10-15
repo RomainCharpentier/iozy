@@ -1,0 +1,16 @@
+.pill {
+  display: inline-flex;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-alpha-2);
+  color: var(--accent-text);
+}
+
+.lg {
+  width: 3.5rem;
+  height: 3.5rem;
+}

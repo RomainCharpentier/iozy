@@ -9,6 +9,7 @@ interface RoundScreenProps {
   question: Question
   instanceKey: number
   currentQuestionIndex: number
+  totalQuestions: number
   gameMode: GameMode
   players: Player[]
   timeRemaining: number
@@ -38,6 +39,7 @@ export default function RoundScreen({
   question,
   instanceKey,
   currentQuestionIndex,
+  totalQuestions,
   gameMode,
   players,
   timeRemaining,
@@ -88,6 +90,8 @@ export default function RoundScreen({
         validatedAnswers={isOnline(gameMode) ? validatedAnswers : undefined}
         muted={muted}
         answerAckPending={answerAckPending}
+        questionNumber={currentQuestionIndex + 1}
+        totalQuestions={totalQuestions}
       />
 
       {isOnline(gameMode) && (

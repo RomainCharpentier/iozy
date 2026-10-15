@@ -42,7 +42,7 @@
 }
 
 .statItemTotal {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  background: linear-gradient(135deg, var(--accent-alpha-1), var(--accent-alpha-1));
   border-color: var(--primary-color);
 }
 
@@ -161,7 +161,7 @@
 
 .searchClear:hover {
   color: var(--text-color);
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
 }
 
 .questionCount {
@@ -234,7 +234,7 @@
 
 .questionCategory {
   background: var(--secondary-color);
-  color: white;
+  color: var(--accent-ink);
   padding: 0.25rem 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.85rem;
@@ -394,8 +394,12 @@
 }
 
 .paginationButton:disabled {
-  opacity: 0.5;
+  background: var(--bg-tertiary);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
+  transform: none;
 }
 
 .paginationInfo {
@@ -529,7 +533,7 @@
 }
 
 .inputError {
-  border-color: var(--error-color, #ef4444) !important;
+  border-color: var(--error-color) !important;
   background: rgba(239, 68, 68, 0.1) !important;
 }
 
@@ -545,9 +549,9 @@
   margin-top: var(--spacing-sm);
   padding: var(--spacing-md);
   background: rgba(239, 68, 68, 0.1);
-  border: 2px solid var(--error-color, #ef4444);
+  border: 2px solid var(--error-color);
   border-radius: 0.5rem;
-  color: var(--error-color, #ef4444);
+  color: var(--error-color);
   font-size: 0.9rem;
 }
 
@@ -593,7 +597,7 @@
 .submitButton {
   padding: 0.75rem 1.5rem;
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  color: var(--accent-ink);
   border: none;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -604,12 +608,16 @@
 
 .submitButton:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px var(--accent-alpha-4);
 }
 
 .submitButton:disabled {
-  opacity: 0.5;
+  background: var(--bg-tertiary);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
+  transform: none;
 }
 
 .cancelButton {
@@ -625,14 +633,14 @@
 }
 
 .cancelButton:hover {
-  background: var(--error-color, #ef4444);
-  border-color: var(--error-color, #ef4444);
-  color: white;
+  background: var(--error-color);
+  border-color: var(--error-color);
+  color: var(--error-ink);
 }
 
 .addButton {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  color: var(--accent-ink);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
@@ -647,7 +655,7 @@
 
 .addButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px var(--accent-alpha-4);
 }
 
 .editButtonSmall,
@@ -667,7 +675,7 @@
 
 .editButtonSmall {
   background: var(--primary-color);
-  color: white;
+  color: var(--accent-ink);
 }
 
 .editButtonSmall:hover {
@@ -675,8 +683,8 @@
 }
 
 .deleteButtonSmall {
-  background: var(--error-color, #ef4444);
-  color: white;
+  background: var(--error-color);
+  color: var(--error-ink);
 }
 
 .deleteButtonSmall:hover {

@@ -45,6 +45,8 @@ interface QuestionCardProps {
   validatedAnswers?: Record<string, boolean> // Réponses validées par le serveur (mode multijoueur)
   muted?: boolean // Son du média coupé localement (bouton « Son » de la barre du haut)
   answerAckPending?: boolean // En ligne : une réponse envoyée attend l'accusé du serveur
+  questionNumber?: number // Pour l'écran de transition entre questions
+  totalQuestions?: number
 }
 
 export default function QuestionCard({
@@ -71,6 +73,8 @@ export default function QuestionCard({
   validatedAnswers = {},
   muted = false,
   answerAckPending = false,
+  questionNumber,
+  totalQuestions,
 }: QuestionCardProps) {
   const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
 
@@ -314,25 +318,34 @@ export default function QuestionCard({
       >
         {question.mediaUrl && (
           <>
-            {waitingForGo && isOnline(gameMode) && gameStep !== 'playing' && (
-              <MediaSyncOverlay gameStep={gameStep} mediaReady={mediaReady} />
+            {/* Transition entre questions (en ligne : jusqu'au « go » ; solo : délai fixe) */}
+            {waitingForGo && (isSolo(gameMode) || gameStep !== 'playing') && (
+              <MediaSyncOverlay
+                gameStep={gameStep}
+                mediaReady={mediaReady}
+                solo={isSolo(gameMode)}
+                questionNumber={questionNumber}
+                totalQuestions={totalQuestions}
+                categoryLabel={getCategoryLabel(question.category)}
+              />
             )}
             {/* Scène du lecteur : passe en 16:9 contraint par la hauteur au reveal vidéo */}
             <div
-              className={`${gameStyles.mediaStage} ${isVideoReveal ? gameStyles.mediaStageVideo : ''}`}
+              className={`${gameStyles.mediaStage} ${isVideoReveal ? gameStyles.mediaStageVideo : ''} ${isRevealPhase ? gameStyles.mediaStageReveal : ''}`}
             >
               <MediaPlayer
                 type={question.type}
                 mediaUrl={question.mediaUrl}
                 autoPlay={
-                  isSolo(gameMode) ||
+                  (isSolo(gameMode) && !waitingForGo) ||
                   (isOnline(gameMode) && shouldStartMedia && !waitingForGo && mediaReady)
                 }
                 showVideo={isRevealPhase}
                 restartVideo={false}
                 timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
                 onVideoRestarted={() => {}}
-                shouldPause={shouldPause || (isOnline(gameMode) && waitingForGo)}
+                // Pendant la transition, l'extrait se charge mais ne joue pas (solo et en ligne)
+                shouldPause={shouldPause || waitingForGo}
                 onRevealVideoStart={onRevealVideoStart}
                 onMediaReady={handleMediaReady}
                 onMediaStart={() => {

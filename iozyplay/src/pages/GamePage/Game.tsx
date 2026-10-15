@@ -403,6 +403,8 @@ export default function Game({
     }
 
     clearTimerInterval()
+    // Signal sonore du début de la devinette (le chrono part maintenant)
+    soundManager.playStart()
 
     // Réinitialiser les états au démarrage du timer
     setIsRevealPhase(false)
@@ -1310,6 +1312,8 @@ export default function Game({
     if (now - lastSkipVoteTimeRef.current < 500) return
     if (gameEndedRef.current) return
     if (!isSolo(gameMode) && (!mediaReadyRef.current || waitingForGo)) return
+    // Solo : pas de « Passer » pendant la transition entre deux questions
+    if (isSolo(gameMode) && waitingForGo) return
 
     const playerId = strategy.getPlayerId()
     if (skipVotes.has(playerId)) return
@@ -1363,38 +1367,38 @@ export default function Game({
         return // Ne pas passer à la question suivante, juste passer au reveal
       }
 
-      // Phase reveal : passer à la question suivante
+      // Phase reveal terminée : transition vers la question suivante. L'écran « Question N
+      // sur M » s'affiche pendant QUESTION_TRANSITION_DELAY et l'extrait se charge derrière
+      // (lecteur en pause tant que waitingForGo), comme en ligne.
       isTransitioningRef.current = true
       setPlayerAnswers({}) // Réinitialiser les réponses pour la nouvelle question
       resetAnswerTracking()
+      clearTimerInterval()
+      phaseStartTimeRef.current = null
+      gameDurationMsRef.current = null
+      revealStartTimeRef.current = null
 
-      const timeoutId = window.setTimeout(() => {
-        phaseStartTimeRef.current = null
-        gameDurationMsRef.current = null
-        revealStartTimeRef.current = null
-        phaseStartTimeRef.current = null
-
-        setCurrentQuestionIndex((prev) => {
-          const totalQuestions = questionsRef.current.length
-          if (GameService.canGoToNextQuestion(prev, totalQuestions)) {
-            isTransitioningRef.current = false
-            return prev + 1
-          } else {
-            // Partie terminée en mode solo
-            gameEndedRef.current = true
-            clearTimerInterval() // Arrêter le timer
-            isTransitioningRef.current = false
-            // Utiliser timeoutRefs pour nettoyer ce timeout aussi
-            const showScoreTimeoutId = window.setTimeout(
-              () => setShowScore(true),
-              TIMING.REVEAL_DELAY
-            )
-            timeoutRefs.current.push(showScoreTimeoutId)
-            return prev
-          }
-        })
-      }, TIMING.REVEAL_DELAY)
-      timeoutRefs.current.push(timeoutId)
+      const current = currentQuestionIndexRef.current
+      if (GameService.canGoToNextQuestion(current, questionsRef.current.length)) {
+        setWaitingForGo(true)
+        setIsRevealPhase(false)
+        setQuestionIndex(current + 1)
+        isTransitioningRef.current = false
+        const goTimeoutId = window.setTimeout(
+          () => setWaitingForGo(false),
+          TIMING.QUESTION_TRANSITION_DELAY
+        )
+        timeoutRefs.current.push(goTimeoutId)
+      } else {
+        // Partie terminée en mode solo
+        gameEndedRef.current = true
+        isTransitioningRef.current = false
+        const showScoreTimeoutId = window.setTimeout(
+          () => setShowScore(true),
+          TIMING.QUESTION_TRANSITION_DELAY
+        )
+        timeoutRefs.current.push(showScoreTimeoutId)
+      }
     }
     // En ligne, le serveur gère le timer et décide quand passer à la question suivante
   }
@@ -1618,6 +1622,7 @@ export default function Game({
                 question={currentQuestion}
                 instanceKey={gameInstanceKeyRef.current}
                 currentQuestionIndex={currentQuestionIndex}
+                totalQuestions={gameQuestions.length}
                 gameMode={gameMode}
                 players={gamePlayers}
                 timeRemaining={timeRemaining}

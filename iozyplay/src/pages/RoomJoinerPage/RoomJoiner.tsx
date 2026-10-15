@@ -1,9 +1,13 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
 import styles from '@/pages/RoomJoinerPage/RoomJoiner.module.scss'
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
+import { ArrowLeft, ArrowRight, Hourglass, Play } from 'lucide-react'
 import { useRoomSocketJoin } from '@/hooks/useRoomSocket'
 import { soundManager } from '@/utils/sounds'
-import { getPlayerAvatarLabel } from '@/utils/playerAvatar'
+import { settingsService } from '@/services/settingsService'
+import SectionHeader from '@/components/common/SectionHeader'
+import PlayerList from '@/components/common/PlayerList'
 
 interface RoomJoinerProps {
   roomCode: string
@@ -19,25 +23,16 @@ export default function RoomJoiner({
   onJoined,
   onBack,
 }: RoomJoinerProps) {
-  const [playerName, setPlayerName] = useState<string>(() => {
-    if (initialPlayerName) return initialPlayerName
-    try {
-      const settings = JSON.parse(localStorage.getItem('blindtest-settings') || '{}')
-      return settings.username || ''
-    } catch {
-      return ''
-    }
-  })
+  const [playerName, setPlayerName] = useState<string>(
+    () => initialPlayerName || settingsService.getSetting('username') || ''
+  )
   const [hasJoined, setHasJoined] = useState(!!initialPlayerName)
 
-  const handleError = useCallback(
-    (code: string, message: string) => {
-      toast.error(`Erreur: ${message}`, { icon: '⚠️' })
-    },
-    []
-  )
+  const handleError = useCallback((code: string, message: string) => {
+    toast.error(`Erreur : ${message}`)
+  }, [])
 
-  const { players, isHost, gameStarted, leaveRoom } = useRoomSocketJoin({
+  const { players, gameStarted, leaveRoom } = useRoomSocketJoin({
     roomCode,
     playerName: playerName.trim(),
     enabled: hasJoined,
@@ -49,7 +44,7 @@ export default function RoomJoiner({
 
   const handleJoin = () => {
     if (!playerName.trim()) {
-      toast.error('Veuillez entrer votre nom !', { icon: '👤' })
+      toast.error('Entre ton nom pour rejoindre le salon.')
       return
     }
     setHasJoined(true)
@@ -62,95 +57,93 @@ export default function RoomJoiner({
 
   if (!hasJoined) {
     return (
-      <div className={styles.roomJoiner}>
-        <div className={styles.roomInfoCard}>
-          <h2>👥 Rejoindre le salon : {roomCode}</h2>
-          <div className={styles.nameInputSection}>
-            <label>
-              Votre nom
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Entrez votre nom"
-                maxLength={20}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && playerName.trim()) {
-                    e.preventDefault()
-                    handleJoin()
-                  }
-                }}
-                aria-label="Votre nom"
-                autoFocus
-              />
-            </label>
-          </div>
-          <div className={styles.roomActions}>
-            <button className={styles.backButton} onClick={onBack}>
-              ← Retour
+      <div className={styles.page}>
+        <SectionHeader
+          level={1}
+          title={
+            <>
+              Rejoindre le salon <span className={styles.code}>{roomCode}</span>
+            </>
+          }
+          subtitle="Le nom que les autres joueurs verront pendant la partie."
+        />
+        <form
+          className={`${ds.card} ${styles.card}`}
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleJoin()
+          }}
+        >
+          <label className={styles.field}>
+            <span className={styles.label}>Votre nom</span>
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              placeholder="Entrez votre nom"
+              maxLength={20}
+              className={ds.input}
+              autoFocus
+            />
+          </label>
+          <div className={styles.actions}>
+            <button type="button" className={`${ds.btn} ${ds.btnTertiary}`} onClick={onBack}>
+              <ArrowLeft size={15} />
+              Jouer
             </button>
             <button
-              className={styles.startButton}
-              onClick={handleJoin}
+              type="submit"
+              className={`${ds.btn} ${ds.btnPrimary}`}
               disabled={!playerName.trim()}
               aria-label={
                 !playerName.trim() ? 'Entrez votre nom pour rejoindre' : 'Rejoindre le salon'
               }
             >
-              Rejoindre →
+              Rejoindre
+              <ArrowRight size={16} />
             </button>
           </div>
-        </div>
+        </form>
       </div>
     )
   }
 
+  const connected = players.filter((p) => p.connected !== false).length
+
   return (
-    <div className={styles.roomJoiner}>
-      <div className={styles.roomInfoCard}>
-        <h2>👥 Salon : {roomCode}</h2>
+    <div className={styles.page}>
+      <SectionHeader
+        level={1}
+        title={
+          <>
+            Salon <span className={styles.code}>{roomCode}</span>
+          </>
+        }
+        subtitle={`${connected} joueur${connected > 1 ? 's' : ''} connecté${connected > 1 ? 's' : ''} sur ${players.length}.`}
+        action={
+          <button type="button" className={`${ds.btn} ${ds.btnTertiary}`} onClick={handleBack}>
+            <ArrowLeft size={15} />
+            Quitter le salon
+          </button>
+        }
+      />
 
-        <div className={styles.playersList}>
-          <h3>Joueurs ({players.length})</h3>
-          <div className={styles.playersGrid}>
-            {players.map((player) => (
-              <div
-                key={player.id}
-                className={`${styles.playerBadge} ${player.isHost ? styles.host : ''} ${!player.connected ? styles.disconnected : ''}`}
-                title={player.isHost ? 'Hôte' : 'Joueur'}
-              >
-                <span aria-hidden="true">{getPlayerAvatarLabel(player)}</span>
-                {player.name}
-                {player.isHost && <span className={styles.hostBadge}>👑</span>}
-                {!player.connected && (
-                  <span
-                    className={styles.disconnectedBadge}
-                    title="Déconnecté"
-                  >
-                    ⚠
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+      <section className={`${ds.card} ${styles.card}`} aria-labelledby="joiner-players">
+        <SectionHeader title={<span id="joiner-players">Joueurs</span>} />
+        <PlayerList players={players} />
+      </section>
 
-        {!gameStarted && (
-          <div className={styles.waitingState}>
-            <p>⏳ En attente que l'hôte démarre la partie...</p>
-          </div>
-        )}
-
-        {gameStarted && (
-          <div className={styles.gameStarting}>
-            <p>La partie démarre !</p>
-          </div>
-        )}
-
-        <button className={styles.backButton} onClick={handleBack}>
-          ← Quitter le salon
-        </button>
-      </div>
+      {gameStarted ? (
+        <p className={`${styles.status} ${styles.statusStarting}`} role="status">
+          <Play size={16} aria-hidden="true" />
+          La partie démarre !
+        </p>
+      ) : (
+        <p className={styles.status} role="status">
+          <Hourglass size={16} aria-hidden="true" />
+          En attente que l'hôte démarre la partie…
+        </p>
+      )}
     </div>
   )
 }

@@ -6,6 +6,8 @@ import { settingsService } from '@/services/settingsService'
 import { soundManager } from '@/utils/sounds'
 import Logo from '@/components/common/Logo'
 
+/** La porte d'entrée, hors coquille (voir AppShell), construite comme la page
+ *  de connexion d'IozyCore : le nom en grand, une phrase, une carte-formulaire. */
 export default function UsernamePage() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
@@ -44,60 +46,65 @@ export default function UsernamePage() {
     navigate('/', { replace: true })
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSubmit()
-    }
-  }
-
   return (
-    <div className={styles.authPage}>
-      <div className={styles.authContainer}>
-        <div className={styles.authHeader}>
-          <Logo size="large" />
-          <p className={styles.authSubtitle}>Choisissez votre nom d'utilisateur pour commencer</p>
-        </div>
+    <main className={styles.door}>
+      <div className={styles.halo} aria-hidden="true" />
 
-        <div className={styles.authContent}>
-          {error && <div className={styles.authError}>{error}</div>}
-
-          <div className={styles.authForm}>
-            <div className={styles.formGroup}>
-              <label htmlFor="username-input" className={styles.formLabel}>
-                Nom d'utilisateur
-              </label>
-              <input
-                id="username-input"
-                type="text"
-                className={styles.formInput}
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value)
-                  setError('')
-                }}
-                onKeyPress={handleKeyPress}
-                placeholder="Votre nom"
-                maxLength={20}
-                autoFocus
-              />
-            </div>
-
-            <button
-              className={`${ds.btn} ${ds.btnPrimary} ${styles.authButton}`}
-              onClick={handleSubmit}
-              disabled={!username.trim()}
-            >
-              Commencer
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.authFooter}>
-          <p className={styles.authHint}>
-            Votre nom est sauvegardé localement et sera utilisé dans les parties multijoueur.
-          </p>
-        </div>
+      <div className={styles.brand}>
+        <Logo size="small" showText={false} />
+        <h1 className={styles.wordmark}>
+          Iozy<span className={styles.wordmarkAccent}>Play</span>
+        </h1>
+        <p className={styles.lead}>
+          Le blindtest entre amis : écoute, devine, marque des points. Il ne manque que ton nom.
+        </p>
       </div>
-    </div>
+
+      <form
+        className={`${ds.card} ${styles.card}`}
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
+      >
+        <h2 className={styles.cardTitle}>Choisis ton nom de joueur</h2>
+
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
+
+        <label className={styles.field} htmlFor="username-input">
+          <span className={styles.label}>Nom d'utilisateur</span>
+          <input
+            id="username-input"
+            type="text"
+            className={ds.input}
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value)
+              setError('')
+            }}
+            placeholder="Votre nom"
+            maxLength={20}
+            autoFocus
+          />
+          <span className={styles.hint}>Entre 2 et 20 caractères.</span>
+        </label>
+
+        <button
+          type="submit"
+          className={`${ds.btn} ${ds.btnPrimary} ${styles.submit}`}
+          disabled={!username.trim()}
+        >
+          Commencer
+        </button>
+      </form>
+
+      <p className={styles.footnote}>
+        Ton nom reste sur cet appareil ; il s'affiche aux autres joueurs pendant les parties.
+      </p>
+    </main>
   )
 }
