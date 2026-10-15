@@ -500,6 +500,34 @@
   border-color: var(--primary-color);
 }
 
+// Champs du formulaire écrits en <label>texte <input /></label> (URL, réponse, indice, début) :
+// même rendu que .formGroup, le champ passant sous son libellé
+.questionForm > label {
+  display: block;
+  margin-bottom: 2rem;
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 1rem;
+
+  input {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    background: var(--bg-color);
+    color: var(--text-color);
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+  }
+}
+
 .inputError {
   border-color: var(--error-color, #ef4444) !important;
   background: rgba(239, 68, 68, 0.1) !important;
