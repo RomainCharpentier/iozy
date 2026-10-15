@@ -1,7 +1,7 @@
 import styles from '@/pages/RoomJoinerPage/RoomJoiner.module.scss'
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
-import { useRoomSocket, type UseRoomSocketJoinResult } from '@/hooks/useRoomSocket'
+import { useRoomSocketJoin } from '@/hooks/useRoomSocket'
 import { soundManager } from '@/utils/sounds'
 
 interface RoomJoinerProps {
@@ -35,8 +35,7 @@ export default function RoomJoiner({
     []
   )
 
-  const { players, isHost, gameStarted, leaveRoom } = useRoomSocket({
-    mode: 'join',
+  const { players, isHost, gameStarted, leaveRoom } = useRoomSocketJoin({
     roomCode,
     playerName: playerName.trim(),
     enabled: hasJoined,
@@ -44,7 +43,7 @@ export default function RoomJoiner({
     onJoinedSuccess: () => soundManager.playSuccess(),
     onGameStart: () => soundManager.playStart(),
     onError: handleError,
-  }) as UseRoomSocketJoinResult
+  })
 
   const handleJoin = () => {
     if (!playerName.trim()) {

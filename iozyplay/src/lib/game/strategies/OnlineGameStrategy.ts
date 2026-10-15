@@ -1,8 +1,11 @@
 import type { Question } from '@/types'
 import type { Player } from '@/lib/game/types'
-import { getSocket } from '@/utils/socket'
+import { getSocket, clearCurrentRoom } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
-import type { GameModeStrategy, ValidateAnswersContext } from '@/lib/game/strategies/GameModeStrategy'
+import type {
+  GameModeStrategy,
+  ValidateAnswersContext,
+} from '@/lib/game/strategies/GameModeStrategy'
 
 export interface OnlineGameStrategyDeps {
   roomCode: string | null
@@ -49,6 +52,7 @@ export class OnlineGameStrategy implements GameModeStrategy {
     if (socket?.connected) {
       socket.emit('room:leave', { roomCode })
     }
+    clearCurrentRoom(roomCode)
   }
 
   getPlayerId(): string {

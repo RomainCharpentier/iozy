@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type MutableRefObject } from 'react'
-import { connectSocket, getSocket } from '@/utils/socket'
+import { connectSocket, getSocket, setCurrentRoom, clearCurrentRoom } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
 import type { Player } from '@/lib/game/types'
 import { TIMING } from '@/services/gameService'
@@ -48,10 +48,24 @@ export interface UseRoomSocketCreateResult {
 export type UseRoomSocketParams = UseRoomSocketJoinParams | UseRoomSocketCreateParams
 export type UseRoomSocketResult = UseRoomSocketJoinResult | UseRoomSocketCreateResult
 
-function useRoomSocketJoin(
-  params: UseRoomSocketJoinParams
+/**
+ * Garde dans une ref la dernière version des callbacks, pour ne pas relancer les effets
+ * quand le parent passe des fonctions inline.
+ */
+function useLatestRef<T>(value: T): MutableRefObject<T> {
+  const ref = useRef(value)
+  useEffect(() => {
+    ref.current = value
+  })
+  return ref
+}
+
+export function useRoomSocketJoin(
+  params: Omit<UseRoomSocketJoinParams, 'mode'> & { mode?: 'join' }
 ): UseRoomSocketJoinResult {
   const { roomCode, playerName, enabled, onJoined, onJoinedSuccess, onGameStart, onError } = params
+  const callbacksRef = useLatestRef({ onJoined, onJoinedSuccess, onGameStart, onError })
+  const trimmedName = playerName.trim()
   const [players, setPlayers] = useState<Player[]>([])
   const [isHost, setIsHost] = useState(false)
   const [gameStarted, setGameStarted] = useState(false)
@@ -62,6 +76,7 @@ function useRoomSocketJoin(
     if (socket?.connected) {
       socket.emit('room:leave', { roomCode })
     }
+    clearCurrentRoom(roomCode)
   }, [roomCode])
 
   useEffect(() => {
@@ -72,6 +87,8 @@ function useRoomSocketJoin(
     const joinTimeoutsRef: number[] = []
 
     const handleRoomJoined = ({ room }: { room: { players?: Player[]; phase?: string } }) => {
+      // Room active : sera réintégrée automatiquement après une reconnexion
+      setCurrentRoom(roomCode)
       setPlayers(room.players || [])
       const myPlayer = room.players?.find((p) => p.id === playerId)
       setIsHost(myPlayer?.isHost ?? false)
@@ -79,10 +96,13 @@ function useRoomSocketJoin(
       if (room.phase === 'playing') {
         setGameStarted(true)
         gameStartedRef.current = true
-        const timeoutId = window.setTimeout(() => onJoined(roomCode), TIMING.ROOM_JOIN_DELAY)
+        const timeoutId = window.setTimeout(
+          () => callbacksRef.current.onJoined(roomCode),
+          TIMING.ROOM_JOIN_DELAY
+        )
         joinTimeoutsRef.push(timeoutId)
       } else {
-        onJoinedSuccess?.()
+        callbacksRef.current.onJoinedSuccess?.()
       }
     }
 
@@ -96,22 +116,28 @@ function useRoomSocketJoin(
       if (state.phase === 'playing' && !gameStartedRef.current) {
         setGameStarted(true)
         gameStartedRef.current = true
-        const timeoutId = window.setTimeout(() => onJoined(roomCode), TIMING.ROOM_JOIN_DELAY)
+        const timeoutId = window.setTimeout(
+          () => callbacksRef.current.onJoined(roomCode),
+          TIMING.ROOM_JOIN_DELAY
+        )
         joinTimeoutsRef.push(timeoutId)
       }
     }
 
     const handleGameStarted = () => {
-      onGameStart?.()
+      callbacksRef.current.onGameStart?.()
       setGameStarted(true)
       gameStartedRef.current = true
-      const timeoutId = window.setTimeout(() => onJoined(roomCode), TIMING.ROOM_JOIN_DELAY)
+      const timeoutId = window.setTimeout(
+        () => callbacksRef.current.onJoined(roomCode),
+        TIMING.ROOM_JOIN_DELAY
+      )
       joinTimeoutsRef.push(timeoutId)
     }
 
     const handleError = ({ code, message }: { code: string; message: string }) => {
       if (code === 'GAME_ALREADY_STARTED') return
-      onError?.(code, message)
+      callbacksRef.current.onError?.(code, message)
     }
 
     socket.on('room:joined', handleRoomJoined)
@@ -120,14 +146,11 @@ function useRoomSocketJoin(
     socket.on('game:start', handleGameStarted)
     socket.on('error', handleError)
 
-    socket.on('reconnect', () => {
-      socket.emit('room:rejoin', { roomCode, playerId })
-    })
-
+    // La reconnexion (room:rejoin) est gérée de façon centralisée dans utils/socket.ts
     socket.emit('room:join', {
       roomCode,
       playerId,
-      playerName: playerName.trim(),
+      playerName: trimmedName,
     })
 
     return () => {
@@ -137,18 +160,26 @@ function useRoomSocketJoin(
       socket.off('room:state', handleRoomState)
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
-      socket.off('reconnect')
       leaveRoom()
     }
-  }, [roomCode, playerName.trim(), enabled, onJoined, onJoinedSuccess, onGameStart, onError, leaveRoom])
+  }, [roomCode, trimmedName, enabled, leaveRoom, callbacksRef])
 
   return { players, isHost, gameStarted, leaveRoom }
 }
 
-function useRoomSocketCreate(
-  params: UseRoomSocketCreateParams
+export function useRoomSocketCreate(
+  params: Omit<UseRoomSocketCreateParams, 'mode'> & { mode?: 'create' }
 ): UseRoomSocketCreateResult {
-  const { categories, playerName, timeLimit, enabled, skipLeaveOnUnmountRef, onRoomCreated, onError } = params
+  const {
+    categories,
+    playerName,
+    timeLimit,
+    enabled,
+    skipLeaveOnUnmountRef,
+    onRoomCreated,
+    onError,
+  } = params
+  const callbacksRef = useLatestRef({ onRoomCreated, onError })
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [shareLink, setShareLink] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
@@ -163,6 +194,7 @@ function useRoomSocketCreate(
     if (socket?.connected && code) {
       socket.emit('room:leave', { roomCode: code })
     }
+    clearCurrentRoom(code)
   }, [])
 
   useEffect(() => {
@@ -203,6 +235,8 @@ function useRoomSocketCreate(
       }) => {
         setRoomCode(code)
         roomCodeRef.current = code
+        // Room active : sera réintégrée automatiquement après une reconnexion
+        setCurrentRoom(code)
         setPlayers(room.players || [])
         const hostPlayer = room.players?.find((p) => p.isHost)
         if (hostPlayer) {
@@ -214,7 +248,7 @@ function useRoomSocketCreate(
         setShareLink(`${window.location.origin}/?room=${code}`)
         setIsConnecting(false)
         setError(null)
-        onRoomCreated?.(code, room)
+        callbacksRef.current.onRoomCreated?.(code, room)
       }
 
       const handleRoomState = (state: { players?: Player[] }) => {
@@ -232,13 +266,14 @@ function useRoomSocketCreate(
           setError(
             'Le salon a été perdu (connexion interrompue). Cliquez sur Retour et recréez un salon.'
           )
+          clearCurrentRoom(roomCodeRef.current)
           roomCodeRef.current = null
           setRoomCode(null)
         } else {
           setError(`Erreur: ${message}`)
         }
         setIsConnecting(false)
-        onError?.(code, message)
+        callbacksRef.current.onError?.(code, message)
       }
 
       socket.on('connect', handleConnect)
@@ -247,10 +282,7 @@ function useRoomSocketCreate(
       socket.on('room:state', handleRoomState)
       socket.on('error', handleError)
 
-      socket.on('reconnect', () => {
-        const code = roomCodeRef.current
-        if (code) socket.emit('room:rejoin', { roomCode: code, playerId })
-      })
+      // La reconnexion (room:rejoin) est gérée de façon centralisée dans utils/socket.ts
 
       // Si le socket est déjà connecté (ex: navigation depuis une autre page), émettre room:create une seule fois
       if (socket.connected) {
@@ -258,9 +290,11 @@ function useRoomSocketCreate(
       }
 
       timeoutId = window.setTimeout(() => {
-        if (!roomCodeRef.current && !error) {
+        if (!roomCodeRef.current) {
+          // Mise à jour fonctionnelle : ne pas écraser une erreur déjà affichée
           setError(
-            'Le serveur ne répond pas. Vérifiez que le serveur backend est démarré.'
+            (prev) =>
+              prev ?? 'Le serveur ne répond pas. Vérifiez que le serveur backend est démarré.'
           )
           setIsConnecting(false)
         }
@@ -273,7 +307,6 @@ function useRoomSocketCreate(
         socket.off('room:created', handleRoomCreated)
         socket.off('room:state', handleRoomState)
         socket.off('error', handleError)
-        socket.off('reconnect')
         // Ne pas quitter ici : l'effet se ré-exécute quand playerName/categories/etc. changent.
         // On quitte uniquement au démontage (voir effet ci-dessous).
       }
@@ -281,7 +314,7 @@ function useRoomSocketCreate(
       setError('Erreur lors de la connexion au serveur.')
       setIsConnecting(false)
     }
-  }, [enabled, categories, playerName, timeLimit, skipLeaveOnUnmountRef, onRoomCreated, onError])
+  }, [enabled, categories, playerName, timeLimit, callbacksRef])
 
   // Quitter le salon uniquement au démontage du composant (pas à chaque re-run de l'effet ci-dessus)
   useEffect(() => {
@@ -301,13 +334,4 @@ function useRoomSocketCreate(
     error,
     leaveRoom,
   }
-}
-
-export function useRoomSocket(
-  params: UseRoomSocketJoinParams | UseRoomSocketCreateParams
-): UseRoomSocketJoinResult | UseRoomSocketCreateResult {
-  if (params.mode === 'join') {
-    return useRoomSocketJoin(params)
-  }
-  return useRoomSocketCreate(params)
 }
