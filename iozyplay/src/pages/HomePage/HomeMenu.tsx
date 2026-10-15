@@ -8,11 +8,10 @@ import Logo from '@/components/common/Logo'
 
 interface HomeMenuProps {
   onCreateGame: () => void
-  onJoinRoom: () => void
   onOpenEditor: () => void
 }
 
-export default function HomeMenu({ onCreateGame, onJoinRoom, onOpenEditor }: HomeMenuProps) {
+export default function HomeMenu({ onCreateGame, onOpenEditor }: HomeMenuProps) {
   const navigate = useNavigate()
   const [showJoinRoom, setShowJoinRoom] = useState(false)
   const [roomCode, setRoomCode] = useState<string>('')
@@ -34,7 +33,10 @@ export default function HomeMenu({ onCreateGame, onJoinRoom, onOpenEditor }: Hom
       <div className={ds.homeLayout}>
         <div className={`${ds.card} ${styles.joinRoomCard}`}>
           <div className={ds.cardHeader}>
-            <h2 className={ds.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h2
+              className={ds.cardTitle}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
               🔗 Rejoindre un salon
             </h2>
           </div>

@@ -6,20 +6,9 @@ export const questionsApi = {
     return apiRequest<QuestionsData>('/api/questions')
   },
 
-  getByCategory: async (category: Category): Promise<Question[]> => {
-    return apiRequest<Question[]>(`/api/questions/${encodeURIComponent(category)}`)
-  },
-
   create: async (question: Question): Promise<Question> => {
     return apiRequest<Question>('/api/questions', {
       method: 'POST',
-      body: JSON.stringify(question),
-    })
-  },
-
-  update: async (questionId: string, question: Partial<Question>): Promise<Question> => {
-    return apiRequest<Question>(`/api/questions/${encodeURIComponent(questionId)}`, {
-      method: 'PUT',
       body: JSON.stringify(question),
     })
   },

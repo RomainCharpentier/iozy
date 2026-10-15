@@ -22,7 +22,6 @@ export default function HomePage() {
     <UsernameGuard>
       <HomeMenu
         onCreateGame={() => navigate('/categories')}
-        onJoinRoom={() => {}}
         onOpenEditor={() => navigate('/editor')}
       />
     </UsernameGuard>
