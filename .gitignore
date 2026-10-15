@@ -34,3 +34,7 @@ ios/*.xcuserstate
 #     PUBLIC, and this folder once held invoice pages: it stays
 #     on the machine. ---
 tmp/
+
+# NOMIK
+docker/data/
+docker/logs/

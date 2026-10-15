@@ -31,6 +31,23 @@
         "set IOZYCORE_API=http://localhost:8090&& npm run dev --prefix web -- --port 5174 --strictPort"
       ],
       "port": 5174
+    },
+    {
+      "name": "web-e2e-mac",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "IOZYCORE_API=http://localhost:8090",
+        "npm",
+        "run",
+        "dev",
+        "--prefix",
+        "web",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
     }
   ]
 }
