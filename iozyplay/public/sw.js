@@ -4,11 +4,15 @@ const CACHE_VERSION = 'blindtest-' + new Date().toISOString().split('T')[0].repl
 const CACHE_NAME = CACHE_VERSION
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime'
 
+// Le chemin sous lequel l'app est servie ('/' ou '/play/') : celui du script
+// lui-même. Tout ce qui suit s'exprime par rapport à lui.
+const BASE = new URL('./', self.location.href).pathname
+
 // Assets à mettre en cache lors de l'installation
 const PRECACHE_ASSETS = [
-  '/',
-  '/index.html',
-  '/offline.html',
+  BASE,
+  BASE + 'index.html',
+  BASE + 'offline.html',
 ]
 
 // Stratégie de cache : Cache First pour les assets statiques
@@ -29,7 +33,7 @@ async function cacheFirst(request) {
   } catch (error) {
     console.error('Cache first failed:', error)
     // Retourner une page offline si disponible
-    const offlinePage = await cache.match('/offline.html')
+    const offlinePage = await cache.match(BASE + 'offline.html')
     if (offlinePage) {
       return offlinePage
     }
@@ -165,7 +169,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Ignorer les requêtes Socket.io
-  if (url.pathname.startsWith('/socket.io/')) {
+  if (url.pathname.startsWith(BASE + 'socket.io/')) {
     return
   }
 
@@ -177,7 +181,7 @@ self.addEventListener('fetch', (event) => {
   if (
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css') ||
-    url.pathname.startsWith('/assets/')
+    url.pathname.startsWith(BASE + 'assets/')
   ) {
     event.respondWith(networkFirst(request))
     return
@@ -194,7 +198,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('.woff2') ||
     url.pathname.endsWith('.ttf') ||
     url.pathname.endsWith('.eot') ||
-    url.pathname.startsWith('/src/')
+    url.pathname.startsWith(BASE + 'src/')
   ) {
     event.respondWith(cacheFirst(request))
     return
@@ -202,9 +206,9 @@ self.addEventListener('fetch', (event) => {
 
   // Network First pour les API calls
   if (
-    url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/questions') ||
-    url.pathname.startsWith('/categories')
+    url.pathname.startsWith(BASE + 'api/') ||
+    url.pathname.startsWith(BASE + 'questions') ||
+    url.pathname.startsWith(BASE + 'categories')
   ) {
     event.respondWith(networkFirst(request))
     return

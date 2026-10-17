@@ -8,8 +8,9 @@ const getApiBaseUrl = () => {
   if (import.meta.env.DEV) {
     return 'http://localhost:3001'
   }
-  console.error('[API] VITE_SOCKET_URL ou VITE_API_URL doit être définie en production !')
-  throw new Error('VITE_SOCKET_URL or VITE_API_URL must be defined in production')
+  // Même origine que la page : le serveur Node sert aussi le front, sous le
+  // même préfixe (ex. /play, voir server/index.js). Vide à la racine.
+  return import.meta.env.BASE_URL.replace(/\/$/, '')
 }
 
 export const API_BASE_URL = getApiBaseUrl()
