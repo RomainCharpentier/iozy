@@ -45,7 +45,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <main data-width={contentWidthFor(pathname)} className={styles.main}>
         {children}
       </main>
-      <footer className={styles.footer}>IozyPlay · version {VERSION}</footer>
+      <footer className={styles.footer}>
+        {/* Servie sous /play à côté d'IozyCore, l'app a une page de famille à la
+            racine du même site ; seule et à la racine (Vercel, dev), elle n'en a pas. */}
+        {import.meta.env.BASE_URL !== '/' && (
+          <>
+            <a href="/famille/">Famille Iozy</a> ·{' '}
+          </>
+        )}
+        IozyPlay · version {VERSION}
+      </footer>
       <TabBar />
     </div>
   )

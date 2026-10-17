@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- The home of the family: one address, two apps. A second Vite entry (see
+     vite.config.ts) that belongs to no app and uses the charter only. Served
+     at /famille/ by Vite in dev and by nginx in production. -->
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16120f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#faf6f2" media="(prefers-color-scheme: light)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="description" content="La famille Iozy : IozyCore, le catalogue de ta collection, et IozyPlay, le blindtest entre amis." />
+    <title>La famille Iozy</title>
+    <script>
+      // The same stored choice as the apps (src/common/lib/theme.ts): light is
+      // the charter's default on :root, dark is the attribute set above.
+      try {
+        if (localStorage.getItem('iozycore.theme') === 'light') document.documentElement.removeAttribute('data-theme')
+      } catch {}
+    </script>
+    <script type="module" src="./famille.js"></script>
+  </head>
+  <body>
+    <main class="famille">
+      <header class="famille__entete">
+        <p class="famille__mot">Iozy</p>
+        <h1>Deux apps, une adresse, tes données chez toi.</h1>
+      </header>
+      <nav class="famille__apps" aria-label="Les apps de la famille">
+        <!-- The brand files come from the charter (iozykit/brand), loaded by
+             famille.js. As <img>, they follow the SYSTEM scheme, like a
+             favicon; a logo inside an app follows the app's theme instead. -->
+        <a class="iozy-card iozy-card--lg famille__app" href="/">
+          <img data-marque="iozycore" alt="" width="64" height="64" />
+          <span class="famille__nom">Iozy<span>Core</span></span>
+          <span class="famille__desc">Le catalogue de ta collection : mangas, jeux vidéo, jeux de société, et ce qu'il te manque.</span>
+        </a>
+        <a class="iozy-card iozy-card--lg famille__app" href="/play/">
+          <img data-marque="iozyplay" alt="" width="64" height="64" />
+          <span class="famille__nom">Iozy<span>Play</span></span>
+          <span class="famille__desc">Le blindtest entre amis : écoute, devine, marque des points.</span>
+        </a>
+      </nav>
+    </main>
+  </body>
+</html>

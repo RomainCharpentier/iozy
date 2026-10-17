@@ -1163,3 +1163,16 @@ réunie dans `.claude/launch.json`.
 
 Vérifié : contrôles web, IozyPlay et kit, images construites depuis la racine,
 pile locale derrière nginx (`/`, `/api`, `/play/`), `check:deploiement`.
+
+### Lot 173 — La page de la famille
+
+`/famille/` présente les deux apps et mène à chacune : une seconde entrée Vite
+du web (`web/famille/`), qui n'appartient à aucune app et n'utilise que la
+charte (tokens, règles, `iozy-card`, mot-marque « Iozy » en encre et suffixe en
+accent, marques de `iozykit/brand`). Elle suit le thème mémorisé par IozyCore.
+nginx la sert avant le repli SPA (`$uri/`), les deux pieds de page y renvoient
+(IozyPlay seulement quand il vit sous `/play`), et `check:deploiement` la
+compte (quatorze contrôles).
+
+Vérifié : contrôles web (491 tests, lint muet, build à deux pages), IozyPlay,
+page servie par Vite en dev et par nginx en local, `check:deploiement`.
