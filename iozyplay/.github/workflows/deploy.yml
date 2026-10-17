@@ -20,17 +20,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run TypeScript check
-        run: npm run build --if-present || true
+      - name: Build (typecheck, then vite)
+        run: npm run build
 
-      - name: Run tests
-        run: npm test --if-present || true
+      - name: Run server tests
+        run: npm test
+
+      - name: Run unit tests
+        run: npm run test:unit
 
   # Job pour déployer le frontend (si push sur main)
   # Note: Netlify déploie automatiquement depuis Git, ce job est optionnel
@@ -49,7 +52,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
