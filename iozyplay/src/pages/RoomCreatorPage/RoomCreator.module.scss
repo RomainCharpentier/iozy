@@ -1,0 +1,18 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* Le code du salon : chiffres à largeur fixe, en accent. */
+.code {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--accent-text);
+}
+
+.mainGrid {
+  align-items: start;
+}

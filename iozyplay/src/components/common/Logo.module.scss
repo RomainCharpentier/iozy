@@ -1,0 +1,62 @@
+.logoContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  user-select: none;
+}
+
+.logoIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.logoImg {
+  display: block;
+  /* L'ombre d'accent de la charte, pas un halo. */
+  filter: drop-shadow(0 6px 14px var(--accent-alpha-3));
+  transition: transform var(--transition-base);
+}
+
+/* Le nom en Space Grotesk, en aplat : la charte n'écrit pas en dégradé. */
+.logoText {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.logoSmall .logoText {
+  font-size: var(--font-size-lg);
+}
+
+.logoMedium .logoText {
+  font-size: var(--font-size-2xl);
+}
+
+.logoLarge .logoText {
+  font-size: var(--font-size-3xl);
+}
+
+.logoContainer:hover .logoImg {
+  transform: scale(1.04);
+}
+
+@media (max-width: 768px) {
+  .logoText {
+    font-size: var(--font-size-xl);
+  }
+
+  .logoMedium .logoText {
+    font-size: var(--font-size-xl);
+  }
+
+  .logoLarge .logoText {
+    font-size: var(--font-size-2xl);
+  }
+}

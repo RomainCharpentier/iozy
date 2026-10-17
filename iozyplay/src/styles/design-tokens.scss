@@ -1,0 +1,222 @@
+/* Tokens d'IozyPlay = alias sur la charte IozyKit (paquet `iozykit`, épinglé
+   sur un commit dans package.json ; css/tokens.css est chargé par main.tsx).
+
+   Ce fichier ne porte AUCUNE couleur de la charte : il fait correspondre les
+   noms historiques de l'app (~40 fichiers les référencent) aux rôles
+   `--iozy-*`, et définit ce qui est propre à l'app (échelles d'espacement et
+   de taille, z-index, quelques dérivés par thème). Pour changer une couleur :
+   IozyKit/tokens.json, `npm test` là-bas (contraste), push, puis avancer le
+   sha dans package.json et `npm install`.
+
+   Thèmes : le kit pose le clair sur :root et le sombre sur `.dark-theme` ;
+   settingsService pose `.dark-theme` / `.light-theme` sur <html>, et index.html
+   part en `dark-theme` (le défaut de l'app) pour ne pas voir le clair avant le
+   premier script. */
+
+:root {
+  /* ---- Alias de la charte ---- */
+  --color-primary: var(--iozy-accent);
+  --color-primary-light: var(--iozy-accent-text);
+  /* Second arrêt des dégradés historiques : un terracotta plus profond, pour
+     que les dégradés restent TONALS (une seule voix d'accent). */
+  --color-secondary: var(--color-primary-dark);
+
+  --color-success: var(--iozy-ok);
+  --color-error: var(--iozy-danger);
+  --color-warning: var(--iozy-warn);
+  --color-info: var(--iozy-info);
+
+  --color-bg-primary: var(--iozy-bg);
+  --color-bg-secondary: var(--iozy-surface);
+  --color-bg-tertiary: var(--iozy-surface2);
+  --color-bg-overlay: color-mix(in srgb, var(--iozy-bg) 95%, transparent);
+
+  --color-card-bg: var(--iozy-surface);
+  --color-card-bg-hover: var(--iozy-surface2);
+
+  --color-text-primary: var(--iozy-text);
+  --color-text-secondary: var(--iozy-text-dim);
+  --color-text-tertiary: var(--iozy-text-faint);
+  --color-text-inverse: var(--iozy-bg);
+
+  --color-border: var(--iozy-line);
+  --color-border-light: var(--iozy-line-strong);
+  --color-border-dark: color-mix(in srgb, var(--iozy-line) 60%, transparent);
+
+  /* Encres posées SUR un aplat ≠ accent/erreur COMME texte (voir IozyKit/CHARTE.md). */
+  --accent-ink: var(--iozy-accent-ink);
+  --accent-text: var(--iozy-accent-text);
+  --accent-press: var(--iozy-accent-press);
+  --error-ink: var(--iozy-danger-ink);
+  --error-text: var(--iozy-danger-text);
+  --success-ink: var(--iozy-ok-ink);
+  --warning-ink: var(--iozy-warn-ink);
+
+  --accent-alpha-1: var(--iozy-accent-tint);
+  --success-alpha: var(--iozy-ok-tint);
+  --warning-alpha: var(--iozy-warn-tint);
+  --error-alpha: var(--iozy-danger-tint);
+  --focus-ring: 0 0 0 3px var(--accent-alpha-3);
+
+  --hover-brightness: var(--iozy-hover-brightness);
+  --control-height: var(--iozy-control-height);
+
+  --font-family-display: var(--iozy-font-display);
+  --font-family-base: var(--iozy-font-body);
+  --font-family-mono: var(--iozy-font-mono);
+
+  /* Rayons : 12 px contrôles, 16 px cartes, 20 px grandes cartes, 24 px panneaux. */
+  --radius-none: 0;
+  --radius-sm: 0.5rem;
+  --radius-md: var(--iozy-radius-control);
+  --radius-lg: var(--iozy-radius-card);
+  --radius-xl: var(--iozy-radius-card-lg);
+  --radius-2xl: var(--iozy-radius-sheet);
+  --radius-full: var(--iozy-radius-pill);
+
+  --shadow-sm: var(--iozy-shadow-sm);
+  --shadow-md: var(--iozy-shadow-md);
+  --shadow-lg: var(--iozy-shadow-lg);
+  --shadow-accent: var(--iozy-shadow-accent);
+  /* « Glow » historique = l'ombre d'accent de la charte : une ombre, pas un halo. */
+  --shadow-glow: var(--shadow-accent);
+
+  /* Fin du « dégradé » de fond du body = le fond : la charte est mate. */
+  --gradient-end: var(--iozy-bg);
+
+  /* ---- Propre à l'app ---- */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  --border-width-thin: 1px;
+  --border-width-medium: 2px;
+  --border-width-thick: 3px;
+
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+  --transition-slower: 500ms ease;
+
+  --z-base: 0;
+  --z-above: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-overlay: 1000;
+  --z-floating: 10000;
+  --z-game-modal-overlay: 99999;
+  --z-game-modal: 100000;
+  --z-max: 100000;
+
+  --opacity-disabled: 0.5;
+
+  --container-max-width: 1400px;
+  --container-padding: var(--space-8);
+  /* Hauteur du bandeau fixe « Devine la musique » de l'écran de jeu (/game) */
+  --game-banner-height: 3rem;
+
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+/* Dérivés par thème que la charte ne définit pas : accent foncé (dégradés,
+   survols historiques), teintes d'accent plus denses, ombres extrêmes. Les
+   bases viennent de IozyKit/tokens.json ; si elles changent, ceci suit. */
+:root,
+.light-theme {
+  --color-primary-dark: #933d24;
+  --color-secondary-dark: #7e2819;
+  --color-success-dark: #2a5544;
+  --color-error-dark: #7e2819;
+  --accent-alpha-2: rgba(192, 90, 60, 0.18);
+  --accent-alpha-3: rgba(192, 90, 60, 0.3);
+  --accent-alpha-4: rgba(192, 90, 60, 0.4);
+  --shadow-xs: 0 1px 2px rgba(35, 30, 26, 0.06);
+  --shadow-xl: 0 18px 44px rgba(35, 30, 26, 0.22);
+  --shadow-2xl: 0 24px 56px rgba(35, 30, 26, 0.26);
+  --shadow-glow-lg: 0 12px 28px rgba(192, 90, 60, 0.35);
+}
+
+.dark-theme {
+  --color-primary-dark: #bf5138;
+  --color-secondary-dark: #a2452c;
+  --color-success-dark: #356b56;
+  --color-error-dark: #9c3324;
+  --accent-alpha-2: rgba(217, 105, 74, 0.18);
+  --accent-alpha-3: rgba(217, 105, 74, 0.3);
+  --accent-alpha-4: rgba(217, 105, 74, 0.4);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 22px 52px rgba(0, 0, 0, 0.72);
+  --shadow-2xl: 0 28px 64px rgba(0, 0, 0, 0.78);
+  --shadow-glow-lg: 0 12px 28px rgba(0, 0, 0, 0.6);
+}
+
+/* Alias historiques courts : les composants lisent ces noms. Ne pas leur
+   donner de valeur en dur, ils suivent les tokens ci-dessus dans les deux thèmes. */
+:root {
+  --primary-color: var(--color-primary);
+  --primary-dark: var(--color-primary-dark);
+  --secondary-color: var(--color-secondary);
+  --success-color: var(--color-success);
+  --error-color: var(--color-error);
+  --bg-color: var(--color-bg-primary);
+  --card-bg: var(--color-card-bg);
+  --text-color: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --border-color: var(--color-border);
+  --bg-primary: var(--color-bg-primary);
+  --bg-secondary: var(--color-bg-secondary);
+  --bg-tertiary: var(--color-bg-tertiary);
+  --accent-primary: var(--color-primary);
+  --accent-secondary: var(--color-secondary);
+  --text-primary: var(--color-text-primary);
+  --border: var(--color-border);
+  --border-hover: var(--color-border-light);
+  --success: var(--color-success);
+  --success-dark: var(--color-success-dark);
+  --warning: var(--color-warning);
+  --error: var(--color-error);
+  --error-dark: var(--color-error-dark);
+  --spacing-xs: var(--space-2);
+  --spacing-sm: var(--space-3);
+  --spacing-md: var(--space-4);
+  --spacing-lg: var(--space-6);
+  --spacing-xl: var(--space-8);
+  --spacing-2xl: var(--space-12);
+}

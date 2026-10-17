@@ -1,0 +1,285 @@
+import gameStyles from '@/pages/GamePage/Game.module.scss'
+import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
+import { type Category, type Question, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
+import { loadCategories } from '@/services/categoryService'
+import CategorySelector from '@/pages/CategorySelectorPage/CategorySelector'
+import { soundManager } from '@/utils/sounds'
+import { QuestionService } from '@/services/questionService'
+import { GameService, TIMING, QUESTION_COUNT } from '@/services/gameService'
+import CategoryIcon from '@/components/common/CategoryIcon'
+
+interface GameSettingsPopupProps {
+  isOpen: boolean
+  currentCategories: Category[]
+  currentTimeLimit?: number
+  currentQuestionCount?: number
+  onSave: (
+    categories: Category[],
+    questions: Question[],
+    timeLimit: number,
+    questionCount: number
+  ) => void
+  onClose: () => void
+  gameMode: 'solo' | 'online'
+}
+
+export default function GameSettingsPopup({
+  isOpen,
+  currentCategories,
+  currentTimeLimit = TIMING.DEFAULT_TIME_LIMIT,
+  currentQuestionCount = QUESTION_COUNT.DEFAULT,
+  onSave,
+  onClose,
+  gameMode,
+}: GameSettingsPopupProps) {
+  const [selectedCategories, setSelectedCategories] = useState<Category[]>(currentCategories)
+  const [showCategorySelector, setShowCategorySelector] = useState(false)
+  // Une durée héritée hors de la plage actuelle (ex. ancien défaut de 5 s) est bornée
+  const [timeLimit, setTimeLimit] = useState<number>(() =>
+    GameService.validateTimeLimit(currentTimeLimit)
+  )
+  const [questionCount, setQuestionCount] = useState<number>(currentQuestionCount)
+  const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(0)
+  const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
+
+  useEffect(() => {
+    loadCategoriesList()
+  }, [])
+
+  useEffect(() => {
+    setSelectedCategories(currentCategories)
+    setTimeLimit(GameService.validateTimeLimit(currentTimeLimit))
+    setQuestionCount(currentQuestionCount)
+    loadAvailableQuestions()
+  }, [currentCategories, currentTimeLimit, currentQuestionCount])
+
+  const loadCategoriesList = async () => {
+    const cats = await loadCategories()
+    setCategories(cats.length > 0 ? cats : DEFAULT_CATEGORIES)
+  }
+
+  const loadAvailableQuestions = async () => {
+    const available = await QuestionService.getQuestionsForCategories(currentCategories)
+    setAvailableQuestionsCount(available.length)
+  }
+
+  useEffect(() => {
+    const updateAvailableQuestions = async () => {
+      const available = await QuestionService.getQuestionsForCategories(selectedCategories)
+      setAvailableQuestionsCount(available.length)
+      if (available.length > 0) {
+        const maxCount = Math.min(QUESTION_COUNT.MAX, available.length)
+        if (questionCount > maxCount) {
+          setQuestionCount(Math.max(QUESTION_COUNT.MIN, maxCount))
+        } else if (questionCount < QUESTION_COUNT.MIN) {
+          setQuestionCount(QUESTION_COUNT.MIN)
+        }
+      }
+    }
+    updateAvailableQuestions()
+  }, [selectedCategories])
+
+  if (!isOpen) return null
+
+  const handleCategorySelected = async (categories: Category[]) => {
+    if (categories.length === 0) {
+      toast.error('Veuillez sélectionner au moins une catégorie !', {
+        icon: '📂',
+      })
+      return
+    }
+
+    const allQuestions = await QuestionService.getQuestionsForCategories(categories)
+
+    if (allQuestions.length === 0) {
+      toast.error('Aucune question disponible pour les catégories sélectionnées !', {
+        icon: '❌',
+      })
+      return
+    }
+
+    setSelectedCategories(categories)
+    setShowCategorySelector(false)
+    soundManager.playClick()
+  }
+
+  const handleSave = async () => {
+    if (selectedCategories.length === 0) {
+      toast.error('Veuillez sélectionner au moins une catégorie !', {
+        icon: '📂',
+      })
+      return
+    }
+
+    const allQuestions = await QuestionService.getQuestionsForCategories(selectedCategories)
+
+    if (allQuestions.length === 0) {
+      toast.error('Aucune question disponible pour les catégories sélectionnées !', {
+        icon: '❌',
+      })
+      return
+    }
+
+    // Pool complet mélangé : en ligne, le serveur y tire `actualCount` questions ;
+    // en solo, Game prend les `actualCount` premières
+    const pool = QuestionService.buildQuestionPool(allQuestions)
+    const actualCount = Math.min(questionCount, pool.length)
+    const questionsWithTimer = QuestionService.applyDefaultTimeLimit(pool, timeLimit)
+
+    soundManager.playStart()
+    onSave(selectedCategories, questionsWithTimer, timeLimit, actualCount)
+  }
+
+  return (
+    <div className={gameStyles.gameSettingsPopup}>
+      <div className={gameStyles.gameSettingsHeader}>
+        <h2>Changer les thèmes</h2>
+        <button
+          className={gameStyles.closeButton}
+          onClick={() => {
+            soundManager.playClick()
+            onClose()
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className={gameStyles.gameSettingsSection}>
+        <h3>Thèmes</h3>
+        {selectedCategories.length === 0 ? (
+          <p className={gameStyles.noCategories}>Aucun thème sélectionné</p>
+        ) : (
+          <div className={gameStyles.selectedCategoriesList}>
+            {selectedCategories.map((category) => {
+              const catInfo = categories.find((c) => c.id === category)
+              return (
+                <div key={category} className={gameStyles.selectedCategoryBadge}>
+                  <span className={gameStyles.categoryEmoji}>
+                    <CategoryIcon categoryId={category} iconId={catInfo?.emoji} size={20} />
+                  </span>
+                  <span className={gameStyles.categoryName}>{catInfo?.name || category}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <button
+          className={gameStyles.configButtonSecondary}
+          onClick={() => {
+            soundManager.playClick()
+            setShowCategorySelector(true)
+          }}
+        >
+          {selectedCategories.length === 0 ? 'Sélectionner des thèmes' : 'Modifier les thèmes'}
+        </button>
+      </div>
+
+      {showCategorySelector && (
+        <div className={gameStyles.categorySelectorInline}>
+          <div className={gameStyles.categorySelectorHeader}>
+            <h3>Sélectionner les thèmes</h3>
+            <button
+              className={gameStyles.closeInlineButton}
+              onClick={() => {
+                soundManager.playClick()
+                setShowCategorySelector(false)
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <CategorySelector
+            onStartGame={(categories, _mode, _players, _name) => handleCategorySelected(categories)}
+          />
+        </div>
+      )}
+
+      <div className={gameStyles.gameSettingsSection}>
+        <h3>Timer par question</h3>
+        <div className={gameStyles.timerConfig}>
+          <label className={gameStyles.timerConfigLabel}>
+            Durée (en secondes)
+            <input
+              type="range"
+              min={TIMING.MIN_TIME_LIMIT}
+              max={TIMING.MAX_TIME_LIMIT}
+              step={TIMING.TIME_LIMIT_STEP}
+              value={timeLimit}
+              onChange={(e) => {
+                const value = parseInt(e.target.value)
+                setTimeLimit(value)
+                soundManager.playClick()
+              }}
+              className={gameStyles.timerSlider}
+            />
+          </label>
+          <div className={gameStyles.timerPreview}>
+            <span className={gameStyles.timerValue}>{timeLimit}s</span>
+            <span className={gameStyles.timerHint}>par question</span>
+          </div>
+        </div>
+      </div>
+
+      <div className={gameStyles.gameSettingsSection}>
+        <h3>Nombre de questions</h3>
+        <div className={gameStyles.timerConfig}>
+          <label className={gameStyles.timerConfigLabel}>
+            Nombre de questions
+            <input
+              type="range"
+              min={QUESTION_COUNT.MIN}
+              max={Math.min(QUESTION_COUNT.MAX, availableQuestionsCount)}
+              value={
+                typeof questionCount === 'number' && !isNaN(questionCount)
+                  ? questionCount
+                  : QUESTION_COUNT.MIN
+              }
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10)
+                if (!isNaN(value) && value >= QUESTION_COUNT.MIN) {
+                  setQuestionCount(value)
+                  soundManager.playClick()
+                }
+              }}
+              className={gameStyles.timerSlider}
+              disabled={availableQuestionsCount === 0}
+            />
+          </label>
+          <div className={gameStyles.timerPreview}>
+            <span className={gameStyles.timerValue}>
+              {typeof questionCount === 'number' && !isNaN(questionCount)
+                ? questionCount
+                : QUESTION_COUNT.MIN}
+            </span>
+            <span className={gameStyles.timerHint}>
+              {availableQuestionsCount > 0
+                ? `sur ${availableQuestionsCount} disponibles`
+                : 'questions'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className={gameStyles.gameSettingsActions}>
+        <button
+          className={gameStyles.configButtonSecondary}
+          onClick={() => {
+            soundManager.playClick()
+            onClose()
+          }}
+        >
+          Annuler
+        </button>
+        <button
+          className={gameStyles.configButtonPrimary}
+          onClick={handleSave}
+          disabled={selectedCategories.length === 0}
+        >
+          💾 Enregistrer et relancer
+        </button>
+      </div>
+    </div>
+  )
+}

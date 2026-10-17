@@ -1,0 +1,258 @@
+/* La coquille IozyPlay, calquée sur l'AppShell d'IozyCore : barres « verre »
+   (translucides, floutées, une ligne), mot-marque en texte, pastilles de
+   navigation, grille de page à trois colonnes, pied de page, barre d'onglets
+   au pouce sous 768 px. Jamais les deux navigations en même temps : le point
+   de bascule est le même partout (768 px), sans état JS. */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Verre : la barre d'IozyKit (surface à 85 %, floutée et saturée). */
+.glass {
+  composes: iozy-glass from global;
+}
+
+/* ---- En-tête bureau (≥ 768 px) ---- */
+.header {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  height: 4rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.headerInner {
+  margin: 0 auto;
+  width: min(100% - 48px, 1400px);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* ---- En-tête mobile (< 768 px) : le nom et les raccourcis, rien d'autre ---- */
+.mobileHeader {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  height: 3.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* « Iozy » en encre, « Play » en accent : la marque porte l'accent dans son
+   propre nom, elle n'a pas besoin d'un bloc coloré autour. */
+.wordmark {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.header .wordmark {
+  font-size: var(--font-size-lg);
+}
+
+.wordmarkAccent {
+  color: var(--accent-primary);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 100%;
+}
+
+/* La destination courante est une pastille SURÉLEVÉE (surface + ombre + ligne),
+   pas un aplat teinté doublé d'un trait. */
+.navPill {
+  display: flex;
+  height: 46px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.navPill:hover {
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  color: var(--text-primary);
+}
+
+.navPillActive,
+.navPillActive:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.shortcuts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Bouton-icône de l'en-tête : 40 px au bureau, 44 px au pouce. */
+.iconBtn {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.mobileHeader .iconBtn {
+  width: var(--control-height);
+  height: var(--control-height);
+}
+
+.iconBtn:hover {
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  color: var(--text-primary);
+}
+
+/* ---- La grille de page : 1fr | contenu | 1fr. Chaque enfant tombe dans la
+   colonne du milieu ; aucune unité `vw` (c'est elle qui compte la barre de
+   défilement et fait déborder la page de 15 px). ---- */
+.main {
+  --page-width: 960px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr min(100% - 2rem, var(--page-width)) 1fr;
+  align-content: start;
+  padding: 1.5rem 0;
+}
+
+.main > * {
+  grid-column: 2;
+  /* Un élément de grille refuse par défaut d'être plus étroit que son contenu :
+     un titre tronqué ou une table large pousserait la colonne. */
+  min-width: 0;
+}
+
+.main[data-width='wide'] {
+  --page-width: 1400px;
+}
+
+.main[data-width='narrow'] {
+  --page-width: 672px;
+}
+
+/* ---- Pied de page : la version, petite, sous tout. Le dégagement pour la
+   barre d'onglets est porté ICI (c'est lui qui termine la page). ---- */
+.footer {
+  padding: 0.5rem 1rem 6rem;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* ---- Barre d'onglets au pouce (< 768 px) ---- */
+.tabBar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  border-top: 1px solid var(--border);
+  padding: 0.375rem 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.tab {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: stretch;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.tabInner {
+  display: flex;
+  min-height: 54px;
+  width: 100%;
+  max-width: 84px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0 0.125rem;
+  border-radius: var(--radius-lg);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.tabActive .tabInner {
+  background: var(--accent-alpha-2);
+  color: var(--accent-text);
+}
+
+.tabLabel {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .header {
+    display: block;
+  }
+
+  .mobileHeader,
+  .tabBar {
+    display: none;
+  }
+
+  .main {
+    grid-template-columns: 1fr min(100% - 3rem, var(--page-width)) 1fr;
+  }
+
+  .footer {
+    padding-bottom: 2.5rem;
+  }
+}

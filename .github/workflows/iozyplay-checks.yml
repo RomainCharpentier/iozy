@@ -1,0 +1,47 @@
+name: IozyPlay et charte
+
+# The gate for BRANCHES that touch IozyPlay or the charter, like
+# backend-tests.yml for the backend. On `main`, the deploy workflow runs the
+# same checks again before it publishes the images.
+on:
+  pull_request:
+    paths:
+      - "iozyplay/**"
+      - "iozykit/**"
+      - ".github/workflows/iozyplay-checks.yml"
+  workflow_dispatch:
+
+jobs:
+  kit:
+    name: Charte IozyKit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iozykit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm test
+
+  iozyplay:
+    name: Contrôles IozyPlay
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iozyplay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: iozyplay/package-lock.json
+      - run: npm ci
+      - name: Build (typecheck, then vite)
+        run: npm run build
+      - name: Tests serveur
+        run: npm test
+      - name: Tests unitaires
+        run: npm run test:unit

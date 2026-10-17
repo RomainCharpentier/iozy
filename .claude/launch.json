@@ -48,6 +48,29 @@
         "--strictPort"
       ],
       "port": 5174
+    },
+    {
+      "name": "iozyplay-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "iozyplay/server/index.js"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "iozyplay",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "iozyplay",
+        "--",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
     }
   ]
 }

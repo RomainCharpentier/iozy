@@ -1,6 +1,10 @@
+# Built from the REPOSITORY ROOT (compose: context `..`, workflow: context
+# `.`), because the IozyKit charter is the sibling folder `iozykit/`, linked
+# through node_modules (`file:../iozykit` in package.json).
+
 # --- Build step ---
 FROM node:24-alpine AS build
-WORKDIR /build
+WORKDIR /build/web
 
 # The release number is fixed AT BUILD TIME: the bundle is a static file, so it
 # cannot ask for it later. `VITE_` is the prefix Vite requires for an
@@ -13,14 +17,11 @@ WORKDIR /build
 ARG VERSION=dev
 ENV VITE_VERSION=$VERSION
 
-# The IozyKit charter is a git dependency (`iozykit` in package.json). This
-# image has no git on purpose: with the commit pinned in package-lock.json,
-# npm downloads the GitHub tarball of that commit and never runs git. If that
-# download ever fails, npm falls back to a clone, and the fix is then
-# `RUN apk add --no-cache git` before this step.
-COPY package.json package-lock.json ./
+# The charter first: `npm ci` links it from ../iozykit.
+COPY iozykit /build/iozykit
+COPY web/package.json web/package-lock.json ./
 RUN npm ci
-COPY . .
+COPY web/ ./
 RUN npm run build
 
 # --- Serving step ---
@@ -30,6 +31,6 @@ RUN npm run build
 # the option recommended in the TODO of
 # backend/src/main/java/com/iozycore/api/config/CorsConfig.java.
 FROM nginx:alpine
-COPY --from=build /build/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /build/web/dist /usr/share/nginx/html
+COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
