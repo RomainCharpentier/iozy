@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
-/* The charter of the Iozy family (IozyKit), as a vendored copy: `npm run
-   kit:sync` copies ../IozyKit into vendor/iozykit/ and notes the kit commit
-   in VERSION. Never edit the copy by hand: change IozyKit/tokens.json, run
-   `npm test` there (it checks the contrast), then sync.
+/* The charter of the Iozy family (IozyKit), as the `iozykit` package pinned
+   on a commit in package.json (package-lock.json names the commit). To
+   change a charter value: edit IozyKit/tokens.json, run `npm test` there
+   (it checks the contrast), push, then move the pin to the new commit.
 
    The three files go into Tailwind's layers ON PURPOSE. Unlayered CSS beats
    every layered rule, whatever its specificity: left outside, the kit's
    `h1 { font-weight: 700 }` would override `font-semibold` on every heading
    of the app. In `base`, the kit sits above Preflight and below the
    utilities, which is where a global rule belongs. */
-@import "../vendor/iozykit/css/tokens.css" layer(theme);
-@import "../vendor/iozykit/css/base.css" layer(base);
-@import "../vendor/iozykit/css/components.css" layer(components);
+@import "iozykit/css/tokens.css" layer(theme);
+@import "iozykit/css/base.css" layer(base);
+@import "iozykit/css/components.css" layer(components);
 
 /* Tailwind design tokens.
 
    Every role of the charter is an alias of a `--iozy-*` variable of the kit,
    so this file holds NO charter value: both themes come from
-   vendor/iozykit/css/tokens.css, light on :root and dark on
+   the kit's css/tokens.css, light on :root and dark on
    [data-theme='dark'], the attribute lib/theme.ts puts on <html>.
    `@theme inline` makes the utilities (bg-surface, text-textDim...) read the
    kit variable where they apply, so they follow the theme of the element.
@@ -206,7 +206,7 @@ body {
   transition: background-color 200ms ease, color 200ms ease;
 }
 
-/* The interactions themselves come from the kit (vendor/iozykit/css/base.css):
+/* The interactions themselves come from the kit (iozykit/css/base.css):
    the hand cursor on what is clickable, the hover by brightness (never by
    opacity - opacity says "disabled"), the 2 px accent focus ring on
    :focus-visible only, the colors of a <select> list, and the stop of motion

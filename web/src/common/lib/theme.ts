@@ -62,7 +62,7 @@ function lireTheme(): Theme {
 /** Applies the attribute before the first React render (see the synchronous
  * call in main.tsx) - avoids a flash default-theme then stored-theme at
  * load. `data-theme` only for "dark": light is the value the charter's CSS
- * sets on :root (vendor/iozykit/css/tokens.css), no need for an attribute for
+ * sets on :root (iozykit/css/tokens.css), no need for an attribute for
  * it. index.html starts with the attribute; this call removes it for a
  * stored light choice. */
 export function applyStoredTheme(): void {

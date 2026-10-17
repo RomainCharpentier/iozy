@@ -24,7 +24,7 @@
  *
  * ## Where the values come from
  * The charter roles are aliases in `index.css` (`--color-textDim:
- * var(--iozy-text-dim)`), resolved here through `vendor/iozykit/tokens.json`
+ * var(--iozy-text-dim)`), resolved here through `node_modules/iozykit/tokens.json`
  * for each theme. The roles of this app alone (universes, ranks) are read as
  * hex values from `index.css`, as before. The kit checks its own pairs; this
  * script checks the pairs the APP makes, under the names the app uses, so a
@@ -38,7 +38,7 @@ import { dirname, join } from 'node:path'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CSS = readFileSync(join(RACINE, 'src/index.css'), 'utf8')
-const KIT = JSON.parse(readFileSync(join(RACINE, 'vendor/iozykit/tokens.json'), 'utf8')).themes
+const KIT = JSON.parse(readFileSync(join(RACINE, 'node_modules/iozykit/tokens.json'), 'utf8')).themes
 
 /** AA threshold for normal-size text. */
 const SEUIL = 4.5
@@ -194,7 +194,7 @@ if (echecs.length > 0) {
   for (const e of echecs) console.error(e)
   console.error('\nDarken (light theme) or lighten (dark theme) the faulty hue, keeping the hue')
   console.error('and changing only the lightness: in IozyKit/tokens.json for a charter role')
-  console.error('(then `npm test` there and `npm run kit:sync`), in web/src/index.css for a')
+  console.error('(then `npm test` there and move the pin in package.json), in web/src/index.css for a')
   console.error('role of this app.')
   process.exit(1)
 }

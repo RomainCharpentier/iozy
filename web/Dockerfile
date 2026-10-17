@@ -13,6 +13,11 @@ WORKDIR /build
 ARG VERSION=dev
 ENV VITE_VERSION=$VERSION
 
+# The IozyKit charter is a git dependency (`iozykit` in package.json). This
+# image has no git on purpose: with the commit pinned in package-lock.json,
+# npm downloads the GitHub tarball of that commit and never runs git. If that
+# download ever fails, npm falls back to a clone, and the fix is then
+# `RUN apk add --no-cache git` before this step.
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
