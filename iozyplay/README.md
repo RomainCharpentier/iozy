@@ -59,6 +59,16 @@ npm run build
 
 Files will be generated in the `dist/` folder.
 
+### Next to IozyCore, under `/play`
+
+The `Dockerfile` builds one container: the Node server serves the built front, the API and Socket.IO under `IOZYPLAY_BASE_PATH` (`/play` by default, empty for the root). The CI publishes `ghcr.io/<owner>/iozyplay` on every push to `main`; the IozyCore Docker stack pulls it and its nginx routes `/play/` to it. To try it alone:
+
+```bash
+docker build -t iozyplay .
+docker run --rm -p 3001:3001 iozyplay
+# http://localhost:3001/play/
+```
+
 ## Project Structure
 
 ```

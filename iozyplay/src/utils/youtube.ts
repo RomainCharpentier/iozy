@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/api/client'
 /**
  * Utilitaires pour gérer les URLs YouTube
  */
@@ -138,10 +139,6 @@ export async function getPlaylistVideos(playlistUrl: string): Promise<PlaylistVi
 
   try {
     // Utiliser l'endpoint backend pour récupérer les vidéos
-    const API_BASE_URL =
-      import.meta.env.VITE_SOCKET_URL ||
-      import.meta.env.VITE_API_URL ||
-      (import.meta.env.DEV ? 'http://localhost:3001' : '')
     const response = await fetch(
       `${API_BASE_URL}/api/youtube/playlist/${encodeURIComponent(playlistId)}`
     )
@@ -179,10 +176,6 @@ export async function getYouTubeDuration(url: string): Promise<number | null> {
   const videoId = extractYouTubeId(url)
   if (!videoId) return null
   try {
-    const API_BASE_URL =
-      import.meta.env.VITE_SOCKET_URL ||
-      import.meta.env.VITE_API_URL ||
-      (import.meta.env.DEV ? 'http://localhost:3001' : '')
     const response = await fetch(
       `${API_BASE_URL}/api/youtube/duration/${encodeURIComponent(videoId)}`
     )

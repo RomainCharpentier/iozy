@@ -11,6 +11,10 @@ const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'ut
 
 export default defineConfig({
   plugins: [react()],
+  // Le chemin sous lequel l'app est servie : '/' seul (Vercel, dev), ou
+  // '/play/' quand le serveur Node la sert à côté d'IozyCore (voir
+  // server/index.js et le Dockerfile). La même variable pilote le serveur.
+  base: `${(process.env.IOZYPLAY_BASE_PATH ?? '').replace(/\/+$/, '')}/`,
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },

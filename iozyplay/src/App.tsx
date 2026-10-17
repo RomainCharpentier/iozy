@@ -34,7 +34,7 @@ function GameOverlay() {
 function App() {
   return (
     <GameProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
         <Toaster position="top-right" richColors closeButton />
         <UpdateNotification />
         <GameOverlay />

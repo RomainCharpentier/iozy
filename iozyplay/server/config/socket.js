@@ -4,7 +4,8 @@
 
 import { Server } from 'socket.io';
 
-export function createSocketServer(httpServer) {
+/** @param basePath le préfixe du serveur ('' ou '/play') : le socket écoute sous `<préfixe>/socket.io` */
+export function createSocketServer(httpServer, { basePath = '' } = {}) {
   // Configuration CORS pour production et développement
   const allowedOrigins = process.env.NODE_ENV === 'production'
     ? (process.env.FRONTEND_URL 
@@ -13,6 +14,7 @@ export function createSocketServer(httpServer) {
     : ['http://localhost:5173', 'http://localhost:3000'];
 
   const io = new Server(httpServer, {
+    path: `${basePath}/socket.io`,
     cors: {
       origin: allowedOrigins,
       methods: ['GET', 'POST'],

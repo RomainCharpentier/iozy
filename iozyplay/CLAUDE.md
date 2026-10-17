@@ -41,8 +41,9 @@ Avant de considérer une tâche finie : `npm run typecheck && npm run lint && np
 
 ## Déploiement
 
-- Front : Vercel (`vercel.json`) — Netlify/Render configs présentes mais secondaires. Requiert `VITE_SOCKET_URL` (et `VITE_API_URL`) en prod, sinon l'app **throw au chargement**.
+- Front : Vercel (`vercel.json`) — Netlify/Render configs présentes mais secondaires. `VITE_SOCKET_URL` (et `VITE_API_URL`) désignent un serveur hébergé ailleurs ; sans elles, le front parle à **sa propre origine**, sous son préfixe.
 - Back : Railway (`railway.json`, `node server/index.js`). Env : `PORT` (3001), `NODE_ENV`, `FRONTEND_URL` (CORS). Système de fichiers éphémère → les écritures dans `data/` sont perdues au redéploiement.
+- **À côté d'IozyCore, sous `/play`** : le `Dockerfile` construit un seul conteneur où le serveur Node sert le front, l'API et Socket.IO sous `IOZYPLAY_BASE_PATH` (`/play` par défaut ; vide = racine). Le front est compilé avec le même préfixe (`base` dans `vite.config.ts`), le service worker et le manifeste sont relatifs. La CI publie l'image `ghcr.io/<owner>/iozyplay` à chaque push sur `main` ; la pile Docker d'iozycore (`backend/docker-compose.nas.yml`) la tire et son nginx route `/play/` vers elle, WebSocket compris. Les données vivent dans le volume monté sur `/app/data`.
 
 ## Fichiers à ignorer
 

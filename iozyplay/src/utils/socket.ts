@@ -2,15 +2,20 @@ import { io, Socket } from 'socket.io-client'
 import { getPlayerId } from '@/utils/playerId'
 import { getSessionToken } from '@/utils/sessionToken'
 
-const getSocketUrl = (): string => {
+/**
+ * Où joindre le serveur Socket.IO. Trois cas : une URL explicite (Vercel +
+ * serveur hébergé ailleurs), le serveur de dev sur :3001, ou la même origine
+ * que la page quand le serveur Node sert aussi le front, sous le même
+ * préfixe (ex. /play/socket.io, voir server/index.js).
+ */
+const getSocketTarget = (): { url: string; path: string } => {
   if (import.meta.env.VITE_SOCKET_URL) {
-    return import.meta.env.VITE_SOCKET_URL
+    return { url: import.meta.env.VITE_SOCKET_URL, path: '/socket.io' }
   }
   if (import.meta.env.DEV) {
-    return 'http://localhost:3001'
+    return { url: 'http://localhost:3001', path: '/socket.io' }
   }
-  console.error("[Socket] VITE_SOCKET_URL n'est pas définie en production !")
-  throw new Error('VITE_SOCKET_URL must be defined in production')
+  return { url: window.location.origin, path: `${import.meta.env.BASE_URL}socket.io` }
 }
 
 let socket: Socket | null = null
@@ -84,7 +89,9 @@ export const connectSocket = (): Socket => {
   }
 
   hasConnectedOnce = false
-  const s = io(getSocketUrl(), {
+  const { url: socketUrl, path: socketPath } = getSocketTarget()
+  const s = io(socketUrl, {
+    path: socketPath,
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: Infinity,
