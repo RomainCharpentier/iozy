@@ -100,7 +100,7 @@ Encrypt**, pour ce même nom, et *Configure* pour l'assigner au reverse proxy.
 cd web && npm run check:deploiement https://ton-nom.synology.me
 ```
 
-Onze contrôles, tous en GET, aucun compte requis.
+Quatorze contrôles, tous en GET, aucun compte requis.
 
 ## IozyPlay, à la même adresse
 
@@ -114,6 +114,10 @@ autres (`docker-compose.nas.yml`). Ses questions vivent dans le volume
 
 En local, le même montage vient avec `docker compose up --build`, puis
 `http://localhost:8081/play/`.
+
+La page d'accueil de la famille, `/famille/`, présente les deux apps et mène à
+chacune ; les deux pieds de page y renvoient. C'est une page construite avec
+le web (`web/famille/`), servie par le même nginx.
 
 **Vérifier** : `/play/` affiche IozyPlay et `/play/api/health` répond
 `{"status":"ok"}`. Sans le conteneur, `/play` répond 502 et le reste du site ne
@@ -287,7 +291,7 @@ toujours quelqu'un pour administrer l'instance.
 cd web && npm run check:deploiement https://<ton-app>.vercel.app
 ```
 
-Onze contrôles, tous en GET, aucun compte requis - le script ne laisse rien
+Quatorze contrôles, tous en GET, aucun compte requis - le script ne laisse rien
 derrière lui et peut se relancer à tout moment, y compris sur une mise en ligne
 qui sert déjà des gens :
 
@@ -299,6 +303,7 @@ qui sert déjà des gens :
 | le manifeste sort en `application/manifest+json` | l'invite d'installation disparaît, sans un message ; le type vient du serveur, pas du fichier |
 | `sw.js` interdit la mise en cache | les visiteurs restent sur l'ancienne coquille, parfois des jours, sans moyen de le savoir |
 | `/tier-lists` rend du HTML en 200 | pas de repli SPA : l'app marche tant qu'on navigue et casse au premier F5 ou au premier lien partagé |
+| `/famille/` rend la page de la famille, pas la coquille de l'app | nginx n'essaie pas `$uri/` avant le repli SPA : la page disparaît sans erreur nulle part |
 
 Les mêmes contrôles valent sur la pile Docker locale
 (`npm run check:deploiement http://localhost:8081`) : c'est là qu'ils ont été

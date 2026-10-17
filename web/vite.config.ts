@@ -44,6 +44,16 @@ export default defineConfig({
   // The same alias as tsconfig.app.json: `@/` = src (Batch 134).
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      // Two pages: the app, and the home of the family at /famille/ (see
+      // famille/index.html), which belongs to no app and uses the charter only.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        famille: fileURLToPath(new URL('./famille/index.html', import.meta.url)),
+      },
+    },
+  },
   server: {
     // The IozyKit charter is a sibling folder of this app (`iozykit/`, linked
     // through node_modules): Vite must be allowed to serve files from the

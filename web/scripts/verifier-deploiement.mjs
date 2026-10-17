@@ -150,6 +150,25 @@ try {
   problemes.push(`/tier-lists unreachable — ${cause.message}`)
 }
 
+// --- 6 bis. The home of the family is a page of its own
+//
+//     /famille/ is a built page in a folder, not a route of the app: nginx
+//     must serve it before the SPA fallback (`$uri/` in try_files). Without
+//     it, the address answers 200 with the app shell, and the page is gone
+//     with no error anywhere.
+try {
+  const famille = await demander('/famille/')
+  verifier(famille.status === 200, '/famille/ (the home of the family) answers 200', `received ${famille.status}`)
+  const type = famille.headers.get('content-type') ?? ''
+  verifier(type.includes('text/html'), '/famille/ returns HTML', `content-type: ${type || 'absent'}`)
+  if (famille.status === 200 && type.includes('text/html')) {
+    const corps = await famille.text()
+    verifier(corps.includes('IozyPlay') || corps.includes('Iozy<span>Play'), '/famille/ is the family page, not the app shell', 'IozyPlay not named in the page')
+  }
+} catch (cause) {
+  problemes.push(`/famille/ unreachable — ${cause.message}`)
+}
+
 // --- 7. The anti-CSRF cookie, when there is TLS
 //
 //     Checked only over HTTPS: locally, `Secure` would prevent the cookie
