@@ -1,0 +1,21 @@
+{
+  "name": "iozykit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "La charte graphique de la famille Iozy (IozyCore, IozyPlay) : tokens, règles globales, composants de base, marque.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-css.mjs",
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "test": "npm run build && npm run check:contrast"
+  },
+  "files": [
+    "css",
+    "brand",
+    "tokens.json",
+    "CHARTE.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

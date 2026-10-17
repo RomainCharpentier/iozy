@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="IozyPlay">
+  <!-- Marque IozyPlay : un triangle « lecture » posé sur une étagère, dans une
+       tuile à l'accent. L'étagère (3 → 29, dépassant le triangle) est le trait
+       de famille partagé avec IozyCore. Même dessin que LogoMark dans
+       src/components/common/Logo.tsx : toute retouche se fait aux deux. -->
+  <style>
+    /* Le favicon vit dans le chrome du NAVIGATEUR, pas dans la page : il suit
+       la préférence du système, pas le thème choisi dans l'application. */
+    :root { --tuile: #bc583b; --encre: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      :root { --tuile: #d9694a; --encre: #16120f; }
+    }
+  </style>
+  <rect x="0" y="0" width="32" height="32" rx="7.5" fill="var(--tuile)"/>
+  <path d="M10.5 8.4 L24.5 16.1 L10.5 23.8 Z" fill="var(--encre)" stroke="var(--encre)" stroke-width="2.4" stroke-linejoin="round"/>
+  <rect x="3" y="25" width="26" height="2.2" rx="1.1" fill="var(--encre)"/>
+</svg>

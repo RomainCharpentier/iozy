@@ -1,0 +1,107 @@
+/* IozyKit — règles globales partagées par les apps de la famille.
+   Suppose css/tokens.css chargé avant. Ne fixe ni le fond ni la police du
+   body : c'est à l'app (chaque app charge ses polices via @fontsource, voir
+   tokens.json › fonts.packages). */
+
+/* Titres en Space Grotesk, serrés. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--iozy-font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* La main sur ce qui se clique ; `:not(:disabled)` laisse `not-allowed` au bouton inactif. */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+[role='switch']:not([aria-disabled='true']),
+summary,
+label:has(input:not(:disabled)) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Le survol change la LUMINOSITÉ (éclaircit en sombre, assombrit en clair),
+   jamais l'opacité : l'opacité dit « inactif ». `filter` n'entre en conflit
+   avec aucun fond ni aucune ombre. `@media (hover: hover)` : un écran tactile
+   garde l'état :hover sur le dernier élément touché. */
+@media (hover: hover) {
+  button:not(:disabled):hover,
+  a:hover {
+    filter: brightness(var(--iozy-hover-brightness));
+  }
+}
+
+/* Anneau de focus clavier : 2 px d'accent décalés de 2 px, jamais le bleu du
+   navigateur ; sur :focus-visible seulement. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--iozy-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--iozy-accent) 30%, transparent);
+}
+
+/* Les curseurs natifs prennent l'accent du thème. */
+input[type='range'] {
+  accent-color: var(--iozy-accent);
+}
+
+/* Les choix d'une liste déroulante prennent les couleurs de la surface. */
+select option {
+  background-color: var(--iozy-surface);
+  color: var(--iozy-text);
+}
+
+/* Un bloc qui attend ses données : la forme de ce qui va venir. */
+.iozy-skeleton {
+  background: var(--iozy-surface2);
+  border-radius: var(--iozy-radius-control);
+  animation: iozy-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes iozy-skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Texte pour les lecteurs d'écran seulement. */
+.iozy-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Chiffres à largeur fixe : les compteurs ne sautent pas. */
+.iozy-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Le mouvement s'efface pour qui l'a demandé au système. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
