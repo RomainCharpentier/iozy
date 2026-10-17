@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getNearCompleteSuggestions } from '@/common/api/purchaseAnalysis'
 import { searchEntities } from '@/common/api/entities'
 import { queryKeys } from '@/common/lib/queryKeys'
@@ -20,8 +20,8 @@ const MAX_PREVIEW = 3
  * findNearCompleteSuggestions): owned series that are almost complete,
  * sorted by number of missing volumes. "The reason, always written" (see
  * the source comment of the mock) - never a bare price card without explaining
- * why it is there. "Voir tout" links to the existing Suggestions
- * screen rather than duplicating the full list here.
+ * why it is there. "Tout voir" is a link to the existing Suggestions
+ * screen, like the one of the releases panel, rather than a copy of the full list here.
  */
 export function DiscoverOpportunitiesPreview() {
   const navigate = useNavigate()
@@ -41,9 +41,9 @@ export function DiscoverOpportunitiesPreview() {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-[11px] font-semibold tracking-wide text-textDim uppercase">Ce qui te concerne</h2>
-        <button type="button" onClick={() => navigate('/suggestions')} className="min-h-11 text-sm font-semibold text-accentText">
+        <Link to="/suggestions" className="flex min-h-11 items-center text-sm font-semibold text-accentText">
           Tout voir
-        </button>
+        </Link>
       </div>
 
       {suggestionsQuery.isError && <ErrorBanner message={suggestionsQuery.error.message} />}
