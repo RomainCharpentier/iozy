@@ -45,7 +45,9 @@ try {
 // --- What a browser requires before offering the installation
 verifier(typeof manifeste.name === 'string' && manifeste.name.length > 0, 'name missing')
 verifier(typeof manifeste.short_name === 'string' && manifeste.short_name.length > 0, 'short_name missing')
-verifier(manifeste.start_url === '/', `start_url must be "/" (read: ${manifeste.start_url})`)
+// Relative, because the app lives at the root in dev and under /core/ in the
+// Docker image: an absolute start_url would open the home of the family.
+verifier(manifeste.start_url === './', `start_url must be "./" (read: ${manifeste.start_url})`)
 verifier(
   ['standalone', 'fullscreen', 'minimal-ui'].includes(manifeste.display),
   `display "${manifeste.display}" does not make the app installable`,

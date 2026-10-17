@@ -47,14 +47,14 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     // A registration failure (HTTP without TLS, storage refused, private
     // browsing) must not prevent the app from starting: it works
     // exactly the same without it, it just does not get installed.
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})
   })
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
         <ToastProvider>
           <App />
         </ToastProvider>

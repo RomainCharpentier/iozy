@@ -35,6 +35,9 @@ if (!adresse) {
 }
 
 const base = adresse.replace(/\/+$/, '')
+// Where the app lives on the site: /core by default (the root is the home of
+// the family); empty for a deployment of the app alone at the root.
+const app = (process.env.IOZYCORE_BASE_PATH ?? '/core').replace(/\/+$/, '')
 const problemes = []
 const reussites = []
 
@@ -106,7 +109,7 @@ try {
 //     server, and this is exactly where it gets lost: nginx does not know the
 //     `.webmanifest` extension by default.
 try {
-  const manifeste = await demander('/manifest.webmanifest')
+  const manifeste = await demander(`${app}/manifest.webmanifest`)
   verifier(manifeste.status === 200, '/manifest.webmanifest is served', `received ${manifeste.status}`)
   const type = manifeste.headers.get('content-type') ?? ''
   verifier(
@@ -124,7 +127,7 @@ try {
 //     visitors: they keep the old shell until it expires, with no way to know
 //     it or to force the update.
 try {
-  const sw = await demander('/sw.js')
+  const sw = await demander(`${app}/sw.js`)
   verifier(sw.status === 200, '/sw.js is served', `received ${sw.status}`)
   const cache = sw.headers.get('cache-control') ?? ''
   verifier(
@@ -142,31 +145,38 @@ try {
 //     fallback, the app works as long as we navigate and breaks at the first
 //     F5 or the first shared link.
 try {
-  const profonde = await demander('/tier-lists')
-  verifier(profonde.status === 200, '/tier-lists returns the shell (SPA fallback)', `received ${profonde.status}`)
+  const profonde = await demander(`${app}/tier-lists`)
+  verifier(profonde.status === 200, `${app}/tier-lists returns the shell (SPA fallback)`, `received ${profonde.status}`)
   const type = profonde.headers.get('content-type') ?? ''
-  verifier(type.includes('text/html'), '/tier-lists returns HTML', `content-type: ${type || 'absent'}`)
+  verifier(type.includes('text/html'), `${app}/tier-lists returns HTML`, `content-type: ${type || 'absent'}`)
 } catch (cause) {
   problemes.push(`/tier-lists unreachable — ${cause.message}`)
 }
 
-// --- 6 bis. The home of the family is a page of its own
+// --- 6 bis. The root is the home of the family, and old addresses still arrive
 //
-//     /famille/ is a built page in a folder, not a route of the app: nginx
-//     must serve it before the SPA fallback (`$uri/` in try_files). Without
-//     it, the address answers 200 with the app shell, and the page is gone
-//     with no error anywhere.
+//     The root serves the family page (built with the app, web/famille/).
+//     Without the nginx rule, it would answer 200 with the app shell, and
+//     the page would be gone with no error anywhere.
 try {
-  const famille = await demander('/famille/')
-  verifier(famille.status === 200, '/famille/ (the home of the family) answers 200', `received ${famille.status}`)
+  const famille = await demander('/')
+  verifier(famille.status === 200, '/ (the home of the family) answers 200', `received ${famille.status}`)
   const type = famille.headers.get('content-type') ?? ''
-  verifier(type.includes('text/html'), '/famille/ returns HTML', `content-type: ${type || 'absent'}`)
+  verifier(type.includes('text/html'), '/ returns HTML', `content-type: ${type || 'absent'}`)
   if (famille.status === 200 && type.includes('text/html')) {
     const corps = await famille.text()
-    verifier(corps.includes('IozyPlay') || corps.includes('Iozy<span>Play'), '/famille/ is the family page, not the app shell', 'IozyPlay not named in the page')
+    verifier(corps.includes('Iozy<span>Play'), '/ is the family page, not the app shell', 'IozyPlay not named in the page')
   }
+  // An address of the app from before it moved (a bookmark, a share link,
+  // the installed PWA) must still arrive, with the same path.
+  const ancienne = await demander('/tier-lists')
+  verifier(
+    ancienne.status === 301 && (ancienne.headers.get('location') ?? '').endsWith(`${app}/tier-lists`),
+    `an old address of the app (/tier-lists) is redirected to ${app}/tier-lists`,
+    `received ${ancienne.status} ${ancienne.headers.get('location') ?? ''}`,
+  )
 } catch (cause) {
-  problemes.push(`/famille/ unreachable — ${cause.message}`)
+  problemes.push(`/ unreachable — ${cause.message}`)
 }
 
 // --- 7. The anti-CSRF cookie, when there is TLS

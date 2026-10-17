@@ -33,7 +33,9 @@ export function ShareSection() {
 
   const share = shareQuery.data
   const token = share?.token ?? null
-  const url = token ? `${window.location.origin}/public/share/${token}` : null
+  // The app may live under a prefix (/core/ next to the family): the link
+  // carries it, or the recipient would land on the home of the family.
+  const url = token ? `${window.location.origin}${import.meta.env.BASE_URL}public/share/${token}` : null
 
   function appliquer(data: ShareDto) {
     queryClient.setQueryData(queryKeys.share, data)

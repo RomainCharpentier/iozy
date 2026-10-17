@@ -46,11 +46,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className={styles.footer}>
-        {/* Servie sous /play à côté d'IozyCore, l'app a une page de famille à la
-            racine du même site ; seule et à la racine (Vercel, dev), elle n'en a pas. */}
+        {/* Servie sous /play à côté d'IozyCore, l'app a la page de la famille à
+            la racine du même site ; seule et à la racine (Vercel, dev), elle n'en a pas. */}
         {import.meta.env.BASE_URL !== '/' && (
           <>
-            <a href="/famille/">Famille Iozy</a> ·{' '}
+            <a href="/">Famille Iozy</a> ·{' '}
           </>
         )}
         IozyPlay · version {VERSION}

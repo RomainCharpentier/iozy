@@ -30,6 +30,10 @@
 
 const VERSION = 'iozycore-v1'
 
+// The path the app is served under ('/' or '/core/'): the one of this script.
+// Everything of the app shell is read relative to it; /api stays at the root.
+const BASE = new URL('./', self.location.href).pathname
+
 /** What never goes through this service worker, whatever happens. */
 function horsPerimetre(url, methode) {
   if (methode !== 'GET') return true
@@ -45,7 +49,7 @@ function horsPerimetre(url, methode) {
 function strategiePour(url, methode = 'GET') {
   if (horsPerimetre(url, methode)) return 'ignorer'
   // Name hashed by the build: the content is immutable, the cache is trusted.
-  if (url.pathname.startsWith('/assets/')) return 'cache-dabord'
+  if (url.pathname.startsWith(BASE + 'assets/')) return 'cache-dabord'
   return 'reseau-dabord'
 }
 
@@ -72,7 +76,7 @@ async function reseauDabord(requete) {
     // A navigation with no network and no exact cache entry: the home
     // document acts as the shell, and the router takes over on the client.
     if (requete.mode === 'navigate') {
-      const accueil = await cache.match('/')
+      const accueil = await cache.match(BASE)
       if (accueil) return accueil
     }
     throw panne
@@ -85,7 +89,7 @@ self.addEventListener('install', (evenement) => {
   evenement.waitUntil(
     caches
       .open(VERSION)
-      .then((cache) => cache.addAll(['/', '/manifest.webmanifest']))
+      .then((cache) => cache.addAll([BASE, BASE + 'manifest.webmanifest']))
       .then(() => self.skipWaiting()),
   )
 })

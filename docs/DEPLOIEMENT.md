@@ -67,7 +67,8 @@ docker compose up -d --build
 >   psql -U iozycore -d iozycore -c "ALTER USER iozycore WITH PASSWORD '<nouveau>';"
 > ```
 
-**Vérifier** : `http://<ip-du-nas>:8081` affiche l'écran de connexion.
+**Vérifier** : `http://<ip-du-nas>:8081` affiche la page de la famille, et
+`http://<ip-du-nas>:8081/core/` l'écran de connexion d'IozyCore.
 
 > **Ce piège est réglé** (il valait la peine de l'être). nginx résolvait le nom
 > `iozycore-api` **au démarrage** et gardait l'ancienne adresse : après un
@@ -100,11 +101,18 @@ Encrypt**, pour ce même nom, et *Configure* pour l'assigner au reverse proxy.
 cd web && npm run check:deploiement https://ton-nom.synology.me
 ```
 
-Quatorze contrôles, tous en GET, aucun compte requis.
+Quinze contrôles, tous en GET, aucun compte requis.
 
-## IozyPlay, à la même adresse
+## Une seule adresse pour la famille
 
-Le blindtest de la famille vit sous `https://ton-nom.synology.me/play`. Rien à
+`https://ton-nom.synology.me` est la page de la famille : elle présente les
+deux apps et mène à chacune. IozyCore vit sous `/core`, IozyPlay sous `/play`.
+Une ancienne adresse d'IozyCore (un favori, un lien de partage, l'app
+installée sur le téléphone) est redirigée sous `/core` avec le même chemin ;
+l'app installée avant ce changement s'ouvre donc sur la page de la famille,
+la réinstaller depuis `/core/` la ramène à son écran.
+
+Le blindtest vit sous `https://ton-nom.synology.me/play`. Rien à
 ajouter côté DSM : l'entrée de reverse proxy ci-dessus suffit, nginx (conteneur
 `web`) achemine `/play/` vers le conteneur `iozyplay`, WebSocket compris. Son
 image `ghcr.io/romaincharpentier/iozyplay` est construite depuis `iozyplay/` de
@@ -115,9 +123,8 @@ autres (`docker-compose.nas.yml`). Ses questions vivent dans le volume
 En local, le même montage vient avec `docker compose up --build`, puis
 `http://localhost:8081/play/`.
 
-La page d'accueil de la famille, `/famille/`, présente les deux apps et mène à
-chacune ; les deux pieds de page y renvoient. C'est une page construite avec
-le web (`web/famille/`), servie par le même nginx.
+La page de la famille est construite avec le web (`web/famille/`) et servie
+par le même nginx à la racine ; les deux pieds de page y renvoient.
 
 **Vérifier** : `/play/` affiche IozyPlay et `/play/api/health` répond
 `{"status":"ok"}`. Sans le conteneur, `/play` répond 502 et le reste du site ne
@@ -291,7 +298,7 @@ toujours quelqu'un pour administrer l'instance.
 cd web && npm run check:deploiement https://<ton-app>.vercel.app
 ```
 
-Quatorze contrôles, tous en GET, aucun compte requis - le script ne laisse rien
+Quinze contrôles, tous en GET, aucun compte requis - le script ne laisse rien
 derrière lui et peut se relancer à tout moment, y compris sur une mise en ligne
 qui sert déjà des gens :
 
@@ -303,7 +310,8 @@ qui sert déjà des gens :
 | le manifeste sort en `application/manifest+json` | l'invite d'installation disparaît, sans un message ; le type vient du serveur, pas du fichier |
 | `sw.js` interdit la mise en cache | les visiteurs restent sur l'ancienne coquille, parfois des jours, sans moyen de le savoir |
 | `/tier-lists` rend du HTML en 200 | pas de repli SPA : l'app marche tant qu'on navigue et casse au premier F5 ou au premier lien partagé |
-| `/famille/` rend la page de la famille, pas la coquille de l'app | nginx n'essaie pas `$uri/` avant le repli SPA : la page disparaît sans erreur nulle part |
+| `/` rend la page de la famille, pas la coquille de l'app | la règle nginx de la racine manque : l'adresse répond 200 avec l'app, et la page a disparu sans erreur nulle part |
+| `/tier-lists` (ancienne adresse) est redirigé vers `/core/tier-lists` | les favoris, liens de partage et l'app installée d'avant le déménagement tombent sur la page de la famille au lieu de leur écran |
 
 Les mêmes contrôles valent sur la pile Docker locale
 (`npm run check:deploiement http://localhost:8081`) : c'est là qu'ils ont été
