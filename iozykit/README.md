@@ -11,7 +11,8 @@ tokens.json              la source : couleurs des deux thèmes, polices, rayons,
 css/tokens.css           GÉNÉRÉ depuis tokens.json : une propriété --iozy-<rôle> par valeur
 css/base.css             règles globales : titres, curseur, survol, focus, sélection, squelette, sr-only
 css/components.css       .iozy-btn (+ --primary/--secondary/--ghost/--danger/--lg), .iozy-field,
-                         .iozy-card (+ --lg/--danger), .iozy-chip (+ --active), .iozy-glass
+                         .iozy-card (+ --lg/--danger), .iozy-chip (+ --active), .iozy-glass,
+                         .iozy-famille (le sélecteur d'app de l'en-tête, un <details>)
 brand/                   les marques (tuile + étagère) et leurs règles
 scripts/build-css.mjs    génère css/tokens.css
 scripts/check-contrast.mjs  vérifie AA (4,5:1) sur toutes les paires qui comptent, dans les deux thèmes

@@ -1193,3 +1193,18 @@ Vérifié : contrôles web et `check:pwa`, 19 parcours e2e (racine), build sous
 `/core/` inspecté, pile locale derrière nginx (`/`, `/core/`,
 `/core/tier-lists`, `/tier-lists` → 301, manifeste et `sw.js` sous `/core/`,
 `/play/`, `/api`), `check:deploiement http://localhost:8081`.
+
+### Lot 175 — Naviguer dans la famille depuis l'en-tête
+
+La marque en haut à gauche de chaque app ouvre un menu : IozyCore, IozyPlay
+(marques du kit, app courante marquée) et « Toute la famille » vers la
+racine. Un composant de la charte (`.iozy-famille`, un `details` sans script,
+documenté dans `CHARTE.md`), rendu par `FamilySwitcher` dans les en-têtes
+bureau et mobile des deux apps ; un effet ferme le menu au clic ailleurs ou
+sur Échap. Le menu n'existe que sous un préfixe (`/core`, `/play`) : seule à
+la racine, la marque reste le lien vers l'accueil de l'app, et les parcours
+e2e ne changent pas.
+
+Vérifié : contrôles web (491 tests, lint muet, contraste, frontières),
+IozyPlay (typecheck, lint, 166 tests), kit (86 paires), pile locale derrière
+nginx : menu ouvert et fermé dans les deux apps, liens `/core/`, `/play/`, `/`.
