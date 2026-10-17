@@ -17,8 +17,7 @@
     "lint:fix": "eslint src --fix --max-warnings 999",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
-    "typecheck": "tsc --noEmit --skipLibCheck",
-    "kit:sync": "node scripts/sync-iozykit.mjs"
+    "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -28,6 +27,7 @@
     "@radix-ui/react-popover": "^1.1.15",
     "cors": "^2.8.5",
     "express": "^4.21.0",
+    "iozykit": "github:RomainCharpentier/IozyKit#2fe29b88fcbd6a3657afd1cf9ad792028ae62805",
     "lucide-react": "^1.57.0",
     "motion": "^12.34.3",
     "react": "^19.2.4",

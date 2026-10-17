@@ -9,11 +9,12 @@ import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
 import '@fontsource/inter/600.css'
 import '@fontsource/inter/700.css'
-// La charte de la famille Iozy (IozyKit), copie vendorisée : `npm run kit:sync`.
-// Tokens d'abord : les styles de l'app sont des alias dessus.
-import '../vendor/iozykit/css/tokens.css'
-import '../vendor/iozykit/css/base.css'
-import '../vendor/iozykit/css/components.css'
+// La charte de la famille Iozy : paquet `iozykit`, épinglé sur un commit dans
+// package.json (rien n'est copié dans le dépôt). Tokens d'abord : les styles
+// de l'app sont des alias dessus.
+import 'iozykit/css/tokens.css'
+import 'iozykit/css/base.css'
+import 'iozykit/css/components.css'
 import '@/styles/main.scss'
 import '@/services/settingsService'
 import { registerServiceWorker } from '@/utils/serviceWorker'

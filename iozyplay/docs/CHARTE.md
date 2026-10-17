@@ -1,6 +1,6 @@
 # Charte graphique — ce qui est propre à IozyPlay
 
-La charte de la famille Iozy (palette, polices, formes, interactions, structure des écrans, logo) vit dans **IozyKit** (`../IozyKit`, son propre dépôt) : lire `IozyKit/CHARTE.md` d'abord. Cette page ne dit que ce qui est spécifique à IozyPlay et où la charte se branche dans le code.
+La charte de la famille Iozy (palette, polices, formes, interactions, structure des écrans, logo) vit dans **IozyKit** (son propre dépôt, public ; installé ici dans `node_modules/iozykit/`) : lire `IozyKit/CHARTE.md` d'abord. Cette page ne dit que ce qui est spécifique à IozyPlay et où la charte se branche dans le code.
 
 ## Le nom
 
@@ -10,12 +10,12 @@ Ce qui ne change pas de nom : les clés `localStorage` (`blindtest-settings`, `b
 
 ## Où la charte se branche
 
-- `vendor/iozykit/` : copie du kit (`css/tokens.css` généré, `base.css`, `components.css`, `tokens.json`, `VERSION` = commit copié). **Ne jamais y toucher à la main** : `npm run kit:sync` recopie depuis `../IozyKit` (ou `IOZYKIT_PATH`).
+- Le kit est le paquet `iozykit`, dépendance git épinglée sur un commit dans `package.json` (`github:RomainCharpentier/IozyKit#<sha>` ; `package-lock.json` dit lequel). Rien n'est copié dans ce dépôt : `node_modules/iozykit/` apporte `css/tokens.css` (généré), `base.css`, `components.css` et `tokens.json`.
 - `src/main.tsx` charge les polices (`@fontsource`, graisses listées dans `tokens.json`) puis les trois CSS du kit, avant les styles de l'app.
 - `src/styles/design-tokens.scss` : les noms historiques de l'app (`--accent-primary`, `--bg-secondary`, `--text-secondary`, `--radius-md`…) sont des **alias** des `--iozy-*`. Ne jamais y écrire une couleur de la charte ; seuls quelques dérivés par thème (accent foncé, teintes denses, ombres extrêmes) y restent.
 - `src/styles/shared/DesignSystem.module.scss` (importé sous `ds`) : `ds.btn`, `ds.btnPrimary`, `ds.input`, `ds.card`, `ds.chip`… **composent** les classes du kit (`composes: iozy-btn from global`). L'API des composants ne change pas, la forme vient du kit.
 - Thèmes : le kit pose le clair sur `:root` et le sombre sur `.dark-theme` ; `settingsService` pose `.dark-theme` / `.light-theme` sur `<html>`, `index.html` part en `dark-theme` (le défaut de l'app).
-- Pour changer une couleur : `IozyKit/tokens.json` → `npm test` dans le kit (contraste AA) → commit → `npm run kit:sync` ici.
+- Pour changer une couleur : `IozyKit/tokens.json` → `npm test` dans le kit (contraste AA) → commit et push → avancer le sha dans `package.json` ici, puis `npm install`.
 
 ## Les pièces propres à l'app
 
@@ -26,7 +26,6 @@ Ce qui ne change pas de nom : les clés `localStorage` (`blindtest-settings`, `b
 
 ## Ce qui reste à faire
 
-- Brancher IozyCore sur le kit de la même façon (copie + `@theme` en alias) : à faire dans le dépôt IozyCore.
 - L'intérieur de l'éditeur (liste, formulaire, gestionnaire de catégories) et l'écran de jeu gardent leurs emojis et leur mise en page : à passer sur les primitives dans un lot dédié.
 - Une icône iOS en PNG (`apple-touch-icon`) : Safari ignore les SVG pour l'écran d'accueil. IozyCore la génère par `web/scripts/make-icons.mjs` ; reprendre le procédé quand l'installation sur iPhone sera un besoin réel.
 - `styles/index.scss` (3 800 lignes, aucune classe référencée par un composant) : à supprimer dans un lot de nettoyage.
