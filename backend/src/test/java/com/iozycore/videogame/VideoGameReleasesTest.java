@@ -5,9 +5,9 @@ import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
-import com.iozycore.core.insights.ReleaseContext;
-import com.iozycore.core.insights.ReleaseDate;
-import com.iozycore.core.insights.ReleaseEntry;
+import com.iozycore.core.domain.insights.ReleaseContext;
+import com.iozycore.core.domain.insights.ReleaseDate;
+import com.iozycore.core.domain.insights.ReleaseEntry;
 import com.iozycore.videogame.igdb.IgdbReleaseDates;
 import org.junit.jupiter.api.Test;
 

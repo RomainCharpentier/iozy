@@ -4,8 +4,8 @@ import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.experience.Experience;
 import com.iozycore.core.domain.catalog.EntityType;
-import com.iozycore.core.insights.Discovery;
-import com.iozycore.core.insights.Discovery.EmptyReason;
+import com.iozycore.core.domain.insights.Discovery;
+import com.iozycore.core.domain.insights.Discovery.EmptyReason;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.SourceUnavailableException;
@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.core.insights.DiscoveryCandidate;
+import com.iozycore.core.domain.insights.DiscoveryCandidate;
 
 /** Manga discovery - tests taken out of DiscoveryServiceTest in Batch 133. */
 class MangaDiscoveryTest {

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.manga.deals.Volume;
+import com.iozycore.manga.domain.deals.Volume;
 
 class JikanMetadataProviderTest {
 

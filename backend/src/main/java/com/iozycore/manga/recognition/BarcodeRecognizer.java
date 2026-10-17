@@ -1,6 +1,6 @@
 package com.iozycore.manga.recognition;
 
-import com.iozycore.manga.deals.ListingTextParser;
+import com.iozycore.manga.domain.deals.ListingTextParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

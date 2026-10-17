@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.manga.deals.Volume;
+import com.iozycore.manga.domain.deals.Volume;
 
 class MyAnimeListMetadataProviderTest {
 

@@ -1,17 +1,17 @@
 package com.iozycore.core.api.insights;
 
-import com.iozycore.core.insights.CollectionValue;
-import com.iozycore.core.insights.CollectionProgress;
-import com.iozycore.core.insights.DiscoveryService;
-import com.iozycore.core.insights.ReleaseCalendarService;
+import com.iozycore.core.domain.insights.CollectionValue;
+import com.iozycore.core.domain.insights.CollectionProgress;
+import com.iozycore.core.application.insights.DiscoveryService;
+import com.iozycore.core.application.insights.ReleaseCalendarService;
 import com.iozycore.core.api.insights.ReleaseCalendarDtos.LastRunResponse;
 import com.iozycore.core.api.insights.ReleaseCalendarDtos.LatestReleasesResponse;
 import com.iozycore.core.api.insights.ReleaseCalendarDtos.ReleaseCalendarResponse;
 import com.iozycore.core.api.insights.ReleaseCalendarDtos.ReleaseRefreshStatusResponse;
-import com.iozycore.core.insights.ReleaseRefreshService;
-import com.iozycore.core.insights.StatsService;
-import com.iozycore.core.insights.StatsSummary;
-import com.iozycore.core.insights.YearlyRecap;
+import com.iozycore.core.application.insights.ReleaseRefreshService;
+import com.iozycore.core.application.insights.StatsService;
+import com.iozycore.core.domain.insights.StatsSummary;
+import com.iozycore.core.domain.insights.YearlyRecap;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
-import com.iozycore.core.insights.SeriesProgressGateway;
+import com.iozycore.core.application.insights.SeriesProgressGateway;
 
 @RestController
 @RequestMapping("/api/insights")

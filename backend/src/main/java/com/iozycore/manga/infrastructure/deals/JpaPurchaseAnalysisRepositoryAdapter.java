@@ -1,7 +1,7 @@
 package com.iozycore.manga.infrastructure.deals;
 
-import com.iozycore.manga.deals.PurchaseAnalysis;
-import com.iozycore.manga.deals.PurchaseAnalysisRepository;
+import com.iozycore.manga.domain.deals.PurchaseAnalysis;
+import com.iozycore.manga.domain.deals.PurchaseAnalysisRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;

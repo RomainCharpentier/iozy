@@ -1,8 +1,8 @@
 package com.iozycore.core.api.insights;
 
-import com.iozycore.core.insights.ReleaseCalendar;
-import com.iozycore.core.insights.ReleaseEntry;
-import com.iozycore.core.insights.ReleaseRefreshRun;
+import com.iozycore.core.domain.insights.ReleaseCalendar;
+import com.iozycore.core.domain.insights.ReleaseEntry;
+import com.iozycore.core.domain.insights.ReleaseRefreshRun;
 
 import java.time.Instant;
 import java.time.LocalDate;

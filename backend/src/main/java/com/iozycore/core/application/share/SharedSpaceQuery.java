@@ -16,8 +16,8 @@ import com.iozycore.core.domain.tierlist.TierListItem;
 import com.iozycore.core.domain.tierlist.TierListRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
-import com.iozycore.core.insights.CollectionProgress;
-import com.iozycore.core.insights.SeriesProgressGateway;
+import com.iozycore.core.domain.insights.CollectionProgress;
+import com.iozycore.core.application.insights.SeriesProgressGateway;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

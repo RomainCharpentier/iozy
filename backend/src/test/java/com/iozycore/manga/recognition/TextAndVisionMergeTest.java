@@ -2,8 +2,8 @@ package com.iozycore.manga.recognition;
 
 import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
-import com.iozycore.manga.deals.MangaSeries;
-import com.iozycore.manga.deals.SeriesMatcher;
+import com.iozycore.manga.domain.deals.MangaSeries;
+import com.iozycore.manga.domain.deals.SeriesMatcher;
 import org.junit.jupiter.api.Test;
 import com.iozycore.manga.testing.InMemoryMangaEditionRepository;
 
@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.manga.deals.SeriesTitleNormalizer;
 
 /**
  * The heart of this pass: the text and the photos feed <b>one</b> list,
@@ -403,7 +402,7 @@ class TextAndVisionMergeTest {
             // The double applies the SAME normalisation as the real matcher:
             // skipping it would make it diverge from the real behaviour, and the
             // tests would then check something that does not exist.
-            String titre = com.iozycore.manga.deals.SeriesTitleNormalizer.normalize(rawTitle);
+            String titre = com.iozycore.manga.domain.deals.SeriesTitleNormalizer.normalize(rawTitle);
             return new MangaSeries(titre, series.get(titre.toLowerCase(java.util.Locale.ROOT)));
         }
     }

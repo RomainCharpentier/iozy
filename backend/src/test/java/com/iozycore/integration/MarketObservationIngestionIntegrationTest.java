@@ -4,15 +4,15 @@ import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.core.listing.ShippingEstimateKind;
-import com.iozycore.manga.deals.Condition;
+import com.iozycore.manga.domain.deals.Condition;
 import com.iozycore.core.listing.ListingPlatform;
-import com.iozycore.manga.deals.MarketObservationOrigin;
-import com.iozycore.manga.deals.MarketPriceObservation;
-import com.iozycore.manga.deals.PurchaseAnalysis;
-import com.iozycore.manga.deals.PurchaseAnalysisService;
-import com.iozycore.manga.deals.PurchaseAnalysisService.AnalyzeListingCommand;
-import com.iozycore.manga.deals.PurchaseAnalysisService.AnalyzeListingItemCommand;
-import com.iozycore.manga.deals.VolumeRange;
+import com.iozycore.manga.domain.deals.MarketObservationOrigin;
+import com.iozycore.manga.domain.deals.MarketPriceObservation;
+import com.iozycore.manga.domain.deals.PurchaseAnalysis;
+import com.iozycore.manga.application.deals.PurchaseAnalysisService;
+import com.iozycore.manga.application.deals.PurchaseAnalysisService.AnalyzeListingCommand;
+import com.iozycore.manga.application.deals.PurchaseAnalysisService.AnalyzeListingItemCommand;
+import com.iozycore.manga.domain.deals.VolumeRange;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,7 +23,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.manga.deals.ReferenceGap;
 
 /**
  * <b>The normal use of IozyCore must feed the observed prices - without ever
@@ -163,7 +162,7 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         assertThat(seconde.assessment().referenceSampleSize()).isZero();
         assertThat(seconde.assessment().pricePosition().name()).isEqualTo("REFERENCE_UNAVAILABLE");
         assertThat(seconde.assessment().referenceGap())
-                .isEqualTo(com.iozycore.manga.deals.ReferenceGap.ONLY_CURRENT_LISTING);
+                .isEqualTo(com.iozycore.manga.domain.deals.ReferenceGap.ONLY_CURRENT_LISTING);
     }
 
     // ================================================================== H

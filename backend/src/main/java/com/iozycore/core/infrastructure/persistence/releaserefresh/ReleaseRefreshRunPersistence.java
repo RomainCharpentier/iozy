@@ -1,7 +1,7 @@
 package com.iozycore.core.infrastructure.persistence.releaserefresh;
 
-import com.iozycore.core.insights.ReleaseRefreshRun;
-import com.iozycore.core.insights.ReleaseRefreshRunRepository;
+import com.iozycore.core.domain.insights.ReleaseRefreshRun;
+import com.iozycore.core.domain.insights.ReleaseRefreshRunRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

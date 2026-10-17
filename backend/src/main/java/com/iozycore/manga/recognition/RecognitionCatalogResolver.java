@@ -4,8 +4,8 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
-import com.iozycore.manga.deals.MangaSeries;
-import com.iozycore.manga.deals.SeriesMatcher;
+import com.iozycore.manga.domain.deals.MangaSeries;
+import com.iozycore.manga.domain.deals.SeriesMatcher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

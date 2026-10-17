@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 /**
  * Cross-context read (catalog + ownership + tierlist) - same pattern as
- * StatsService (see com.iozycore.core.insights): the tierlist domain only knows
+ * StatsService (see com.iozycore.core.application.insights): the tierlist domain only knows
  * its own ports, this service assembles what needs to cross
  * several bounded contexts (e.g. "which owned works of this universe
  * still have no general rank").

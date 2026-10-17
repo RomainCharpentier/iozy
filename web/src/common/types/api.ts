@@ -248,7 +248,7 @@ export interface VolumesResponseDto {
 /**
  * "How many owned volumes out of how many", computed BY THE SERVER.
  *
- * Mirror of com.iozycore.insights.CollectionProgress. The rule - notably the
+ * Mirror of com.iozycore.core.domain.insights.CollectionProgress. The rule - notably the
  * attachment of volumes without a given edition to the only named edition of a
  * series - lives there and nowhere else: recomputing it here has already
  * produced two divergences (see docs/DESIGN_MIGRATION_V1.2.md, batches 31 and 49).

@@ -1,7 +1,7 @@
 package com.iozycore.manga.infrastructure.deals;
 
 import com.iozycore.manga.domain.EditionTier;
-import com.iozycore.manga.deals.VerdictFactor;
+import com.iozycore.manga.domain.deals.VerdictFactor;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

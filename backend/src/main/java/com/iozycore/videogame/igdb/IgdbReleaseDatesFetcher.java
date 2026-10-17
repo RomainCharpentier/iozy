@@ -2,7 +2,7 @@ package com.iozycore.videogame.igdb;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.core.insights.ReleaseDate;
+import com.iozycore.core.domain.insights.ReleaseDate;
 import com.iozycore.core.metadata.TtlCache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

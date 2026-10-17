@@ -2,7 +2,6 @@ package com.iozycore.manga.recognition;
 
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
-import com.iozycore.manga.recognition.BarcodeWorkLookup;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -1,9 +1,9 @@
 package com.iozycore.manga.infrastructure.deals;
 
-import com.iozycore.manga.deals.AiPriceEstimate;
-import com.iozycore.manga.deals.AiPriceEstimateCacheRepository;
-import com.iozycore.manga.deals.Condition;
-import com.iozycore.core.insights.ConfidenceLevel;
+import com.iozycore.manga.domain.deals.AiPriceEstimate;
+import com.iozycore.manga.domain.deals.AiPriceEstimateCacheRepository;
+import com.iozycore.manga.domain.deals.Condition;
+import com.iozycore.manga.domain.deals.ConfidenceLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;

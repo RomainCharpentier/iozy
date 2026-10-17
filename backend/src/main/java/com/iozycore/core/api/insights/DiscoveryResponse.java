@@ -1,7 +1,7 @@
 package com.iozycore.core.api.insights;
 
-import com.iozycore.core.insights.Discovery;
-import com.iozycore.core.insights.DiscoveryCandidate;
+import com.iozycore.core.domain.insights.Discovery;
+import com.iozycore.core.domain.insights.DiscoveryCandidate;
 
 import java.util.List;
 

@@ -16,7 +16,7 @@ import java.time.LocalDate;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.core.insights.CollectionProgress;
+import com.iozycore.core.domain.insights.CollectionProgress;
 
 /**
  * The rules of the "X of Y" progress now live in one single place

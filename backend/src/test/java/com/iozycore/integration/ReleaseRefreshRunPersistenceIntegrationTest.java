@@ -1,7 +1,7 @@
 package com.iozycore.integration;
 
-import com.iozycore.core.insights.ReleaseRefreshRun;
-import com.iozycore.core.insights.ReleaseRefreshRunRepository;
+import com.iozycore.core.domain.insights.ReleaseRefreshRun;
+import com.iozycore.core.domain.insights.ReleaseRefreshRunRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -1,7 +1,7 @@
 package com.iozycore.manga;
 
-import com.iozycore.core.insights.CollectionProgress;
-import com.iozycore.core.insights.OwnedValueSource;
+import com.iozycore.core.domain.insights.CollectionProgress;
+import com.iozycore.core.application.insights.OwnedValueSource;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.manga.insights.CollectionProgressService;

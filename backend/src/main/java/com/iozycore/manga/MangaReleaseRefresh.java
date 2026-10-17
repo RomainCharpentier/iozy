@@ -5,7 +5,7 @@ import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.domain.shared.TexteRecherche;
-import com.iozycore.core.insights.ReleaseRefreshSource;
+import com.iozycore.core.application.insights.ReleaseRefreshSource;
 import com.iozycore.manga.metadata.RelatedSeriesService;
 import com.iozycore.manga.metadata.SeriesStatus;
 import com.iozycore.manga.metadata.StoredVolumeSearch;
