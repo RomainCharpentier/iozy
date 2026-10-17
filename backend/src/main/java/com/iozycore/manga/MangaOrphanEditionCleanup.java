@@ -3,7 +3,7 @@ package com.iozycore.manga;
 import com.iozycore.core.application.VariantDeletionHook;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.Variant;
-import com.iozycore.manga.deals.MarketPriceObservationRepository;
+import com.iozycore.manga.domain.deals.MarketPriceObservationRepository;
 import com.iozycore.manga.domain.MangaEditionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

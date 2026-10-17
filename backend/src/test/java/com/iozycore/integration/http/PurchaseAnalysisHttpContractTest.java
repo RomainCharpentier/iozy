@@ -6,12 +6,12 @@ import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
-import com.iozycore.manga.deals.Condition;
+import com.iozycore.manga.domain.deals.Condition;
 import com.iozycore.core.listing.ListingPlatform;
-import com.iozycore.manga.deals.MarketPriceObservation;
-import com.iozycore.manga.deals.MarketPriceObservationRepository;
-import com.iozycore.manga.deals.PurchaseAnalysisRepository;
-import com.iozycore.manga.deals.VolumeRange;
+import com.iozycore.manga.domain.deals.MarketPriceObservation;
+import com.iozycore.manga.domain.deals.MarketPriceObservationRepository;
+import com.iozycore.manga.domain.deals.PurchaseAnalysisRepository;
+import com.iozycore.manga.domain.deals.VolumeRange;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

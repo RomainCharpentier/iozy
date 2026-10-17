@@ -10,7 +10,7 @@ import com.iozycore.core.domain.catalog.Variant;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
-import com.iozycore.manga.deals.PurchaseAnalysisService;
+import com.iozycore.manga.application.deals.PurchaseAnalysisService;
 import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;

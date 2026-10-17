@@ -1,9 +1,9 @@
 package com.iozycore.manga.infrastructure.deals;
 
 import com.iozycore.core.application.auth.UtilisateurCourant;
-import com.iozycore.manga.deals.CollectorPreferences;
-import com.iozycore.manga.deals.CollectorPreferencesRepository;
-import com.iozycore.manga.deals.WeightLevel;
+import com.iozycore.manga.domain.deals.CollectorPreferences;
+import com.iozycore.manga.domain.deals.CollectorPreferencesRepository;
+import com.iozycore.manga.domain.deals.WeightLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;

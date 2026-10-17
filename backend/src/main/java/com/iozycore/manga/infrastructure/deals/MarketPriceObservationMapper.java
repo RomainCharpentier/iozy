@@ -1,10 +1,10 @@
 package com.iozycore.manga.infrastructure.deals;
 
-import com.iozycore.manga.deals.Condition;
-import com.iozycore.manga.deals.MarketObservationOrigin;
+import com.iozycore.manga.domain.deals.Condition;
+import com.iozycore.manga.domain.deals.MarketObservationOrigin;
 import com.iozycore.core.listing.ListingPlatform;
-import com.iozycore.manga.deals.MarketPriceObservation;
-import com.iozycore.manga.deals.VolumeRange;
+import com.iozycore.manga.domain.deals.MarketPriceObservation;
+import com.iozycore.manga.domain.deals.VolumeRange;
 
 final class MarketPriceObservationMapper {
 

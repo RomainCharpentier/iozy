@@ -1,7 +1,7 @@
 package com.iozycore.manga.infrastructure.deals;
 
-import com.iozycore.manga.deals.MarketPriceObservation;
-import com.iozycore.manga.deals.MarketPriceObservationRepository;
+import com.iozycore.manga.domain.deals.MarketPriceObservation;
+import com.iozycore.manga.domain.deals.MarketPriceObservationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;

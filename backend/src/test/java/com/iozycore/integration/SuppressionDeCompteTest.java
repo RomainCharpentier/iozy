@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.manga.deals.Volume;
 
 /**
  * <b>Deleting an account erases everything that belongs to it - and NOTHING else.</b>

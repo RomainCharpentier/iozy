@@ -1,6 +1,6 @@
 package com.iozycore.manga.recognition;
 
-import com.iozycore.manga.deals.ListingTextParser;
+import com.iozycore.manga.domain.deals.ListingTextParser;
 
 import java.util.ArrayList;
 import java.util.List;

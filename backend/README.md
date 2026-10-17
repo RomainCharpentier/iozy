@@ -41,9 +41,9 @@ core/        ce qui vaut pour tous les types de collection
   listing/     lecture des annonces (Leboncoin, Vinted)
   gemini/      client de l'assistance IA
 manga/       éditions françaises, tomes, sources (AniList, Jikan, MyAnimeList,
-             Google Books, BnF, Open Library), analyse d'achat (deals/),
-             reconnaissance de piles (recognition/), import d'étagère
-             (shelfimport/), éditions suivies
+             Google Books, BnF, Open Library), analyse d'achat (domain/deals,
+             application/deals, infrastructure/deals), reconnaissance de piles
+             (recognition/), import d'étagère (shelfimport/), éditions suivies
 videogame/   IGDB
 boardgame/   BoardGameGeek
 custom/      types définis dans iozycore, sans fournisseur

@@ -1,7 +1,7 @@
 package com.iozycore.manga.metadata;
 
 import com.iozycore.core.metadata.MetadataCandidate;
-import com.iozycore.manga.deals.ListingTextParser;
+import com.iozycore.manga.domain.deals.ListingTextParser;
 
 import java.text.Normalizer;
 import java.util.List;

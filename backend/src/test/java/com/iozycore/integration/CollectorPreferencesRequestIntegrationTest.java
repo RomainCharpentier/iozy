@@ -2,7 +2,7 @@ package com.iozycore.integration;
 
 import com.iozycore.manga.api.PurchaseAnalysisController;
 import com.iozycore.manga.api.PurchaseAnalysisController.UpdateCollectorPreferencesRequest;
-import com.iozycore.manga.deals.CollectorPreferences;
+import com.iozycore.manga.domain.deals.CollectorPreferences;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

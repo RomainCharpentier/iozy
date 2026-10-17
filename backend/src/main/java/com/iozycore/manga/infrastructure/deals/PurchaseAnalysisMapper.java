@@ -1,6 +1,6 @@
 package com.iozycore.manga.infrastructure.deals;
 
-import com.iozycore.manga.deals.PurchaseAnalysis;
+import com.iozycore.manga.domain.deals.PurchaseAnalysis;
 
 final class PurchaseAnalysisMapper {
 
