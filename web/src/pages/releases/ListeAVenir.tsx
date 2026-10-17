@@ -3,6 +3,7 @@ import { getReleaseCalendar } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { LIBELLES_RELATION, libelleDateCourte, libelleMois, periodeSurUnAn } from '@/common/lib/releaseDate'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
+import { useNow } from '@/common/hooks/useNow'
 import { Jaquette } from '@/common/components/Jaquette'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import type { ReleaseEntryDto } from '@/common/types/api'
@@ -29,7 +30,7 @@ export function ListeAVenir({
   onVoir: (mois: string, jour: string | null) => void
   className?: string
 }) {
-  const { from, to } = periodeSurUnAn(new Date())
+  const { from, to } = periodeSurUnAn(useNow())
   const query = useQuery({
     queryKey: queryKeys.insights.releases(from, to),
     queryFn: () => getReleaseCalendar(from, to),

@@ -10,6 +10,7 @@ import type { YearlyRecapDto } from '@/common/types/api'
 import { LienRetour } from '@/common/components/LienRetour'
 import { formaterDecimal } from '@/common/lib/formats'
 import { Squelette } from '@/common/components/Squelette'
+import { useNow } from '@/common/hooks/useNow'
 
 /** Same algorithm as gradientFor (theme/gradient.ts), but returns the 2
  * raw hexadecimal colors rather than a CSS string - needed to
@@ -27,7 +28,7 @@ function gradientColorsFor(key: string): [string, string] {
  * (social networks, message...), never through a URL directly exposing the
  * data of the owner. */
 export function CollectionRecapPage() {
-  const currentYear = new Date().getFullYear()
+  const currentYear = useNow().getFullYear()
   const [year, setYear] = useState(currentYear)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 

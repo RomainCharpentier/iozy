@@ -18,6 +18,7 @@ import { indexerVenues, trierOeuvres } from './venues'
 import { usePreferencesCollection, type FiltreCollection } from '@/common/lib/preferencesCollection'
 
 import { useModalA11y } from '@/common/hooks/useModalA11y'
+import { useNow } from '@/common/hooks/useNow'
 import type { EntityResponse } from '@/common/types/api'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { EtatVide } from '@/common/components/EtatVide'
@@ -248,10 +249,11 @@ export function ShelfPage() {
     [preferences.vue, sections, tuilesAffichees, typesParId, titresParType],
   )
 
+  const now = useNow()
   const addedThisMonthCount = useMemo(() => {
-    const currentMonth = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+    const currentMonth = now.toISOString().slice(0, 7) // "YYYY-MM"
     return ownerships.filter((o) => o.status === 'OWNED' && o.acquiredAt.startsWith(currentMonth)).length
-  }, [ownerships])
+  }, [ownerships, now])
 
   /**
    * True only when EVERYTHING that a number depends on has arrived.

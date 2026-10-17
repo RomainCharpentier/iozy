@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { listEntityTypes, createEntityType, updateEntityType } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
+import type { EntityTypeDto } from '@/common/types/api'
 import { UNIVERSE_ASPECTS, UNIVERSE_ICONS, UNIVERSE_PALETTE, colorVarFor } from '@/common/lib/entityTypeVisuals'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
@@ -37,39 +38,49 @@ function codeFromLabel(label: string): string {
 }
 
 export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
-  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const queryClient = useQueryClient()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const existing = mode === 'edit' ? entityTypesQuery.data?.find((t) => t.id === id) : undefined
 
-  const [code, setCode] = useState('')
-  const [label, setLabel] = useState('')
+  // The early return is the right choice here - rendering the form during
+  // loading would show empty fields that would fill up under the fingers
+  // of whoever started typing. But the title stays: without an h1 the page loses
+  // the title of its tab (useDocumentTitle reads it from it) and its structure
+  // landmark. This case only exists in edit mode, hence the hard-coded title.
+  if (mode === 'edit' && entityTypesQuery.isLoading) {
+    return (
+      <div className="flex flex-col gap-5">
+        <LienRetour parDefaut={{ to: '/types', libelle: 'Catégories de collection' }} />
+        <EnTeteSection niveau={1} titre="Modifier le type" />
+        <Squelette lignes={3} />
+      </div>
+    )
+  }
+
+  // The form mounts once the type is known, and anew for another type: its
+  // fields start from the type itself, with no effect copying it into them.
+  return <EntityTypeForm key={id ?? 'new'} mode={mode} id={id} existing={existing} />
+}
+
+function EntityTypeForm({ mode, id, existing }: { mode: 'create' | 'edit'; id: string | undefined; existing: EntityTypeDto | undefined }) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const [code, setCode] = useState(existing?.code ?? '')
+  const [label, setLabel] = useState(existing?.label ?? '')
   // Visual identity: palette KEYS, not a free color - each
   // shade of UNIVERSE_PALETTE is calibrated to stay readable as TEXT in
   // both themes, which a free picker cannot guarantee.
-  const [colorKey, setColorKey] = useState<string | null>(null)
-  const [iconKey, setIconKey] = useState<string | null>(null)
-  const [aspectKey, setAspectKey] = useState<string | null>(null)
+  const [colorKey, setColorKey] = useState<string | null>(existing?.colorKey ?? null)
+  const [iconKey, setIconKey] = useState<string | null>(existing?.iconKey ?? null)
+  const [aspectKey, setAspectKey] = useState<string | null>(existing?.aspectKey ?? null)
   // The code follows the label as long as the user has not touched it: the help
   // under the field promised "normalisé automatiquement" while one had to
   // invent a technical code by hand (VINYLE, BOARD_GAME...). Once
   // edited manually, it is never overwritten again.
   const [codeEditedByHand, setCodeEditedByHand] = useState(false)
-  const [allowedExperienceTypes, setAllowedExperienceTypes] = useState<string[]>([])
-  const [customFieldKeys, setCustomFieldKeys] = useState<string[]>([])
-
-  useEffect(() => {
-    if (existing) {
-      setCode(existing.code)
-      setLabel(existing.label)
-      setAllowedExperienceTypes(existing.allowedExperienceTypes)
-      setCustomFieldKeys(existing.customFieldKeys)
-      setColorKey(existing.colorKey)
-      setIconKey(existing.iconKey)
-      setAspectKey(existing.aspectKey)
-    }
-  }, [existing])
+  const [allowedExperienceTypes, setAllowedExperienceTypes] = useState<string[]>(existing?.allowedExperienceTypes ?? [])
+  const [customFieldKeys, setCustomFieldKeys] = useState<string[]>(existing?.customFieldKeys ?? [])
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -120,24 +131,9 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
     mutation.mutate()
   }
 
-  // The early return is the right choice here - rendering the form during
-  // loading would show empty fields that would fill up under the fingers
-  // of whoever started typing. But the title stays: without an h1 the page loses
-  // the title of its tab (useDocumentTitle reads it from it) and its structure
-  // landmark. This case only exists in edit mode, hence the hard-coded title.
-  if (mode === 'edit' && entityTypesQuery.isLoading) {
-    return (
-      <div className="flex flex-col gap-5">
-      <LienRetour parDefaut={{ to: '/types', libelle: 'Catégories de collection' }} />
-        <LienRetour parDefaut={{ to: '/types', libelle: 'Catégories de collection' }} />
-        <EnTeteSection niveau={1} titre="Modifier le type" />
-        <Squelette lignes={3} />
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/types', libelle: 'Catégories de collection' }} />
       <EnTeteSection niveau={1} titre={mode === 'create' ? 'Nouveau type' : 'Modifier le type'} />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">

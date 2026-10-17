@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Link2, Loader2, CheckCircle2, Info, X } from 'lucide-react'
 import { resolveListing } from '@/common/api/purchaseAnalysis'
@@ -69,49 +69,45 @@ export function ListingUrlField({
   /** Receives what was read; the caller decides what to do with it, field by field. */
   onResolved: (preview: ListingPreviewDto) => { conserves: string[] }
 }) {
-  const [preview, setPreview] = useState<ListingPreviewDto | null>(null)
-  const [conserves, setConserves] = useState<string[]>([])
-  // The same link can be "pasted" several times (typing, re-render, return
-  // to the field): we only read a listing once per URL.
-  const dejaResolues = useRef(new Map<string, ListingPreviewDto>())
+  // What was read, per URL. The same link can be "pasted" several times
+  // (typing, re-render, return to the field): a listing is read once per URL,
+  // and the screen derives its preview from the URL of the moment - an
+  // emptied or edited field shows nothing, with no reset in an effect.
+  const [readings, setReadings] = useState<ReadonlyMap<string, { preview: ListingPreviewDto; conserves: string[] }>>(
+    () => new Map(),
+  )
 
   const source = detecterSource(url)
-  const urlPlausible = url.trim().length > 0 && estUneUrlPlausible(url)
-  const lienInvalide = url.trim().length > 0 && !urlPlausible
+  const toResolve = url.trim()
+  const urlPlausible = toResolve.length > 0 && estUneUrlPlausible(toResolve)
+  const lienInvalide = toResolve.length > 0 && !urlPlausible
+  const reading = urlPlausible ? readings.get(toResolve) : undefined
+  const preview = reading?.preview ?? null
+  const conserves = reading?.conserves ?? []
 
   const resolveMutation = useMutation({
-    mutationFn: (aResoudre: string) => resolveListing(aResoudre),
-    onSuccess: (resultat, aResoudre) => {
-      dejaResolues.current.set(aResoudre, resultat)
-      setPreview(resultat)
+    mutationFn: (link: string) => resolveListing(link),
+    onSuccess: (resultat, link) => {
       // Applied even when NOTHING was read: the recognised platform is a
       // observed fact, not extracted data. Without it, a Leboncoin link
       // left "Vinted" selected, and the analysis was saved under the
       // wrong platform - which then feeds the recorded prices.
       // appliquerPreview already guards each field one by one: passing it an empty
       // read fills nothing else.
-      setConserves(onResolved(resultat).conserves)
+      const { conserves: kept } = onResolved(resultat)
+      setReadings((before) => new Map(before).set(link, { preview: resultat, conserves: kept }))
     },
   })
 
   const declencher = resolveMutation.mutate
+  const alreadyRead = reading !== undefined
   useEffect(() => {
-    const aResoudre = url.trim()
-    if (!aResoudre || !estUneUrlPlausible(aResoudre)) {
-      setPreview(null)
-      setConserves([])
-      return
-    }
-    const enCache = dejaResolues.current.get(aResoudre)
-    if (enCache) {
-      setPreview(enCache)
-      return
-    }
+    if (!urlPlausible || alreadyRead) return
     // Leaves time to finish pasting/typing before calling - the field stays
     // usable during that time, nothing is blocked.
-    const minuteur = setTimeout(() => declencher(aResoudre), 600)
+    const minuteur = setTimeout(() => declencher(toResolve), 600)
     return () => clearTimeout(minuteur)
-  }, [url, declencher])
+  }, [toResolve, urlPlausible, alreadyRead, declencher])
 
   const enCours = resolveMutation.isPending
   const reussite = preview && (preview.status === 'SUCCESS' || preview.status === 'PARTIAL')

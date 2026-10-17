@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { useAuth } from '@/common/hooks/useAuth'
+import { useNow } from '@/common/hooks/useNow'
 import { libelleIlYA } from '@/common/lib/releaseDate'
 import type { ReleaseRefreshRunDto } from '@/common/types/api'
 import { useReleaseRefresh } from './useReleaseRefresh'
@@ -27,7 +27,7 @@ export function ReleaseRefreshLine() {
   const { estInvite } = useAuth()
   const { status, launch } = useReleaseRefresh()
   // Read once: the line says how long ago, it does not tick.
-  const [now] = useState(() => new Date())
+  const now = useNow()
   if (!status?.available) return null
 
   const enCours = status.running || launch.isPending
