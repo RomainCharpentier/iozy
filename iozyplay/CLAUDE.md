@@ -16,7 +16,7 @@ npm run format         # prettier sur src/
 ```
 
 Avant de considérer une tâche finie : `npm run typecheck && npm run lint && npm test && npm run test:unit`.
-⚠️ `npm run build` fait `tsc ... || true` : il **ignore les erreurs TS**, ne pas s'en servir comme vérification. La CI GitHub (`.github/workflows/deploy.yml`) ignore aussi les échecs (`|| true`).
+`npm run build` enchaîne `typecheck` puis `vite build` : une erreur TS le fait échouer, sous Linux comme sous Windows (l'ancien `|| true` n'existait pas pour cmd.exe, qui sautait alors `vite build` sans rien dire). La CI (`.github/workflows/deploy.yml`) échoue si le build ou un test casse.
 
 ## Architecture en bref
 
