@@ -1096,3 +1096,14 @@ valeurs du type chargé, et garde un seul lien retour dans ses deux états.
 
 Vérifié : `npm test` (491), `typecheck`, `lint` (zéro ligne),
 `check:frontieres`, `test:e2e` (19).
+
+### Lot 169 — Le calendrier ne montre plus une date que la fiche refuse
+
+Le calendrier des sorties lisait `volume_search_cache` sans regarder l'âge de
+la ligne ni la version de la chaîne : il pouvait afficher une date que la fiche
+de la série, elle, refuse de servir. Il saute désormais les lignes que
+`TomeSearchService` ne servirait pas (même règle `isFresh`). Correctif écrit le
+14 octobre sur la branche `fix/calendar-stale-cache`, jamais fusionné et devenu
+inapplicable après les lots d'architecture : porté sur `main`.
+
+Vérifié : suite backend (1306).

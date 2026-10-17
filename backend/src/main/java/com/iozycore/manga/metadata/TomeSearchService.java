@@ -96,7 +96,7 @@ public class TomeSearchService {
                 .map(StoredVolumeSearch::volumes);
     }
 
-    static boolean isFresh(StoredVolumeSearch stored) {
+    public static boolean isFresh(StoredVolumeSearch stored) {
         return stored.chainVersion() == CHAIN_VERSION
                 && stored.fetchedAt().isAfter(Instant.now().minus(DURABLE_EXPIRY));
     }

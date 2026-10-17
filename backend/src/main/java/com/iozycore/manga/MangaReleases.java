@@ -11,6 +11,7 @@ import com.iozycore.core.insights.ReleaseSource;
 import com.iozycore.manga.domain.followededition.FollowedEdition;
 import com.iozycore.manga.domain.followededition.FollowedEditionRepository;
 import com.iozycore.manga.metadata.StoredVolumeSearch;
+import com.iozycore.manga.metadata.TomeSearchService;
 import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchCacheRepository;
 import lombok.RequiredArgsConstructor;
@@ -86,6 +87,8 @@ public class MangaReleases implements ReleaseSource {
                 .collect(Collectors.toSet());
         Map<String, StoredVolumeSearch> storedByKey = volumeSearchCacheRepository
                 .findAllByEntityTypeIdAndSeriesTitleIn(context.entityType().id(), normalizedTitles).stream()
+                // A row the detail page would refuse (too old, or an older chain) is not shown here either.
+                .filter(TomeSearchService::isFresh)
                 .collect(Collectors.toMap(StoredVolumeSearch::key, Function.identity(), (first, second) -> first));
         Map<UUID, String> followedEditionByEntity = followedEditionRepository
                 .findByEntityIdIn(series.stream().map(Entity::id).toList()).stream()
