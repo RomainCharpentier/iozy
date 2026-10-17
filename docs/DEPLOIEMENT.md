@@ -125,8 +125,8 @@ En local, le même montage vient avec `docker compose up --build`, puis
 
 La page de la famille est construite avec le web (`web/famille/`) et servie
 par le même nginx à la racine. Dans chaque app, la marque en haut à gauche
-ouvre le menu de la famille (IozyCore, IozyPlay, la page d'accueil) ; les
-pieds de page y renvoient aussi.
+ouvre le menu de la famille (IozyCore, IozyPlay) ; les pieds de page
+renvoient à la page d'accueil.
 
 **Vérifier** : `/play/` affiche IozyPlay et `/play/api/health` répond
 `{"status":"ok"}`. Sans le conteneur, `/play` répond 502 et le reste du site ne

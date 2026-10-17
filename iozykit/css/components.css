@@ -274,11 +274,3 @@
   color: var(--iozy-text-dim);
   font-size: 0.8125rem;
 }
-
-.iozy-famille__accueil {
-  margin-top: 0.25rem;
-  padding-top: 0.625rem;
-  border-top: 1px solid var(--iozy-line);
-  color: var(--iozy-text-dim);
-  font-size: 0.875rem;
-}

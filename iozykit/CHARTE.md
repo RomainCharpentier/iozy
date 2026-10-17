@@ -74,4 +74,4 @@ Voir `brand/README.md` : une tuile à l'accent, un objet en encre, posé sur l'*
 
 ## Naviguer dans la famille
 
-Chaque app porte la famille dans son en-tête : la marque en haut à gauche ouvre un menu avec les apps (`.iozy-famille`, un `details`), l'app courante marquée, et « Toute la famille » vers la racine du site. Le menu n'existe que lorsque l'app vit sous son préfixe (`/core`, `/play`) à côté des autres ; seule à la racine, la marque reste un simple lien vers son accueil.
+Chaque app porte la famille dans son en-tête : la marque en haut à gauche ouvre un menu avec les apps (`.iozy-famille`, un `details`), l'app courante marquée ; la page d'accueil de la famille, à la racine du site, reste la porte d'entrée. Le menu n'existe que lorsque l'app vit sous son préfixe (`/core`, `/play`) à côté des autres ; seule à la racine, la marque reste un simple lien vers son accueil.

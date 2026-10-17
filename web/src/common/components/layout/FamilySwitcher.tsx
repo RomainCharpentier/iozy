@@ -5,8 +5,7 @@ import iozycoreMark from 'iozykit/brand/iozycore.svg'
 import iozyplayMark from 'iozykit/brand/iozyplay.svg'
 
 /**
- * The brand in the header opens the family: this app, IozyPlay, and the home
- * of the site. Only when the app lives under a prefix (/core/ next to the
+ * The brand in the header opens the family: this app and IozyPlay. Only when the app lives under a prefix (/core/ next to the
  * others): alone at the root (dev, the e2e stack), the brand stays a link to
  * the home of the app, and nothing here exists.
  *
@@ -77,9 +76,6 @@ export function FamilySwitcher({ compact = false }: { compact?: boolean }) {
             </b>
             <small>Le blindtest</small>
           </span>
-        </a>
-        <a className="iozy-famille__app iozy-famille__accueil" href="/">
-          Toute la famille
         </a>
       </nav>
     </details>
