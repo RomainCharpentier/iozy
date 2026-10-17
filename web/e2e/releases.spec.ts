@@ -94,13 +94,15 @@ test('date a work on its detail page, then find it again in the calendar and on 
   if (await onglet.isVisible()) await onglet.click()
   await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
 
-  //     The panel says the dates were never refreshed (a fresh instance), and refreshing on demand
+  //     The line says the sources were never read (a fresh instance), and refreshing on demand
   //     leaves a date behind. The test stack has no provider and no manga: the pass is instant and empty.
-  await expect(page.getByText("Les sorties n'ont jamais été mises à jour.")).toBeVisible()
+  await expect(page.getByText("Les sources de sorties n'ont pas encore été consultées.")).toBeVisible()
   await page.getByRole('button', { name: 'Mettre à jour maintenant' }).click()
   await expect(page.getByText("Sorties mises à jour à l'instant")).toBeVisible()
   await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Tout voir' }).last().click()
+  //     Three panels of Découvrir say "Tout voir": the right one sits under the heading of this panel.
+  const releasesPanel = page.locator('section', { has: page.getByRole('heading', { name: 'Dernières sorties' }) })
+  await releasesPanel.getByRole('link', { name: 'Tout voir' }).click()
   await expect(page).toHaveURL(/\/releases/)
 })

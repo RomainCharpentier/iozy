@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, Sparkles } from 'lucide-react'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import { boardPreviewRows } from '@/common/lib/tierListVisuals'
@@ -48,17 +48,18 @@ export function DiscoverTierPreview() {
   const busiestUniverse = [...universes].sort((a, b) => b.counts.total - b.counts.ranked - (a.counts.total - a.counts.ranked))[0]
 
   // The same heading as the two panels next to it: a name, and "Tout voir"
-  // towards the full screen, which Découvrir did not link to at all.
+  // towards the full screen, which Découvrir did not link to at all. A link,
+  // like the one of the releases panel: it only goes somewhere.
   const entete = (
     <div className="flex flex-wrap items-baseline justify-between gap-3">
       <h2 className="text-[11px] font-semibold tracking-wide text-textDim uppercase">Tier Lists</h2>
-      <button
-        type="button"
-        onClick={() => navigate('/tier-lists', { state: { retour: { to: '/discover', libelle: 'Découvrir' } } })}
-        className="min-h-11 text-sm font-semibold text-accentText"
+      <Link
+        to="/tier-lists"
+        state={{ retour: { to: '/discover', libelle: 'Découvrir' } }}
+        className="flex min-h-11 items-center text-sm font-semibold text-accentText"
       >
         Tout voir
-      </button>
+      </Link>
     </div>
   )
 

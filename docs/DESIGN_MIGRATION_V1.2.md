@@ -1067,3 +1067,16 @@ Vérifié : `npm test` (491), `typecheck`, `lint`, `check:contrast` (116 paires 
 À reprendre : `check:deploiement` n'a pas tourné (il veut l'API derrière nginx ;
 seul un commentaire du Dockerfile change) ; IozyPlay garde sa copie du kit et
 son script de synchronisation ; le README du kit note encore IozyCore « à faire ».
+
+### Lot 167 — Les deux parcours e2e de Découvrir repassent
+
+Rouges depuis le 13 octobre (5e77bc09) : le panneau Tier Lists avait gagné un
+bouton « Tout voir » placé avant celui des opportunités, et le parcours
+suggestions cliquait le premier bouton de ce nom ; la ligne de mise à jour des
+sorties avait changé de phrase, et le parcours sorties attendait l'ancienne.
+
+Les deux boutons deviennent des liens, comme celui du panneau des sorties : ils
+ne font qu'aller quelque part. Chaque parcours cherche « Tout voir » sous le
+titre de son panneau, et le parcours sorties lit la phrase actuelle.
+
+Vérifié : `npm test` (491), `typecheck`, `lint`, `test:e2e` (19).

@@ -44,7 +44,9 @@ test('spot an almost complete series from Découvrir, and reach its detail page'
   await expect(page.getByText(/^Manga : la source n'a pas répondu/)).toHaveCount(0)
 
   // --- 2. "Tout voir" leads to the full screen
-  await page.getByRole('button', { name: 'Tout voir' }).first().click()
+  //     Three panels of Découvrir say "Tout voir": the right one sits under the heading of this panel.
+  const opportunitiesPanel = page.locator('section', { has: page.getByRole('heading', { name: 'Ce qui te concerne' }) })
+  await opportunitiesPanel.getByRole('link', { name: 'Tout voir' }).click()
   await expect(page).toHaveURL(/\/suggestions$/)
   await expect(page.getByRole('heading', { name: "Suggestions d'achats" })).toBeVisible()
 
