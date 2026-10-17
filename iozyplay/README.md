@@ -146,6 +146,7 @@ To use audio-only mode, click the "Video" toggle button to hide the video and ke
 - **Socket.io** - Real-time multiplayer communication
 - **Node.js** - Backend server
 - **CSS3** - Modern styles with CSS variables
+- **IozyKit** - Shared Iozy design charter, a git dependency pinned to a commit (`iozykit` in `package.json`)
 
 ## Architecture
 

@@ -1,11 +1,12 @@
-/* Tokens d'IozyPlay = alias sur la charte IozyKit (vendor/iozykit/css/tokens.css,
-   copiée par `npm run kit:sync` depuis ../IozyKit).
+/* Tokens d'IozyPlay = alias sur la charte IozyKit (paquet `iozykit`, épinglé
+   sur un commit dans package.json ; css/tokens.css est chargé par main.tsx).
 
    Ce fichier ne porte AUCUNE couleur de la charte : il fait correspondre les
    noms historiques de l'app (~40 fichiers les référencent) aux rôles
    `--iozy-*`, et définit ce qui est propre à l'app (échelles d'espacement et
    de taille, z-index, quelques dérivés par thème). Pour changer une couleur :
-   IozyKit/tokens.json, `npm test` là-bas (contraste), puis `npm run kit:sync`.
+   IozyKit/tokens.json, `npm test` là-bas (contraste), push, puis avancer le
+   sha dans package.json et `npm install`.
 
    Thèmes : le kit pose le clair sur :root et le sombre sur `.dark-theme` ;
    settingsService pose `.dark-theme` / `.light-theme` sur <html>, et index.html
