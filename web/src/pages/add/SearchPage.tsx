@@ -106,7 +106,14 @@ export function SearchPage() {
   const tagsQuery = useQuery({ queryKey: queryKeys.tags.all, queryFn: listTags })
   const tags = tagsQuery.data ?? []
   const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
-  const [frenchTitles, setFrenchTitles] = useState<Record<string, string>>({})
+  // The French titles found, kept with the suggestions and the composition
+  // they were asked for: another list, or another composition, reads an empty
+  // map at once, with no reset in an effect.
+  const [frenchTitlesFound, setFrenchTitlesFound] = useState<{
+    suggestions: unknown
+    composition: unknown
+    titles: Record<string, string>
+  }>({ suggestions: undefined, composition: undefined, titles: {} })
 
   // We arrive on "Tout", for everyone (batch 139, request from
   // the user: "you must first select Tout instead of Manga").
@@ -188,6 +195,10 @@ export function SearchPage() {
   const groupes = typesCherches.map((type, i) => ({ type, requete: recherches[i] }))
   const groupeManga = groupes.find((g) => g.type.code === 'MANGA')
   const suggestionsManga = groupeManga?.requete.data
+  const frenchTitles =
+    frenchTitlesFound.suggestions === suggestionsManga && frenchTitlesFound.composition === titleComposition
+      ? frenchTitlesFound.titles
+      : {}
   const localMatchQuery = useQuery({
     queryKey: queryKeys.entities.search({ q: debouncedTitle, entityTypeId, tagId }),
     queryFn: () => searchEntities({ q: debouncedTitle, entityTypeId, tagId }),
@@ -268,7 +279,6 @@ export function SearchPage() {
   // or among the categories searched under "Tout".
   const typeMangaId = typeManga?.id
   useEffect(() => {
-    setFrenchTitles({})
     if (!isFrenchEnabled(titleComposition) || !typeMangaId || !suggestionsManga || suggestionsManga.length === 0) {
       return
     }
@@ -281,7 +291,14 @@ export function SearchPage() {
         fetchFrenchTitle(typeMangaId, candidate.title, { author, malId, titleRomaji, signal: controller.signal })
           .then((frenchTitle) => {
             if (controller.signal.aborted || !frenchTitle) return
-            setFrenchTitles((prev) => ({ ...prev, [candidateKey(candidate)]: frenchTitle }))
+            setFrenchTitlesFound((prev) => ({
+              suggestions: suggestionsManga,
+              composition: titleComposition,
+              titles: {
+                ...(prev.suggestions === suggestionsManga && prev.composition === titleComposition ? prev.titles : {}),
+                [candidateKey(candidate)]: frenchTitle,
+              },
+            }))
           })
           .catch(() => {})
       })

@@ -1080,3 +1080,19 @@ ne font qu'aller quelque part. Chaque parcours cherche « Tout voir » sous le
 titre de son panneau, et le parcours sorties lit la phrase actuelle.
 
 Vérifié : `npm test` (491), `typecheck`, `lint`, `test:e2e` (19).
+
+### Lot 168 — Le lint ne dit plus rien
+
+`web/CLAUDE.md` promettait un lint muet ; `main` affichait dix-huit
+avertissements des règles React (refs lues au rendu, horloge lue au rendu,
+`setState` synchrone dans un effet). Chacun est repris à la cause, aucune règle
+n'est désactivée : la capture du déclencheur des dialogues passe dans un effet
+de layout ; `useNow` (common) lit l'horloge une fois par écran, pour le
+calendrier, l'étagère, le bilan annuel et la ligne de mise à jour ; les titres
+français de la recherche, la teinte de jaquette et l'aperçu d'annonce sont
+dérivés de ce qu'ils décrivent au lieu d'être remis à zéro dans un effet ; la
+file du classement rapide vit dans un état ; le formulaire de type naît avec les
+valeurs du type chargé, et garde un seul lien retour dans ses deux états.
+
+Vérifié : `npm test` (491), `typecheck`, `lint` (zéro ligne),
+`check:frontieres`, `test:e2e` (19).

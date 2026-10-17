@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 
 const FOCUSABLE_SELECTOR = 'button,input,select,textarea,a[href],[tabindex]:not([tabindex="-1"])'
 
@@ -47,18 +47,28 @@ export function useModalA11y<T extends HTMLElement = HTMLDivElement>(open: boole
   const containerRef = useRef<T>(null)
   const triggerRef = useRef<Element | null>(null)
   const capturedRef = useRef(false)
+  // The latest `onClose`, read at key time: assigned after each commit,
+  // never during a render.
   const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose
+  })
 
-  // Captured DURING the render (not in an effect): at the moment THIS render
-  // runs, React has not committed the new tree yet - `document.
-  // activeElement` still faithfully reflects the external trigger.
-  if (open && !capturedRef.current) {
-    triggerRef.current = document.activeElement
-    capturedRef.current = true
-  } else if (!open) {
-    capturedRef.current = false
-  }
+  // Captured in a LAYOUT effect: it runs before the browser paints and
+  // before the passive effect below moves the focus into the dialog, so
+  // `document.activeElement` still reflects the external trigger (nothing in
+  // the app focuses from a layout effect, and `autoFocus` is banned above).
+  // Once per opening: under React StrictMode (dev) the effects run twice on
+  // mount, and the second run would otherwise record an element of the
+  // dialog itself.
+  useLayoutEffect(() => {
+    if (open && !capturedRef.current) {
+      triggerRef.current = document.activeElement
+      capturedRef.current = true
+    } else if (!open) {
+      capturedRef.current = false
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return

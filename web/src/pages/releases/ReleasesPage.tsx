@@ -6,6 +6,7 @@ import { getReleaseCalendar } from '@/common/api/insights'
 import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { isoLocal, libelleMois, titreDuJour } from '@/common/lib/releaseDate'
+import { useNow } from '@/common/hooks/useNow'
 import { Chip } from '@/common/components/Chip'
 import { EtatVide } from '@/common/components/EtatVide'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
@@ -45,7 +46,8 @@ const CLASSE_INTERTITRE = 'font-display text-base font-bold tracking-[-0.01em] t
  */
 export function ReleasesPage() {
   const [parametres, setParametres] = useSearchParams()
-  const mois = moisDepuisParametre(parametres.get(PARAMETRE_MOIS), new Date())
+  const now = useNow()
+  const mois = moisDepuisParametre(parametres.get(PARAMETRE_MOIS), now)
   const { from, to } = bornesDuMois(mois)
   const [categorie, setCategorie] = useState<string | null>(null)
   const [jourChoisi, setJourChoisi] = useState<string | null>(null)
@@ -70,7 +72,7 @@ export function ReleasesPage() {
   const jourActif = jourChoisi && parJour.has(jourChoisi) ? jourChoisi : null
   const jours = jourActif ? range.jours.filter((jour) => jour.iso === jourActif) : range.jours
 
-  const aujourdHui = isoLocal(new Date())
+  const aujourdHui = isoLocal(now)
   const moisCourant = aujourdHui.slice(0, 7)
   const retour = { to: `/releases?${PARAMETRE_MOIS}=${mois}`, libelle: 'Calendrier des sorties' }
 

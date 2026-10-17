@@ -25,13 +25,12 @@ const REPLI: [number, number, number] = [188, 88, 59]
  * never touched - this is the whole point of not reusing the same tag.
  */
 export function useTeinteJaquette(url: string | null | undefined): [number, number, number] {
-  const [teinte, setTeinte] = useState<[number, number, number]>(REPLI)
+  // The tint, kept with the cover it was read from: another cover reads the
+  // fallback until its own tint arrives, with no reset in an effect.
+  const [reading, setReading] = useState<{ url: string; teinte: [number, number, number] } | null>(null)
 
   useEffect(() => {
-    if (!url) {
-      setTeinte(REPLI)
-      return
-    }
+    if (!url) return
     // `annule` rather than an AbortController: an Image cannot be cancelled, we
     // just ignore its answer if the detail page changed in the meantime - otherwise
     // the tint of a previous series would overwrite that of the new one.
@@ -64,7 +63,7 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
           n += 1
         }
         if (n === 0) return
-        setTeinte([Math.round(r / n), Math.round(v / n), Math.round(b / n)])
+        setReading({ url, teinte: [Math.round(r / n), Math.round(v / n), Math.round(b / n)] })
       } catch {
         // Canvas tainted by an image without CORS: we keep the fallback.
       }
@@ -75,7 +74,7 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
     }
   }, [url])
 
-  return teinte
+  return url && reading?.url === url ? reading.teinte : REPLI
 }
 
 /**
