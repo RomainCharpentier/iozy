@@ -31,6 +31,9 @@ export default defineConfig({
     include: [],
   },
   server: {
+    // La charte IozyKit est un dossier voisin (`iozykit/`, lié via
+    // node_modules) : Vite doit pouvoir servir depuis la racine du dépôt.
+    fs: { allow: ['..'] },
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       Pragma: 'no-cache',

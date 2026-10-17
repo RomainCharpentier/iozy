@@ -2,9 +2,11 @@
 
 Ce guide réunit en un seul endroit tout ce qu'il faut pour lancer et tester
 IozyCore : le backend (API + base de données), l'app Web et, pour mémoire,
-l'app iOS (hors service). Les trois dossiers (`backend/`, `ios/`, `web/`) ont chacun leur propre README
+l'app iOS (hors service). Les dossiers `backend/`, `ios/` et `web/` ont chacun leur propre README
 plus détaillé sur leur partie ; celui-ci sert de point d'entrée et de
-check-list.
+check-list. Le dépôt porte aussi la famille : `iozyplay/` (IozyPlay, le
+blindtest, servi sous `/play` par la même pile, voir son README) et `iozykit/`
+(la charte graphique commune aux deux apps).
 
 Pour reprendre le projet en profondeur (architecture, conventions de code,
 comment ajouter une fonctionnalité) — humain ou IA — chaque README a une

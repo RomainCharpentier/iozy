@@ -72,7 +72,7 @@ docker run --rm -p 3001:3001 iozyplay
 ## Project Structure
 
 ```
-blindtest-webapp/
+iozyplay/
 ├── src/
 │   ├── components/       # React components
 │   ├── pages/           # Application pages

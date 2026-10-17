@@ -45,6 +45,10 @@ export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [react(), tailwindcss()],
   server: {
+    // The IozyKit charter is a sibling folder of this app (`iozykit/`, linked
+    // through node_modules): Vite must be allowed to serve files from the
+    // repository root, not only from web/.
+    fs: { allow: ['..'] },
     // "localhost" alone made Vite listen ONLY on IPv6 ([::1]) on this
     // machine (checked manually: `netstat` showed no listener on IPv4
     // 127.0.0.1) - the browser resolving "localhost" to IPv4 then had its

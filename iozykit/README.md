@@ -30,13 +30,13 @@ Toute modification de `tokens.json` passe par `npm test` avant le commit : une c
 
 ## Consommer
 
-Les deux apps déclarent le kit dans leur `package.json`, épinglé sur un commit :
+Le kit vit dans le même dépôt que les deux apps (`iozykit/`, à côté de `web/` et `iozyplay/`). Chacune le déclare en dépendance locale :
 
 ```json
-"iozykit": "github:RomainCharpentier/IozyKit#<sha complet du commit>"
+"iozykit": "file:../iozykit"
 ```
 
-`npm install` (et `npm ci` au déploiement) télécharge l'archive GitHub de ce commit : rien du kit n'est copié dans le dépôt de l'app, et `package-lock.json` note le commit installé. Le paquet livre ce que `files` de `package.json` liste : `css/`, `brand/`, `tokens.json`, `CHARTE.md`. Mettre une app à jour : avancer le sha dans son `package.json`, puis `npm install`.
+`npm install` (et `npm ci` au déploiement) pose un lien `node_modules/iozykit` vers ce dossier : une modification de la charte est visible dans l'app aussitôt, en dev comme au build, sans numéro à avancer. Les images Docker des deux apps se construisent depuis la racine du dépôt pour voir ce dossier. Un changement de `tokens.json` passe par `npm test` ici avant le commit.
 
 ### Depuis IozyPlay (React + Vite + SCSS modules)
 

@@ -109,9 +109,45 @@ jobs:
         run: npm run build
 
   # ────────────────────────────────────────── Publishing the two images
+  kit:
+    name: Charte IozyKit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iozykit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      # Regenerates css/tokens.css and checks every colour pair (AA): a
+      # charter change that breaks a contrast stops the release here.
+      - run: npm test
+
+  iozyplay:
+    name: Contrôles IozyPlay
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iozyplay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: iozyplay/package-lock.json
+      - run: npm ci
+      - name: Build (typecheck, then vite)
+        run: npm run build
+      - name: Tests serveur
+        run: npm test
+      - name: Tests unitaires
+        run: npm run test:unit
+
   publier:
     name: Publier les images
-    needs: [backend, web]
+    needs: [backend, web, kit, iozyplay]
     runs-on: ubuntu-latest
     permissions:
       # Put the `vX.Y.Z` tag on the released commit: it is what links
@@ -173,7 +209,18 @@ jobs:
       # `RomainCharpentier/iozycore` is not.
       - name: Repository name in lower case
         id: depot
-        run: echo "nom=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "nom=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "proprietaire=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      # IozyPlay has its own number, the one of its package.json: its commits
+      # do not move the IozyCore release (see web/scripts/version.mjs).
+      - name: IozyPlay version
+        id: iozyplay
+        run: |
+          numero=$(node -p "require('./iozyplay/package.json').version")
+          [ -n "$numero" ] || { echo "Empty IozyPlay version" >&2; exit 1; }
+          echo "numero=$numero" >> "$GITHUB_OUTPUT"
 
       - name: API
         uses: docker/build-push-action@v6
@@ -190,10 +237,13 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
+      # Context = the repository root: the web and IozyPlay images need the
+      # sibling iozykit/ (see their Dockerfile).
       - name: Web
         uses: docker/build-push-action@v6
         with:
-          context: web
+          context: .
+          file: web/Dockerfile
           push: true
           build-args: VERSION=${{ steps.livraison.outputs.numero }}
           tags: |
@@ -201,6 +251,20 @@ jobs:
             ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-web:v${{ steps.livraison.outputs.numero }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
+
+      # One container for IozyPlay: front, API and Socket.IO under /play (see
+      # iozyplay/Dockerfile). The NAS compose follows `latest` like the others.
+      - name: IozyPlay
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: iozyplay/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozyplay:latest
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozyplay:v${{ steps.iozyplay.outputs.numero }}
+          cache-from: type=gha,scope=iozyplay
+          cache-to: type=gha,mode=max,scope=iozyplay
 
       # ─── What links the number to the code ────────────────────────
       #
@@ -249,7 +313,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        paquet: [iozycore-api, iozycore-web]
+        paquet: [iozycore-api, iozycore-web, iozyplay]
     steps:
       - name: Keep only the last 5
         uses: actions/delete-package-versions@v5

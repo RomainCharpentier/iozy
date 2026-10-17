@@ -125,10 +125,10 @@ services:
       com.centurylinklabs.watchtower.enable: "true"
 
   # IozyPlay (the blindtest), under /play behind the same nginx: one address,
-  # one certificate, one reverse proxy entry. Its image comes from its own
-  # repository (blindtest-webapp), published on GHCR by its CI at each push on
-  # main; watchtower follows it like the two others. The questions added from
-  # the app live in the volume.
+  # one certificate, one reverse proxy entry. Its image is built from
+  # iozyplay/ of this repository by the deploy workflow, like the two others;
+  # watchtower follows it the same way. The questions added from the app live
+  # in the volume.
   iozyplay:
     image: ghcr.io/romaincharpentier/iozyplay:latest
     restart: unless-stopped

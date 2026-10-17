@@ -84,7 +84,9 @@ services:
       - "traefik.http.services.iozycore.loadbalancer.server.port=8080"
 
   web:
-    build: ../web
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
     image: iozycore-web:latest
     restart: unless-stopped
     depends_on:

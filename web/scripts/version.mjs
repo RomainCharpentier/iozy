@@ -94,7 +94,13 @@ export function versionDuDepot() {
   if (!depart) throw new Error(`Unreadable starting tag: "${etiquette}"`)
   // A null character separates the messages: a commit body contains empty
   // lines, dashes and colons, but never a null byte.
-  const messages = git('log', '--format=%B%x00', `${etiquette}..HEAD`)
+  //
+  // Only the commits that touch IozyCore count: IozyPlay lives in the same
+  // repository (iozyplay/) with its own version, and its commits must not
+  // move this number. The charter (iozykit/) does count: a colour change is
+  // a change of this app. `:/` reads the paths from the repository root,
+  // whatever the working directory.
+  const messages = git('log', '--format=%B%x00', `${etiquette}..HEAD`, '--', ':/', ':(exclude,top)iozyplay')
     .split('\0')
     .map((message) => message.trim())
     .filter(Boolean)

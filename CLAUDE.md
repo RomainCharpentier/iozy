@@ -2,7 +2,7 @@
 
 Base de connaissances personnelle, auto-hébergée, pour cataloguer une collection (mangas, jeux vidéo, jeux de société, types personnalisés). Chaque compte a sa collection ; le catalogue des œuvres est partagé.
 
-Monorepo : `backend/` (Spring Boot, la référence), `web/` (React, le client vivant), `ios/` (SwiftUI, **hors service** depuis le 2026-08-29). Chaque dossier a son propre `CLAUDE.md` : lis celui du dossier où tu travailles.
+Monorepo de la famille Iozy : `backend/` (Spring Boot, la référence), `web/` (React, le client vivant), `ios/` (SwiftUI, **hors service** depuis le 2026-08-29), `iozyplay/` (IozyPlay, le blindtest : son propre serveur Node et son front, servi sous `/play` à côté d'IozyCore) et `iozykit/` (la charte graphique commune, dépendance locale `file:../iozykit` des deux apps). Chaque dossier a son propre `CLAUDE.md` : lis celui du dossier où tu travailles. Les trois dépôts d'origine ont été réunis le 2026-10-17 en gardant leur historique.
 
 ## Où chercher
 
@@ -39,6 +39,8 @@ Sécurité : l'API demande une session (cookie), sauf connexion, état de l'inst
 | `web/` | `npm test`, `npm run typecheck`, `npm run lint` (voir `web/CLAUDE.md`) |
 | `backend/` | un sous-ensemble ciblé de tests (voir `backend/CLAUDE.md`) |
 | un parcours d'écran | `npm run test:e2e` dans `web/` |
+| `iozyplay/` | `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:unit` (voir `iozyplay/CLAUDE.md`) |
+| `iozykit/` | `npm test` (régénère le CSS et vérifie le contraste AA) |
 
 Une vérification qui ne s'exécute pas ne vaut rien : plusieurs commandes évidentes ne contrôlent rien ici (`npx tsc --noEmit`, `mvn` sans Docker). Voir les pièges dans chaque sous-dossier.
 

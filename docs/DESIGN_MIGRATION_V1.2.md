@@ -1145,3 +1145,21 @@ Vérifié : image seule puis pile locale complète derrière nginx (`/`, `/api`,
 `/play/`, `/play/username`, `/play/api/health`, poignée de main Socket.IO),
 `check:deploiement` sur `http://localhost:8081`, une partie créée dans le
 navigateur à travers nginx.
+
+### Lot 172 — Un seul dépôt pour la famille
+
+IozyPlay (ex-dépôt blindtest-webapp) et IozyKit entrent dans ce dépôt sous
+`iozyplay/` et `iozykit/`, historique réécrit sous ces préfixes
+(`git filter-repo`) puis fusionné : `git log` et `blame` suivent chaque
+fichier jusqu'à son origine. Le reste du dépôt ne bouge pas (URL, images,
+NAS inchangés). Le kit devient une dépendance locale `file:../iozykit` des deux
+apps (lien dans `node_modules`, en `devDependencies`) ; les images web et
+IozyPlay se construisent depuis la racine pour le voir, les compose suivent, le
+profil `play` disparaît. Le workflow de déploiement teste le kit et IozyPlay
+avant de publier trois images ; `iozyplay-checks.yml` garde les branches ;
+le numéro de version d'IozyCore ignore les commits d'`iozyplay/`. Reliquats
+d'IozyPlay retirés (`~/.bash_profile`, `start.sh`…), config de lancement
+réunie dans `.claude/launch.json`.
+
+Vérifié : contrôles web, IozyPlay et kit, images construites depuis la racine,
+pile locale derrière nginx (`/`, `/api`, `/play/`), `check:deploiement`.
