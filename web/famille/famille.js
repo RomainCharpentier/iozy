@@ -7,6 +7,10 @@ import './famille.css'
 import iozycore from '../../iozykit/brand/iozycore.svg'
 import iozyplay from '../../iozykit/brand/iozyplay.svg'
 
+// IozyCore lives under the base of this build (/core/ in the Docker image, /
+// in dev): the link follows it instead of a path written by hand.
+document.querySelector('a[data-app="core"]').href = import.meta.env.BASE_URL
+
 const marques = { iozycore, iozyplay }
 for (const image of document.querySelectorAll('img[data-marque]')) {
   image.src = marques[image.dataset.marque]

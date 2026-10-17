@@ -225,8 +225,10 @@ function manifeste(icones) {
     description: 'Ta collection, ce qu’il te manque, et ce que vaut une annonce.',
     lang: 'fr',
     dir: 'ltr',
-    start_url: '/',
-    scope: '/',
+    // Relative to the manifest itself: the app lives at the root in dev and
+    // under /core/ in the Docker image, and the same file must hold for both.
+    start_url: './',
+    scope: './',
     // "standalone" and not "fullscreen": the app keeps the phone status bar
     // (time, battery, network) - it is opened at a flea market, where we need
     // to know what time it is.
@@ -267,7 +269,7 @@ writeFileSync(
   JSON.stringify(
     manifeste(
       ICONES.map((i) => ({
-        src: `/${i.fichier}`,
+        src: i.fichier,
         sizes: `${i.taille}x${i.taille}`,
         type: 'image/png',
         purpose: i.purpose,

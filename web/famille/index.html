@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- The home of the family: one address, two apps. A second Vite entry (see
      vite.config.ts) that belongs to no app and uses the charter only. Served
-     at /famille/ by Vite in dev and by nginx in production. -->
+     at /famille/ by Vite in dev, and at the root of the site by nginx. -->
 <html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
@@ -30,7 +30,7 @@
         <!-- The brand files come from the charter (iozykit/brand), loaded by
              famille.js. As <img>, they follow the SYSTEM scheme, like a
              favicon; a logo inside an app follows the app's theme instead. -->
-        <a class="iozy-card iozy-card--lg famille__app" href="/">
+        <a class="iozy-card iozy-card--lg famille__app" data-app="core" href="/core/">
           <img data-marque="iozycore" alt="" width="64" height="64" />
           <span class="famille__nom">Iozy<span>Core</span></span>
           <span class="famille__desc">Le catalogue de ta collection : mangas, jeux vidéo, jeux de société, et ce qu'il te manque.</span>

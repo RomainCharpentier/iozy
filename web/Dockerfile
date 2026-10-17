@@ -6,6 +6,12 @@
 FROM node:24-alpine AS build
 WORKDIR /build/web
 
+# Where the app lives on the site: /core/, because the root is the home of the
+# family and /play is IozyPlay (see nginx.conf). Dev and the e2e stack stay at
+# the root; an empty ARG would serve the app alone at the root.
+ARG IOZYCORE_BASE_PATH=/core
+ENV IOZYCORE_BASE_PATH=$IOZYCORE_BASE_PATH
+
 # The release number is fixed AT BUILD TIME: the bundle is a static file, so it
 # cannot ask for it later. `VITE_` is the prefix Vite requires for an
 # environment variable to cross the build boundary.
@@ -31,6 +37,8 @@ RUN npm run build
 # the option recommended in the TODO of
 # backend/src/main/java/com/iozycore/api/config/CorsConfig.java.
 FROM nginx:alpine
-COPY --from=build /build/web/dist /usr/share/nginx/html
+# The build goes under /core so that files and URLs match; the home of the
+# family, built with it, is served at / by nginx (see nginx.conf).
+COPY --from=build /build/web/dist /usr/share/nginx/html/core
 COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

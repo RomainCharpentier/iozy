@@ -85,7 +85,8 @@ Les suivants sont quasi instantanés. La base PostgreSQL est initialisée
 automatiquement (migrations Flyway), avec les 3 types historiques (manga,
 jeu vidéo, jeu de société) déjà en place.
 Cette même commande lance aussi un build de l'app web sur
-`http://localhost:8081` (voir Partie 3, Option B) — si tu veux juste tester
+`http://localhost:8081/core/` (voir Partie 3, Option B ; la racine `/` est la
+page de la famille, `/play/` IozyPlay) — si tu veux juste tester
 l'API seule, ignore ce port.
 
 **Vérifier que ça tourne :**
@@ -534,7 +535,8 @@ CORS à faire pour développer en local.
 
 **Option B — build de prod, sans installer Node** : le service `web` est
 maintenant inclus dans `docker compose up --build` (Partie 1) — ouvre
-directement `http://localhost:8081`. nginx sert le build statique et
+directement `http://localhost:8081/core/` (la racine est la page de la
+famille). nginx sert le build statique et
 proxy `/api` en interne vers le backend (voir `web/nginx.conf`), donc pas
 de rechargement à chaud mais aucune installation locale requise.
 

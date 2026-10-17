@@ -1176,3 +1176,20 @@ compte (quatorze contrôles).
 
 Vérifié : contrôles web (491 tests, lint muet, build à deux pages), IozyPlay,
 page servie par Vite en dev et par nginx en local, `check:deploiement`.
+
+### Lot 174 — La famille à la racine, IozyCore sous `/core`
+
+`/` est la page de la famille, IozyCore vit sous `/core/`, IozyPlay sous
+`/play/`. L'app suit un chemin de base (`IOZYCORE_BASE_PATH`, vide en dev et
+dans la pile e2e, `/core` dans l'image) : routeur, enregistrement et chemins
+du service worker, manifeste (relatif, générateur compris), lien de partage
+lisent `BASE_URL` ; `/api` reste à la racine. nginx sert la page de la
+famille à `/`, l'app sous `/core/`, et redirige toute ancienne adresse de
+l'app sous `/core` avec le même chemin (favoris, liens de partage, PWA
+installée), en relatif pour tenir derrière le TLS du NAS. `check:deploiement`
+compte quinze contrôles, dont la redirection.
+
+Vérifié : contrôles web et `check:pwa`, 19 parcours e2e (racine), build sous
+`/core/` inspecté, pile locale derrière nginx (`/`, `/core/`,
+`/core/tier-lists`, `/tier-lists` → 301, manifeste et `sw.js` sous `/core/`,
+`/play/`, `/api`), `check:deploiement http://localhost:8081`.
