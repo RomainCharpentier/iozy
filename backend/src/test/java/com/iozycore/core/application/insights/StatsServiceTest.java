@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.manga.domain.MangaEdition;
@@ -27,6 +27,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.manga.insights.CollectionProgressService;
 import com.iozycore.manga.MangaOwnedValueSource;
+import com.iozycore.core.domain.insights.CollectionValue;
+import com.iozycore.core.domain.insights.StatsSummary;
+import com.iozycore.core.domain.insights.YearlyRecap;
 
 class StatsServiceTest {
 

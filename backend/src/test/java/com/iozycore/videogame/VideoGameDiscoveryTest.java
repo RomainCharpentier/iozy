@@ -2,9 +2,9 @@ package com.iozycore.videogame;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
-import com.iozycore.core.insights.Discovery;
-import com.iozycore.core.insights.Discovery.EmptyReason;
-import com.iozycore.core.insights.DiscoveryCandidate;
+import com.iozycore.core.domain.insights.Discovery;
+import com.iozycore.core.domain.insights.Discovery.EmptyReason;
+import com.iozycore.core.domain.insights.DiscoveryCandidate;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.videogame.igdb.IgdbSimilarGamesFetcher;

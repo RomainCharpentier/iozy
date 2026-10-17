@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.domain.insights;
 
 import java.time.LocalDate;
 import java.time.YearMonth;

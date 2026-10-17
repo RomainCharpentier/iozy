@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import com.iozycore.core.insights.CollectionProgress;
+import com.iozycore.core.domain.insights.CollectionProgress;
 import com.iozycore.manga.insights.CollectionProgressService;
 
 import java.util.TreeSet;

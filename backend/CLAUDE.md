@@ -8,7 +8,7 @@ Modulith DDD. La section « Architecture » de `backend/README.md` décrit la m�
 
 | Module | Rôle |
 |---|---|
-| `core` | Catalogue générique, possessions, envies, tier lists, comptes, partage, export, statistiques, calendrier, annonces, Gemini, et les **points d'extension** (par exemple `ReleaseSource` dans `core/insights`) |
+| `core` | Catalogue générique, possessions, envies, tier lists, comptes, partage, export, statistiques, calendrier, annonces, Gemini, et les **points d'extension** (par exemple `ReleaseSource` dans `core/application/insights`) |
 | `manga` | Éditions françaises, tomes, sources (AniList, Jikan, MAL, Google Books, BnF, Open Library), analyse d'achat, reconnaissance de piles, import d'étagère |
 | `videogame` | IGDB |
 | `boardgame` | BoardGameGeek |

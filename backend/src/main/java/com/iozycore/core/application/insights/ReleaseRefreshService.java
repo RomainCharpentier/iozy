@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,8 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import com.iozycore.core.domain.insights.ReleaseRefreshRun;
+import com.iozycore.core.domain.insights.ReleaseRefreshRunRepository;
 
 /**
  * Keeps the release dates fresh and remembers when it last did.

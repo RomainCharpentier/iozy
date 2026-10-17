@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 /**
  * Extension point: a universe that keeps its release dates fresh by re-reading

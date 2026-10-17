@@ -25,16 +25,18 @@ Un **modulith DDD** : un cœur et quatre univers, dans `src/main/java/com/iozyco
 core/        ce qui vaut pour tous les types de collection
   domain/      agrégats purs, sans Spring ni JPA : catalog (Entity, Variant, Tag,
                Relationship, EntityType), ownership, experience, wishlist,
-               tierlist, share, follow, user, shared
+               tierlist, share, follow, user, shared, insights (progression,
+               calendrier des sorties, bilan annuel)
   application/ cas d'usage : QuickAddService, EntityDeletionService,
-               TierListService..., et sous-paquets admin/ et auth/
+               TierListService..., et sous-paquets admin/, auth/, share/ et
+               insights/ (statistiques, découverte, calendrier, et les points
+               d'extension DiscoverySource, ReleaseSource...)
   infrastructure/  adaptateurs JPA (une paire {Xxx}JpaEntity + adaptateur par
                agrégat) et multitenance (@TenantId, ProprietaireCourant)
   api/         contrôleurs REST et DTO, un paquet par ressource ; config/ porte
                la sécurité et CORS
   metadata/    recherche de métadonnées et ses contrats (MetadataProvider,
                BarcodeMetadataProvider, CoverImageCheck)
-  insights/    statistiques, découverte, calendrier des sorties, bilan annuel
   export/      export et import de collection (TransferModule)
   listing/     lecture des annonces (Leboncoin, Vinted)
   gemini/      client de l'assistance IA
@@ -345,7 +347,7 @@ l'ordre du calendrier. Chaque ligne porte `date` (« 2026-10-14 » ou
 (`OWNED`/`MISSING`/`WANTED`) et `source` (`GOOGLE_BOOKS`, `IGDB`, `MANUAL`).
 
 Le cœur ne connaît aucune source de dates : `ReleaseSource` est le point
-d'extension (`core/insights`), `MangaReleases` et `VideoGameReleases` ses
+d'extension (`core/application/insights`), `MangaReleases` et `VideoGameReleases` ses
 implémentations. Le cœur lit lui-même l'attribut `releaseDate` d'une œuvre
 (« 2026-10-14 » ou « 2026-10 », saisi sur la fiche), pour toute catégorie. Une
 année seule n'est jamais une date de calendrier. `GET /api/entity-types` dit

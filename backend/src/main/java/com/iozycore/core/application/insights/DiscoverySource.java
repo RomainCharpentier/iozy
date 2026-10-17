@@ -1,6 +1,7 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.insights.Discovery;
 
 /**
  * Extension point of the core: a universe offers its discoveries.

@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
@@ -27,7 +27,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import com.iozycore.core.insights.CollectionProgress;
+import com.iozycore.core.domain.insights.CollectionValue;
+import com.iozycore.core.domain.insights.StatsSummary;
+import com.iozycore.core.domain.insights.YearlyRecap;
 
 /**
  * Entry point of the Insights Bounded Context (step 8) on the statistics side -

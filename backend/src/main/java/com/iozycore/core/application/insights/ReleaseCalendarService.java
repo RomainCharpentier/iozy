@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import com.iozycore.core.domain.follow.FollowedWork;
 import com.iozycore.core.domain.follow.FollowedWorkRepository;
@@ -24,6 +24,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.iozycore.core.domain.insights.ReleaseCalendar;
+import com.iozycore.core.domain.insights.ReleaseContext;
+import com.iozycore.core.domain.insights.ReleaseDate;
+import com.iozycore.core.domain.insights.ReleaseEntry;
 
 /**
  * The release calendar: what comes out, when, for the works the collector

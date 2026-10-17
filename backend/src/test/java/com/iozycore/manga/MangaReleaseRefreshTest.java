@@ -3,7 +3,7 @@ package com.iozycore.manga;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
-import com.iozycore.core.insights.ReleaseRefreshSource;
+import com.iozycore.core.application.insights.ReleaseRefreshSource;
 import com.iozycore.core.metadata.QuotaExceededException;
 import com.iozycore.manga.metadata.RelatedSeriesService;
 import com.iozycore.manga.metadata.StoredVolumeSearch;

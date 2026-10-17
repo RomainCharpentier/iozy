@@ -3,7 +3,6 @@ package com.iozycore.manga.metadata;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
-import com.iozycore.manga.metadata.FrenchTitleMatch;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
 import org.junit.jupiter.api.Test;

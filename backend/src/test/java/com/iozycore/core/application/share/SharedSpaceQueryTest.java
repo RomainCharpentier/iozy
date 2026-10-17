@@ -5,7 +5,7 @@ import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.share.ShareSettings;
 import com.iozycore.core.domain.share.ShareSettingsRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
-import com.iozycore.core.insights.SeriesProgressGateway;
+import com.iozycore.core.application.insights.SeriesProgressGateway;
 import com.iozycore.core.testing.InMemoryEntityRepository;
 import com.iozycore.core.testing.InMemoryEntityTypeRepository;
 import com.iozycore.core.testing.InMemoryOwnershipRepository;

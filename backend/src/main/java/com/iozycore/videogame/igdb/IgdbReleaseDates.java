@@ -1,6 +1,6 @@
 package com.iozycore.videogame.igdb;
 
-import com.iozycore.core.insights.ReleaseDate;
+import com.iozycore.core.domain.insights.ReleaseDate;
 
 import java.util.Collection;
 import java.util.Map;

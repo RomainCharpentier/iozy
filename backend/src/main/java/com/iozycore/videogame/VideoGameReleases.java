@@ -2,10 +2,10 @@ package com.iozycore.videogame;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityType;
-import com.iozycore.core.insights.ReleaseContext;
-import com.iozycore.core.insights.ReleaseDate;
-import com.iozycore.core.insights.ReleaseEntry;
-import com.iozycore.core.insights.ReleaseSource;
+import com.iozycore.core.domain.insights.ReleaseContext;
+import com.iozycore.core.domain.insights.ReleaseDate;
+import com.iozycore.core.domain.insights.ReleaseEntry;
+import com.iozycore.core.application.insights.ReleaseSource;
 import com.iozycore.videogame.igdb.IgdbReleaseDates;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

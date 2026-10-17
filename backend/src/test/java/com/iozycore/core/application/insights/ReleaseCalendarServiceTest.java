@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityType;
@@ -21,6 +21,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.iozycore.core.domain.insights.ReleaseCalendar;
+import com.iozycore.core.domain.insights.ReleaseContext;
+import com.iozycore.core.domain.insights.ReleaseDate;
+import com.iozycore.core.domain.insights.ReleaseEntry;
 
 /**
  * The release calendar, seen from the core: the dates entered on detail pages,

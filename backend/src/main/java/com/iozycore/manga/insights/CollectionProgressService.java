@@ -19,8 +19,8 @@ import java.util.Optional;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import com.iozycore.core.insights.CollectionProgress;
-import com.iozycore.core.insights.SeriesProgressSource;
+import com.iozycore.core.domain.insights.CollectionProgress;
+import com.iozycore.core.application.insights.SeriesProgressSource;
 
 /**
  * SINGLE SOURCE OF TRUTH for the progression "X volumes owned out of Y".

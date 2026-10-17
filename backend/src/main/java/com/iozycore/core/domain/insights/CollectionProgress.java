@@ -1,11 +1,11 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.domain.insights;
 
 import java.util.List;
 import java.util.UUID;
 
 /**
  * Single answer to the question "how many volumes owned out of how many",
- * for a given work. See {@link CollectionProgressService} for the
+ * for a given work. See {@code CollectionProgressService} for the
  * rules - this record only carries them.
  */
 public record CollectionProgress(UUID entityId, String title, List<EditionProgress> editions,

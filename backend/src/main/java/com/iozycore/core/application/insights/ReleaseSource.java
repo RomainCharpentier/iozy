@@ -1,8 +1,10 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import com.iozycore.core.domain.catalog.EntityType;
 
 import java.util.List;
+import com.iozycore.core.domain.insights.ReleaseContext;
+import com.iozycore.core.domain.insights.ReleaseEntry;
 
 /**
  * Extension point of the core: a universe knows when the works we

@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.domain.insights;
 
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityType;

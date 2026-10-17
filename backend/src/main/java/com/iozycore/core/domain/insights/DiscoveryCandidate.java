@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.domain.insights;
 
 /**
  * A discovery suggestion (UC "series I do not have" / heuristic

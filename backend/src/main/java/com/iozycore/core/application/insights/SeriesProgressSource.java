@@ -1,8 +1,9 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.iozycore.core.domain.insights.CollectionProgress;
 
 /**
  * Extension point of the core: the progress "X volumes owned out of Y" of a

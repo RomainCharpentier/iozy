@@ -1,4 +1,4 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.application.insights;
 
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.iozycore.core.domain.insights.ReleaseRefreshRun;
+import com.iozycore.core.domain.insights.ReleaseRefreshRunRepository;
 
 /**
  * The refresh of the release dates, seen from the core: what a pass records,

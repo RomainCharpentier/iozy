@@ -1,6 +1,6 @@
 package com.iozycore.videogame.igdb;
 
-import com.iozycore.core.insights.ReleaseDate;
+import com.iozycore.core.domain.insights.ReleaseDate;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

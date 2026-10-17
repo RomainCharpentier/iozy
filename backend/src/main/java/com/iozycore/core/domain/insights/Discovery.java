@@ -1,9 +1,9 @@
-package com.iozycore.core.insights;
+package com.iozycore.core.domain.insights;
 
 import java.util.List;
 
 /**
- * What a {@link DiscoverySource} has to say for one type: its suggestions, and
+ * What a {@code DiscoverySource} has to say for one type: its suggestions, and
  * whether its external source really answered.
  *
  * <p>Why it is not a bare list: every provider answers an empty list when it is
