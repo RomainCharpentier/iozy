@@ -17,6 +17,7 @@ npm run build            # tsc -b && vite build
 npm run test:e2e         # Playwright, sa propre pile Docker (API :8090), ~45 s
 npm run check:pwa        # manifeste et icônes tiennent leurs promesses
 npm run check:deploiement http://localhost:8081   # GET contre une app servie
+npm run kit:sync         # recopie la charte IozyKit (../../IozyKit, ou IOZYKIT_PATH) dans vendor/iozykit/
 ```
 
 **`npx tsc --noEmit` ne vérifie rien.** Le `tsconfig.json` racine est `files: []` plus des références, donc il sort toujours 0. Utilise `npm run typecheck`. Pour lire un code de sortie, ne passe pas par un pipe.
@@ -35,7 +36,8 @@ Règles : un module utilisé par **une seule page** vit dans cette page. Dès qu
 ## Comment faire
 
 - **Appel API** : dans `common/api/<domaine>.ts` (crée le module si le domaine est nouveau), jamais dans un composant. Les types de requête et de réponse vont dans `common/types/api.ts`, avec les mêmes noms camelCase que les DTO Java.
-- **Écran** : un nouveau dossier sous `pages/` et une route dans `app/App.tsx`. Réutilise `common/components/` et les tokens (`common/theme/tokens.ts`, classes Tailwind issues de `src/index.css` : `bg-surface`, `text-textDim`, `text-accent`, `font-display`…). Pas de couleurs ni de tailles en dur.
+- **Écran** : un nouveau dossier sous `pages/` et une route dans `app/App.tsx`. Réutilise `common/components/` et les classes Tailwind issues de `src/index.css` (`bg-surface`, `text-textDim`, `text-accent`, `font-display`…). Pas de couleurs ni de tailles en dur.
+- **Couleur** : les deux thèmes viennent de la charte IozyKit, copiée dans `vendor/iozykit/` par `npm run kit:sync` (`VERSION` dit quel commit du kit est copié ; jamais modifiée à la main). `src/index.css` relie les noms de l'app aux variables `--iozy-*` (`@theme inline`) et ne garde en propre que les rôles que le kit n'a pas (univers, rangs, voiles). Une couleur de la charte se change dans `tokens.json` du kit, `npm test` là-bas, puis `kit:sync`. Le kit pose le clair sur `:root` et le sombre sur `[data-theme='dark']`, la convention de `lib/theme.ts` ; `index.html` part avec l'attribut pour ne pas voir le clair avant le premier script.
 - **Cache** : clés dans `common/lib/queryKeys`, invalidations dans `common/lib` aussi. Un formulaire branché sur la mauvaise route, ou un cache qu'on oublie d'invalider, ne casse aucune règle : l'écran reste simplement sur l'état d'avant. C'est ce que les parcours e2e attrapent.
 - **Langue** : le code et les commentaires s'écrivent en anglais ; tout texte que lit l'utilisateur (JSX, libellés, `aria-label`, messages) reste en français.
 

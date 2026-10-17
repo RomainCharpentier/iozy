@@ -4,10 +4,11 @@ export type Theme = 'light' | 'dark'
 
 const STORAGE_KEY = 'iozycore.theme'
 
-/** Dark by default (see index.css) - the app has only known dark so far, a
- * light first load would have been a surprise for no reason. An explicit and
- * persistent choice, never a follow of `prefers-color-scheme` (same logic as
- * the old forced single mode). */
+/** Dark by default (index.html starts with the attribute, so the first paint
+ * is dark too) - the app has only known dark so far, a light first load would
+ * have been a surprise for no reason. An explicit and persistent choice, never
+ * a follow of `prefers-color-scheme` (same logic as the old forced single
+ * mode). */
 const DEFAULT_THEME: Theme = 'dark'
 
 function readStoredTheme(): Theme {
@@ -60,8 +61,10 @@ function lireTheme(): Theme {
 
 /** Applies the attribute before the first React render (see the synchronous
  * call in main.tsx) - avoids a flash default-theme then stored-theme at
- * load. `data-theme` only for "dark": light stays the base value of :root
- * in index.css, no need for an attribute for it. */
+ * load. `data-theme` only for "dark": light is the value the charter's CSS
+ * sets on :root (vendor/iozykit/css/tokens.css), no need for an attribute for
+ * it. index.html starts with the attribute; this call removes it for a
+ * stored light choice. */
 export function applyStoredTheme(): void {
   themeCourant = readStoredTheme()
   appliquerAttribut(themeCourant)

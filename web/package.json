@@ -14,6 +14,7 @@
     "check:frontieres": "node scripts/check-frontieres.mjs",
     "check:pwa": "node scripts/check-pwa.mjs",
     "check:deploiement": "node scripts/verifier-deploiement.mjs",
+    "kit:sync": "node scripts/sync-iozykit.mjs",
     "preview": "vite preview",
     "icons": "node scripts/make-icons.mjs",
     "test:e2e": "playwright test",

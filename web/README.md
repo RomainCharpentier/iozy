@@ -41,8 +41,10 @@ web/
                                     texte, préférences, jaquettes)
                       api/          client HTTP + un module par ressource du backend
                       types/        les DTO miroir du backend
-                      theme/        tokens, dégradés, icônes, avatars
+                      theme/        dégradés, icônes, avatars
     test/           setup Vitest et fixtures
+  vendor/iozykit/   la charte de la famille Iozy, copiée depuis le dépôt voisin par
+                    `npm run kit:sync` ; VERSION note le commit copié. Jamais à la main.
 ```
 
 Les imports passent par l'alias `@/` (`@/common/api/entities`,
@@ -62,11 +64,19 @@ backend (Jackson et JSON s'accordent nativement dessus).
 
 **Ajouter un écran** : nouveau dossier sous `pages/`, nommé comme son URL,
 réutilise les composants de `common/components/` (`Carte`, `Chip`, `Jaquette`…)
-plutôt que du style en dur, et les tokens de `common/theme/tokens.ts` (ou les
-classes Tailwind générées depuis `src/index.css` : `bg-surface`,
-`text-textDim`, `text-accent`, `font-display`...) pour rester visuellement
-cohérent avec le reste de l'app. Une route de plus dans
+plutôt que du style en dur, et les classes Tailwind de `src/index.css`
+(`bg-surface`, `text-textDim`, `text-accent`, `font-display`...) pour rester
+visuellement cohérent avec le reste de l'app. Une route de plus dans
 `app/App.tsx`, et c'est tout.
+
+**Changer une couleur** : les deux thèmes viennent de la charte de la famille
+Iozy (IozyKit, dépôt voisin `../../IozyKit`), copiée dans `vendor/iozykit/` par
+`npm run kit:sync` (`IOZYKIT_PATH=…` si le kit est ailleurs). `src/index.css`
+ne fait que relier les noms de l'app aux variables `--iozy-*` du kit ; seuls
+les rôles que le kit n'a pas (couleurs d'univers, échelle des rangs, voiles)
+y gardent leurs deux thèmes. Une couleur de la charte se change dans
+`tokens.json` du kit, `npm test` là-bas (contraste), puis `kit:sync` ; la
+copie ne se modifie jamais à la main.
 
 **Écrire un test** : Vitest + Testing Library, dans un `*.test.ts(x)` posé
 **à côté du module qu'il vérifie** — pas dans un dossier `__tests__` à part,
