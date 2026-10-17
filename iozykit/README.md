@@ -2,7 +2,7 @@
 
 La charte graphique de la famille Iozy — **IozyCore** (le catalogue de collection) et **IozyPlay** (le blindtest) — en un seul endroit : les couleurs des deux thèmes, les polices, les rayons, les règles d'interaction, les composants de base, la construction du logo, et le contrôle de contraste qui garantit que tout reste lisible.
 
-Ce dépôt est la **source de vérité**. Les apps n'y pointent pas à l'exécution : chacune en **vendorise une copie** (voir « Consommer »), parce que leurs déploiements (Vercel, Docker sur NAS) ne voient pas un dossier voisin.
+Ce dépôt est la **source de vérité**. Les apps n'y pointent pas à l'exécution : chacune l'installe comme **dépendance git épinglée sur un commit** (voir « Consommer »). Le dépôt est public, leurs déploiements (Vercel, Docker sur NAS) le téléchargent comme n'importe quel paquet.
 
 ## Contenu
 
@@ -30,13 +30,21 @@ Toute modification de `tokens.json` passe par `npm test` avant le commit : une c
 
 ## Consommer
 
+Les deux apps déclarent le kit dans leur `package.json`, épinglé sur un commit :
+
+```json
+"iozykit": "github:RomainCharpentier/IozyKit#<sha complet du commit>"
+```
+
+`npm install` (et `npm ci` au déploiement) télécharge l'archive GitHub de ce commit : rien du kit n'est copié dans le dépôt de l'app, et `package-lock.json` note le commit installé. Le paquet livre ce que `files` de `package.json` liste : `css/`, `brand/`, `tokens.json`, `CHARTE.md`. Mettre une app à jour : avancer le sha dans son `package.json`, puis `npm install`.
+
 ### Depuis IozyPlay (React + Vite + SCSS modules)
 
-`npm run kit:sync` copie `css/` et `tokens.json` dans `vendor/iozykit/` et note le commit copié dans `vendor/iozykit/VERSION`. `src/main.tsx` importe les trois CSS ; `src/styles/design-tokens.scss` fait correspondre les noms historiques de l'app (`--accent-primary`, `--bg-secondary`…) aux `--iozy-*` ; `DesignSystem.module.scss` compose les classes du kit (`composes: iozy-btn from global`). Le thème se bascule par les classes `.dark-theme` / `.light-theme` sur `<html>`, que le CSS généré reconnaît.
+`src/main.tsx` importe `iozykit/css/tokens.css`, `base.css` et `components.css` (Vite les résout dans `node_modules`) ; `src/styles/design-tokens.scss` fait correspondre les noms historiques de l'app (`--accent-primary`, `--bg-secondary`…) aux `--iozy-*` ; `DesignSystem.module.scss` compose les classes du kit (`composes: iozy-btn from global`). Le thème se bascule par les classes `.dark-theme` / `.light-theme` sur `<html>`, que le CSS généré reconnaît.
 
 ### Depuis IozyCore (React + Vite + Tailwind v4)
 
-Même copie (`vendor/iozykit/`, même script). Dans `web/src/index.css`, remplacer les valeurs littérales du bloc `@theme` par les variables du kit (`--color-accent: var(--iozy-accent)` avec `@theme inline`, ou les valeurs recopiées par le script) et retirer le bloc `[data-theme="dark"]` : le CSS généré pose déjà le thème sombre sur `[data-theme='dark']`. Les noms Tailwind (`bg-surface`, `text-textDim`…) ne changent pas. **Pas encore fait** : à faire dans le dépôt IozyCore.
+`web/src/index.css` importe les trois CSS du kit dans les couches Tailwind (`layer(theme|base|components)`) et relie les noms de l'app aux variables du kit par un bloc `@theme inline` (`--color-accent: var(--iozy-accent)`) ; seuls les rôles que le kit n'a pas (univers, rangs, voiles) y gardent leurs deux thèmes. Les noms Tailwind (`bg-surface`, `text-textDim`…) ne changent pas. Le thème sombre vient de `[data-theme='dark']`, posé dans `index.html` ; `check:contrast` lit `node_modules/iozykit/tokens.json`.
 
 ### Les deux conventions de thème
 
@@ -53,4 +61,4 @@ Deux distinctions à ne jamais confondre :
 
 ## Versionner
 
-Un commit par changement de charte, message en français conventionnel (`feat: …`, `fix: …`). Les apps notent dans `vendor/iozykit/VERSION` le commit qu'elles ont copié : on sait toujours qui est en retard.
+Un commit par changement de charte, message en français conventionnel (`feat: …`, `fix: …`). Le `package-lock.json` de chaque app note le commit qu'elle a installé : on sait toujours qui est en retard.
