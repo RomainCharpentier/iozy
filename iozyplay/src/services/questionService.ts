@@ -1,0 +1,240 @@
+/**
+ * Service de questions - Gestion du stockage et manipulation des questions
+ */
+import type { Category, Question, QuestionsData } from '@/types'
+import { questionsApi, ApiError } from '@/api'
+import { QUESTION_COUNT } from '@/services/gameService'
+
+/**
+ * Service de questions - API publique
+ */
+export class QuestionService {
+  /**
+   * Récupère toutes les questions pour les catégories sélectionnées, sans doublon
+   * (une question rangée dans plusieurs catégories n'apparaît qu'une fois)
+   */
+  static async getQuestionsForCategories(categories: Category[]): Promise<Question[]> {
+    let allQuestions: Question[]
+    try {
+      allQuestions = await this.getAllQuestions()
+    } catch {
+      // Lecture seule (jeu) : en cas d'échec, aucune question disponible
+      return []
+    }
+    return this.dedupeQuestions(
+      allQuestions.filter((q) => {
+        const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
+        return questionCategories.some((cat) => categories.includes(cat))
+      })
+    )
+  }
+
+  /**
+   * Retire les doublons (même id ou même mediaUrl) en gardant la première occurrence.
+   * Même règle que dedupeQuestions côté serveur (server/domain/questionDraw.js).
+   */
+  static dedupeQuestions(questions: Question[]): Question[] {
+    const seen = new Set<string>()
+    return questions.filter((q) => {
+      const keys = [q.id ? `id:${q.id}` : null, q.mediaUrl ? `url:${q.mediaUrl}` : null].filter(
+        (key): key is string => key !== null
+      )
+      if (keys.some((key) => seen.has(key))) return false
+      keys.forEach((key) => seen.add(key))
+      return true
+    })
+  }
+
+  /**
+   * Mélange un tableau de questions (algorithme Fisher-Yates), sans modifier l'entrée
+   */
+  static shuffleQuestions(questions: Question[]): Question[] {
+    const shuffled = [...questions]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
+  }
+
+  /**
+   * Prépare le pool envoyé au serveur (game:start / game:restart-with-categories) :
+   * dédupliqué, mélangé et borné à QUESTION_COUNT.POOL_MAX.
+   * Le serveur tire lui-même les questions de chaque partie dans ce pool, y compris au « Rejouer ».
+   */
+  static buildQuestionPool(questions: Question[]): Question[] {
+    return this.shuffleQuestions(this.dedupeQuestions(questions)).slice(0, QUESTION_COUNT.POOL_MAX)
+  }
+
+  /**
+   * Applique un timer par défaut à toutes les questions
+   */
+  static applyDefaultTimeLimit(questions: Question[], timeLimit: number): Question[] {
+    return questions.map((q) => ({
+      ...q,
+      timeLimit: timeLimit,
+    }))
+  }
+
+  /**
+   * Génère un ID automatique pour une question
+   * Pour les URLs YouTube, utilise l'URL comme ID (clé primaire)
+   * Sinon, génère un ID basé sur les catégories
+   */
+  static async generateId(mediaUrl: string, categories: Category | Category[]): Promise<string> {
+    // Pour les URLs YouTube, utiliser l'URL comme ID (clé primaire)
+    if (mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be')) {
+      return mediaUrl
+    }
+
+    // Pour les autres médias, générer un ID basé sur la première catégorie
+    const categoryArray = Array.isArray(categories) ? categories : [categories]
+    const primaryCategory = categoryArray[0]
+
+    const categoryQuestions = await this.getQuestionsByCategory(primaryCategory)
+    const existingIds = categoryQuestions.map((q) => q.id || q.mediaUrl)
+    let counter = 1
+    let newId = `${primaryCategory}-${counter}`
+
+    while (existingIds.includes(newId)) {
+      counter++
+      newId = `${primaryCategory}-${counter}`
+    }
+
+    return newId
+  }
+
+  /**
+   * Récupère toutes les questions
+   */
+  static async getAllQuestions(): Promise<Question[]> {
+    const allData = await this.getAllQuestionsData()
+    const all: Question[] = []
+    Object.values(allData).forEach((categoryQuestions) => {
+      all.push(...categoryQuestions)
+    })
+    return all
+  }
+
+  /**
+   * Récupère les questions par catégorie
+   */
+  static async getQuestionsByCategory(category: Category): Promise<Question[]> {
+    const allData = await this.getAllQuestionsData()
+    return allData[category] || []
+  }
+
+  /**
+   * Charge les questions depuis le serveur.
+   * Lève une erreur en cas d'échec : ne jamais renvoyer de données vides qui pourraient
+   * ensuite être sauvegardées et écraser le fichier.
+   */
+  static async loadQuestions(): Promise<QuestionsData> {
+    try {
+      return await questionsApi.getAll()
+    } catch (error) {
+      console.error('Erreur lors du chargement des questions:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Sauvegarde toutes les questions sur le serveur (pour compatibilité)
+   * Supporte les catégories multiples : une question peut apparaître dans plusieurs catégories
+   */
+  static async saveQuestions(questions: Question[]): Promise<void> {
+    const organized = this.organizeByCategory(questions)
+
+    try {
+      await questionsApi.saveAll(organized)
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des questions:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Ajoute une question sur le serveur
+   */
+  static async addQuestion(question: Question): Promise<Question> {
+    try {
+      return await questionsApi.create(question)
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de la question:", error)
+      if (error instanceof ApiError) {
+        throw error
+      }
+      throw new Error(error instanceof Error ? error.message : 'Failed to add question')
+    }
+  }
+
+  /**
+   * Supprime une question du serveur
+   * Si category est fourni, supprime seulement de cette catégorie
+   * Sinon, supprime la question complètement
+   */
+  static async deleteQuestion(questionId: string, category?: Category): Promise<void> {
+    try {
+      await questionsApi.delete(questionId, category)
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la question:', error)
+      if (error instanceof ApiError) {
+        throw error
+      }
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete question')
+    }
+  }
+
+  /**
+   * Met à jour une question sur le serveur
+   * Supprime l'ancienne question puis ajoute la nouvelle
+   */
+  static async updateQuestion(
+    questionId: string,
+    oldCategories: Category[],
+    updatedQuestion: Question
+  ): Promise<void> {
+    try {
+      // Supprimer l'ancienne question de toutes ses catégories
+      for (const category of oldCategories) {
+        await this.deleteQuestion(questionId, category)
+      }
+      // Ajouter la nouvelle question
+      await this.addQuestion(updatedQuestion)
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la question:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Regroupe les questions par catégorie, en conservant toutes les catégories rencontrées
+   * (y compris les catégories personnalisées)
+   */
+  static organizeByCategory(questions: Question[]): QuestionsData {
+    const organized: QuestionsData = {}
+
+    questions.forEach((q) => {
+      const categories = Array.isArray(q.category) ? q.category : [q.category]
+      categories.forEach((cat) => {
+        if (!cat) return
+        const list = (organized[cat] ??= [])
+        const exists = list.some(
+          (existing) => (q.id && existing.id === q.id) || existing.mediaUrl === q.mediaUrl
+        )
+        if (!exists) {
+          list.push(q)
+        }
+      })
+    })
+
+    return organized
+  }
+
+  /**
+   * Récupère toutes les données de questions depuis le serveur
+   */
+  private static async getAllQuestionsData(): Promise<QuestionsData> {
+    return await this.loadQuestions()
+  }
+}

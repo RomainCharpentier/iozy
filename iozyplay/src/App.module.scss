@@ -1,0 +1,57 @@
+.app {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: var(--container-padding);
+  width: 100%;
+  flex: 1;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.appOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Hauteur fixe : l'écran de jeu réserve exactement cette place sous le bandeau */
+  height: var(--game-banner-height);
+  box-sizing: border-box;
+  padding: 0 20px;
+  /* Couleurs du thème (l'ancien dégradé bleu nuit codé en dur jurait en thème clair) */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-color, var(--bg-primary)) 98%, transparent) 0%,
+    color-mix(in srgb, var(--bg-color, var(--bg-primary)) 90%, transparent) 60%,
+    transparent 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
+}
+
+.appOverlayContent {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  /* L'accent comme texte (pas l'accent de remplissage : 3.5:1 en sombre). */
+  color: var(--accent-text);
+  text-align: center;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

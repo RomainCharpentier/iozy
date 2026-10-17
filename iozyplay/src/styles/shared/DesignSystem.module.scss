@@ -1,0 +1,143 @@
+/* Système partagé (importé sous `ds`). Les boutons, champs, cartes et chips
+   COMPOSENT les classes d'IozyKit (iozykit/css/components.css) : la
+   forme vit dans le kit, l'app garde son API (`ds.btn`, `ds.btnPrimary`…) et
+   n'ajoute ici que ce qui lui est propre (grilles, badges, spinner). */
+
+.btn {
+  composes: iozy-btn from global;
+}
+
+.btnPrimary {
+  composes: iozy-btn--primary from global;
+}
+
+.btnSecondary {
+  composes: iozy-btn--secondary from global;
+}
+
+.btnTertiary {
+  composes: iozy-btn--ghost from global;
+}
+
+.btnDanger {
+  composes: iozy-btn--danger from global;
+}
+
+.btnLarge {
+  composes: iozy-btn--lg from global;
+}
+
+.btnIcon {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.input {
+  composes: iozy-field from global;
+  width: 100%;
+}
+
+.card {
+  composes: iozy-card from global;
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+.card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.cardTitle {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.homeLayout {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 4rem);
+  justify-content: center;
+  max-width: 100%;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-lg);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gridAuto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.textSecondary {
+  color: var(--text-secondary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.badgePrimary {
+  background: var(--accent-alpha-2);
+  border-color: var(--accent-primary);
+  color: var(--accent-text);
+}
+
+.chip {
+  composes: iozy-chip from global;
+}
+
+.chipActive {
+  composes: iozy-chip--active from global;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,32 @@
+/**
+ * Liste d'emojis disponibles pour les catégories
+ * Organisés par groupes thématiques
+ */
+
+export const EMOJI_CATEGORIES = {
+  Musique: ['🎵', '🎶', '🎤', '🎧', '🎸', '🎹', '🥁', '🎺', '🎷', '🎻'],
+  Média: ['📺', '🎬', '🎞️', '🎭', '📽️', '📷', '📸', '🎥', '📹', '🎨'],
+  Jeux: ['🎮', '🕹️', '🎯', '🎲', '🃏', '🀄', '🎴', '🎰', '♟️', '🧩'],
+  Éducation: ['📚', '📖', '📕', '📗', '📘', '📙', '📓', '📔', '📒', '🎓'],
+  Sports: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥊', '🏒', '⛳', '🏹'],
+  Nourriture: ['🍕', '🍔', '🍟', '🌭', '🍿', '🧂', '🥓', '🥞', '🧇', '🍳', '🍞', '🥖', '🥐', '🧀'],
+  Transport: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜'],
+  Animaux: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸'],
+  Nature: ['🌍', '🌎', '🌏', '🌐', '🗺️', '🧭', '🏔️', '⛰️', '🌋', '🗻', '🏕️', '🏖️', '🏜️', '🏝️'],
+  Symboles: ['⭐', '🌟', '💫', '✨', '🔥', '💥', '⚡', '☄️', '💢', '❄️', '💎', '🏆', '🥇', '🥈'],
+  Technologie: ['📱', '💻', '🖥️', '⌨️', '🖱️', '🖨️', '📞', '☎️', '📟', '📠', '📺', '📡', '🔌', '💡'],
+  Lieux: ['🏠', '🏡', '🏘️', '🏚️', '🏗️', '🏭', '🏢', '🏬', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪'],
+  Divers: ['🎁', '🎉', '🎊', '🎈', '🎀', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🎗️', '🎫', '🎟️'],
+}
+
+/**
+ * Liste complète de tous les emojis disponibles
+ */
+export const ALL_EMOJIS: string[] = Object.values(EMOJI_CATEGORIES).flat()
+
+/**
+ * Obtient les emojis d'un groupe spécifique
+ */
+export function getEmojisByGroup(group: string): string[] {
+  return EMOJI_CATEGORIES[group as keyof typeof EMOJI_CATEGORIES] || []
+}

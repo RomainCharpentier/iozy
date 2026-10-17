@@ -1,0 +1,1430 @@
+@use '../../styles/breakpoints' as bp;
+
+/*
+ * Layout de l'écran de jeu.
+ *
+ * ≥ md : l'écran occupe exactement la hauteur du viewport (pas de défilement de page).
+ *   .gameScreen (colonne, 100dvh)
+ *     ├─ barre du haut (hauteur fixe, compacte)
+ *     └─ .gameMain (flex: 1)
+ *          └─ .gameInterfaceBody (ligne)
+ *               ├─ colonne question : catégorie / zone média (flex: 1) / réponse / indice
+ *               └─ classement (défile dans son propre panneau)
+ *   La zone média absorbe la hauteur restante ; la vidéo du reveal y est dimensionnée
+ *   en 16:9 à partir de la taille de la zone (container queries).
+ *
+ * < md : flux vertical classique, la page peut défiler ; la réponse reste sous le média.
+ */
+.gameScreen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+  max-width: 1280px;
+  /* Annule le padding vertical de .app (App.module.scss) pour occuper tout le viewport */
+  margin: calc(-1 * var(--container-padding)) auto;
+  /* Le bandeau fixe « Devine la musique » est réservé ici : rien ne passe dessous */
+  padding: var(--game-banner-height) 0 var(--spacing-sm);
+  height: max(100dvh, 30rem);
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.gameMain {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* Corps : ligne (question + classement) sur desktop, colonne sur mobile */
+.gameInterfaceBody {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 0;
+  gap: var(--spacing-md);
+  min-width: 0;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.gameInterfaceBodyNoSidebar {
+  justify-content: center;
+}
+
+.gameInterfaceBodySoloEnd {
+  justify-content: center;
+  align-items: center;
+}
+
+/*
+ * Écran de fin, colonne de gauche (récapitulatif + actions) ; le classement final occupe
+ * la colonne de droite comme pendant la partie. Le contenu est centré et défile dans le
+ * panneau s'il ne tient pas (jamais de chevauchement avec la barre du haut).
+ */
+.endScreenMain {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      color-mix(in srgb, var(--accent-primary) 14%, transparent),
+      transparent 70%
+    ),
+    color-mix(in srgb, var(--bg-tertiary) 88%, black);
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--border-color) 78%, var(--accent-primary));
+  border-radius: var(--radius-xl);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+}
+
+/* Solo : pas de classement, le récapitulatif est centré avec une largeur raisonnable */
+.gameInterfaceBodySoloEnd .endScreenMain {
+  flex: 0 1 820px;
+  max-height: 100%;
+}
+
+/* Colonne question : catégorie, zone média (flexible), réponse, indice */
+.questionCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.questionCardGameInterfaceGame {
+  min-width: 0;
+}
+
+.questionHeader {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.gameInterfaceGameHeader {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-shrink: 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.gameInterfaceCategory {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0.25rem 0.75rem;
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-tertiary));
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, var(--border));
+  border-radius: var(--radius-full);
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.gameInterfaceCategoryIcon {
+  display: inline-flex;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.gameInterfaceCategoryText {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Habillage visuel de la zone média */
+.mediaContainer {
+  margin: 0;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-primary) 10%, transparent),
+      transparent 60%
+    ),
+    var(--bg-tertiary);
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, var(--accent-primary));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 14px 36px rgba(0, 0, 0, 0.3);
+}
+
+/*
+ * Zone média : prend toute la hauteur restante de la colonne.
+ * container-type: size permet à la scène (et aux soundwaves) de se dimensionner
+ * en unités cqw/cqh à partir de la place réellement disponible.
+ */
+.gameInterfaceMedia {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 9rem;
+  width: 100%;
+  min-width: 0;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: var(--spacing-sm);
+  box-sizing: border-box;
+  /* Hauteur des soundwaves (Soundwave.module.scss) : bornée par la hauteur de la zone */
+  --soundwave-height: clamp(4rem, calc(100cqh - 1rem), 10rem);
+}
+
+/* Scène du lecteur : toute la zone pendant la devinette */
+.mediaStage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Reveal vidéo : plus grand rectangle 16:9 qui tient dans la zone */
+/* Reveal : la scène média apparaît en fondu (vidéo révélée) */
+@media (prefers-reduced-motion: no-preference) {
+  .mediaStageReveal {
+    animation: mediaReveal 0.45s ease-out;
+  }
+}
+
+@keyframes mediaReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mediaStageVideo {
+  width: min(100cqw, 100cqh * 16 / 9);
+  height: min(100cqh, 100cqw * 9 / 16);
+  border-radius: var(--radius-lg);
+  background: #000;
+}
+
+.gameInterfaceAnswer {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 0;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.gameInterfaceAnswer > * {
+  width: 100%;
+}
+
+/* Barre du haut : une seule ligne compacte (progression | timer | score | actions) */
+.gameInterfaceHeader {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: color-mix(in srgb, var(--bg-tertiary) 88%, black);
+  border-radius: var(--radius-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, var(--accent-primary));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+.gameInterfaceHeaderMain {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.gameInterfaceMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.gameInterfaceProgressSection {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gameInterfaceProgressHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.gameInterfaceQuestion {
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.gameInterfaceSeparator {
+  color: var(--text-secondary);
+}
+
+.gameInterfaceTotal {
+  color: var(--text-secondary);
+}
+
+.gameInterfaceProgressContainer {
+  width: 100%;
+  min-width: 0;
+}
+
+.gameInterfaceProgressBar {
+  width: 100%;
+  height: 8px;
+  background: color-mix(in srgb, var(--bg-secondary) 85%, black);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, var(--bg-secondary));
+}
+
+.gameInterfaceProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  transition: width 0.4s ease;
+}
+
+.gameInterfaceTimerSection {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
+  background: color-mix(in srgb, var(--bg-secondary) 80%, var(--accent-primary) 8%);
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--border-color) 80%, var(--accent-primary));
+}
+
+.gameInterfaceTimerIcon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.gameInterfaceTimerValue {
+  font-size: 1.2rem;
+  line-height: 1.3;
+  font-weight: 700;
+  font-family: var(--font-family-mono);
+  color: var(--accent-primary);
+  letter-spacing: 0.02em;
+}
+
+/* Urgence du chrono : au-delà de la couleur, on ajoute une pulsation sur l'état
+ * critique, désactivée pour les utilisateurs qui préfèrent moins d'animations. */
+.gameInterfaceTimerSectionWarning {
+  border-color: color-mix(in srgb, var(--border-color) 60%, var(--warning));
+  background: color-mix(in srgb, var(--bg-secondary) 80%, var(--warning) 10%);
+}
+
+.gameInterfaceTimerSectionWarning .gameInterfaceTimerValue {
+  color: var(--warning);
+}
+
+.gameInterfaceTimerSectionDanger {
+  border-color: color-mix(in srgb, var(--border-color) 50%, var(--error));
+  background: color-mix(in srgb, var(--bg-secondary) 78%, var(--error) 14%);
+}
+
+.gameInterfaceTimerSectionDanger .gameInterfaceTimerValue {
+  color: var(--error);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .gameInterfaceTimerSectionDanger {
+    animation: gameTimerPulse 1s ease-in-out infinite;
+  }
+}
+
+@keyframes gameTimerPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+/* Score sur une ligne (libellé + valeur) pour garder la barre compacte */
+.gameInterfaceScoreSection {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
+  background: color-mix(in srgb, var(--accent-alpha-2) 65%, var(--bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--accent-alpha-3) 70%, var(--border));
+  border-radius: var(--radius-lg);
+  position: relative;
+}
+
+.gameInterfaceScoreLabel {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.gameInterfaceScoreValue {
+  font-size: 1.2rem;
+  line-height: 1.3;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+/* Petit « +N » qui s'envole au-dessus du score à chaque bonne réponse (voir
+ * GameTopBar, qui pilote l'apparition/disparition via motion/react). */
+.gameInterfaceScorePop {
+  position: absolute;
+  top: -0.35rem;
+  right: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--success);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.gameInterfaceHeaderActions {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+/* Actions de la barre du haut : icône + libellé court (libellé masqué < md) */
+.gameInterfaceActionBtn {
+  height: 38px;
+  padding: 0 var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-secondary) 85%, var(--accent-primary) 6%);
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--border-color) 80%, var(--accent-primary));
+  color: var(--accent-ink);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    transform var(--transition-base);
+}
+
+.gameInterfaceActionBtn:hover {
+  background: color-mix(in srgb, var(--accent-alpha-2) 75%, var(--bg-secondary));
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.gameInterfaceActionBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--accent-primary);
+}
+
+/* Son coupé : état visible en permanence */
+/* Son coupé : état neutre (pointillés), distinct de l'orange réservé à « Passer / Suivant » */
+.gameInterfaceActionBtn[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--text-secondary) 14%, var(--bg-secondary));
+  border-color: var(--text-secondary);
+  border-style: dashed;
+  color: var(--text-secondary);
+}
+
+.gameInterfaceActionIcon {
+  font-size: var(--font-size-base);
+  line-height: 1;
+}
+
+.gameInterfaceActionLabel {
+  line-height: 1;
+}
+
+.gameInterfaceActionBtnDanger {
+  color: var(--error);
+}
+
+.gameInterfaceActionBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--error);
+}
+
+/* Barre du haut de l'écran de fin : intitulé à la place de la progression */
+.gameInterfaceEndHeading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: 0.95rem;
+  line-height: 38px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Classement : colonne de la hauteur du corps, la liste défile dans le panneau */
+.gamePlayersPanel {
+  flex: 0 0 clamp(13.75rem, 24vw, 18.75rem);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gameInterfaceSidebar {
+  flex: 0 1 auto;
+  min-height: 0;
+  padding: var(--spacing-sm);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-primary) 10%, transparent),
+      transparent 55%
+    ),
+    color-mix(in srgb, var(--bg-tertiary) 88%, black);
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--border-color) 78%, var(--accent-primary));
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+}
+
+.gameInterfaceSidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border-color) 75%, var(--accent-primary));
+}
+
+.gameInterfaceSidebarTitleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gameInterfaceSidebarTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-color);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.gameInterfaceSidebarCount {
+  font-size: 0.68rem;
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent-primary) 40%, var(--bg-secondary));
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 55%, var(--border));
+}
+
+.gameInterfacePlayers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.gameInterfacePlayer {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: color-mix(in srgb, var(--bg-secondary) 80%, var(--accent-primary) 4%);
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 85%, var(--accent-primary));
+  transition: all 0.2s ease;
+}
+
+.gameInterfacePlayer:hover {
+  background: var(--accent-alpha-1);
+  border-color: var(--accent-primary);
+}
+
+.gameInterfacePlayerTop {
+  border-color: var(--accent-primary);
+  background: var(--accent-alpha-2);
+  box-shadow: var(--shadow-glow);
+}
+
+.gameInterfacePlayerWinner {
+  position: relative;
+}
+
+.gameInterfacePlayerCorrect {
+  border-color: var(--success);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.gameInterfacePlayerIncorrect {
+  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.gameInterfacePlayerSkipRequesting {
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.gameInterfacePlayerRank {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--accent-primary) 85%, white);
+  min-width: 20px;
+}
+
+/* Vainqueur : la couronne remplace le rang, dans la même colonne de la grille */
+.gameInterfaceWinnerCrown {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  text-align: center;
+}
+
+.gameInterfacePlayerAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 0.92rem;
+  flex-shrink: 0;
+}
+
+.gameInterfacePlayerInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.gameInterfacePlayerName {
+  font-weight: 600;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.86rem;
+}
+
+.gameInterfacePlayerAnswer {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-style: normal;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameInterfacePlayerAnswerCorrect {
+  color: var(--success);
+}
+
+.gameInterfacePlayerAnswerIncorrect {
+  color: var(--error);
+}
+
+.gameInterfacePlayerScore {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  min-width: 30px;
+  text-align: right;
+}
+
+.gameInterfacePlayerBadge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.gameInterfacePlayerBadgeCorrect {
+  background: var(--success);
+  color: var(--success-ink);
+}
+
+.gameInterfacePlayerBadgeIncorrect {
+  background: var(--error);
+  color: var(--error-ink);
+}
+
+.gameInterfacePlayerScoreTotal {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.answerBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-alpha-2);
+  color: var(--accent-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.validationIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.validationIconCorrect {
+  background: var(--success);
+  color: var(--success-ink);
+}
+
+.validationIconIncorrect {
+  background: var(--error);
+  color: var(--error-ink);
+}
+
+.hint {
+  flex-shrink: 0;
+  margin: 0;
+  text-align: center;
+  color: var(--accent-ink);
+  font-style: normal;
+  padding: 0.4rem 0.85rem;
+  /* Teinte d'accent (l'orange est réservé à « Passer / Suivant ») */
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-secondary));
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 45%, var(--border));
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.hintLabel {
+  font-weight: 700;
+}
+
+.hintIcon {
+  font-size: 1rem;
+  margin-right: 0.5rem;
+}
+
+/* Récapitulatif de fin : compact pour tenir sans défilement dès 800×600 */
+.gameInterfaceGameEnd {
+  margin: auto;
+  width: 100%;
+  max-width: 40rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(var(--space-2), 2.2dvh, var(--space-5));
+  padding: clamp(var(--space-4), 3dvh, var(--space-8)) var(--space-6);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.gameInterfaceEndIcon {
+  font-size: clamp(2.25rem, 7dvh, 3.5rem);
+  line-height: 1;
+  animation: bounce 1s ease-in-out;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.gameInterfaceEndTitle {
+  margin: 0;
+  font-size: clamp(var(--font-size-2xl), 4.5dvh, var(--font-size-4xl));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--text-primary);
+}
+
+.gameInterfaceEndSubtitle {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+.gameInterfaceEndStats {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.gameInterfaceEndStat {
+  flex: 0 1 11rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--bg-secondary) 80%, var(--accent-primary) 6%);
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--border-color) 80%, var(--accent-primary));
+  border-radius: var(--radius-lg);
+}
+
+.gameInterfaceEndStatLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gameInterfaceEndStatValue {
+  font-size: clamp(var(--font-size-xl), 4dvh, var(--font-size-3xl));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--text-primary);
+}
+
+/* Invité : la relance appartient à l'hôte */
+.gameInterfaceEndWaiting {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: var(--accent-alpha-1);
+  border: var(--border-width-thin) dashed var(--accent-alpha-4);
+  border-radius: var(--radius-full);
+}
+
+.gameInterfaceEndWaitingDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  animation: endWaitingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes endWaitingPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.gameInterfaceEndActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.gameInterfaceEndBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: var(--border-width-thin) solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    transform var(--transition-base);
+}
+
+.gameInterfaceEndBtn:hover {
+  background: var(--color-card-bg-hover);
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.gameInterfaceEndBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.gameInterfaceEndBtnPrimary {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--accent-ink);
+}
+
+.gameInterfaceEndBtnPrimary:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.gameInterfaceEndBtnDanger {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--error) 55%, var(--border-color));
+  color: var(--error);
+}
+
+.gameInterfaceEndBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--error);
+}
+
+.gameModalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: var(--z-game-modal-overlay);
+  animation: overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gameModalContent {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--card-bg);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  z-index: var(--z-game-modal);
+  animation: contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gameModalContent:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+@keyframes overlayShow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes contentShow {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.noQuestions {
+  text-align: center;
+  padding: 3rem;
+  background: var(--card-bg);
+  border-radius: 1rem;
+  border: 2px solid var(--border-color);
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.mediaLoading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  z-index: var(--z-dropdown);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gameSettingsPopup {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.gameSettingsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.gameSettingsHeader h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--text-color);
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.closeButton:hover {
+  color: var(--text-color);
+}
+
+.gameSettingsSection {
+  margin-bottom: 2rem;
+}
+
+.gameSettingsSection h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: var(--text-color);
+}
+
+.noCategories {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.selectedCategoriesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.selectedCategoryBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.categoryEmoji {
+  font-size: 1.2rem;
+}
+
+.categoryName {
+  font-weight: 600;
+}
+
+.configButtonSecondary {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-color);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.configButtonSecondary:hover {
+  border-color: var(--primary-color);
+  background: var(--accent-alpha-1);
+}
+
+.configButtonPrimary {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  border: none;
+  border-radius: 0.5rem;
+  color: var(--accent-ink);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.configButtonPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.categorySelectorInline {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--bg-color);
+  border-radius: 0.5rem;
+  border: 2px solid var(--border-color);
+}
+
+.categorySelectorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.categorySelectorHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.closeInlineButton {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+}
+
+.closeInlineButton:hover {
+  color: var(--text-color);
+}
+
+.timerConfig {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timerConfigLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.timerSlider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-color);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.timerSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+}
+
+.timerPreview {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.timerValue {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.timerHint {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.gameSettingsActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* Responsive */
+
+/* Mobile : flux vertical, la page peut défiler ; média en 16:9 puis réponse juste dessous */
+@media (max-width: #{bp.$bp-md - 1px}) {
+  .gameScreen {
+    width: auto;
+    height: auto;
+    min-height: 100dvh;
+    /* Récupère une partie du padding horizontal de .app, sans dépasser du viewport */
+    margin-inline: calc(var(--spacing-sm) - var(--container-padding));
+  }
+
+  .gameMain,
+  .gameInterfaceBody,
+  .questionCard {
+    flex: none;
+  }
+
+  .gameInterfaceBody {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .questionCard {
+    max-width: none;
+  }
+
+  .gameInterfaceMedia {
+    flex: none;
+    aspect-ratio: 16 / 9;
+    min-height: 12rem;
+    padding: var(--spacing-xs);
+  }
+
+  .gamePlayersPanel {
+    flex: none;
+  }
+
+  .endScreenMain {
+    flex: none;
+    overflow-y: visible;
+  }
+
+  /* Écran de fin compact : récapitulatif + classement tiennent en 375×812 */
+  .gameInterfaceGameEnd {
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .gameInterfaceEndIcon {
+    font-size: 2.25rem;
+  }
+
+  .gameInterfaceEndTitle {
+    font-size: var(--font-size-2xl);
+  }
+
+  .gameInterfaceEndSubtitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .gameInterfaceEndStat {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .gameInterfaceEndBtn {
+    min-height: 40px;
+  }
+
+  /* Libellés des actions masqués : icône seule (aria-label et infobulle conservés) */
+  .gameInterfaceActionBtn {
+    width: 38px;
+    padding: 0;
+  }
+
+  .gameInterfaceActionLabel {
+    display: none;
+  }
+}
+
+/* Petit mobile : la barre du haut passe sur deux lignes (progression / timer, score, actions) */
+@media (max-width: #{bp.$bp-sm - 1px}) {
+  .gameInterfaceHeader {
+    flex-wrap: wrap;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    row-gap: var(--spacing-xs);
+  }
+
+  .gameInterfaceHeaderMain {
+    display: contents;
+  }
+
+  .gameInterfaceProgressSection {
+    flex: 1 1 100%;
+  }
+
+  .gameInterfaceTimerSection,
+  .gameInterfaceScoreSection {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .gameInterfaceTimerValue,
+  .gameInterfaceScoreValue {
+    font-size: 1.05rem;
+  }
+
+  .gameInterfaceActionBtn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* Texte réservé aux lecteurs d'écran (annonces aria-live) */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Coupure réseau : bandeau superposé (n'ajoute pas de hauteur à l'écran sans scroll) */
+.connectionBanner {
+  position: fixed;
+  top: calc(var(--game-banner-height) + var(--spacing-xs));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-overlay);
+  max-width: calc(100vw - 2rem);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--error);
+  background: color-mix(in srgb, var(--bg-secondary) 85%, var(--error) 15%);
+  color: var(--error-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Animations décoratives coupées pour les utilisateurs qui préfèrent moins de mouvement
+ * (le pulse du chrono critique est déjà conditionné à no-preference) */
+@media (prefers-reduced-motion: reduce) {
+  .gameInterfaceEndIcon,
+  .gameInterfaceEndWaitingDot,
+  .gameModalOverlay,
+  .gameModalContent,
+  .gameInterfaceProgressFill {
+    animation: none;
+    transition: none;
+  }
+
+  .loadingSpinner {
+    animation-duration: 3s;
+  }
+}

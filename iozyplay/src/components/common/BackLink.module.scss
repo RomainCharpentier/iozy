@@ -1,0 +1,16 @@
+.link {
+  display: inline-flex;
+  min-height: var(--control-height);
+  width: fit-content;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.link:hover {
+  color: var(--text-primary);
+}

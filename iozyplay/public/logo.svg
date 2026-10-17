@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512" role="img" aria-label="IozyPlay">
+  <!-- Icône d'installation et image de partage (manifest.json, og:image) :
+       même dessin que public/favicon.svg et que LogoMark (Logo.tsx), en
+       couleurs du thème sombre (défaut de l'app), figées car ces usages ne
+       connaissent aucun thème. -->
+  <rect x="0" y="0" width="32" height="32" rx="7.5" fill="#d9694a"/>
+  <path d="M10.5 8.4 L24.5 16.1 L10.5 23.8 Z" fill="#16120f" stroke="#16120f" stroke-width="2.4" stroke-linejoin="round"/>
+  <rect x="3" y="25" width="26" height="2.2" rx="1.1" fill="#16120f"/>
+</svg>
