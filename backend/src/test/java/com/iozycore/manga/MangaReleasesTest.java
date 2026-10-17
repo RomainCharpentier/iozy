@@ -18,6 +18,7 @@ import com.iozycore.manga.metadata.VolumeSearchCacheRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -138,6 +139,21 @@ class MangaReleasesTest {
     }
 
     @Test
+    void ignores_a_stored_result_the_detail_page_would_refuse() {
+        Entity spy = serie("Spy x Family", "Endo, Tatsuya");
+        cache.storeRow("spy x family", "endo tatsuya", Instant.now().minus(Duration.ofDays(31)), 1,
+                tome("Kurokawa", 14, "2026-10-08", null));
+        Entity naruto = serie("Naruto", "Kishimoto, Masashi");
+        cache.storeRow("naruto", "kishimoto masashi", Instant.now(), 0,
+                tome("Kana", 72, "2026-10-08", null));
+
+        List<ReleaseEntry> entries = releases.releasesBetween(context(List.of(spy, naruto), List.of(),
+                List.of(WishlistEntry.add(spy.id(), LocalDate.now()), WishlistEntry.add(naruto.id(), LocalDate.now()))));
+
+        assertThat(entries).isEmpty();
+    }
+
+    @Test
     void reads_the_stored_results_once_whatever_the_number_of_series() {
         List<Entity> series = new ArrayList<>();
         List<Ownership> ownerships = new ArrayList<>();
@@ -190,6 +206,12 @@ class MangaReleasesTest {
         void store(String normalizedTitle, String normalizedAuthor, VolumeCandidate... volumes) {
             store.put(StoredVolumeSearch.key(normalizedTitle, normalizedAuthor),
                     new StoredVolumeSearch(normalizedTitle, normalizedAuthor, List.of(volumes), Instant.now(), 1));
+        }
+
+        void storeRow(String normalizedTitle, String normalizedAuthor, Instant fetchedAt, int chainVersion,
+                      VolumeCandidate... volumes) {
+            store.put(StoredVolumeSearch.key(normalizedTitle, normalizedAuthor),
+                    new StoredVolumeSearch(normalizedTitle, normalizedAuthor, List.of(volumes), fetchedAt, chainVersion));
         }
 
         @Override
