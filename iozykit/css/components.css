@@ -174,3 +174,103 @@
   backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
 }
+
+/* ---- Sélecteur de famille ---- */
+/* Dans l'en-tête de chaque app : la marque est un bouton qui ouvre la liste
+   des apps de la famille. Un <details>, donc sans script ; l'app met son
+   mot-marque dans le <summary>, marque son entrée par aria-current="page", et
+   peut fermer le menu au clic ailleurs. */
+.iozy-famille {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.iozy-famille > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: var(--iozy-control-height);
+  padding: 0 0.375rem;
+  margin-left: -0.375rem;
+  border-radius: var(--iozy-radius-control);
+  font-family: var(--iozy-font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--iozy-text);
+}
+
+.iozy-famille > summary::-webkit-details-marker {
+  display: none;
+}
+
+.iozy-famille > summary:hover {
+  background: var(--iozy-accent-tint);
+}
+
+.iozy-famille__chevron {
+  width: 1rem;
+  height: 1rem;
+  color: var(--iozy-text-dim);
+  transition: transform 150ms;
+}
+
+.iozy-famille[open] > summary .iozy-famille__chevron {
+  transform: rotate(180deg);
+}
+
+.iozy-famille__menu {
+  position: absolute;
+  top: calc(100% - 0.25rem);
+  left: 0;
+  z-index: 50;
+  min-width: 17rem;
+  padding: 0.5rem;
+  background: var(--iozy-surface);
+  border: 1px solid var(--iozy-line);
+  border-radius: var(--iozy-radius-card);
+  box-shadow: var(--iozy-shadow-lg);
+}
+
+.iozy-famille__app {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--iozy-radius-control);
+  color: var(--iozy-text);
+  text-decoration: none;
+  font: inherit;
+}
+
+.iozy-famille__app:hover {
+  background: var(--iozy-accent-tint);
+}
+
+.iozy-famille__app[aria-current='page'] {
+  background: var(--iozy-surface2);
+}
+
+.iozy-famille__app img {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+.iozy-famille__app b {
+  display: block;
+  font-family: var(--iozy-font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  letter-spacing: -0.02em;
+}
+
+.iozy-famille__app small {
+  display: block;
+  color: var(--iozy-text-dim);
+  font-size: 0.8125rem;
+}

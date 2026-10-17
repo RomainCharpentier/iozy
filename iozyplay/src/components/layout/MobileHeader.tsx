@@ -1,4 +1,4 @@
-import Wordmark from '@/components/layout/Wordmark'
+import FamilySwitcher from '@/components/layout/FamilySwitcher'
 import HeaderShortcuts from '@/components/layout/HeaderShortcuts'
 import styles from '@/components/layout/AppShell.module.scss'
 
@@ -7,7 +7,7 @@ import styles from '@/components/layout/AppShell.module.scss'
 export default function MobileHeader() {
   return (
     <header className={`${styles.mobileHeader} ${styles.glass}`}>
-      <Wordmark />
+      <FamilySwitcher />
       <HeaderShortcuts />
     </header>
   )

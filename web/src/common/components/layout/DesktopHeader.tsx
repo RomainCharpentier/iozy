@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { FamilySwitcher } from './FamilySwitcher'
 import { GlobalShortcuts } from './GlobalShortcuts'
 import { destinationsPour, type NavItem } from './navItems'
 import { useAuth } from '@/common/hooks/useAuth'
@@ -47,12 +48,8 @@ export function DesktopHeader() {
   return (
     <header className="barre-verre sticky top-0 z-10 hidden h-16 shrink-0 border-b border-line md:block">
       <div className="mx-auto flex h-full w-[min(100%-48px,1600px)] items-center gap-6">
-        {/* "Iozy" in ink, "core" in accent (mockup v4): the brand
-            carries the accent in its own name, it does not need a colored
-            block around it. */}
-        <Link to="/" className="flex h-full items-center font-display text-lg font-semibold tracking-[-0.02em] text-textPrimary">
-          Iozy<span className="text-accent">core</span>
-        </Link>
+        {/* The brand opens the family (see FamilySwitcher). */}
+        <FamilySwitcher />
         <nav className="flex h-full items-center gap-1.5">
           {destinations.map((item) => (
             <NavLinkItem key={item.to} {...item} />
