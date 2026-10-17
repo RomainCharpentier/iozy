@@ -1096,3 +1096,23 @@ valeurs du type chargé, et garde un seul lien retour dans ses deux états.
 
 Vérifié : `npm test` (491), `typecheck`, `lint` (zéro ligne),
 `check:frontieres`, `test:e2e` (19).
+
+### Lot 170 — `core/insights` et `manga/deals` suivent la découpe commune
+
+Les deux paquets que le lot 164 laissait mêler domaine et services sont rangés
+comme le reste du modulith, sans changer une ligne de comportement, de route ni
+de colonne. `core/insights` devient `core/domain/insights` (valeurs, règles,
+port `ReleaseRefreshRunRepository`) et `core/application/insights` (cas d'usage
+et points d'extension `DiscoverySource`, `ReleaseSource`…, à côté
+d'`EntityDeletionGuard`). `manga/deals` devient `manga/domain/deals` (moteur,
+calculs, ports), `manga/application/deals` (`PurchaseAnalysisService`) et
+`manga/infrastructure/deals/gemini` (les deux adaptateurs Gemini).
+`ConfidenceLevel`, que seule l'analyse d'achat lisait, quitte le cœur pour
+`manga/domain/deals`. `LayersTest` tient une règle de plus : le domaine ne
+dépend d'aucune couche extérieure (`application`, `api`, `infrastructure`).
+
+Vérifié : suite backend (1306), `LayersTest` (5 règles), `ModulesTest`.
+
+À reprendre : `PurchaseAnalysisService` reste un seul cas d'usage de 760
+lignes ; `manga/insights` (`CollectionProgressService`) et le port
+`VolumeSearchCacheRepository` de `manga/metadata` gardent l'ancienne forme.
