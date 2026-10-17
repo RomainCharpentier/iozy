@@ -1127,3 +1127,21 @@ Vérifié : suite backend (1306), `LayersTest` (5 règles), `ModulesTest`.
 À reprendre : `PurchaseAnalysisService` reste un seul cas d'usage de 760
 lignes ; `manga/insights` (`CollectionProgressService`) et le port
 `VolumeSearchCacheRepository` de `manga/metadata` gardent l'ancienne forme.
+
+### Lot 171 — IozyPlay à la même adresse, sous `/play`
+
+Le navigateur voit une seule origine pour la famille : nginx (conteneur `web`)
+achemine `/play/` vers un conteneur `iozyplay`, WebSocket compris (`map`
+d'upgrade, délai de lecture long). Le conteneur est facultatif : l'amont est
+une variable, comme pour `/api`, donc sans lui seul `/play` répond 502. Côté
+IozyPlay (dépôt blindtest-webapp), un seul conteneur sert le front construit,
+l'API et Socket.IO sous `IOZYPLAY_BASE_PATH` ; le front est compilé avec le
+même préfixe, le service worker et le manifeste sont relatifs, et sa CI publie
+`ghcr.io/…/iozyplay`. `docker-compose.nas.yml` tire cette image (Watchtower la
+suit) ; `docker-compose.yml` la construit depuis le dépôt voisin derrière le
+profil `play`, pour ne pas bloquer une machine qui ne l'a pas.
+
+Vérifié : image seule puis pile locale complète derrière nginx (`/`, `/api`,
+`/play/`, `/play/username`, `/play/api/health`, poignée de main Socket.IO),
+`check:deploiement` sur `http://localhost:8081`, une partie créée dans le
+navigateur à travers nginx.

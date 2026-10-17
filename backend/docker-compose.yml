@@ -84,6 +84,19 @@ services:
     ports:
       - "8081:80"
 
+  # IozyPlay (the blindtest), served by the same nginx under /play: one
+  # address for the whole family. Behind the `play` profile, because it is
+  # built from the sibling checkout (the repositories live side by side;
+  # IOZYPLAY_DIR in .env points elsewhere) and a machine without it must
+  # still start the rest:   COMPOSE_PROFILES=play docker compose up --build
+  # Without it, /play answers 502 and nothing else moves.
+  iozyplay:
+    profiles: ["play"]
+    build: ${IOZYPLAY_DIR:-../../blindtest-webapp}
+    restart: unless-stopped
+    volumes:
+      - iozyplay_data:/app/data
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -104,3 +117,4 @@ services:
 volumes:
   postgres_data:
   media_data:
+  iozyplay_data:

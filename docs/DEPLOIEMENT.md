@@ -102,6 +102,23 @@ cd web && npm run check:deploiement https://ton-nom.synology.me
 
 Onze contrôles, tous en GET, aucun compte requis.
 
+## IozyPlay, à la même adresse
+
+Le blindtest de la famille vit sous `https://ton-nom.synology.me/play`. Rien à
+ajouter côté DSM : l'entrée de reverse proxy ci-dessus suffit, nginx (conteneur
+`web`) achemine `/play/` vers le conteneur `iozyplay`, WebSocket compris. Son
+image `ghcr.io/romaincharpentier/iozyplay` est publiée par le dépôt
+blindtest-webapp à chaque push sur `main`, et Watchtower la suit comme les deux
+autres (`docker-compose.nas.yml`). Ses questions vivent dans le volume
+`iozyplay_data`.
+
+En local, le même montage s'obtient avec le dépôt IozyPlay à côté de celui-ci :
+`COMPOSE_PROFILES=play docker compose up --build`, puis `http://localhost:8081/play/`.
+
+**Vérifier** : `/play/` affiche IozyPlay et `/play/api/health` répond
+`{"status":"ok"}`. Sans le conteneur, `/play` répond 502 et le reste du site ne
+change pas.
+
 ## 4. Le premier compte
 
 Identique au chemin B : voir **« 4. Le premier compte »** plus bas - il est
