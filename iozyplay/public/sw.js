@@ -1,6 +1,11 @@
 // Service Worker pour le cache offline
-// Utiliser un hash basé sur la date pour forcer la mise à jour du cache
-const CACHE_VERSION = 'blindtest-' + new Date().toISOString().split('T')[0].replace(/-/g, '')
+// Un nom de cache fixe. Il était daté « pour forcer la mise à jour », mais le
+// script est réévalué à chaque réveil du worker : chaque jour ouvrait de
+// nouveaux caches, et la purge ne tourne qu'à l'activation d'une nouvelle
+// version du worker, donc les anciens restaient pour toujours. Rien de périmé
+// n'est servi avec un nom fixe : HTML, scripts et styles passent réseau
+// d'abord, seuls les fichiers immuables (images, polices) viennent du cache.
+const CACHE_VERSION = 'iozyplay-v1'
 const CACHE_NAME = CACHE_VERSION
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime'
 
