@@ -1243,3 +1243,13 @@ une app). Dans les deux apps et dans le kit (`.iozy-famille__accueil`).
 
 Vérifié : contrôles web, IozyPlay et kit ; pile locale derrière nginx, menu
 lu dans les deux apps.
+
+### Lot 178 — La marque et son menu sur l'écran de connexion
+
+L'écran de connexion d'IozyCore, hors coquille, porte désormais la marque et
+son menu en tête : le reste de la famille est à un clic avant même d'entrer.
+Seule à la racine (dev, e2e), la marque y est un simple lien, hors routeur,
+car cet écran se rend sans lui.
+
+Vérifié : 491 tests (ceux de l'écran compris), typecheck, lint, image web
+reconstruite, menu lu sur l'écran de connexion de la pile locale.

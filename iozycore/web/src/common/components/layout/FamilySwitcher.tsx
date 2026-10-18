@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import iozycoreMark from 'iozykit/brand/iozycore.svg'
 import iozyplayMark from 'iozykit/brand/iozyplay.svg'
@@ -8,7 +7,8 @@ import iozyplayMark from 'iozykit/brand/iozyplay.svg'
  * The brand in the header opens the family: this app, IozyPlay, and a last
  * link to the home of the site, which shows every app. Only when the app lives under a prefix (/core/ next to the
  * others): alone at the root (dev, the e2e stack), the brand stays a link to
- * the home of the app, and nothing here exists.
+ * the home of the app, and nothing here exists. A plain link, not a router
+ * one: the gate renders this outside the router, and a brand link may reload.
  *
  * <p>A <details>, so the menu opens and closes without a script; the effect
  * only closes it on a click elsewhere or on Escape. The styles are the
@@ -47,9 +47,9 @@ export function FamilySwitcher({ compact = false }: { compact?: boolean }) {
 
   if (standalone) {
     return (
-      <Link to="/" className={classes}>
+      <a href={import.meta.env.BASE_URL} className={classes}>
         {wordmark}
-      </Link>
+      </a>
     )
   }
 

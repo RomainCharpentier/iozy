@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { CLASSE_CARTE } from '@/common/components/Carte'
+import { FamilySwitcher } from '@/common/components/layout/FamilySwitcher'
 import { PiedDePage } from '@/common/components/layout/PiedDePage'
 import { useAuth } from '@/common/hooks/useAuth'
 
@@ -66,6 +67,11 @@ export function AuthPage() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(70%_60%_at_50%_0%,var(--color-accentTint),transparent_70%)]"
       />
+      {/* The brand and its menu, as in the app: the gate lives outside the
+          shell, but the rest of the family must be one click away here too. */}
+      <header className="flex h-12 items-center">
+        <FamilySwitcher compact />
+      </header>
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-4xl font-bold tracking-[-0.03em] text-textPrimary">
           Iozy<span className="text-accent">Core</span>
