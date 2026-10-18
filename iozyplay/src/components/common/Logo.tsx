@@ -16,7 +16,7 @@ const SVG_SIZES = { small: 40, medium: 64, large: 96 } as const
 
 /**
  * La marque IozyPlay : un triangle « lecture » posé sur une étagère, dans une
- * tuile à l'accent. L'étagère est le trait de famille partagé avec IozyCore
+ * tuile à l'accent. L'étagère est le trait commun partagé avec IozyCore
  * (trois tranches sur la même étagère) ; le triangle dit ce que fait l'app.
  *
  * SVG en ligne et non <img src="/logo.svg"> : la tuile suit ainsi le thème

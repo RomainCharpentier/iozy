@@ -70,7 +70,7 @@ C'est elle qui fait la ressemblance, autant que la couleur.
 
 ## Le logo
 
-Voir `brand/README.md` : une tuile à l'accent, un objet en encre, posé sur l'**étagère** qui est le trait de famille.
+Voir `brand/README.md` : une tuile à l'accent, un objet en encre, posé sur l'**étagère**, le trait commun à toutes les apps Iozy.
 
 ## Naviguer entre les apps
 

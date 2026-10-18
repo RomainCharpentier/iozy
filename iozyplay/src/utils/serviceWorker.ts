@@ -80,7 +80,8 @@ export function registerServiceWorker() {
 
           // Vérifier les mises à jour périodiquement
           setInterval(() => {
-            registration.update()
+            // Un onglet qui part pendant la vérification fait rejeter update() : rien à dire.
+            registration.update().catch(() => undefined)
           }, 60000) // Vérifier toutes les minutes
 
           // Écouter les mises à jour

@@ -40,7 +40,7 @@ export function AppSwitcher({ compact = false }: { compact?: boolean }) {
   // accent in its own name, it does not need a colored block around it.
   const wordmark = (
     <>
-      Iozy<span className="text-accent">core</span>
+      Iozy<span className="text-accent">Core</span>
     </>
   )
   const classes = `flex h-full items-center font-display font-semibold tracking-[-0.02em] text-textPrimary ${compact ? 'text-base' : 'text-lg'}`
@@ -64,7 +64,7 @@ export function AppSwitcher({ compact = false }: { compact?: boolean }) {
           <img src={iozycoreMark} alt="" />
           <span>
             <b>
-              Iozy<span className="text-accent">core</span>
+              Iozy<span className="text-accent">Core</span>
             </b>
             <small>Ta collection</small>
           </span>

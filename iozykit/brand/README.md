@@ -1,6 +1,6 @@
 # La marque Iozy
 
-Une **tuile** à l'accent (coins arrondis : 7,5 sur une grille de 32), un dessin en **encre** dessus, et une **étagère** qui dépasse de part et d'autre (de 3 à 29 sur 32, épaisseur 2,2). L'étagère est le trait de famille : c'est elle qui dit « Iozy ». Chaque app y pose son objet.
+Une **tuile** à l'accent (coins arrondis : 7,5 sur une grille de 32), un dessin en **encre** dessus, et une **étagère** qui dépasse de part et d'autre (de 3 à 29 sur 32, épaisseur 2,2). L'étagère est le trait commun à toutes les apps Iozy : c'est elle qui dit « Iozy ». Chaque app y pose son objet.
 
 | App | Objet sur l'étagère | Fichier |
 |---|---|---|

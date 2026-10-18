@@ -49,7 +49,7 @@ export default function AppSwitcher() {
           <img src={iozycoreMark} alt="" />
           <span>
             <b>
-              Iozy<span className={styles.wordmarkAccent}>core</span>
+              Iozy<span className={styles.wordmarkAccent}>Core</span>
             </b>
             <small>Ta collection</small>
           </span>
