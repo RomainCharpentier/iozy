@@ -1548,7 +1548,7 @@ export default function Game({
 
   const inviteLink =
     typeof window !== 'undefined' && isOnline(gameMode) && roomCode
-      ? `${window.location.origin}/?room=${roomCode}`
+      ? `${window.location.origin}${import.meta.env.BASE_URL}?room=${roomCode}`
       : null
 
   const displayScore = strategy.getDisplayScore(score, gamePlayers)

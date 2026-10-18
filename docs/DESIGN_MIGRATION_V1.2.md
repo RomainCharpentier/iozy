@@ -1299,3 +1299,17 @@ se rend sans le conteneur à marges de l'app. Sondé ensuite sur la pile locale
 en 375, 594 et 1280 px : barres en haut et pleine largeur, menus dans la
 fenêtre, ouverture, fermeture au clic ailleurs et sur Échap, aucun débordement
 horizontal, lien de compte à droite partout.
+
+### Lot 181 — Le lien d'invitation d'IozyPlay porte son préfixe
+
+« IozyPlay ne fonctionne pas » : le lien d'invitation du salon (et celui de
+l'écran de partie) était construit depuis la racine du site,
+`https://…/?room=CODE`, qui est maintenant la page d'accueil et non l'app ; le
+second joueur ne rejoignait jamais. Les deux liens portent le préfixe de
+l'app (`/play/?room=CODE`), et la page d'erreur renvoie à l'accueil de l'app,
+pas à la racine du site.
+
+Vérifié : IozyPlay (typecheck, lint, 166 tests) ; sur la pile locale, salon
+créé dans un onglet, lien lu (`/play/?room=…`), ouvert dans un second onglet
+(page de jointure avec le bon code), puis un second joueur par un client
+Socket.IO séparé à travers nginx en WebSocket : l'hôte le voit arriver.
