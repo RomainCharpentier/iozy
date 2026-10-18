@@ -3,6 +3,7 @@ import styles from '@/pages/RoomCreatorPage/ui/RoomPlayersPanel.module.scss'
 import type { Player } from '@/lib/game/types'
 import SectionHeader from '@/components/common/SectionHeader'
 import PlayerList from '@/components/common/PlayerList'
+import { useIozyAccount } from '@/lib/account/IozyAccount'
 
 interface RoomPlayersPanelProps {
   players: Player[]
@@ -23,6 +24,7 @@ export default function RoomPlayersPanel({
   onPlayerNameChange,
   onSetName,
 }: RoomPlayersPanelProps) {
+  const account = useIozyAccount()
   const connected = players.filter((p) => p.connected !== false).length
 
   return (
@@ -52,6 +54,15 @@ export default function RoomPlayersPanel({
         />
       </div>
 
+      {/* Avec un compte Iozy, le nom est son pseudo : rien à valider ici. */}
+      {account ? (
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="room-player-name">
+            Votre nom (le pseudo de ton compte Iozy)
+          </label>
+          <input id="room-player-name" type="text" value={playerName} readOnly className={ds.input} />
+        </div>
+      ) : (
       <div className={styles.field}>
         <label className={styles.label} htmlFor="room-player-name">
           Votre nom{currentPlayerName ? ` (actuellement ${currentPlayerName})` : ''}
@@ -82,6 +93,7 @@ export default function RoomPlayersPanel({
           </button>
         </div>
       </div>
+      )}
     </section>
   )
 }

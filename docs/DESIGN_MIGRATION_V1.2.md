@@ -1394,3 +1394,19 @@ et la barre porte le chemin courant ; depuis la porte IozyCore avec `next`,
 « Visiter sans compte » ramène sur IozyPlay ; avec une session simulée,
 `/play/` s'ouvre sans écran de nom, le pseudo est enregistré et verrouillé
 dans les réglages, la barre dit « Profil ».
+
+### Lot 186 — Le compte Iozy vaut partout dans IozyPlay
+
+Suite du lot 185, pour que le compte unique tienne d'un bout à l'autre. Avec
+un compte, le nom est le pseudo aussi dans le salon d'invitation et à la
+création d'une partie : champ en lecture seule, plus de « Valider » ni de
+« Modifier ». Et la déconnexion d'IozyCore vaut sur IozyPlay : un nom adopté
+depuis un compte (`usernameFromAccount` dans les réglages) part avec la
+session, la porte redemande un nom ; un nom choisi par un invité reste, c'est
+le sien.
+
+Vérifié : 178 tests IozyPlay, lint, typecheck ; image reconstruite ; dans un
+vrai Chromium sur la pile locale avec une session simulée : nom verrouillé
+dans le salon d'invitation, puis session retirée → le nom disparaît et
+`/play/` ramène à la porte. L'écran de création (qui demande un salon ouvert)
+n'a été que relu et typé.

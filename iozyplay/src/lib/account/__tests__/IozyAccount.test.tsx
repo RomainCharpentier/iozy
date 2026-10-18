@@ -14,7 +14,7 @@ function Nom() {
 
 beforeEach(() => {
   vi.stubEnv('BASE_URL', '/play/')
-  settingsService.updateSetting('username', '')
+  settingsService.saveSettings({ username: '', usernameFromAccount: false })
 })
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -67,6 +67,19 @@ describe('IozyAccountProvider', () => {
     )
     await screen.findByText('personne')
     expect(settingsService.getSetting('username')).toBe('Invité')
+  })
+
+  it('retire à la déconnexion le nom qui venait du compte', async () => {
+    adoptAccountName('Romain')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(reponse(401, {}))
+    render(
+      <IozyAccountProvider>
+        <Nom />
+      </IozyAccountProvider>
+    )
+    await screen.findByText('personne')
+    expect(settingsService.getSetting('username')).toBe('')
+    expect(settingsService.getSetting('usernameFromAccount')).toBe(false)
   })
 })
 

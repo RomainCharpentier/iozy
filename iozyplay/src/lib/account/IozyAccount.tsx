@@ -47,8 +47,21 @@ export async function fetchIozyAccount(): Promise<IozyAccount | null> {
 /** Le pseudo du compte devient le nom de joueur enregistré, s'il ne l'est pas déjà. */
 export function adoptAccountName(pseudo: string): string {
   const name = pseudo.trim().slice(0, MAX_PLAYER_NAME)
-  if (settingsService.getSetting('username') !== name) settingsService.updateSetting('username', name)
+  const settings = settingsService.getSettings()
+  if (settings.username !== name || !settings.usernameFromAccount) {
+    settingsService.saveSettings({ username: name, usernameFromAccount: true })
+  }
   return name
+}
+
+/**
+ * Plus de compte : un nom qui venait d'un compte part avec lui, la porte
+ * redemandera un nom. Un nom choisi par un invité reste, c'est le sien.
+ */
+export function dropAccountName(): void {
+  if (settingsService.getSetting('usernameFromAccount')) {
+    settingsService.saveSettings({ username: '', usernameFromAccount: false })
+  }
 }
 
 /** La porte d'IozyCore, qui ramène ici une fois connecté (`next` : un chemin du site). */
@@ -74,6 +87,7 @@ export function IozyAccountProvider({ children }: { children: ReactNode }) {
     fetchIozyAccount().then((found) => {
       if (!alive) return
       if (found) adoptAccountName(found.pseudo)
+      else dropAccountName()
       setAccount(found)
     })
     return () => {
