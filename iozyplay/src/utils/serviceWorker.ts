@@ -46,6 +46,11 @@ export function registerServiceWorker() {
   }
 
   if ('serviceWorker' in navigator) {
+    // Recharger seulement quand un worker en REMPLACE un autre : au premier
+    // contrôle (installation, ou page jusque-là contrôlée par rien), rien ne
+    // change à l'écran, et recharger ici faisait une boucle sans fin sur
+    // localhost (le worker prend le contrôle d'emblée, voir sw.js).
+    const hadController = !!navigator.serviceWorker.controller
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register(`${import.meta.env.BASE_URL}sw.js`)
@@ -83,7 +88,7 @@ export function registerServiceWorker() {
       // Gérer les changements de contrôle
       let refreshing = false
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
+        if (hadController && !refreshing) {
           refreshing = true
           console.log('[SW] New service worker activated, reloading...')
           window.location.reload()

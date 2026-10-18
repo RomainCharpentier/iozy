@@ -1313,3 +1313,21 @@ Vérifié : IozyPlay (typecheck, lint, 166 tests) ; sur la pile locale, salon
 créé dans un onglet, lien lu (`/play/?room=…`), ouvert dans un second onglet
 (page de jointure avec le bon code), puis un second joueur par un client
 Socket.IO séparé à travers nginx en WebSocket : l'hôte le voit arriver.
+
+### Lot 182 — Plus de boucle de rechargement sur IozyPlay
+
+Depuis IozyCore, ouvrir IozyPlay rechargeait la page sans fin sur
+`localhost`. Trois maillons : la page d'IozyPlay désinscrivait tous les
+service workers à chaque chargement dès que l'hôte était `localhost` (un
+reste du développement, nuisible à une pile Docker locale) ; son service
+worker prend le contrôle d'emblée (`skipWaiting`, `clients.claim`) ; et
+l'app rechargeait à tout changement de contrôleur. Le script de désinscription
+disparaît, et l'app ne recharge que lorsqu'un worker en remplace un autre. En
+passant, l'ancien worker d'IozyCore resté inscrit à la racine du site (son
+script a déménagé sous `/core/`, il ne peut plus se mettre à jour) est
+désinscrit par IozyCore et par la page d'accueil.
+
+Vérifié : contrôles IozyPlay et web, images reconstruites, passage
+IozyCore → menu → IozyPlay sur la pile locale sans rechargement en chaîne.
+Le navigateur intégré n'inscrit aucun service worker : la boucle elle-même
+ne s'y reproduisait pas, la correction tient au raisonnement et au code.
