@@ -10,6 +10,7 @@ import {
   type Compte,
 } from '@/common/api/auth'
 import { ApiError, EVENEMENT_SESSION_PERDUE, declarerVisiteEnCours } from '@/common/api/client'
+import { retournerApresConnexion } from '@/common/lib/retourApresConnexion'
 import { queryKeys } from '@/common/lib/queryKeys'
 
 /**
@@ -79,6 +80,8 @@ export function useAuth() {
     queryClient.setQueryData(queryKeys.auth.compte, nouveau)
     queryClient.clear()
     queryClient.setQueryData(queryKeys.auth.compte, nouveau)
+    // Opened from another app of the site (IozyPlay): back to it, signed in.
+    if (nouveau) retournerApresConnexion()
   }
 
   const connexion = useMutation({

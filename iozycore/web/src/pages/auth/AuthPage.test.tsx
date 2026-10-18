@@ -36,6 +36,9 @@ const api = vi.hoisted(() => ({
 
 vi.mock('@/common/api/auth', () => api)
 
+const retour = vi.hoisted(() => ({ retournerApresConnexion: vi.fn() }))
+vi.mock('@/common/lib/retourApresConnexion', () => retour)
+
 function enrobage({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -224,5 +227,26 @@ describe('the visit without an account', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Visiter sans compte' }))
 
     await waitFor(() => expect(api.entrerEnVisite).toHaveBeenCalled())
+  })
+})
+
+/**
+ * Another app of the site (IozyPlay) sends here to sign in and expects the
+ * person back once it is done: the gate hands over as soon as a session is
+ * open - and never before, a refusal keeps the person here.
+ */
+describe('the return to the app that sent here', () => {
+  it('happens once a session is open, not on a refusal', async () => {
+    await ecran({ aucunCompte: false, creationOuverte: false })
+    api.seConnecter.mockRejectedValueOnce(new ApiError(401, 'adresse ou mot de passe incorrect'))
+    await userEvent.type(screen.getByLabelText('Adresse e-mail'), 'moi@exemple.fr')
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mauvais-mot-de-passe')
+    await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }))
+    await waitFor(() => expect(api.seConnecter).toHaveBeenCalled())
+    expect(retour.retournerApresConnexion).not.toHaveBeenCalled()
+
+    api.entrerEnVisite.mockResolvedValue({ id: null, email: null, pseudo: 'Visiteur', admin: false, invite: true })
+    await userEvent.click(await screen.findByRole('button', { name: 'Visiter sans compte' }))
+    await waitFor(() => expect(retour.retournerApresConnexion).toHaveBeenCalledTimes(1))
   })
 })

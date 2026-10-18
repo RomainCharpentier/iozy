@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog'
 import BackLink from '@/components/common/BackLink'
 import SectionHeader from '@/components/common/SectionHeader'
 import { destinationLabelFor } from '@/components/layout/navItems'
+import { PROFILE_URL, useIozyAccount } from '@/lib/account/IozyAccount'
 
 /** Les réglages, comme la page Profil d'IozyCore : une colonne étroite, une
  *  carte par sujet, chaque changement enregistré aussitôt (pas de bouton
@@ -16,6 +17,8 @@ import { destinationLabelFor } from '@/components/layout/navItems'
 export default function SettingsMenu() {
   // Le lien retour NOMME d'où l'on vient (l'en-tête passe son origine en state).
   const back = destinationLabelFor((useLocation().state as { from?: string } | null)?.from)
+  // Avec un compte Iozy, le nom de joueur est son pseudo : il se change sur IozyCore.
+  const account = useIozyAccount()
   const [settings, setSettings] = useState<UserSettings>(settingsService.getSettings())
   const [showResetDialog, setShowResetDialog] = useState(false)
 
@@ -63,19 +66,30 @@ export default function SettingsMenu() {
       <section className={`${ds.card} ${styles.card}`} aria-labelledby="settings-account">
         <SectionHeader
           title={<span id="settings-account">Compte</span>}
-          subtitle="Le nom que les autres joueurs voient pendant les parties."
+          subtitle={
+            account
+              ? 'Ton nom de joueur est le pseudo de ton compte Iozy.'
+              : 'Le nom que les autres joueurs voient pendant les parties.'
+          }
         />
         <label className={styles.field}>
           <span className={styles.label}>Nom d'utilisateur</span>
           <input
             type="text"
             className={ds.input}
-            value={settings.username}
+            value={account ? account.pseudo : settings.username}
             onChange={(e) => handleSettingChange('username', e.target.value)}
             placeholder="Votre nom"
             maxLength={20}
+            readOnly={!!account}
+            aria-describedby={account ? 'settings-account-source' : undefined}
           />
         </label>
+        {account && (
+          <p id="settings-account-source" className={styles.hint}>
+            Pour le changer : <a href={PROFILE_URL}>ton profil sur IozyCore</a>.
+          </p>
+        )}
       </section>
 
       <section className={`${ds.card} ${styles.card}`} aria-labelledby="settings-sound">

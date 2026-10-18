@@ -24,6 +24,7 @@ Avant de considérer une tâche finie : `npm run typecheck && npm run lint && np
 - Les questions d'une partie sont envoyées par **le client hôte** dans `game:start` (le serveur ne lit pas `data/` pour jouer).
 - Rooms en mémoire (perdues au redémarrage) ; questions/catégories/profils dans `data/*.json` via l'API REST `/api/*`.
 - Identité joueur = `playerId` UUID stocké en localStorage (partagé entre onglets → tester le multi avec des profils navigateur différents). Le `socketId` change à chaque reconnexion.
+- Nom de joueur = le pseudo du compte Iozy (celui d'IozyCore, même cookie, `/api/auth/me`) quand quelqu'un est connecté, adopté une fois au démarrage par `lib/account` ; sinon le nom libre des réglages. Seule à la racine, l'app n'a pas de compte.
 - Le parcours actuel est toujours « online » (Home → `/categories` → `/room/create` → `/game`) ; le mode solo existe dans le code mais n'est plus atteignable.
 
 ## Tester dans le navigateur

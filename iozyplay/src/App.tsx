@@ -6,6 +6,7 @@ import { GameProvider } from '@/lib/game/GameContext'
 import { UpdateNotification } from '@/components/common/UpdateNotification'
 import ErrorBoundary from '@/components/common/ErrorBoundary'
 import AppShell from '@/components/layout/AppShell'
+import { IozyAccountProvider } from '@/lib/account/IozyAccount'
 
 const HomePage = lazy(() => import('@/pages/HomePage/HomePage'))
 const UsernamePage = lazy(() => import('@/pages/UsernamePage/UsernamePage'))
@@ -38,6 +39,9 @@ function App() {
         <Toaster position="top-right" richColors closeButton />
         <UpdateNotification />
         <GameOverlay />
+        {/* Qui est connecté sur le site (le compte Iozy), demandé une fois avant
+            tout : son pseudo est le nom de joueur. */}
+        <IozyAccountProvider>
         {/* La coquille (en-tête, grille, barre au pouce) habille tout sauf la
             partie et la porte d'entrée, qui gardent l'ancien conteneur. */}
         <AppShell>
@@ -75,6 +79,7 @@ function App() {
             </Suspense>
           </ErrorBoundary>
         </AppShell>
+        </IozyAccountProvider>
       </BrowserRouter>
     </GameProvider>
   )

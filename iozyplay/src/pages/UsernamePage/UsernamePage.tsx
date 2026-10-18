@@ -7,6 +7,7 @@ import { soundManager } from '@/utils/sounds'
 import Logo from '@/components/common/Logo'
 import AppSwitcher from '@/components/layout/AppSwitcher'
 import AccountLink from '@/components/layout/AccountLink'
+import { loginUrl } from '@/lib/account/IozyAccount'
 
 /** La porte d'entrée, hors coquille (voir AppShell), construite comme la page
  *  de connexion d'IozyCore : le nom en grand, une phrase, une carte-formulaire. */
@@ -117,6 +118,15 @@ export default function UsernamePage() {
       <p className={styles.footnote}>
         Ton nom reste sur cet appareil ; il s'affiche aux autres joueurs pendant les parties.
       </p>
+      {/* Un seul compte pour tout le site : connecté sur IozyCore, le pseudo
+          sert de nom de joueur et cette porte ne se montre plus. Seule à la
+          racine (dev, Vercel), l'app n'a pas d'IozyCore à côté : rien. */}
+      {import.meta.env.BASE_URL !== '/' && (
+        <p className={styles.footnote}>
+          Tu as un compte Iozy ?{' '}
+          <a href={loginUrl(import.meta.env.BASE_URL)}>Connecte-toi</a>, ton pseudo servira de nom.
+        </p>
+      )}
     </main>
     </>
   )
