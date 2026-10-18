@@ -1227,3 +1227,10 @@ son compose devient `iozycore/backend/`.
 Vérifié : contrôles web et `check:pwa`, IozyPlay, 19 parcours e2e, compilation
 backend en Docker au nouveau chemin, images construites depuis la racine,
 pile locale derrière nginx, `check:deploiement` (15).
+
+Suite (même jour) : l'image IozyPlay s'appelle `iozyplay-app`. Le paquet GHCR
+`iozyplay` avait été créé par l'ancien dépôt blindtest-webapp et lui reste
+rattaché, le jeton du dépôt `iozy` ne pouvait pas y écrire (premier
+déploiement après le renommage refusé à cette étape, API et web publiés). Un
+nom neuf appartient au dépôt dès sa première publication ; le compose du NAS
+suit.

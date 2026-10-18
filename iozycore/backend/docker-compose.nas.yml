@@ -130,7 +130,7 @@ services:
   # watchtower follows it the same way. The questions added from the app live
   # in the volume.
   iozyplay:
-    image: ghcr.io/romaincharpentier/iozyplay:latest
+    image: ghcr.io/romaincharpentier/iozyplay-app:latest
     restart: unless-stopped
     volumes:
       - iozyplay_data:/app/data

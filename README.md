@@ -27,7 +27,7 @@ Pour développer une app avec rechargement à chaud, lis le README de son dossie
 
 ## Mettre en ligne et faire tourner
 
-`docs/DEPLOIEMENT.md` (sur un NAS Synology, ou chez un hébergeur) et `docs/EXPLOITATION.md` (démarrer, arrêter, lire une panne, sauvegarder). À chaque push sur `main`, GitHub Actions teste tout et publie trois images (`iozycore-api`, `iozycore-web`, `iozyplay`) que le NAS tire tout seul.
+`docs/DEPLOIEMENT.md` (sur un NAS Synology, ou chez un hébergeur) et `docs/EXPLOITATION.md` (démarrer, arrêter, lire une panne, sauvegarder). À chaque push sur `main`, GitHub Actions teste tout et publie trois images (`iozycore-api`, `iozycore-web`, `iozyplay-app`) que le NAS tire tout seul.
 
 ## Reprendre le code
 
