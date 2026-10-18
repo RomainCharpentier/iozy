@@ -1353,3 +1353,20 @@ disparue ; nouvelle version entre deux visites 1 rechargement puis plus
 rien. Piège du banc : le profil Chromium doit vivre sous un chemin court,
 au-delà de 260 caractères le Cache Storage échoue et l'installation du
 worker avec.
+
+### Lot 184 — IozyPlay : un nom de cache qui ne change pas chaque jour
+
+Fragile connu, vu pendant le banc du lot 183 : le worker d'IozyPlay nommait
+ses caches avec la date du jour « pour forcer la mise à jour ». Or le script
+est réévalué à chaque réveil du worker, donc chaque jour ouvrait de nouveaux
+caches, et la purge ne tourne qu'à l'activation d'une nouvelle version du
+worker : les anciens restaient pour toujours. Nom fixe `iozyplay-v1` (rien de
+périmé n'est servi : HTML, scripts et styles passent réseau d'abord), purge
+inchangée à l'activation, qui évacue aussi les caches datés d'avant. Premier
+test du worker lui-même (`serviceWorkerScript.test.ts`, script chargé avec un
+`self` et un `caches` factices) : précache sous le préfixe, purge, nom stable
+d'un jour à l'autre.
+
+Vérifié : 169 tests unitaires, lint, typecheck ; image reconstruite ; dans un
+vrai Chromium, une visite de `/play/` laisse exactement `iozyplay-v1` et
+`iozyplay-v1-runtime`.
