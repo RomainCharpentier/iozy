@@ -8,6 +8,7 @@ import { soundManager } from '@/utils/sounds'
 import { settingsService } from '@/services/settingsService'
 import SectionHeader from '@/components/common/SectionHeader'
 import PlayerList from '@/components/common/PlayerList'
+import { useIozyAccount } from '@/lib/account/IozyAccount'
 
 interface RoomJoinerProps {
   roomCode: string
@@ -27,6 +28,8 @@ export default function RoomJoiner({
     () => initialPlayerName || settingsService.getSetting('username') || ''
   )
   const [hasJoined, setHasJoined] = useState(!!initialPlayerName)
+  // Avec un compte Iozy, le nom est son pseudo : il se lit, il ne se retape pas.
+  const account = useIozyAccount()
 
   const handleError = useCallback((code: string, message: string) => {
     toast.error(`Erreur : ${message}`)
@@ -65,7 +68,11 @@ export default function RoomJoiner({
               Rejoindre le salon <span className={styles.code}>{roomCode}</span>
             </>
           }
-          subtitle="Le nom que les autres joueurs verront pendant la partie."
+          subtitle={
+            account
+              ? 'Tu rejoins sous le pseudo de ton compte Iozy.'
+              : 'Le nom que les autres joueurs verront pendant la partie.'
+          }
         />
         <form
           className={`${ds.card} ${styles.card}`}
@@ -83,7 +90,8 @@ export default function RoomJoiner({
               placeholder="Entrez votre nom"
               maxLength={20}
               className={ds.input}
-              autoFocus
+              readOnly={!!account}
+              autoFocus={!account}
             />
           </label>
           <div className={styles.actions}>

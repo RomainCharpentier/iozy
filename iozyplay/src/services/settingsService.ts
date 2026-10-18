@@ -3,6 +3,8 @@
 export interface UserSettings {
   // Compte
   username: string
+  // Le nom vient du compte Iozy (voir lib/account) : il part avec la session.
+  usernameFromAccount: boolean
 
   // Son
   soundEnabled: boolean
@@ -15,6 +17,7 @@ export interface UserSettings {
 
 const DEFAULT_SETTINGS: UserSettings = {
   username: '',
+  usernameFromAccount: false,
   soundEnabled: true,
   soundVolume: 70,
   mediaMuted: false,
