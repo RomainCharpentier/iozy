@@ -1,4 +1,4 @@
-import { FamilySwitcher } from './FamilySwitcher'
+import { AppSwitcher } from './AppSwitcher'
 import { GlobalShortcuts } from './GlobalShortcuts'
 
 /**
@@ -22,7 +22,7 @@ export function MobileHeader() {
   return (
     <header className="barre-verre sticky top-0 z-10 border-b border-line md:hidden">
       <div className="flex h-14 items-center gap-3 px-4">
-        <FamilySwitcher compact />
+        <AppSwitcher compact />
         <div className="ml-auto">
           <GlobalShortcuts compact />
         </div>

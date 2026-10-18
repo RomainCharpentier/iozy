@@ -175,19 +175,19 @@
   -webkit-backdrop-filter: blur(20px) saturate(150%);
 }
 
-/* ---- Sélecteur de famille ---- */
+/* ---- Sélecteur d'app ---- */
 /* Dans l'en-tête de chaque app : la marque est un bouton qui ouvre la liste
-   des apps de la famille. Un <details>, donc sans script ; l'app met son
+   des apps Iozy. Un <details>, donc sans script ; l'app met son
    mot-marque dans le <summary>, marque son entrée par aria-current="page", et
    peut fermer le menu au clic ailleurs. */
-.iozy-famille {
+.iozy-apps {
   position: relative;
   display: flex;
   align-items: center;
   height: 100%;
 }
 
-.iozy-famille > summary {
+.iozy-apps > summary {
   list-style: none;
   cursor: pointer;
   display: inline-flex;
@@ -203,26 +203,26 @@
   color: var(--iozy-text);
 }
 
-.iozy-famille > summary::-webkit-details-marker {
+.iozy-apps > summary::-webkit-details-marker {
   display: none;
 }
 
-.iozy-famille > summary:hover {
+.iozy-apps > summary:hover {
   background: var(--iozy-accent-tint);
 }
 
-.iozy-famille__chevron {
+.iozy-apps__chevron {
   width: 1rem;
   height: 1rem;
   color: var(--iozy-text-dim);
   transition: transform 150ms;
 }
 
-.iozy-famille[open] > summary .iozy-famille__chevron {
+.iozy-apps[open] > summary .iozy-apps__chevron {
   transform: rotate(180deg);
 }
 
-.iozy-famille__menu {
+.iozy-apps__menu {
   position: absolute;
   top: calc(100% - 0.25rem);
   left: 0;
@@ -235,7 +235,7 @@
   box-shadow: var(--iozy-shadow-lg);
 }
 
-.iozy-famille__app {
+.iozy-apps__app {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -246,22 +246,22 @@
   font: inherit;
 }
 
-.iozy-famille__app:hover {
+.iozy-apps__app:hover {
   background: var(--iozy-accent-tint);
 }
 
-.iozy-famille__app[aria-current='page'] {
+.iozy-apps__app[aria-current='page'] {
   background: var(--iozy-surface2);
 }
 
-.iozy-famille__app img {
+.iozy-apps__app img {
   flex: none;
   width: 28px;
   height: 28px;
   border-radius: 7px;
 }
 
-.iozy-famille__app b {
+.iozy-apps__app b {
   display: block;
   font-family: var(--iozy-font-display);
   font-weight: 600;
@@ -269,15 +269,15 @@
   letter-spacing: -0.02em;
 }
 
-.iozy-famille__app small {
+.iozy-apps__app small {
   display: block;
   color: var(--iozy-text-dim);
   font-size: 0.8125rem;
 }
 
-/* Le dernier lien du menu : vers la page d'accueil de la famille, qui montre
+/* Le dernier lien du menu : vers la page d'accueil du site, qui montre
    toutes les apps. En retrait, sous une ligne : une sortie, pas une app. */
-.iozy-famille__accueil {
+.iozy-apps__accueil {
   margin-top: 0.25rem;
   padding-top: 0.625rem;
   border-top: 1px solid var(--iozy-line);
@@ -285,8 +285,8 @@
   font-size: 0.875rem;
 }
 
-/* ---- Barre de la famille ---- */
-/* L'en-tête d'une page qui n'est pas une app (la page d'accueil) : la marque
+/* ---- Barre du site ---- */
+/* L'en-tête d'une page qui n'est pas une app (la page d'accueil du site) : la marque
    et son menu à gauche, les mêmes options qu'ailleurs à droite. Les apps ont
    leur propre barre avec le même contenu. */
 .iozy-barre {

@@ -6,16 +6,16 @@ import Wordmark from '@/components/layout/Wordmark'
 import styles from '@/components/layout/AppShell.module.scss'
 
 /**
- * La marque de l'en-tête ouvre la famille : cette app, IozyCore, et un dernier
+ * La marque de l'en-tête ouvre les autres apps Iozy : cette app, IozyCore, et un dernier
  * lien vers la page d'accueil du site, qui montre toutes les apps. Seulement quand l'app vit sous son préfixe (/play, à côté des
  * autres) ; seule à la racine (dev, Vercel), la marque reste un simple lien
  * vers l'accueil et rien de tout ceci n'existe.
  *
  * Un <details>, donc ouverture et fermeture sans script ; l'effet ne fait que
  * fermer au clic ailleurs ou sur Échap. Les styles sont ceux de la charte
- * (`.iozy-famille`, iozykit/css/components.css), les mêmes dans IozyCore.
+ * (`.iozy-apps`, iozykit/css/components.css), les mêmes dans IozyCore.
  */
-export default function FamilySwitcher() {
+export default function AppSwitcher() {
   const details = useRef<HTMLDetailsElement>(null)
   const standalone = import.meta.env.BASE_URL === '/'
 
@@ -39,13 +39,13 @@ export default function FamilySwitcher() {
   if (standalone) return <Wordmark />
 
   return (
-    <details ref={details} className="iozy-famille">
+    <details ref={details} className="iozy-apps">
       <summary className={styles.wordmark}>
         Iozy<span className={styles.wordmarkAccent}>Play</span>
-        <ChevronDown className="iozy-famille__chevron" aria-hidden />
+        <ChevronDown className="iozy-apps__chevron" aria-hidden />
       </summary>
-      <nav className="iozy-famille__menu" aria-label="La famille Iozy">
-        <a className="iozy-famille__app" href="/core/">
+      <nav className="iozy-apps__menu" aria-label="Les apps Iozy">
+        <a className="iozy-apps__app" href="/core/">
           <img src={iozycoreMark} alt="" />
           <span>
             <b>
@@ -54,7 +54,7 @@ export default function FamilySwitcher() {
             <small>Ta collection</small>
           </span>
         </a>
-        <a className="iozy-famille__app" href={import.meta.env.BASE_URL} aria-current="page">
+        <a className="iozy-apps__app" href={import.meta.env.BASE_URL} aria-current="page">
           <img src={iozyplayMark} alt="" />
           <span>
             <b>
@@ -63,7 +63,7 @@ export default function FamilySwitcher() {
             <small>Le blindtest</small>
           </span>
         </a>
-        <a className="iozy-famille__app iozy-famille__accueil" href="/">
+        <a className="iozy-apps__app iozy-apps__accueil" href="/">
           Voir toutes les apps
         </a>
       </nav>

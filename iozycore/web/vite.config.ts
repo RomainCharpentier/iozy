@@ -44,19 +44,19 @@ export default defineConfig({
   // The same alias as tsconfig.app.json: `@/` = src (Batch 134).
   // The path the app is served under: '/' alone in dev and in the e2e stack,
   // '/core/' in the Docker image (ARG in the Dockerfile), where the root of
-  // the site is the home of the family and /play is IozyPlay. The router, the
+  // the site is the home page and /play is IozyPlay. The router, the
   // service worker, the manifest and the share links all read BASE_URL.
   base: `${(process.env.IOZYCORE_BASE_PATH ?? '').replace(/\/+$/, '')}/`,
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {
-      // Two pages: the app, and the home of the family (famille/index.html),
+      // Two pages: the app, and the home page of the site (home/index.html),
       // which belongs to no app and uses the charter only; nginx serves it at
       // the root of the site.
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
-        famille: fileURLToPath(new URL('./famille/index.html', import.meta.url)),
+        home: fileURLToPath(new URL('./home/index.html', import.meta.url)),
       },
     },
   },

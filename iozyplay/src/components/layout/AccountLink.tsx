@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Le lien de compte, le même partout dans la famille : « Connexion » sans
+ * Le lien de compte, le même sur chaque page du site : « Connexion » sans
  * session IozyCore (une visite compte pour rien), « Profil » avec. Même site,
  * même cookie : l'API d'IozyCore répond 401 quand personne n'est connecté.
  * Seule à la racine (dev, Vercel), l'app n'a pas d'IozyCore à côté : rien.

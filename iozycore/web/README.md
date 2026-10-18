@@ -67,7 +67,7 @@ plutôt que du style en dur, et les classes Tailwind de `src/index.css`
 visuellement cohérent avec le reste de l'app. Une route de plus dans
 `app/App.tsx`, et c'est tout.
 
-**Changer une couleur** : les deux thèmes viennent de la charte de la famille
+**Changer une couleur** : les deux thèmes viennent de la charte Iozy
 Iozy (IozyKit), installée comme paquet `iozykit` épinglé sur un commit dans
 `package.json` (`github:RomainCharpentier/IozyKit#<sha>` ; `package-lock.json`
 dit lequel). Rien du kit n'est copié dans ce dépôt. `src/index.css` ne fait

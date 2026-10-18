@@ -1,10 +1,10 @@
-// The home of the family: its stylesheet, and the two brand files of the
+// The home page: its stylesheet, and the two brand files of the
 // charter (the `iozykit` package, linked from the root of the repository).
 // Imported here rather than written in the HTML, because Vite only rewrites
 // <img src> at build time: in dev, a path out of this folder would never
 // reach the browser. An import gives a URL that works in both (/@fs/ in
 // dev, inlined or hashed in the build).
-import './famille.css'
+import './home.css'
 import iozycore from 'iozykit/brand/iozycore.svg'
 import iozyplay from 'iozykit/brand/iozyplay.svg'
 
@@ -19,7 +19,7 @@ for (const image of document.querySelectorAll('img[data-marque]')) {
 }
 
 // The menu of the brand closes on a click elsewhere or on Escape, as in the apps.
-const menu = document.querySelector('details.iozy-famille')
+const menu = document.querySelector('details.iozy-apps')
 document.addEventListener('click', (event) => {
   if (menu.open && !menu.contains(event.target)) menu.open = false
 })

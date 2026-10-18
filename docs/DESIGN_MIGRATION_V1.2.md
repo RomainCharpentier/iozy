@@ -1273,3 +1273,16 @@ heuristique et une livraison restait invisible (vu sur le poste).
 Vérifié : contrôles web (build compris), IozyPlay, kit ; pile locale derrière
 nginx, barre lue sur la page d'accueil, l'écran de connexion et l'écran du nom
 de joueur ; `check:deploiement` (15).
+
+### Lot 180 — Plus de « famille »
+
+Le mot disparaît du code et du site : la page d'accueil vit dans
+`iozycore/web/home/` (classes `.home__*`), le sélecteur des deux apps s'appelle
+`AppSwitcher` et ses classes `.iozy-apps*` ; les libellés deviennent « Les apps
+Iozy » (menu), « Toutes les apps » (pieds de page) et « Iozy » (titre de la page
+d'accueil). Les documents parlent de la page d'accueil et des apps Iozy. Restent
+tels quels les emplois sans rapport (`font-family`, « Spy x Family », le
+« trait de famille » du logo dans sa fiche de marque).
+
+Vérifié : contrôles web (build compris), IozyPlay, kit ; pile locale derrière
+nginx et `check:deploiement`.

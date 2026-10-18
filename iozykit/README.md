@@ -1,6 +1,6 @@
 # IozyKit
 
-La charte graphique de la famille Iozy — **IozyCore** (le catalogue de collection) et **IozyPlay** (le blindtest) — en un seul endroit : les couleurs des deux thèmes, les polices, les rayons, les règles d'interaction, les composants de base, la construction du logo, et le contrôle de contraste qui garantit que tout reste lisible.
+La charte graphique Iozy — **IozyCore** (le catalogue de collection) et **IozyPlay** (le blindtest) — en un seul endroit : les couleurs des deux thèmes, les polices, les rayons, les règles d'interaction, les composants de base, la construction du logo, et le contrôle de contraste qui garantit que tout reste lisible.
 
 Ce dépôt est la **source de vérité**. Les apps n'y pointent pas à l'exécution : chacune l'installe comme **dépendance git épinglée sur un commit** (voir « Consommer »). Le dépôt est public, leurs déploiements (Vercel, Docker sur NAS) le téléchargent comme n'importe quel paquet.
 
@@ -12,7 +12,7 @@ css/tokens.css           GÉNÉRÉ depuis tokens.json : une propriété --iozy-<
 css/base.css             règles globales : titres, curseur, survol, focus, sélection, squelette, sr-only
 css/components.css       .iozy-btn (+ --primary/--secondary/--ghost/--danger/--lg), .iozy-field,
                          .iozy-card (+ --lg/--danger), .iozy-chip (+ --active), .iozy-glass,
-                         .iozy-famille (le sélecteur d'app de l'en-tête, un <details>)
+                         .iozy-apps (le sélecteur d'app de l'en-tête, un <details>)
 brand/                   les marques (tuile + étagère) et leurs règles
 scripts/build-css.mjs    génère css/tokens.css
 scripts/check-contrast.mjs  vérifie AA (4,5:1) sur toutes les paires qui comptent, dans les deux thèmes

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* The charter of the Iozy family (IozyKit), as the `iozykit` package pinned
+/* The Iozy charter (IozyKit), as the `iozykit` package pinned
    on a commit in package.json (package-lock.json names the commit). To
    change a charter value: edit IozyKit/tokens.json, run `npm test` there
    (it checks the contrast), push, then move the pin to the new commit.

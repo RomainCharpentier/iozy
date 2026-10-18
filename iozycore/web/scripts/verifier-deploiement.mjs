@@ -36,7 +36,7 @@ if (!adresse) {
 
 const base = adresse.replace(/\/+$/, '')
 // Where the app lives on the site: /core by default (the root is the home of
-// the family); empty for a deployment of the app alone at the root.
+// the home page of the site); empty for a deployment of the app alone at the root.
 const app = (process.env.IOZYCORE_BASE_PATH ?? '/core').replace(/\/+$/, '')
 const problemes = []
 const reussites = []
@@ -153,19 +153,19 @@ try {
   problemes.push(`/tier-lists unreachable — ${cause.message}`)
 }
 
-// --- 6 bis. The root is the home of the family, and old addresses still arrive
+// --- 6 bis. The root is the home page of the site, and old addresses still arrive
 //
-//     The root serves the family page (built with the app, web/famille/).
+//     The root serves the home page (built with the app, web/home/).
 //     Without the nginx rule, it would answer 200 with the app shell, and
 //     the page would be gone with no error anywhere.
 try {
-  const famille = await demander('/')
-  verifier(famille.status === 200, '/ (the home of the family) answers 200', `received ${famille.status}`)
-  const type = famille.headers.get('content-type') ?? ''
+  const accueil = await demander('/')
+  verifier(accueil.status === 200, '/ (the home page) answers 200', `received ${accueil.status}`)
+  const type = accueil.headers.get('content-type') ?? ''
   verifier(type.includes('text/html'), '/ returns HTML', `content-type: ${type || 'absent'}`)
-  if (famille.status === 200 && type.includes('text/html')) {
-    const corps = await famille.text()
-    verifier(corps.includes('Iozy<span>Play'), '/ is the family page, not the app shell', 'IozyPlay not named in the page')
+  if (accueil.status === 200 && type.includes('text/html')) {
+    const corps = await accueil.text()
+    verifier(corps.includes('Iozy<span>Play'), '/ is the home page, not the app shell', 'IozyPlay not named in the page')
   }
   // An address of the app from before it moved (a bookmark, a share link,
   // the installed PWA) must still arrive, with the same path.

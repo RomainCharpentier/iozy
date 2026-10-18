@@ -1,10 +1,10 @@
 # Charte graphique — ce qui est propre à IozyPlay
 
-La charte de la famille Iozy (palette, polices, formes, interactions, structure des écrans, logo) vit dans **IozyKit** (son propre dépôt, public ; installé ici dans `node_modules/iozykit/`) : lire `IozyKit/CHARTE.md` d'abord. Cette page ne dit que ce qui est spécifique à IozyPlay et où la charte se branche dans le code.
+La charte Iozy (palette, polices, formes, interactions, structure des écrans, logo) vit dans **IozyKit** (son propre dépôt, public ; installé ici dans `node_modules/iozykit/`) : lire `IozyKit/CHARTE.md` d'abord. Cette page ne dit que ce qui est spécifique à IozyPlay et où la charte se branche dans le code.
 
 ## Le nom
 
-**IozyPlay** (un seul mot, I et P majuscules, comme IozyCore). « Iozy » rattache l'app à la famille ; « Play » dit le jeu et le bouton lecture de l'extrait. « Blindtest » reste le nom du *genre* dans les textes (« le blindtest multijoueur »), jamais celui de l'app.
+**IozyPlay** (un seul mot, I et P majuscules, comme IozyCore). « Iozy » rattache l'app aux autres ; « Play » dit le jeu et le bouton lecture de l'extrait. « Blindtest » reste le nom du *genre* dans les textes (« le blindtest multijoueur »), jamais celui de l'app.
 
 Ce qui ne change pas de nom : les clés `localStorage` (`blindtest-settings`, `blindtest-player-id`, `blindtest-session-token:*`) — les renommer réinitialiserait profils et réglages de tous les joueurs — et les identifiants d'hébergement (`render.yaml`, URL Railway).
 
@@ -21,7 +21,7 @@ Ce qui ne change pas de nom : les clés `localStorage` (`blindtest-settings`, `b
 
 - **La coquille** (`components/layout/AppShell.tsx`, `navItems.ts`) : deux destinations (Jouer, Éditeur), raccourcis thème et réglages, largeurs `wide` (éditeur) / `medium` (jeu) / `narrow` (réglages). Hors coquille : `/game` (plein écran, son propre bandeau) et `/username` (la porte d'entrée).
 - **Les primitives** (`components/common/`) : `SectionHeader`, `BackLink`, `IconPill`, `EmptyState`, `PlayerList`. Icônes `lucide-react` ; les emojis des thèmes sont du contenu et restent.
-- **Le logo** : triangle « lecture » sur l'étagère de la famille. Trois exemplaires du même dessin, à retoucher ensemble : `components/common/Logo.tsx` (SVG en ligne, suit le thème de l'app), `public/favicon.svg` (suit le système), `public/logo.svg` (installation et partage). Copie de référence dans `IozyKit/brand/iozyplay.svg`.
+- **Le logo** : triangle « lecture » sur l'étagère commune. Trois exemplaires du même dessin, à retoucher ensemble : `components/common/Logo.tsx` (SVG en ligne, suit le thème de l'app), `public/favicon.svg` (suit le système), `public/logo.svg` (installation et partage). Copie de référence dans `IozyKit/brand/iozyplay.svg`.
 - **Le bandeau de jeu** (`App.tsx`, `--game-banner-height`) : le nom de l'app en accent-texte, Space Grotesk.
 
 ## Ce qui reste à faire

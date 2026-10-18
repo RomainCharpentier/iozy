@@ -88,7 +88,7 @@ services:
       - "8081:80"
 
   # IozyPlay (the blindtest), served by the same nginx under /play: one
-  # address for the whole family. Built from iozyplay/ of this repository.
+  # address for every Iozy app. Built from iozyplay/ of this repository.
   iozyplay:
     build:
       context: ../..

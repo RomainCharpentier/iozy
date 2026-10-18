@@ -67,7 +67,7 @@ docker compose up -d --build
 >   psql -U iozycore -d iozycore -c "ALTER USER iozycore WITH PASSWORD '<nouveau>';"
 > ```
 
-**Vérifier** : `http://<ip-du-nas>:8081` affiche la page de la famille, et
+**Vérifier** : `http://<ip-du-nas>:8081` affiche la page d'accueil, et
 `http://<ip-du-nas>:8081/core/` l'écran de connexion d'IozyCore.
 
 > **Ce piège est réglé** (il valait la peine de l'être). nginx résolvait le nom
@@ -103,13 +103,13 @@ cd iozycore/web && npm run check:deploiement https://ton-nom.synology.me
 
 Quinze contrôles, tous en GET, aucun compte requis.
 
-## Une seule adresse pour la famille
+## Une seule adresse pour toutes les apps
 
-`https://ton-nom.synology.me` est la page de la famille : elle présente les
+`https://ton-nom.synology.me` est la page d'accueil : elle présente les
 deux apps et mène à chacune. IozyCore vit sous `/core`, IozyPlay sous `/play`.
 Une ancienne adresse d'IozyCore (un favori, un lien de partage, l'app
 installée sur le téléphone) est redirigée sous `/core` avec le même chemin ;
-l'app installée avant ce changement s'ouvre donc sur la page de la famille,
+l'app installée avant ce changement s'ouvre donc sur la page d'accueil,
 la réinstaller depuis `/core/` la ramène à son écran.
 
 Le blindtest vit sous `https://ton-nom.synology.me/play`. Rien à
@@ -123,9 +123,9 @@ autres (`docker-compose.nas.yml`). Ses questions vivent dans le volume
 En local, le même montage vient avec `docker compose up --build`, puis
 `http://localhost:8081/play/`.
 
-La page de la famille est construite avec le web (`iozycore/web/famille/`) et servie
+La page d'accueil est construite avec le web (`iozycore/web/home/`) et servie
 par le même nginx à la racine. Dans chaque app, la marque en haut à gauche
-ouvre le menu de la famille (IozyCore, IozyPlay) ; les pieds de page
+ouvre le menu des apps (IozyCore, IozyPlay) ; les pieds de page
 renvoient à la page d'accueil.
 
 **Vérifier** : `/play/` affiche IozyPlay et `/play/api/health` répond
@@ -312,8 +312,8 @@ qui sert déjà des gens :
 | le manifeste sort en `application/manifest+json` | l'invite d'installation disparaît, sans un message ; le type vient du serveur, pas du fichier |
 | `sw.js` interdit la mise en cache | les visiteurs restent sur l'ancienne coquille, parfois des jours, sans moyen de le savoir |
 | `/tier-lists` rend du HTML en 200 | pas de repli SPA : l'app marche tant qu'on navigue et casse au premier F5 ou au premier lien partagé |
-| `/` rend la page de la famille, pas la coquille de l'app | la règle nginx de la racine manque : l'adresse répond 200 avec l'app, et la page a disparu sans erreur nulle part |
-| `/tier-lists` (ancienne adresse) est redirigé vers `/core/tier-lists` | les favoris, liens de partage et l'app installée d'avant le déménagement tombent sur la page de la famille au lieu de leur écran |
+| `/` rend la page d'accueil, pas la coquille de l'app | la règle nginx de la racine manque : l'adresse répond 200 avec l'app, et la page a disparu sans erreur nulle part |
+| `/tier-lists` (ancienne adresse) est redirigé vers `/core/tier-lists` | les favoris, liens de partage et l'app installée d'avant le déménagement tombent sur la page d'accueil au lieu de leur écran |
 
 Les mêmes contrôles valent sur la pile Docker locale
 (`npm run check:deploiement http://localhost:8081`) : c'est là qu'ils ont été

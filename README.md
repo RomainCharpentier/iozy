@@ -1,6 +1,6 @@
 # Iozy
 
-La famille Iozy, dans un seul dépôt : des apps personnelles, auto-hébergées, servies à une seule adresse.
+Les apps Iozy, dans un seul dépôt : des apps personnelles, auto-hébergées, servies à une seule adresse.
 
 | Dossier | Ce que c'est | Où ça vit sur le site |
 |---|---|---|
@@ -9,7 +9,7 @@ La famille Iozy, dans un seul dépôt : des apps personnelles, auto-hébergées,
 | `iozykit/` | **IozyKit**, la charte graphique commune : couleurs des deux thèmes, polices, formes, composants de base, marques. Dépendance locale des deux apps. | — |
 | `docs/` | Déploiement, exploitation, conception, journal des lots. | — |
 
-La racine du site, `/`, est la page de la famille ; dans chaque app, la marque en haut à gauche ouvre le menu pour passer à l'autre.
+La racine du site, `/`, est la page d'accueil ; dans chaque app, la marque en haut à gauche ouvre le menu pour passer à l'autre.
 
 ## Lancer tout en local
 
@@ -19,7 +19,7 @@ Docker Desktop, puis :
 cd iozycore/backend && docker compose up --build
 ```
 
-- http://localhost:8081/ : la page de la famille
+- http://localhost:8081/ : la page d'accueil
 - http://localhost:8081/core/ : IozyCore (API sur :8080)
 - http://localhost:8081/play/ : IozyPlay
 

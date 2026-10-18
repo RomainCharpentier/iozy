@@ -2,11 +2,11 @@
 
 Base de connaissances personnelle, auto-hébergée, pour cataloguer une collection (mangas, jeux vidéo, jeux de société, types personnalisés). Chaque compte a sa collection ; le catalogue des œuvres est partagé.
 
-Ce dossier est IozyCore, une app du monorepo de la famille Iozy : `backend/` (Spring Boot, la référence), `web/` (React, le client vivant), `ios/` (SwiftUI, **hors service** depuis le 2026-08-29), `design_handoff_v2/` (maquettes). Les règles communes à la famille (langue, dépôt public, git, façon de travailler, comment vérifier) sont dans `../CLAUDE.md` ; `backend/` et `web/` ont chacun leur `CLAUDE.md` : lis celui du dossier où tu travailles.
+Ce dossier est IozyCore, une app du monorepo Iozy : `backend/` (Spring Boot, la référence), `web/` (React, le client vivant), `ios/` (SwiftUI, **hors service** depuis le 2026-08-29), `design_handoff_v2/` (maquettes). Les règles communes à toutes les apps (langue, dépôt public, git, façon de travailler, comment vérifier) sont dans `../CLAUDE.md` ; `backend/` et `web/` ont chacun leur `CLAUDE.md` : lis celui du dossier où tu travailles.
 
 ## Où chercher
 
-- `README.md` : lancer et tester IozyCore (pratique, pas architectural) ; `../README.md` pour la famille.
+- `README.md` : lancer et tester IozyCore (pratique, pas architectural) ; `../README.md` pour l'ensemble.
 - `backend/README.md`, `web/README.md` : section « Le projet » en tête, pensée pour reprendre le code.
 - `../docs/CONCEPTION.md` : vision et modèle. Le code fait foi en cas de divergence.
 - `../docs/DESIGN_MIGRATION_V1.2.md` : journal des lots de l'interface web.
