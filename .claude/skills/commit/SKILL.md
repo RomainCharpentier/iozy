@@ -8,8 +8,8 @@ disable-model-invocation: true
 
 1. `git status` et `git diff` : un commit = une intention. S'il y a un `fix` et un `feat` mélangés, ou un `refactor` et un changement de comportement, scinde en plusieurs commits.
 2. Lance la suite complète du dossier touché avant de commiter :
-   - `web/` : `npm test`, `npm run typecheck`, `npm run lint` (plus `npm run check:contrast` si une couleur a bougé, `npm run check:deploiement` si nginx ou le Dockerfile ont bougé).
-   - `backend/` : suite complète via le skill `test-backend`. Si des paquets ont bougé, `ModulesTest` d'abord.
+   - `iozycore/web/` : `npm test`, `npm run typecheck`, `npm run lint` (plus `npm run check:contrast` si une couleur a bougé, `npm run check:deploiement` si nginx ou le Dockerfile ont bougé).
+   - `iozycore/backend/` : suite complète via le skill `test-backend`. Si des paquets ont bougé, `ModulesTest` d'abord.
 3. Branche : le propriétaire commite sur `main`. Pour tout le reste, une branche, jamais de push forcé.
 4. Message, **en anglais simple** (sujet comme corps) :
 

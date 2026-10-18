@@ -8,7 +8,7 @@
         "run",
         "dev",
         "--prefix",
-        "web"
+        "iozycore/web"
       ],
       "port": 5173
     },
@@ -19,7 +19,7 @@
         "run",
         "preview",
         "--prefix",
-        "web"
+        "iozycore/web"
       ],
       "port": 4173
     },
@@ -28,7 +28,7 @@
       "runtimeExecutable": "cmd",
       "runtimeArgs": [
         "/c",
-        "set IOZYCORE_API=http://localhost:8090&& npm run dev --prefix web -- --port 5174 --strictPort"
+        "set IOZYCORE_API=http://localhost:8090&& npm run dev --prefix iozycore/web -- --port 5174 --strictPort"
       ],
       "port": 5174
     },
@@ -41,7 +41,7 @@
         "run",
         "dev",
         "--prefix",
-        "web",
+        "iozycore/web",
         "--",
         "--port",
         "5174",

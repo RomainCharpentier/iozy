@@ -1,4 +1,4 @@
-# Build context = the repository root (web/ and iozyplay/ images need the
+# Build context = the repository root (the web and IozyPlay images need the
 # sibling iozykit/). Keep the context small and free of local state.
 .git
 .github
@@ -7,16 +7,16 @@
 .codex
 .nomik
 claude-lab
-design_handoff_v2
+iozycore/design_handoff_v2
 docs
-ios
+iozycore/ios
 tmp
 **/node_modules
 **/dist
 **/test-results
 **/playwright-report
-backend/target
-backend/.env
+iozycore/backend/target
+iozycore/backend/.env
 *.local.md
 *.bundle
 *.tar

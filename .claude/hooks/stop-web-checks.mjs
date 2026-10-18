@@ -1,14 +1,14 @@
-// Stop hook: when web/ code changed, run the real checks before the turn can end.
+// Stop hook: when iozycore/web code changed, run the real checks before the turn can end.
 // Exit code 2 blocks the stop and sends stderr back to Claude. Anything else lets it end.
 import { execFileSync, spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const web = join(root, 'web')
+const web = join(root, 'iozycore', 'web')
 
 function changedWebCode() {
-  const out = execFileSync('git', ['status', '--porcelain', '--', 'web'], { cwd: root, encoding: 'utf8' })
+  const out = execFileSync('git', ['status', '--porcelain', '--', 'iozycore/web'], { cwd: root, encoding: 'utf8' })
   return out
     .split('\n')
     .filter(Boolean)
@@ -30,6 +30,6 @@ const failures = ['typecheck', 'lint']
 
 if (failures.length > 0) {
   const report = failures.map((f) => `--- npm run ${f.script} failed ---\n${f.output}`).join('\n\n')
-  process.stderr.write(`web/ changed and checks fail. Fix them before finishing.\n\n${report}\n`)
+  process.stderr.write(`iozycore/web changed and checks fail. Fix them before finishing.\n\n${report}\n`)
   process.exit(2)
 }

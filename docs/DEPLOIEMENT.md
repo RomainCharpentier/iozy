@@ -43,7 +43,7 @@ sont redirigés vers le NAS sur ta box. Let's Encrypt a besoin du 80.
 
 ## 2. Les conteneurs
 
-Copier le dépôt sur le NAS, puis créer `backend/.env` :
+Copier le dépôt sur le NAS, puis créer `iozycore/backend/.env` :
 
 ```
 DB_PASSWORD=un-mot-de-passe-long
@@ -51,7 +51,7 @@ WEB_ALLOWED_ORIGINS=https://ton-nom.synology.me
 SESSION_COOKIE_SECURE=true
 ```
 
-Puis, dans **Container Manager** (ou en SSH depuis `backend/`) :
+Puis, dans **Container Manager** (ou en SSH depuis `iozycore/backend/`) :
 
 ```bash
 docker compose up -d --build
@@ -74,7 +74,7 @@ docker compose up -d --build
 > `iozycore-api` **au démarrage** et gardait l'ancienne adresse : après un
 > `--force-recreate`, l'API répondait 200 en direct sur :8080 pendant que :8081
 > rendait 502, et il fallait penser à `docker compose restart web`. nginx
-> re-résout maintenant à chaque requête (voir `web/nginx.conf`, `resolver`) —
+> re-résout maintenant à chaque requête (voir `iozycore/web/nginx.conf`, `resolver`) —
 > ce qui était indispensable avant de rendre les mises à jour automatiques,
 > puisque plus personne n'est là pour y penser.
 
@@ -98,7 +98,7 @@ Encrypt**, pour ce même nom, et *Configure* pour l'assigner au reverse proxy.
 **Vérifier** :
 
 ```bash
-cd web && npm run check:deploiement https://ton-nom.synology.me
+cd iozycore/web && npm run check:deploiement https://ton-nom.synology.me
 ```
 
 Quinze contrôles, tous en GET, aucun compte requis.
@@ -123,7 +123,7 @@ autres (`docker-compose.nas.yml`). Ses questions vivent dans le volume
 En local, le même montage vient avec `docker compose up --build`, puis
 `http://localhost:8081/play/`.
 
-La page de la famille est construite avec le web (`web/famille/`) et servie
+La page de la famille est construite avec le web (`iozycore/web/famille/`) et servie
 par le même nginx à la racine. Dans chaque app, la marque en haut à gauche
 ouvre le menu de la famille (IozyCore, IozyPlay) ; les pieds de page
 renvoient à la page d'accueil.
@@ -189,7 +189,7 @@ Toujours dans le même projet Railway : **New → GitHub Repo**, ce dépôt, pui
 dans les réglages du service :
 
 - **Root Directory** : `backend`
-- **Builder** : Dockerfile (déjà déclaré par `backend/railway.json`, qui pose
+- **Builder** : Dockerfile (déjà déclaré par `iozycore/backend/railway.json`, qui pose
   aussi le contrôle de santé sur `/api/auth/etat` — une des trois routes
   ouvertes, donc lisible sans compte).
 
@@ -209,7 +209,7 @@ dans les réglages du service :
 Les clés de fournisseurs (`BGG_APPLICATION_TOKEN`, `IGDB_*`, `MAL_CLIENT_ID`,
 `GOOGLE_BOOKS_API_KEY`, `GEMINI_API_KEY`) sont **facultatives** : sans elles,
 les fonctionnalités correspondantes s'absentent proprement (voir
-`backend/.env.example`, qui dit ce que chacune coupe).
+`iozycore/backend/.env.example`, qui dit ce que chacune coupe).
 
 `PORT` est posé par Railway : l'application l'écoute déjà (`server.port` dans
 `application.yml`).
@@ -230,10 +230,10 @@ regarder les journaux avant de toucher à autre chose.
 
 Sur Vercel : **Add New → Project**, ce dépôt, **Root Directory `web`**. Le
 reste (framework Vite, `npm run build`, sortie `dist`) est déjà déclaré par
-`web/vercel.json`.
+`iozycore/web/vercel.json`.
 
 **Une seule ligne à changer avant le premier déploiement** : dans
-`web/vercel.json`, remplacer `REMPLACER-PAR-TON-API.up.railway.app` par le
+`iozycore/web/vercel.json`, remplacer `REMPLACER-PAR-TON-API.up.railway.app` par le
 domaine réel de l'API. Ce n'est pas un secret — c'est une adresse publique, et
 la mettre dans le dépôt évite qu'elle vive dans un tableau de bord que personne
 ne relit.
@@ -277,7 +277,7 @@ une invitation ».
 
 Chaque compte a **sa** collection : le catalogue des œuvres est partagé (une
 œuvre est la même pour tout le monde), mais possessions, envies, classements,
-analyses et prix relevés sont cloisonnés (voir `backend/README.md`, section
+analyses et prix relevés sont cloisonnés (voir `iozycore/backend/README.md`, section
 « L'isolation »).
 
 Ce qui est **partagé et administré** : les catégories de collection, les
@@ -297,7 +297,7 @@ toujours quelqu'un pour administrer l'instance.
 ## Tout vérifier d'un coup
 
 ```
-cd web && npm run check:deploiement https://<ton-app>.vercel.app
+cd iozycore/web && npm run check:deploiement https://<ton-app>.vercel.app
 ```
 
 Quinze contrôles, tous en GET, aucun compte requis - le script ne laisse rien
@@ -352,7 +352,7 @@ seul comportement.
 ## Numéro de version
 
 Le numéro `Majeur.Mineur.Patch` n'est jamais saisi à la main : le déploiement le
-**déduit des messages de commit** (`web/scripts/version.mjs`, testé par
+**déduit des messages de commit** (`iozycore/web/scripts/version.mjs`, testé par
 `version.test.mjs`). Le type du commit décide donc du chiffre qui monte.
 
 | Commit | Effet |

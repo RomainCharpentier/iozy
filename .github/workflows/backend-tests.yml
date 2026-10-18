@@ -7,11 +7,11 @@ name: Backend tests
 #
 # Testcontainers needs the Docker daemon, which is available natively on
 # GitHub-hosted runners - no need for the "Docker-in-Docker" mount used
-# locally, see backend/README.md section 3.
+# locally, see iozycore/backend/README.md section 3.
 on:
   pull_request:
     paths:
-      - "backend/**"
+      - "iozycore/backend/**"
       - ".github/workflows/backend-tests.yml"
   # Manual trigger with an optional filter (useful to isolate a flaky test
   # without installing Java/Maven locally, e.g. -Dtest=Xxx#method).
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: iozycore/backend
 
     steps:
       - uses: actions/checkout@v4

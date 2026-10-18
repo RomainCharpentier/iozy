@@ -85,8 +85,8 @@ services:
 
   web:
     build:
-      context: ..
-      dockerfile: web/Dockerfile
+      context: ../..
+      dockerfile: iozycore/web/Dockerfile
     image: iozycore-web:latest
     restart: unless-stopped
     depends_on:

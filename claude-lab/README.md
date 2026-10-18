@@ -1,6 +1,6 @@
 # claude-lab
 
-Projet d'entraînement pour l'examen **Claude Certified Developer – Foundations (CCDV-F)**. Il ne fait pas partie du produit : ni `backend/` ni `web/` ne l'utilisent, et il ne touche à aucune donnée réelle.
+Projet d'entraînement pour l'examen **Claude Certified Developer – Foundations (CCDV-F)**. Il ne fait pas partie du produit : ni `iozycore/backend/` ni `iozycore/web/` ne l'utilisent, et il ne touche à aucune donnée réelle.
 
 ## Pourquoi
 

@@ -1208,3 +1208,22 @@ e2e ne changent pas.
 Vérifié : contrôles web (491 tests, lint muet, contraste, frontières),
 IozyPlay (typecheck, lint, 166 tests), kit (86 paires), pile locale derrière
 nginx : menu ouvert et fermé dans les deux apps, liens `/core/` et `/play/`.
+
+### Lot 176 — Le dépôt `iozy` : trois dossiers de même rang
+
+Le dépôt s'appelle `iozy` et sa racine se lit comme un monorepo : `iozycore/`
+(backend, web, ios, maquettes, son README et son CLAUDE.md), `iozyplay/`,
+`iozykit/`, et `docs/` au niveau de la famille. Un README et un CLAUDE.md de
+racine disent ce qu'est la famille et portent les règles communes ; celui
+d'IozyCore ne garde que ce qui lui est propre. Tout ce qui nommait un chemin
+suit (`git mv`, l'historique avec) : workflows (contextes, dossiers de
+travail, chemin du script de version), Dockerfiles et compose (contexte
+`../..`), `.dockerignore`, `.gitignore`, skills et règles de `.claude/`,
+config de lancement, lien du kit (`file:../../iozykit`), docs. Les images
+GHCR gardent leurs noms (`iozycore-api`, `iozycore-web`, `iozyplay`), écrits
+en clair dans le workflow : le NAS ne change pas d'images, seul le chemin de
+son compose devient `iozycore/backend/`.
+
+Vérifié : contrôles web et `check:pwa`, IozyPlay, 19 parcours e2e, compilation
+backend en Docker au nouveau chemin, images construites depuis la racine,
+pile locale derrière nginx, `check:deploiement` (15).

@@ -24,7 +24,7 @@ raisons indépendantes** — aucune n'était un simple manque de câblage.
 | # | Barrière | Preuve |
 |---|---|---|
 | 1 | **Aucun octet d'image n'atteignait le backend** | Le scan de code-barres est **entièrement navigateur** : `CameraBarcodeScanner.tsx` utilise `window.BarcodeDetector` sur le flux caméra, et n'envoie au serveur que la chaîne EAN décodée. Aucun endpoint d'upload, aucun téléchargement d'image |
-| 2 | **Aucune dépendance capable de lire une image** | `backend/pom.xml` : ni ZXing, ni Tesseract, ni OpenCV, ni ONNX, ni DJL. Sept dépendances au total, toutes Spring/JDBC |
+| 2 | **Aucune dépendance capable de lire une image** | `iozycore/backend/pom.xml` : ni ZXing, ni Tesseract, ni OpenCV, ni ONNX, ni DJL. Sept dépendances au total, toutes Spring/JDBC |
 | 3 | **L'enveloppe Gemini était texte seul** | `GeminiRequests.send()` construisait `contents:[{parts:[{text: prompt}]}]`. Pas de `inline_data`, donc aucun moyen de joindre une image |
 | 4 | **Le CDN d'images n'était sur aucune liste blanche** | `VintedListingProvider.allowedHosts()` couvre les domaines de **pages** (`vinted.fr`…). Les photos vivent sur `imagesN.vinted.net`, que `ListingUrlGuard` aurait refusé |
 
@@ -896,7 +896,7 @@ démontrée.
 
 ## 10. Fichiers
 
-**Domaine** (`backend/src/main/java/com/iozycore/recognition/`) :
+**Domaine** (`iozycore/backend/src/main/java/com/iozycore/recognition/`) :
 `RecognitionConfidence`, `RecognitionSource`, `RecognitionStatus`,
 `RecognizedItem`, `RecognitionResult`, `RecognitionImage`,
 `RecognitionContext`, `ImageRecognitionProvider`, `ListingTextRecognizer`,
@@ -911,7 +911,7 @@ codes-barres sur les providers bibliographiques déjà utilisés par « Scanner 
 
 **API** : `api/recognition/RecognitionController`.
 
-**Lecture du texte** (`backend/src/main/java/com/iozycore/purchaseanalysis/`) :
+**Lecture du texte** (`iozycore/backend/src/main/java/com/iozycore/purchaseanalysis/`) :
 `ListingTextParser`, `EditionMention`, `SeriesTitleNormalizer`.
 
 **Réutilisé sans modification** : `SeriesMatcher` (résolution catalogue
