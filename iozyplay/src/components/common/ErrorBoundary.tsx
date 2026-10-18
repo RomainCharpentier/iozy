@@ -28,7 +28,8 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   handleReset = () => {
     this.setState({ hasError: false, error: null })
-    window.location.href = '/'
+    // L'accueil de l'app, sous son préfixe s'il y en a un : pas la racine du site.
+    window.location.href = import.meta.env.BASE_URL
   }
 
   render() {
