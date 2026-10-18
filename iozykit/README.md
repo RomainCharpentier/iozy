@@ -31,7 +31,7 @@ Toute modification de `tokens.json` passe par `npm test` avant le commit : une c
 
 ## Consommer
 
-Le kit vit dans le même dépôt que les deux apps (`iozykit/`, à côté de `web/` et `iozyplay/`). Chacune le déclare en dépendance locale :
+Le kit vit dans le même dépôt que les deux apps (`iozykit/`, à côté de `iozycore/` et `iozyplay/`). Chacune le déclare en dépendance locale :
 
 ```json
 "iozykit": "file:../iozykit"
@@ -45,7 +45,7 @@ Le kit vit dans le même dépôt que les deux apps (`iozykit/`, à côté de `we
 
 ### Depuis IozyCore (React + Vite + Tailwind v4)
 
-`web/src/index.css` importe les trois CSS du kit dans les couches Tailwind (`layer(theme|base|components)`) et relie les noms de l'app aux variables du kit par un bloc `@theme inline` (`--color-accent: var(--iozy-accent)`) ; seuls les rôles que le kit n'a pas (univers, rangs, voiles) y gardent leurs deux thèmes. Les noms Tailwind (`bg-surface`, `text-textDim`…) ne changent pas. Le thème sombre vient de `[data-theme='dark']`, posé dans `index.html` ; `check:contrast` lit `node_modules/iozykit/tokens.json`.
+`iozycore/web/src/index.css` importe les trois CSS du kit dans les couches Tailwind (`layer(theme|base|components)`) et relie les noms de l'app aux variables du kit par un bloc `@theme inline` (`--color-accent: var(--iozy-accent)`) ; seuls les rôles que le kit n'a pas (univers, rangs, voiles) y gardent leurs deux thèmes. Les noms Tailwind (`bg-surface`, `text-textDim`…) ne changent pas. Le thème sombre vient de `[data-theme='dark']`, posé dans `index.html` ; `check:contrast` lit `node_modules/iozykit/tokens.json`.
 
 ### Les deux conventions de thème
 

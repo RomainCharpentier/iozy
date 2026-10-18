@@ -1,10 +1,10 @@
-# Built from the REPOSITORY ROOT (compose: context `..`, workflow: context
-# `.`), because the IozyKit charter is the sibling folder `iozykit/`, linked
-# through node_modules (`file:../iozykit` in package.json).
+# Built from the REPOSITORY ROOT (compose: context `../..`, workflow: context
+# `.`), because the IozyKit charter lives there (`iozykit/`), linked through
+# node_modules (`file:../../iozykit` in package.json).
 
 # --- Build step ---
 FROM node:24-alpine AS build
-WORKDIR /build/web
+WORKDIR /build/iozycore/web
 
 # Where the app lives on the site: /core/, because the root is the home of the
 # family and /play is IozyPlay (see nginx.conf). Dev and the e2e stack stay at
@@ -23,11 +23,11 @@ ENV IOZYCORE_BASE_PATH=$IOZYCORE_BASE_PATH
 ARG VERSION=dev
 ENV VITE_VERSION=$VERSION
 
-# The charter first: `npm ci` links it from ../iozykit.
+# The charter first: `npm ci` links it from ../../iozykit.
 COPY iozykit /build/iozykit
-COPY web/package.json web/package-lock.json ./
+COPY iozycore/web/package.json iozycore/web/package-lock.json ./
 RUN npm ci
-COPY web/ ./
+COPY iozycore/web/ ./
 RUN npm run build
 
 # --- Serving step ---
@@ -39,6 +39,6 @@ RUN npm run build
 FROM nginx:alpine
 # The build goes under /core so that files and URLs match; the home of the
 # family, built with it, is served at / by nginx (see nginx.conf).
-COPY --from=build /build/web/dist /usr/share/nginx/html/core
-COPY web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /build/iozycore/web/dist /usr/share/nginx/html/core
+COPY iozycore/web/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

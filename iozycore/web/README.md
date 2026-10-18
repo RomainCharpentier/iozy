@@ -11,7 +11,7 @@ API publiques gratuites. Ce dossier est le client Web (React) ; le backend
 (Spring Boot) est dans `../backend`. Le client iOS (`../ios`) est hors
 service depuis le 2026-08-29 : le Web est le client vivant.
 
-Document de conception complet : `../docs/CONCEPTION.md`. Ce README
+Document de conception complet : `../../docs/CONCEPTION.md`. Ce README
 documente l'état du code tel qu'il existe.
 
 ### Architecture

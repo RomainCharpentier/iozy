@@ -34,7 +34,7 @@ if (tool === 'Edit' || tool === 'Write') {
 if (tool === 'Bash') {
   const command = String(args.command ?? '')
   if (/\btsc\b[^|;&]*--noEmit/.test(command) && !/npm run/.test(command)) {
-    block('Blocked: `tsc --noEmit` checks nothing here (root tsconfig has files: []). Run `npm run typecheck` in web/.')
+    block('Blocked: `tsc --noEmit` checks nothing here (root tsconfig has files: []). Run `npm run typecheck` in iozycore/web/.')
   }
   if (/\bgit\s+push\b[^|;&]*(--force\b|--force-with-lease\b|\s-f\b)/.test(command)) {
     block('Blocked: never force-push in this repo.')

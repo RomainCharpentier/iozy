@@ -1,6 +1,6 @@
 ---
 paths:
-  - "backend/src/main/resources/db/migration/*.sql"
+  - "iozycore/backend/src/main/resources/db/migration/*.sql"
 ---
 
 # Migrations Flyway

@@ -12,7 +12,7 @@ les mangas, IGDB pour les jeux vidéo, BoardGameGeek pour les jeux de société)
 Chaque compte a sa collection ; le catalogue des œuvres est partagé.
 
 Document de conception (vision, personas, modèle de données) :
-`../docs/CONCEPTION.md`. Ce README documente l'état du code tel qu'il existe,
+`../../docs/CONCEPTION.md`. Ce README documente l'état du code tel qu'il existe,
 pas l'intention de départ — en cas de divergence entre les deux, le code fait
 foi. Les règles de travail (tests, pièges Docker, conventions) sont dans
 `CLAUDE.md`, à lire en premier.
@@ -576,4 +576,4 @@ infrastructure sur `AuNomDe`.
 - `src/test/` — tests unitaires, d'intégration (Testcontainers) et
   `ModulesTest`, qui vérifie les frontières entre modules.
 
-Document de conception complet : voir `../docs/CONCEPTION.md`.
+Document de conception complet : voir `../../docs/CONCEPTION.md`.

@@ -7,7 +7,7 @@ name: Deploiement
 #   GHCR  →  Watchtower, on the NAS, pulls them and restarts.
 #
 # The NAS builds nothing and exposes nothing: it FETCHES (see
-# backend/docker-compose.nas.yml). No incoming port, no GitHub agent, and
+# iozycore/backend/docker-compose.nas.yml). No incoming port, no GitHub agent, and
 # nothing to open on the box - which neither a self-hosted runner nor SSH from
 # GitHub would have allowed us to say.
 #
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: iozycore/backend
     steps:
       - uses: actions/checkout@v4
 
@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: web
+        working-directory: iozycore/web
     steps:
       - uses: actions/checkout@v4
 
@@ -85,7 +85,7 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: iozycore/web/package-lock.json
 
       - run: npm ci
 
@@ -169,7 +169,7 @@ jobs:
       # ─── The release number ───────────────────────────────────────
       #
       # Major.Minor.Patch, WORKED OUT from the commit messages: the rule and its
-      # tests live in web/scripts/version.mjs. No step to take, so
+      # tests live in iozycore/web/scripts/version.mjs. No step to take, so
       # nothing to forget - and the number says what changed, not only that it
       # changed. It can also be compared, which a SHA never can: "server
       # 1.2.0" under "version 1.3.1" reads at a glance.
@@ -183,7 +183,7 @@ jobs:
       - name: Number the release
         id: livraison
         run: |
-          numero=$(node web/scripts/version.mjs)
+          numero=$(node iozycore/web/scripts/version.mjs)
           [ -n "$numero" ] || { echo "Empty version number" >&2; exit 1; }
           echo "numero=$numero" >> "$GITHUB_OUTPUT"
 
@@ -205,16 +205,16 @@ jobs:
       # where a single number is enough, and the git tag `vX.Y.Z` set below
       # leads from this number to the exact commit.
       #
-      # The repository name is put in lower case: GHCR requires it, and
-      # `RomainCharpentier/iozycore` is not.
-      - name: Repository name in lower case
+      # The owner name is put in lower case: GHCR requires it, and
+      # `RomainCharpentier` is not. The image names are written out
+      # (iozycore-api, iozycore-web, iozyplay): the repository is the family,
+      # the images are the apps, and the NAS follows them by these names.
+      - name: Owner name in lower case
         id: depot
-        run: |
-          echo "nom=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-          echo "proprietaire=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+        run: echo "proprietaire=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
       # IozyPlay has its own number, the one of its package.json: its commits
-      # do not move the IozyCore release (see web/scripts/version.mjs).
+      # do not move the IozyCore release (see iozycore/web/scripts/version.mjs).
       - name: IozyPlay version
         id: iozyplay
         run: |
@@ -225,15 +225,15 @@ jobs:
       - name: API
         uses: docker/build-push-action@v6
         with:
-          context: backend
+          context: iozycore/backend
           push: true
           # The number is written INTO the image, and it is the same as its
           # tag: what the app shows is found as is in GHCR, and
           # on a git tag that points to the commit.
           build-args: VERSION=${{ steps.livraison.outputs.numero }}
           tags: |
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-api:latest
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-api:v${{ steps.livraison.outputs.numero }}
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozycore-api:latest
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozycore-api:v${{ steps.livraison.outputs.numero }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
@@ -243,12 +243,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: web/Dockerfile
+          file: iozycore/web/Dockerfile
           push: true
           build-args: VERSION=${{ steps.livraison.outputs.numero }}
           tags: |
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-web:latest
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-web:v${{ steps.livraison.outputs.numero }}
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozycore-web:latest
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozycore-web:v${{ steps.livraison.outputs.numero }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 

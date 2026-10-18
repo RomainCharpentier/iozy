@@ -77,10 +77,10 @@ services:
       - media_data:/app/media
 
   web:
-    # Context = the repository root: the image needs the sibling iozykit/.
+    # Context = the repository root: the image needs iozykit/ there.
     build:
-      context: ..
-      dockerfile: web/Dockerfile
+      context: ../..
+      dockerfile: iozycore/web/Dockerfile
     restart: unless-stopped
     depends_on:
       - iozycore-api
@@ -91,7 +91,7 @@ services:
   # address for the whole family. Built from iozyplay/ of this repository.
   iozyplay:
     build:
-      context: ..
+      context: ../..
       dockerfile: iozyplay/Dockerfile
     restart: unless-stopped
     volumes:
