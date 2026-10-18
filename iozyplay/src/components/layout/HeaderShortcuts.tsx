@@ -1,10 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Settings } from 'lucide-react'
 import ThemeButton from '@/components/layout/ThemeButton'
+import AccountLink from '@/components/layout/AccountLink'
 import styles from '@/components/layout/AppShell.module.scss'
 
-/** Les deux raccourcis de l'en-tête : le thème et les réglages. Ce ne sont
- *  pas des destinations (voir navItems), c'est ce qui n'appartient à aucune. */
+/** Les raccourcis de l'en-tête : le thème, les réglages, et le lien de compte
+ *  commun à la famille. Ce ne sont pas des destinations (voir navItems), c'est
+ *  ce qui n'appartient à aucune. */
 export default function HeaderShortcuts() {
   const { pathname } = useLocation()
   return (
@@ -21,6 +23,7 @@ export default function HeaderShortcuts() {
       >
         <Settings size={17} />
       </Link>
+      <AccountLink />
     </div>
   )
 }

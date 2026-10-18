@@ -1253,3 +1253,23 @@ car cet écran se rend sans lui.
 
 Vérifié : 491 tests (ceux de l'écran compris), typecheck, lint, image web
 reconstruite, menu lu sur l'écran de connexion de la pile locale.
+
+### Lot 179 — La même barre partout : la marque à gauche, le compte à droite
+
+Chaque page de la famille porte la même barre : la marque et son menu à
+gauche, et à droite le lien de compte, « Connexion » sans session IozyCore
+(une visite compte pour rien), « Profil » avec. La page d'accueil gagne cette
+barre (`.iozy-barre` du kit, menu fermé au clic ailleurs, session lue sur
+`/api/auth/me`, même site donc même cookie) ; l'écran de connexion d'IozyCore
+montre « Connexion » marqué courant ; IozyPlay ajoute le lien à ses raccourcis
+et sur l'écran du nom de joueur (`AccountLink`, rien seule à la racine).
+Les boutons propres à chaque app (thème, administration, sortie, réglages)
+restent. L'écran de partie d'IozyPlay reste plein écran, sans barre.
+
+En passant : nginx envoie `Cache-Control: no-cache` sur la page d'accueil et
+la coquille de l'app ; sans en-tête, le navigateur gardait la page par
+heuristique et une livraison restait invisible (vu sur le poste).
+
+Vérifié : contrôles web (build compris), IozyPlay, kit ; pile locale derrière
+nginx, barre lue sur la page d'accueil, l'écran de connexion et l'écran du nom
+de joueur ; `check:deploiement` (15).
