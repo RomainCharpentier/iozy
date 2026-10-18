@@ -16,7 +16,7 @@ body {
 }
 
 .famille {
-  min-height: 100dvh;
+  min-height: calc(100dvh - 3.5rem);
   max-width: 56rem;
   margin: 0 auto;
   padding: 2rem 1rem;
@@ -28,6 +28,15 @@ body {
 
 .famille__entete {
   text-align: center;
+}
+
+/* The brand in the bar: the wordmark alone, the suffix in accent in the menu. */
+.famille__marque {
+  font-size: 1.125rem;
+}
+
+.iozy-famille__app b span {
+  color: var(--iozy-accent-text);
 }
 
 /* The wordmark, as the brand says: display face, ink of the theme. */

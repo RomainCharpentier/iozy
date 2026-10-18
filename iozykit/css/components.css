@@ -284,3 +284,55 @@
   color: var(--iozy-text-dim);
   font-size: 0.875rem;
 }
+
+/* ---- Barre de la famille ---- */
+/* L'en-tête d'une page qui n'est pas une app (la page d'accueil) : la marque
+   et son menu à gauche, les mêmes options qu'ailleurs à droite. Les apps ont
+   leur propre barre avec le même contenu. */
+.iozy-barre {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 3.5rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--iozy-line);
+  background: color-mix(in srgb, var(--iozy-bg) 85%, transparent);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+.iozy-barre__droite {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Le lien de compte, le même partout : « Connexion » sans session IozyCore,
+   « Profil » avec. Sur l'écran de connexion lui-même, aria-current le marque. */
+.iozy-compte {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.875rem;
+  border-radius: var(--iozy-radius-control);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--iozy-text-dim);
+  text-decoration: none;
+}
+
+.iozy-compte:hover {
+  color: var(--iozy-text);
+  background: var(--iozy-accent-tint);
+}
+
+.iozy-compte[aria-current='page'] {
+  color: var(--iozy-text);
+  background: var(--iozy-surface2);
+}

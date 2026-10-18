@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom'
 import { settingsService } from '@/services/settingsService'
 import { soundManager } from '@/utils/sounds'
 import Logo from '@/components/common/Logo'
+import FamilySwitcher from '@/components/layout/FamilySwitcher'
+import AccountLink from '@/components/layout/AccountLink'
 
 /** La porte d'entrée, hors coquille (voir AppShell), construite comme la page
  *  de connexion d'IozyCore : le nom en grand, une phrase, une carte-formulaire. */
@@ -48,6 +50,14 @@ export default function UsernamePage() {
 
   return (
     <main className={styles.door}>
+      {/* La même barre que partout dans la famille, même sur la porte : la
+          marque et son menu, le lien de compte. */}
+      <header className="iozy-barre">
+        <FamilySwitcher />
+        <div className="iozy-barre__droite">
+          <AccountLink />
+        </div>
+      </header>
       <div className={styles.halo} aria-hidden="true" />
 
       <div className={styles.brand}>

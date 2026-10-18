@@ -21,6 +21,30 @@
     <script type="module" src="./famille.js"></script>
   </head>
   <body>
+    <!-- The same bar as in the apps: the brand and its menu on the left, the
+         account link on the right (famille.js reads the IozyCore session). -->
+    <header class="iozy-barre">
+      <details class="iozy-famille">
+        <summary class="famille__marque">
+          Iozy
+          <svg class="iozy-famille__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <nav class="iozy-famille__menu" aria-label="La famille Iozy">
+          <a class="iozy-famille__app" data-app="core" href="/core/">
+            <img data-marque="iozycore" alt="" width="28" height="28" />
+            <span><b>Iozy<span>core</span></b><small>Ta collection</small></span>
+          </a>
+          <a class="iozy-famille__app" href="/play/">
+            <img data-marque="iozyplay" alt="" width="28" height="28" />
+            <span><b>Iozy<span>Play</span></b><small>Le blindtest</small></span>
+          </a>
+          <a class="iozy-famille__app iozy-famille__accueil" href="/" aria-current="page">Voir toutes les apps</a>
+        </nav>
+      </details>
+      <div class="iozy-barre__droite">
+        <a class="iozy-compte" data-compte href="/core/">Connexion</a>
+      </div>
+    </header>
     <main class="famille">
       <header class="famille__entete">
         <p class="famille__mot">Iozy</p>
