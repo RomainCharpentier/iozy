@@ -1331,3 +1331,25 @@ Vérifié : contrôles IozyPlay et web, images reconstruites, passage
 IozyCore → menu → IozyPlay sur la pile locale sans rechargement en chaîne.
 Le navigateur intégré n'inscrit aucun service worker : la boucle elle-même
 ne s'y reproduisait pas, la correction tient au raisonnement et au code.
+
+### Lot 183 — IozyPlay : un seul rechargement, jamais en boucle
+
+Suite du lot 182, rejouée cette fois dans un vrai Chromium (Playwright)
+avec l'ancien worker racine d'IozyCore inscrit comme dans le navigateur du
+propriétaire. Le code du lot 182 ne bouclait plus mais rechargeait encore
+une fois à chaque première visite : `UpdateNotification` avait son propre
+écouteur `controllerchange`, sans condition, qui contournait la garde de
+`serviceWorker.ts`. Il ne reste qu'un écouteur : rechargement seulement
+quand un worker remplace **le nôtre** (un worker d'une autre portée ne
+compte pas), et au plus une fois par minute par onglet, quelle qu'en soit
+la cause. Le bouton « Mettre à jour » recharge explicitement. IozyPlay
+désinscrit lui aussi l'ancien worker racine : une visite de `/play/` seule
+suffit à l'évacuer.
+
+Vérifié sur un banc (proxy devant la pile locale qui ajoute l'ancien worker
+racine et peut servir une « nouvelle version » du worker) : première visite
+1 chargement ; avec l'ancien worker racine 1 chargement et la portée `/`
+disparue ; nouvelle version entre deux visites 1 rechargement puis plus
+rien. Piège du banc : le profil Chromium doit vivre sous un chemin court,
+au-delà de 260 caractères le Cache Storage échoue et l'installation du
+worker avec.

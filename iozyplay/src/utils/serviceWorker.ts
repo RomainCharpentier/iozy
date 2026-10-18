@@ -3,6 +3,26 @@
 // Détecter si on est en mode développement
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development'
 
+// Au plus un rechargement automatique par onglet et par minute (voir plus bas).
+const RELOAD_KEY = 'iozyplay.sw-reload'
+const RELOAD_MIN_INTERVAL_MS = 60_000
+
+function lastAutomaticReload(): number {
+  try {
+    return Number(sessionStorage.getItem(RELOAD_KEY) ?? 0)
+  } catch {
+    return 0
+  }
+}
+
+function rememberAutomaticReload() {
+  try {
+    sessionStorage.setItem(RELOAD_KEY, String(Date.now()))
+  } catch {
+    // Stockage refusé : on recharge quand même, le drapeau en mémoire suffit.
+  }
+}
+
 export function registerServiceWorker() {
   // Ne pas enregistrer le service worker en développement pour éviter les problèmes de cache
   if (isDevelopment) {
@@ -46,11 +66,12 @@ export function registerServiceWorker() {
   }
 
   if ('serviceWorker' in navigator) {
-    // Recharger seulement quand un worker en REMPLACE un autre : au premier
-    // contrôle (installation, ou page jusque-là contrôlée par rien), rien ne
-    // change à l'écran, et recharger ici faisait une boucle sans fin sur
-    // localhost (le worker prend le contrôle d'emblée, voir sw.js).
-    const hadController = !!navigator.serviceWorker.controller
+    // Le worker qui contrôlait la page à l'arrivée, s'il est le nôtre. Un
+    // worker d'une autre portée (l'ancien worker d'IozyCore inscrit à la
+    // racine du site) ne compte pas : le remplacer ne change rien à l'écran.
+    const scope = new URL(import.meta.env.BASE_URL, window.location.origin).href
+    const previous = navigator.serviceWorker.controller
+    const hadOurController = !!previous && previous.scriptURL.startsWith(scope)
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register(`${import.meta.env.BASE_URL}sw.js`)
@@ -80,19 +101,45 @@ export function registerServiceWorker() {
           console.error('[SW] Service Worker registration failed:', error)
         })
 
+      // Sous un préfixe, l'ancien worker d'IozyCore resté inscrit à la racine
+      // du site intercepte encore cette page et ne peut plus se mettre à jour
+      // (son script a déménagé) : on le désinscrit. À la racine, cette portée
+      // est la nôtre.
+      if (import.meta.env.BASE_URL !== '/') {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) => {
+            for (const registration of registrations) {
+              if (registration.scope === `${window.location.origin}/`) registration.unregister()
+            }
+          })
+          .catch(() => {})
+      }
+
       // Écouter les messages du service worker
       navigator.serviceWorker.addEventListener('message', (event) => {
         console.log('[SW] Message from service worker:', event.data)
       })
 
-      // Gérer les changements de contrôle
+      // Recharger seulement quand un worker en REMPLACE le nôtre : c'est la
+      // mise à jour qui s'applique. Au premier contrôle (installation, page
+      // contrôlée par rien ou par un worker d'une autre portée), rien ne
+      // change à l'écran. Et jamais plus d'une fois par minute dans un onglet :
+      // quelle qu'en soit la cause (worker réinstallé à chaque chargement,
+      // « Update on reload » des outils de développement), une page qui
+      // recharge sans fin est pire qu'une page en retard d'une version.
+      // C'est le seul écouteur de ce genre : UpdateNotification s'y fie.
       let refreshing = false
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (hadController && !refreshing) {
-          refreshing = true
-          console.log('[SW] New service worker activated, reloading...')
-          window.location.reload()
+        if (!hadOurController || refreshing) return
+        if (Date.now() - lastAutomaticReload() < RELOAD_MIN_INTERVAL_MS) {
+          console.log('[SW] New service worker activated, already reloaded a moment ago: not again')
+          return
         }
+        refreshing = true
+        rememberAutomaticReload()
+        console.log('[SW] New service worker activated, reloading...')
+        window.location.reload()
       })
     })
   } else {
