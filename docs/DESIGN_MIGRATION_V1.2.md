@@ -1286,3 +1286,16 @@ tels quels les emplois sans rapport (`font-family`, « Spy x Family », le
 
 Vérifié : contrôles web (build compris), IozyPlay, kit ; pile locale derrière
 nginx et `check:deploiement`.
+
+Suite (même jour), après des tests en profondeur demandés par le propriétaire
+(« ça fonctionne mal ») : deux défauts réels. Le menu de la page d'accueil
+avait perdu ses classes (`iozy-home__menu` au lieu de `iozy-apps__menu`, un
+remplacement mal ordonné) et s'affichait en ligne, sans style. Et sur l'écran
+de connexion d'IozyCore comme sur l'écran du nom de joueur d'IozyPlay, la barre
+vivait dans la colonne centrée (décalée, à mi-hauteur, avec un débordement
+vertical) : elle est sortie de la colonne, en haut et sur toute la largeur,
+la colonne garde sa hauteur moins celle de la barre, et la porte d'IozyPlay
+se rend sans le conteneur à marges de l'app. Sondé ensuite sur la pile locale
+en 375, 594 et 1280 px : barres en haut et pleine largeur, menus dans la
+fenêtre, ouverture, fermeture au clic ailleurs et sur Échap, aucun débordement
+horizontal, lien de compte à droite partout.

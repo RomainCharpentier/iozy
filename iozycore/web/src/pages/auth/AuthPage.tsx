@@ -59,7 +59,20 @@ export function AuthPage() {
   }
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-5 px-4 py-10">
+    <>
+      {/* The same bar as on every page of the site, across the whole width and
+          at the very top, outside the centered column: the brand and its menu
+          on the left, the account link on the right - here "Connexion" is the
+          page itself, so it is marked current and leads nowhere else. */}
+      <header className="iozy-barre">
+        <AppSwitcher compact />
+        <div className="iozy-barre__droite">
+          <a href={import.meta.env.BASE_URL} aria-current="page" className="iozy-compte">
+            Connexion
+          </a>
+        </div>
+      </header>
+    <main className="relative mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-md flex-col justify-center gap-5 px-4 py-10">
       {/* A glow of accent at the top, nothing else: the gate is the first
           screen that is seen, it must look like the application, not like a
           form placed on an empty page. */}
@@ -67,15 +80,6 @@ export function AuthPage() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(70%_60%_at_50%_0%,var(--color-accentTint),transparent_70%)]"
       />
-      {/* The same bar as on every page of the site: the brand and its menu on
-          the left, the account link on the right - here "Connexion" is the
-          page itself, so it is marked current and leads nowhere else. */}
-      <header className="flex h-12 items-center">
-        <AppSwitcher compact />
-        <a href={import.meta.env.BASE_URL} aria-current="page" className="iozy-compte ml-auto">
-          Connexion
-        </a>
-      </header>
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-4xl font-bold tracking-[-0.03em] text-textPrimary">
           Iozy<span className="text-accent">Core</span>
@@ -222,5 +226,6 @@ export function AuthPage() {
           enter, the first question is to know what is online. */}
       <PiedDePage sansSession />
     </main>
+    </>
   )
 }

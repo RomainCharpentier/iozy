@@ -34,6 +34,10 @@ const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 export default function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
 
+  // La porte (le nom du joueur) porte la barre du site en haut et sur toute
+  // la largeur : pas de conteneur avec marges autour d'elle. La partie garde
+  // le sien.
+  if (pathname === '/username') return <>{children}</>
   if (isBare(pathname)) {
     return <div className={appStyles.app}>{children}</div>
   }
