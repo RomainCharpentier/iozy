@@ -18,6 +18,20 @@ for (const image of document.querySelectorAll('img[data-marque]')) {
   image.src = marques[image.dataset.marque]
 }
 
+// A service worker left at the root of the site by IozyCore before it moved
+// under /core/ can no longer update itself (its script moved, the old address
+// redirects) and still intercepts this page and IozyPlay: let it go.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => {
+      for (const registration of registrations) {
+        if (registration.scope === `${location.origin}/`) registration.unregister()
+      }
+    })
+    .catch(() => {})
+}
+
 // The menu of the brand closes on a click elsewhere or on Escape, as in the apps.
 const menu = document.querySelector('details.iozy-apps')
 document.addEventListener('click', (event) => {
