@@ -115,7 +115,7 @@ la réinstaller depuis `/core/` la ramène à son écran.
 Le blindtest vit sous `https://ton-nom.synology.me/play`. Rien à
 ajouter côté DSM : l'entrée de reverse proxy ci-dessus suffit, nginx (conteneur
 `web`) achemine `/play/` vers le conteneur `iozyplay`, WebSocket compris. Son
-image `ghcr.io/romaincharpentier/iozyplay` est construite depuis `iozyplay/` de
+image `ghcr.io/romaincharpentier/iozyplay-app` est construite depuis `iozyplay/` de
 ce dépôt par le workflow de déploiement, et Watchtower la suit comme les deux
 autres (`docker-compose.nas.yml`). Ses questions vivent dans le volume
 `iozyplay_data`.

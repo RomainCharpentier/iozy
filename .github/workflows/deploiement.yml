@@ -207,8 +207,12 @@ jobs:
       #
       # The owner name is put in lower case: GHCR requires it, and
       # `RomainCharpentier` is not. The image names are written out
-      # (iozycore-api, iozycore-web, iozyplay): the repository is the family,
+      # (iozycore-api, iozycore-web, iozyplay-app): the repository is the family,
       # the images are the apps, and the NAS follows them by these names.
+      # `iozyplay-app` and not `iozyplay`: that package was created by the
+      # former blindtest-webapp repository and stays attached to it, so this
+      # repository's token cannot write to it (GitHub offers no API to move
+      # that right). A new name belongs to this repository from its first push.
       - name: Owner name in lower case
         id: depot
         run: echo "proprietaire=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
@@ -261,8 +265,8 @@ jobs:
           file: iozyplay/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozyplay:latest
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozyplay:v${{ steps.iozyplay.outputs.numero }}
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozyplay-app:latest
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozyplay-app:v${{ steps.iozyplay.outputs.numero }}
           cache-from: type=gha,scope=iozyplay
           cache-to: type=gha,mode=max,scope=iozyplay
 
@@ -313,7 +317,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        paquet: [iozycore-api, iozycore-web, iozyplay]
+        paquet: [iozycore-api, iozycore-web, iozyplay-app]
     steps:
       - name: Keep only the last 5
         uses: actions/delete-package-versions@v5
