@@ -1410,3 +1410,22 @@ vrai Chromium sur la pile locale avec une session simulée : nom verrouillé
 dans le salon d'invitation, puis session retirée → le nom disparaît et
 `/play/` ramène à la porte. L'écran de création (qui demande un salon ouvert)
 n'a été que relu et typé.
+
+### Lot 187 — Passe de cohérence du site
+
+Demande du propriétaire : « revérifie la cohérence globale de l'app ». Passe
+complète sur la pile locale : les 15 contrôles de déploiement et
+l'installabilité PWA ; dans un vrai Chromium, la même barre en haut de la
+page d'accueil, de la porte IozyCore, de la coquille IozyCore (visite) et de
+la porte IozyPlay, avec le même menu de marque, le lien de compte à droite
+et le retour « Toutes les apps » ; le menu mène bien d'une app à l'autre ;
+après tout ça, seuls les workers `/core/` et `/play/` sont inscrits ; les 19
+parcours e2e d'IozyCore passent ; textes et docs (adresses, commandes, noms
+d'images) collent au code.
+
+Trois écarts corrigés : le mot-marque s'écrivait « Iozycore » dans les trois
+menus de marque alors que la charte dit Iozy**Core** (deux majuscules, comme
+la porte et la page d'accueil) ; la vérification de mise à jour du worker
+d'IozyPlay laissait une erreur en console quand on quittait la page pendant
+qu'elle tournait ; et « trait de famille » traînait encore dans la charte et
+un commentaire du logo.

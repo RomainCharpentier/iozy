@@ -41,7 +41,8 @@ export function UpdateNotification() {
             })
 
             // Vérifier immédiatement
-            registration.update()
+            // Un onglet qui part pendant la vérification fait rejeter update() : rien à dire.
+            registration.update().catch(() => undefined)
           }
         })
       }
