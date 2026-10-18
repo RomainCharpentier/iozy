@@ -1,6 +1,6 @@
 # IozyPlay
 
-A modern web application for blindtest games where you can guess TV series, anime, songs, movies, and video games! Part of the Iozy family (see IozyCore); the visual identity is documented in [docs/CHARTE.md](docs/CHARTE.md).
+A modern web application for blindtest games where you can guess TV series, anime, songs, movies, and video games! One of the Iozy apps (see IozyCore); the visual identity is documented in [docs/CHARTE.md](docs/CHARTE.md).
 
 ## Features
 

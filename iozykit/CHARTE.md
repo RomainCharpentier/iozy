@@ -1,4 +1,4 @@
-# Charte graphique de la famille Iozy
+# Charte graphique Iozy
 
 Deux apps, une identité : **IozyCore** (le catalogue de collection) et **IozyPlay** (le blindtest multijoueur). Même palette, mêmes polices, même construction de logo, mêmes gestes. Cette page dit ce qu'on fait et pourquoi ; les valeurs sont dans `tokens.json`, vérifiées par `npm run check:contrast`.
 
@@ -72,6 +72,6 @@ C'est elle qui fait la ressemblance, autant que la couleur.
 
 Voir `brand/README.md` : une tuile à l'accent, un objet en encre, posé sur l'**étagère** qui est le trait de famille.
 
-## Naviguer dans la famille
+## Naviguer entre les apps
 
-Chaque app porte la famille dans son en-tête : la marque en haut à gauche ouvre un menu avec les apps (`.iozy-famille`, un `details`), l'app courante marquée, et un dernier lien « Voir toutes les apps » vers la page d'accueil de la famille, à la racine du site. Le menu n'existe que lorsque l'app vit sous son préfixe (`/core`, `/play`) à côté des autres ; seule à la racine, la marque reste un simple lien vers son accueil.
+Chaque app porte les autres dans son en-tête : la marque en haut à gauche ouvre un menu avec les apps (`.iozy-apps`, un `details`), l'app courante marquée, et un dernier lien « Voir toutes les apps » vers la page d'accueil du site, à sa racine. Le menu n'existe que lorsque l'app vit sous son préfixe (`/core`, `/play`) à côté des autres ; seule à la racine, la marque reste un simple lien vers son accueil.

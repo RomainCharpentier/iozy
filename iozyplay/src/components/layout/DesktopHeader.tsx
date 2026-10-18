@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { NAV_ITEMS } from '@/components/layout/navItems'
-import FamilySwitcher from '@/components/layout/FamilySwitcher'
+import AppSwitcher from '@/components/layout/AppSwitcher'
 import HeaderShortcuts from '@/components/layout/HeaderShortcuts'
 import styles from '@/components/layout/AppShell.module.scss'
 
@@ -11,7 +11,7 @@ export default function DesktopHeader() {
   return (
     <header className={`${styles.header} ${styles.glass}`}>
       <div className={styles.headerInner}>
-        <FamilySwitcher />
+        <AppSwitcher />
         <nav className={styles.nav} aria-label="Navigation principale">
           {NAV_ITEMS.map(({ to, label, icon: Icon, activeWhen }) => {
             const active = activeWhen(pathname)

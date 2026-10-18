@@ -1273,3 +1273,29 @@ heuristique et une livraison restait invisible (vu sur le poste).
 Vérifié : contrôles web (build compris), IozyPlay, kit ; pile locale derrière
 nginx, barre lue sur la page d'accueil, l'écran de connexion et l'écran du nom
 de joueur ; `check:deploiement` (15).
+
+### Lot 180 — Plus de « famille »
+
+Le mot disparaît du code et du site : la page d'accueil vit dans
+`iozycore/web/home/` (classes `.home__*`), le sélecteur des deux apps s'appelle
+`AppSwitcher` et ses classes `.iozy-apps*` ; les libellés deviennent « Les apps
+Iozy » (menu), « Toutes les apps » (pieds de page) et « Iozy » (titre de la page
+d'accueil). Les documents parlent de la page d'accueil et des apps Iozy. Restent
+tels quels les emplois sans rapport (`font-family`, « Spy x Family », le
+« trait de famille » du logo dans sa fiche de marque).
+
+Vérifié : contrôles web (build compris), IozyPlay, kit ; pile locale derrière
+nginx et `check:deploiement`.
+
+Suite (même jour), après des tests en profondeur demandés par le propriétaire
+(« ça fonctionne mal ») : deux défauts réels. Le menu de la page d'accueil
+avait perdu ses classes (`iozy-home__menu` au lieu de `iozy-apps__menu`, un
+remplacement mal ordonné) et s'affichait en ligne, sans style. Et sur l'écran
+de connexion d'IozyCore comme sur l'écran du nom de joueur d'IozyPlay, la barre
+vivait dans la colonne centrée (décalée, à mi-hauteur, avec un débordement
+vertical) : elle est sortie de la colonne, en haut et sur toute la largeur,
+la colonne garde sa hauteur moins celle de la barre, et la porte d'IozyPlay
+se rend sans le conteneur à marges de l'app. Sondé ensuite sur la pile locale
+en 375, 594 et 1280 px : barres en haut et pleine largeur, menus dans la
+fenêtre, ouverture, fermeture au clic ailleurs et sur Échap, aucun débordement
+horizontal, lien de compte à droite partout.

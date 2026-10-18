@@ -1,13 +1,13 @@
-# La famille Iozy
+# Iozy
 
 Un seul dépôt pour trois dossiers de même rang, réunis le 2026-10-17 en gardant leur historique :
 
 - `iozycore/` : IozyCore, le catalogue de collection (backend Spring Boot, client web React, app iOS hors service, maquettes). Son `CLAUDE.md` décrit l'architecture ; lis-le quand tu y travailles.
 - `iozyplay/` : IozyPlay, le blindtest (serveur Node + front React). Son `CLAUDE.md`.
 - `iozykit/` : la charte graphique commune, dépendance locale des deux apps (`file:` vers ce dossier).
-- `docs/` : les documents de la famille (déploiement, exploitation, conception, journal des lots).
+- `docs/` : les documents communs (déploiement, exploitation, conception, journal des lots).
 
-Le site est une seule adresse : `/` la page de la famille, `/core/` IozyCore, `/play/` IozyPlay, `/api/` l'API. Le nginx d'IozyCore (`iozycore/web/nginx.conf`) route tout ; `iozycore/backend/docker-compose.yml` lance la pile complète en local.
+Le site est une seule adresse : `/` la page d'accueil, `/core/` IozyCore, `/play/` IozyPlay, `/api/` l'API. Le nginx d'IozyCore (`iozycore/web/nginx.conf`) route tout ; `iozycore/backend/docker-compose.yml` lance la pile complète en local.
 
 ## Règles qui valent partout
 

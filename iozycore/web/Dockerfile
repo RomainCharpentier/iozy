@@ -6,8 +6,8 @@
 FROM node:24-alpine AS build
 WORKDIR /build/iozycore/web
 
-# Where the app lives on the site: /core/, because the root is the home of the
-# family and /play is IozyPlay (see nginx.conf). Dev and the e2e stack stay at
+# Where the app lives on the site: /core/, because the root is the home
+# home page of the site and /play is IozyPlay (see nginx.conf). Dev and the e2e stack stay at
 # the root; an empty ARG would serve the app alone at the root.
 ARG IOZYCORE_BASE_PATH=/core
 ENV IOZYCORE_BASE_PATH=$IOZYCORE_BASE_PATH
@@ -38,7 +38,7 @@ RUN npm run build
 # backend/src/main/java/com/iozycore/api/config/CorsConfig.java.
 FROM nginx:alpine
 # The build goes under /core so that files and URLs match; the home of the
-# family, built with it, is served at / by nginx (see nginx.conf).
+# page, built with it, is served at / by nginx (see nginx.conf).
 COPY --from=build /build/iozycore/web/dist /usr/share/nginx/html/core
 COPY iozycore/web/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

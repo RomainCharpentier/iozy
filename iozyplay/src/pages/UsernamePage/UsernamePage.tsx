@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { settingsService } from '@/services/settingsService'
 import { soundManager } from '@/utils/sounds'
 import Logo from '@/components/common/Logo'
-import FamilySwitcher from '@/components/layout/FamilySwitcher'
+import AppSwitcher from '@/components/layout/AppSwitcher'
 import AccountLink from '@/components/layout/AccountLink'
 
 /** La porte d'entrée, hors coquille (voir AppShell), construite comme la page
@@ -49,15 +49,17 @@ export default function UsernamePage() {
   }
 
   return (
-    <main className={styles.door}>
-      {/* La même barre que partout dans la famille, même sur la porte : la
-          marque et son menu, le lien de compte. */}
+    <>
+      {/* La même barre que sur chaque page du site, même sur la porte, en haut
+          et sur toute la largeur, hors de la colonne centrée : la marque et son
+          menu, le lien de compte. */}
       <header className="iozy-barre">
-        <FamilySwitcher />
+        <AppSwitcher />
         <div className="iozy-barre__droite">
           <AccountLink />
         </div>
       </header>
+    <main className={styles.door}>
       <div className={styles.halo} aria-hidden="true" />
 
       <div className={styles.brand}>
@@ -116,5 +118,6 @@ export default function UsernamePage() {
         Ton nom reste sur cet appareil ; il s'affiche aux autres joueurs pendant les parties.
       </p>
     </main>
+    </>
   )
 }

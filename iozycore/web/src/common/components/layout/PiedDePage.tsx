@@ -92,10 +92,10 @@ export function PiedDePage({ sansSession = false }: { sansSession?: boolean } = 
         sansSession ? 'text-center text-xs text-textDim' : 'pb-24 text-center text-xs text-textDim md:pb-10'
       }
     >
-      {/* A plain link, not a router one: the home of the family is the root
-          of the site, outside the app. */}
+      {/* A plain link, not a router one: the home page is the root of the
+          site, outside the app. */}
       <a href="/" className="underline underline-offset-2">
-        Famille Iozy
+        Toutes les apps
       </a>
       {' · '}
       <span>

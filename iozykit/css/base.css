@@ -1,4 +1,4 @@
-/* IozyKit — règles globales partagées par les apps de la famille.
+/* IozyKit — règles globales partagées par les apps Iozy.
    Suppose css/tokens.css chargé avant. Ne fixe ni le fond ni la police du
    body : c'est à l'app (chaque app charge ses polices via @fontsource, voir
    tokens.json › fonts.packages). */

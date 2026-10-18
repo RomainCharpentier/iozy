@@ -4,7 +4,7 @@ import iozycoreMark from 'iozykit/brand/iozycore.svg'
 import iozyplayMark from 'iozykit/brand/iozyplay.svg'
 
 /**
- * The brand in the header opens the family: this app, IozyPlay, and a last
+ * The brand in the header opens the other Iozy apps: this app, IozyPlay, and a last
  * link to the home of the site, which shows every app. Only when the app lives under a prefix (/core/ next to the
  * others): alone at the root (dev, the e2e stack), the brand stays a link to
  * the home of the app, and nothing here exists. A plain link, not a router
@@ -12,10 +12,10 @@ import iozyplayMark from 'iozykit/brand/iozyplay.svg'
  *
  * <p>A <details>, so the menu opens and closes without a script; the effect
  * only closes it on a click elsewhere or on Escape. The styles are the
- * charter's (`.iozy-famille`, iozykit/css/components.css), the same in
+ * charter's (`.iozy-apps`, iozykit/css/components.css), the same in
  * IozyPlay.
  */
-export function FamilySwitcher({ compact = false }: { compact?: boolean }) {
+export function AppSwitcher({ compact = false }: { compact?: boolean }) {
   const details = useRef<HTMLDetailsElement>(null)
   const standalone = import.meta.env.BASE_URL === '/'
 
@@ -54,13 +54,13 @@ export function FamilySwitcher({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <details ref={details} className="iozy-famille">
+    <details ref={details} className="iozy-apps">
       <summary className={classes}>
         {wordmark}
-        <ChevronDown className="iozy-famille__chevron" aria-hidden />
+        <ChevronDown className="iozy-apps__chevron" aria-hidden />
       </summary>
-      <nav className="iozy-famille__menu" aria-label="La famille Iozy">
-        <a className="iozy-famille__app" href={import.meta.env.BASE_URL} aria-current="page">
+      <nav className="iozy-apps__menu" aria-label="Les apps Iozy">
+        <a className="iozy-apps__app" href={import.meta.env.BASE_URL} aria-current="page">
           <img src={iozycoreMark} alt="" />
           <span>
             <b>
@@ -69,7 +69,7 @@ export function FamilySwitcher({ compact = false }: { compact?: boolean }) {
             <small>Ta collection</small>
           </span>
         </a>
-        <a className="iozy-famille__app" href="/play/">
+        <a className="iozy-apps__app" href="/play/">
           <img src={iozyplayMark} alt="" />
           <span>
             <b>
@@ -78,7 +78,7 @@ export function FamilySwitcher({ compact = false }: { compact?: boolean }) {
             <small>Le blindtest</small>
           </span>
         </a>
-        <a className="iozy-famille__app iozy-famille__accueil" href="/">
+        <a className="iozy-apps__app iozy-apps__accueil" href="/">
           Voir toutes les apps
         </a>
       </nav>

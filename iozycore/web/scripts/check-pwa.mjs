@@ -46,7 +46,7 @@ try {
 verifier(typeof manifeste.name === 'string' && manifeste.name.length > 0, 'name missing')
 verifier(typeof manifeste.short_name === 'string' && manifeste.short_name.length > 0, 'short_name missing')
 // Relative, because the app lives at the root in dev and under /core/ in the
-// Docker image: an absolute start_url would open the home of the family.
+// Docker image: an absolute start_url would open the home page of the site.
 verifier(manifeste.start_url === './', `start_url must be "./" (read: ${manifeste.start_url})`)
 verifier(
   ['standalone', 'fullscreen', 'minimal-ui'].includes(manifeste.display),

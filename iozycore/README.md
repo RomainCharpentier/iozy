@@ -4,8 +4,8 @@ Ce guide réunit en un seul endroit tout ce qu'il faut pour lancer et tester
 IozyCore : le backend (API + base de données), l'app Web et, pour mémoire,
 l'app iOS (hors service). Les dossiers `backend/`, `ios/` et `web/` ont chacun leur propre README
 plus détaillé sur leur partie ; celui-ci sert de point d'entrée et de
-check-list. Ce dossier est IozyCore, une app du monorepo de la famille Iozy :
-la vue d'ensemble, IozyPlay et la charte sont dans `../README.md`.
+check-list. Ce dossier est IozyCore, une app du monorepo Iozy : la vue
+d'ensemble, IozyPlay et la charte sont dans `../README.md`.
 
 Pour reprendre le projet en profondeur (architecture, conventions de code,
 comment ajouter une fonctionnalité) — humain ou IA — chaque README a une
@@ -85,7 +85,7 @@ automatiquement (migrations Flyway), avec les 3 types historiques (manga,
 jeu vidéo, jeu de société) déjà en place.
 Cette même commande lance aussi un build de l'app web sur
 `http://localhost:8081/core/` (voir Partie 3, Option B ; la racine `/` est la
-page de la famille, `/play/` IozyPlay) — si tu veux juste tester
+page d'accueil, `/play/` IozyPlay) — si tu veux juste tester
 l'API seule, ignore ce port.
 
 **Vérifier que ça tourne :**
@@ -534,8 +534,8 @@ CORS à faire pour développer en local.
 
 **Option B — build de prod, sans installer Node** : le service `web` est
 maintenant inclus dans `docker compose up --build` (Partie 1) — ouvre
-directement `http://localhost:8081/core/` (la racine est la page de la
-famille). nginx sert le build statique et
+directement `http://localhost:8081/core/` (la racine est la page
+d'accueil). nginx sert le build statique et
 proxy `/api` en interne vers le backend (voir `web/nginx.conf`), donc pas
 de rechargement à chaud mais aucune installation locale requise.
 

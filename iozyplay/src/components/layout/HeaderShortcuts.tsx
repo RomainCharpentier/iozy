@@ -5,7 +5,7 @@ import AccountLink from '@/components/layout/AccountLink'
 import styles from '@/components/layout/AppShell.module.scss'
 
 /** Les raccourcis de l'en-tête : le thème, les réglages, et le lien de compte
- *  commun à la famille. Ce ne sont pas des destinations (voir navItems), c'est
+ *  commun à toutes les apps. Ce ne sont pas des destinations (voir navItems), c'est
  *  ce qui n'appartient à aucune. */
 export default function HeaderShortcuts() {
   const { pathname } = useLocation()

@@ -34,6 +34,10 @@ const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 export default function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
 
+  // La porte (le nom du joueur) porte la barre du site en haut et sur toute
+  // la largeur : pas de conteneur avec marges autour d'elle. La partie garde
+  // le sien.
+  if (pathname === '/username') return <>{children}</>
   if (isBare(pathname)) {
     return <div className={appStyles.app}>{children}</div>
   }
@@ -46,11 +50,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className={styles.footer}>
-        {/* Servie sous /play à côté d'IozyCore, l'app a la page de la famille à
-            la racine du même site ; seule et à la racine (Vercel, dev), elle n'en a pas. */}
+        {/* Servie sous /play à côté d'IozyCore, l'app a la page d'accueil à la
+            racine du même site ; seule et à la racine (Vercel, dev), elle n'en a pas. */}
         {import.meta.env.BASE_URL !== '/' && (
           <>
-            <a href="/">Famille Iozy</a> ·{' '}
+            <a href="/">Toutes les apps</a> ·{' '}
           </>
         )}
         IozyPlay · version {VERSION}

@@ -1,4 +1,4 @@
-/* The home of the family: the charter only (tokens, base, components) and the
+/* The home page of the site: the charter only (tokens, base, components) and the
    same two typefaces as the apps. No Tailwind, no app code. */
 @import 'iozykit/css/tokens.css';
 @import 'iozykit/css/base.css';
@@ -15,7 +15,7 @@ body {
   font-family: var(--iozy-font-body);
 }
 
-.famille {
+.home {
   min-height: calc(100dvh - 3.5rem);
   max-width: 56rem;
   margin: 0 auto;
@@ -26,21 +26,21 @@ body {
   gap: 2rem;
 }
 
-.famille__entete {
+.home__entete {
   text-align: center;
 }
 
 /* The brand in the bar: the wordmark alone, the suffix in accent in the menu. */
-.famille__marque {
+.home__marque {
   font-size: 1.125rem;
 }
 
-.iozy-famille__app b span {
+.iozy-apps__app b span {
   color: var(--iozy-accent-text);
 }
 
 /* The wordmark, as the brand says: display face, ink of the theme. */
-.famille__mot {
+.home__mot {
   margin: 0;
   font-family: var(--iozy-font-display);
   font-weight: 700;
@@ -48,7 +48,7 @@ body {
   letter-spacing: -0.02em;
 }
 
-.famille__entete h1 {
+.home__entete h1 {
   margin: 0.5rem 0 0;
   font-family: var(--iozy-font-display);
   font-weight: 600;
@@ -56,19 +56,19 @@ body {
   line-height: 1.15;
 }
 
-.famille__apps {
+.home__apps {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
 }
 
 @media (min-width: 640px) {
-  .famille__apps {
+  .home__apps {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-.famille__app {
+.home__app {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -77,23 +77,23 @@ body {
   text-decoration: none;
 }
 
-.famille__app img {
+.home__app img {
   width: 64px;
   height: 64px;
 }
 
 /* "Iozy" in ink, the suffix in accent - never a gradient, never a block. */
-.famille__nom {
+.home__nom {
   font-family: var(--iozy-font-display);
   font-weight: 700;
   font-size: 1.375rem;
 }
 
-.famille__nom span {
+.home__nom span {
   color: var(--iozy-accent-text);
 }
 
-.famille__desc {
+.home__desc {
   color: var(--iozy-text-dim);
   font-size: 0.95rem;
   line-height: 1.5;

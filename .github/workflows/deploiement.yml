@@ -207,7 +207,7 @@ jobs:
       #
       # The owner name is put in lower case: GHCR requires it, and
       # `RomainCharpentier` is not. The image names are written out
-      # (iozycore-api, iozycore-web, iozyplay-app): the repository is the family,
+      # (iozycore-api, iozycore-web, iozyplay-app): the repository holds every app,
       # the images are the apps, and the NAS follows them by these names.
       # `iozyplay-app` and not `iozyplay`: that package was created by the
       # former blindtest-webapp repository and stays attached to it, so this

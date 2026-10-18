@@ -1,7 +1,7 @@
 <!doctype html>
-<!-- The home of the family: one address, two apps. A second Vite entry (see
+<!-- The home page of the site: one address, two apps. A second Vite entry (see
      vite.config.ts) that belongs to no app and uses the charter only. Served
-     at /famille/ by Vite in dev, and at the root of the site by nginx. -->
+     at /home/ by Vite in dev, and at the root of the site by nginx. -->
 <html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
@@ -9,8 +9,8 @@
     <meta name="theme-color" content="#16120f" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#faf6f2" media="(prefers-color-scheme: light)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="description" content="La famille Iozy : IozyCore, le catalogue de ta collection, et IozyPlay, le blindtest entre amis." />
-    <title>La famille Iozy</title>
+    <meta name="description" content="Iozy : IozyCore, le catalogue de ta collection, et IozyPlay, le blindtest entre amis." />
+    <title>Iozy</title>
     <script>
       // The same stored choice as the apps (src/common/lib/theme.ts): light is
       // the charter's default on :root, dark is the attribute set above.
@@ -18,51 +18,51 @@
         if (localStorage.getItem('iozycore.theme') === 'light') document.documentElement.removeAttribute('data-theme')
       } catch {}
     </script>
-    <script type="module" src="./famille.js"></script>
+    <script type="module" src="./home.js"></script>
   </head>
   <body>
     <!-- The same bar as in the apps: the brand and its menu on the left, the
-         account link on the right (famille.js reads the IozyCore session). -->
+         account link on the right (home.js reads the IozyCore session). -->
     <header class="iozy-barre">
-      <details class="iozy-famille">
-        <summary class="famille__marque">
+      <details class="iozy-apps">
+        <summary class="home__marque">
           Iozy
-          <svg class="iozy-famille__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          <svg class="iozy-apps__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
-        <nav class="iozy-famille__menu" aria-label="La famille Iozy">
-          <a class="iozy-famille__app" data-app="core" href="/core/">
+        <nav class="iozy-apps__menu" aria-label="Les apps Iozy">
+          <a class="iozy-apps__app" data-app="core" href="/core/">
             <img data-marque="iozycore" alt="" width="28" height="28" />
             <span><b>Iozy<span>core</span></b><small>Ta collection</small></span>
           </a>
-          <a class="iozy-famille__app" href="/play/">
+          <a class="iozy-apps__app" href="/play/">
             <img data-marque="iozyplay" alt="" width="28" height="28" />
             <span><b>Iozy<span>Play</span></b><small>Le blindtest</small></span>
           </a>
-          <a class="iozy-famille__app iozy-famille__accueil" href="/" aria-current="page">Voir toutes les apps</a>
+          <a class="iozy-apps__app iozy-apps__accueil" href="/" aria-current="page">Voir toutes les apps</a>
         </nav>
       </details>
       <div class="iozy-barre__droite">
         <a class="iozy-compte" data-compte href="/core/">Connexion</a>
       </div>
     </header>
-    <main class="famille">
-      <header class="famille__entete">
-        <p class="famille__mot">Iozy</p>
+    <main class="home">
+      <header class="home__entete">
+        <p class="home__mot">Iozy</p>
         <h1>Deux apps, une adresse, tes données chez toi.</h1>
       </header>
-      <nav class="famille__apps" aria-label="Les apps de la famille">
+      <nav class="home__apps" aria-label="Les apps Iozy">
         <!-- The brand files come from the charter (iozykit/brand), loaded by
-             famille.js. As <img>, they follow the SYSTEM scheme, like a
+             home.js. As <img>, they follow the SYSTEM scheme, like a
              favicon; a logo inside an app follows the app's theme instead. -->
-        <a class="iozy-card iozy-card--lg famille__app" data-app="core" href="/core/">
+        <a class="iozy-card iozy-card--lg home__app" data-app="core" href="/core/">
           <img data-marque="iozycore" alt="" width="64" height="64" />
-          <span class="famille__nom">Iozy<span>Core</span></span>
-          <span class="famille__desc">Le catalogue de ta collection : mangas, jeux vidéo, jeux de société, et ce qu'il te manque.</span>
+          <span class="home__nom">Iozy<span>Core</span></span>
+          <span class="home__desc">Le catalogue de ta collection : mangas, jeux vidéo, jeux de société, et ce qu'il te manque.</span>
         </a>
-        <a class="iozy-card iozy-card--lg famille__app" href="/play/">
+        <a class="iozy-card iozy-card--lg home__app" href="/play/">
           <img data-marque="iozyplay" alt="" width="64" height="64" />
-          <span class="famille__nom">Iozy<span>Play</span></span>
-          <span class="famille__desc">Le blindtest entre amis : écoute, devine, marque des points.</span>
+          <span class="home__nom">Iozy<span>Play</span></span>
+          <span class="home__desc">Le blindtest entre amis : écoute, devine, marque des points.</span>
         </a>
       </nav>
     </main>

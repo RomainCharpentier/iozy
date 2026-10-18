@@ -1,6 +1,6 @@
 # IozyPlay
 
-Jeu de blindtest multijoueur (deviner séries, animes, chansons, films, jeux à partir d'un média audio/vidéo/image/YouTube). Membre de la famille Iozy (IozyCore = le catalogue de collection, IozyPlay = le jeu). La charte graphique partagée vit dans le dépôt **IozyKit**, installé comme paquet `iozykit` épinglé sur un commit dans `package.json` (rien n'est copié dans ce dépôt) ; ce qui est propre à l'app : [docs/CHARTE.md](docs/CHARTE.md).
+Jeu de blindtest multijoueur (deviner séries, animes, chansons, films, jeux à partir d'un média audio/vidéo/image/YouTube). Une des apps Iozy (IozyCore = le catalogue de collection, IozyPlay = le jeu). La charte graphique partagée vit dans le dépôt **IozyKit**, installé comme paquet `iozykit` épinglé sur un commit dans `package.json` (rien n'est copié dans ce dépôt) ; ce qui est propre à l'app : [docs/CHARTE.md](docs/CHARTE.md).
 Front React 19 + Vite 7 + TypeScript (`src/`) ; back Node ≥22 Express + Socket.IO en JS ESM (`server/`).
 Détails par zone : [src/CLAUDE.md](src/CLAUDE.md) et [server/CLAUDE.md](server/CLAUDE.md). Dette connue : [docs/REVIEW.md](docs/REVIEW.md).
 
