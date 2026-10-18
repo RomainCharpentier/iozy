@@ -1,32 +1,20 @@
-import { useEffect, useState } from 'react'
+import { loginUrl, PROFILE_URL, useIozyAccount } from '@/lib/account/IozyAccount'
 
 /**
  * Le lien de compte, le même sur chaque page du site : « Connexion » sans
- * session IozyCore (une visite compte pour rien), « Profil » avec. Même site,
- * même cookie : l'API d'IozyCore répond 401 quand personne n'est connecté.
- * Seule à la racine (dev, Vercel), l'app n'a pas d'IozyCore à côté : rien.
+ * compte Iozy, « Profil » avec (voir lib/account). La connexion ramène ici
+ * une fois faite. Seule à la racine (dev, Vercel), l'app n'a pas d'IozyCore
+ * à côté : rien.
  */
 export default function AccountLink() {
-  const standalone = import.meta.env.BASE_URL === '/'
-  const [session, setSession] = useState<{ pseudo: string } | null | undefined>(undefined)
-
-  useEffect(() => {
-    if (standalone) return
-    const controller = new AbortController()
-    fetch('/api/auth/me', { headers: { Accept: 'application/json' }, signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((compte) => setSession(compte && !compte.invite ? { pseudo: compte.pseudo } : null))
-      .catch(() => setSession(null))
-    return () => controller.abort()
-  }, [standalone])
-
-  if (standalone || session === undefined) return null
-  return session ? (
-    <a className="iozy-compte" href="/core/profile" title={`Mon profil — ${session.pseudo}`}>
+  const account = useIozyAccount()
+  if (import.meta.env.BASE_URL === '/') return null
+  return account ? (
+    <a className="iozy-compte" href={PROFILE_URL} title={`Mon profil — ${account.pseudo}`}>
       Profil
     </a>
   ) : (
-    <a className="iozy-compte" href="/core/">
+    <a className="iozy-compte" href={loginUrl(window.location.pathname + window.location.search)}>
       Connexion
     </a>
   )

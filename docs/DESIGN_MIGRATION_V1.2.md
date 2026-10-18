@@ -1370,3 +1370,27 @@ d'un jour à l'autre.
 Vérifié : 169 tests unitaires, lint, typecheck ; image reconstruite ; dans un
 vrai Chromium, une visite de `/play/` laisse exactement `iozyplay-v1` et
 `iozyplay-v1-runtime`.
+
+### Lot 185 — Un seul compte Iozy
+
+Demande du propriétaire : « il faut le même système de login entre tout
+Iozy ». Le compte, c'est celui d'IozyCore (même site, même cookie,
+`/api/auth/me`). Côté IozyPlay, `lib/account` demande une fois au démarrage
+qui est connecté et adopte son pseudo comme nom de joueur : plus d'écran
+« ton nom », nom verrouillé dans les réglages avec le lien vers le profil
+IozyCore pour le changer, « Profil » dans la barre. Sans compte (personne, ou
+une visite), rien ne change pour les invités : nom libre sur l'appareil, et la
+porte comme la barre proposent « Connexion ». IozyCore injoignable ne bloque
+jamais IozyPlay (3 s, puis personne). Côté IozyCore, la porte accepte
+`?next=` et y renvoie une fois la session ouverte (connexion, création ou
+visite) ; seul un chemin du site est accepté, jamais une autre origine. Le
+worker d'IozyPlay ne touche plus à ce qui n'est pas sous `/play/` : l'API
+commune et les autres apps vont au réseau.
+
+Vérifié : IozyPlay 177 tests, web 495 tests, lint et typecheck des deux ;
+images reconstruites ; dans un vrai Chromium sur la pile locale : sans
+session la porte d'IozyPlay montre « Connecte-toi » vers `/core/?next=/play/`
+et la barre porte le chemin courant ; depuis la porte IozyCore avec `next`,
+« Visiter sans compte » ramène sur IozyPlay ; avec une session simulée,
+`/play/` s'ouvre sans écran de nom, le pseudo est enregistré et verrouillé
+dans les réglages, la barre dit « Profil ».

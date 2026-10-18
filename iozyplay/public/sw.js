@@ -178,6 +178,12 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // Le reste du site n'est pas notre affaire : l'API commune (/api, qui dit
+  // qui est connecté) et les autres apps vont au réseau, jamais en cache.
+  if (url.origin === self.location.origin && !url.pathname.startsWith(BASE)) {
+    return
+  }
+
   // Laisser passer les requêtes YouTube normales (embed, vidéo, etc.)
   // mais bloquer les publicités via isAdRequest() ci-dessus
 

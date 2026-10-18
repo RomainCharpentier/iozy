@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 // factices : on exerce ses décisions, pas le navigateur.
 const script = readFileSync(resolve(process.cwd(), 'public/sw.js'), 'utf8')
 
-type Handler = (event: { waitUntil: (promise: Promise<unknown>) => void }) => void
+type Handler = (event: Record<string, unknown>) => void
 
 function fakeCaches(existing: string[]) {
   const opened: string[] = []
@@ -36,7 +36,7 @@ function fakeCaches(existing: string[]) {
 function loadWorker(caches: ReturnType<typeof fakeCaches>['api'], scriptUrl = 'http://localhost:8081/play/sw.js') {
   const handlers: Record<string, Handler> = {}
   const self = {
-    location: { href: scriptUrl },
+    location: { href: scriptUrl, origin: new URL(scriptUrl).origin },
     addEventListener: (type: string, handler: Handler) => {
       handlers[type] = handler
     },
@@ -67,6 +67,20 @@ describe('public/sw.js', () => {
     const caches = fakeCaches(['blindtest-20261017', 'blindtest-20261018-runtime', 'iozyplay-v1', 'iozyplay-v1-runtime'])
     await fire(loadWorker(caches.api).activate)
     expect(caches.deleted).toEqual(['blindtest-20261017', 'blindtest-20261018-runtime'])
+  })
+
+  it("laisse passer l'API commune du site et ne sert que sous son préfixe", () => {
+    const handlers = loadWorker(fakeCaches([]).api)
+    const handled = (url: string) => {
+      let responded = false
+      handlers.fetch({ request: { url, method: 'GET' }, respondWith: () => void (responded = true) })
+      return responded
+    }
+    expect(handled('http://localhost:8081/api/auth/me')).toBe(false)
+    expect(handled('http://localhost:8081/core/')).toBe(false)
+    expect(handled('http://localhost:8081/play/socket.io/?EIO=4')).toBe(false)
+    expect(handled('http://localhost:8081/play/api/health')).toBe(true)
+    expect(handled('http://localhost:8081/play/assets/index-abc.js')).toBe(true)
   })
 
   it("ouvre le même cache d'un jour à l'autre : rien ne s'accumule", async () => {

@@ -17,6 +17,17 @@
   gap: 0.375rem;
 }
 
+// Une précision sous un champ, comme sur la porte (UsernamePage) : d'où vient le nom.
+.hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+
+  a {
+    color: var(--accent-text);
+  }
+}
+
 .label {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
