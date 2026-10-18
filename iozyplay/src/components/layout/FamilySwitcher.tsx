@@ -6,7 +6,8 @@ import Wordmark from '@/components/layout/Wordmark'
 import styles from '@/components/layout/AppShell.module.scss'
 
 /**
- * La marque de l'en-tête ouvre la famille : cette app et IozyCore. Seulement quand l'app vit sous son préfixe (/play, à côté des
+ * La marque de l'en-tête ouvre la famille : cette app, IozyCore, et un dernier
+ * lien vers la page d'accueil du site, qui montre toutes les apps. Seulement quand l'app vit sous son préfixe (/play, à côté des
  * autres) ; seule à la racine (dev, Vercel), la marque reste un simple lien
  * vers l'accueil et rien de tout ceci n'existe.
  *
@@ -61,6 +62,9 @@ export default function FamilySwitcher() {
             </b>
             <small>Le blindtest</small>
           </span>
+        </a>
+        <a className="iozy-famille__app iozy-famille__accueil" href="/">
+          Voir toutes les apps
         </a>
       </nav>
     </details>

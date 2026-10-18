@@ -1234,3 +1234,12 @@ rattaché, le jeton du dépôt `iozy` ne pouvait pas y écrire (premier
 déploiement après le renommage refusé à cette étape, API et web publiés). Un
 nom neuf appartient au dépôt dès sa première publication ; le compose du NAS
 suit.
+
+### Lot 177 — « Voir toutes les apps » dans le menu
+
+Le menu de la marque retrouve un dernier lien, « Voir toutes les apps », vers
+la page d'accueil de la famille (en retrait, sous une ligne : une sortie, pas
+une app). Dans les deux apps et dans le kit (`.iozy-famille__accueil`).
+
+Vérifié : contrôles web, IozyPlay et kit ; pile locale derrière nginx, menu
+lu dans les deux apps.

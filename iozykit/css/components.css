@@ -274,3 +274,13 @@
   color: var(--iozy-text-dim);
   font-size: 0.8125rem;
 }
+
+/* Le dernier lien du menu : vers la page d'accueil de la famille, qui montre
+   toutes les apps. En retrait, sous une ligne : une sortie, pas une app. */
+.iozy-famille__accueil {
+  margin-top: 0.25rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--iozy-line);
+  color: var(--iozy-text-dim);
+  font-size: 0.875rem;
+}
