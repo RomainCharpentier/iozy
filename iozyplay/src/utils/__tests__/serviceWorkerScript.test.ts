@@ -44,7 +44,10 @@ function loadWorker(caches: ReturnType<typeof fakeCaches>['api'], scriptUrl = 'h
     clients: { claim: () => undefined },
   }
   const silent = { log: () => undefined, warn: () => undefined, error: () => undefined }
-  new Function('self', 'caches', 'console', script)(self, caches, silent)
+  // Un réseau muet : ce que le worker sert passe par là, le vrai fetch de
+  // Node refuserait nos fausses requêtes (rejet non géré, vu en CI).
+  const network = async () => ({ ok: false })
+  new Function('self', 'caches', 'console', 'fetch', script)(self, caches, silent, network)
   return handlers
 }
 
