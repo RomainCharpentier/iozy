@@ -9,15 +9,9 @@ export function UpdateNotification() {
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      let refreshing = false
-
-      // Écouter les changements de contrôle
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true
-          window.location.reload()
-        }
-      })
+      // Le rechargement quand un nouveau worker prend le contrôle est géré à
+      // un seul endroit, utils/serviceWorker.ts : un second écouteur ici
+      // rechargeait sans condition, donc aussi à la toute première visite.
 
       // Vérifier les mises à jour
       const checkForUpdates = () => {
@@ -35,7 +29,10 @@ export function UpdateNotification() {
                       icon: '🔄',
                       action: {
                         label: 'Mettre à jour',
-                        onClick: () => newWorker.postMessage({ type: 'SKIP_WAITING' }),
+                        onClick: () => {
+                          newWorker.postMessage({ type: 'SKIP_WAITING' })
+                          window.location.reload()
+                        },
                       },
                     })
                   }
