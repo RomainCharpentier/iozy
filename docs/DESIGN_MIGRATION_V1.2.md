@@ -1429,3 +1429,20 @@ la porte et la page d'accueil) ; la vérification de mise à jour du worker
 d'IozyPlay laissait une erreur en console quand on quittait la page pendant
 qu'elle tournait ; et « trait de famille » traînait encore dans la charte et
 un commentaire du logo.
+
+### Lot 188 — Une racine qui dit « monorepo »
+
+« Ça fait pas trop monorepo non ? » : la structure l'était (trois apps,
+docs et CI communes), la racine ne le montrait pas. À côté des trois dossiers
+traînaient des restes d'outillage commités le 15 octobre : un
+`docker-compose.yml` qui lance le Neo4j de Nomik (rien à voir avec les apps),
+`claude-lab/` (lab d'entraînement à l'API Claude, hors produit), la
+configuration Nomik qui pointait sur un `./src` inexistant. Tout part sous
+`tools/` avec son historique (`git mv`), avec un README qui dit que rien
+n'y fait partie du produit ; `.dockerignore` l'exclut ; la config Nomik vise
+la racine du dépôt. Le dépôt GitHub a aussi une description et des sujets
+(`monorepo`, `self-hosted`…). Racine après : `.github`, `.claude`, `docs`,
+`iozycore`, `iozykit`, `iozyplay`, `tools`, `README.md`, `CLAUDE.md`.
+
+Vérifié : les tests du lab passent depuis son nouveau dossier ; rien d'autre
+ne référençait ces fichiers.

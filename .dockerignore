@@ -5,8 +5,7 @@
 .claude
 .agents
 .codex
-.nomik
-claude-lab
+tools
 iozycore/design_handoff_v2
 docs
 iozycore/ios

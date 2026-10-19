@@ -8,6 +8,7 @@ Les apps Iozy, dans un seul dépôt : des apps personnelles, auto-hébergées, s
 | `iozyplay/` | **IozyPlay**, le blindtest entre amis : serveur Node + Socket.IO, front React. | `/play/` |
 | `iozykit/` | **IozyKit**, la charte graphique commune : couleurs des deux thèmes, polices, formes, composants de base, marques. Dépendance locale des deux apps. | — |
 | `docs/` | Déploiement, exploitation, conception, journal des lots. | — |
+| `tools/` | Outillage personnel, hors produit : lab d'entraînement à l'API Claude, graphe de code Nomik. | — |
 
 La racine du site, `/`, est la page d'accueil ; dans chaque app, la marque en haut à gauche ouvre le menu pour passer à l'autre.
 
