@@ -23,6 +23,8 @@ cd iozycore/backend && docker compose up --build
 - http://localhost:8081/core/ : IozyCore (API sur :8080)
 - http://localhost:8081/play/ : IozyPlay
 
+Depuis la racine, `npm run up` lance la même pile en arrière-plan et `npm run check` enchaîne les contrôles du kit, d'IozyCore et d'IozyPlay (après un `npm ci` dans chacun de leurs dossiers ; pas de workspaces, chaque dossier garde son `package.json`).
+
 Pour développer une app avec rechargement à chaud, lis le README de son dossier : `iozycore/README.md` (le guide de démarrage complet d'IozyCore), `iozyplay/README.md`, `iozykit/README.md`.
 
 ## Mettre en ligne et faire tourner
