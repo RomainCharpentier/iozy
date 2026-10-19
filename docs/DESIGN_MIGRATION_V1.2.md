@@ -1446,3 +1446,22 @@ la racine du dépôt. Le dépôt GitHub a aussi une description et des sujets
 
 Vérifié : les tests du lab passent depuis son nouveau dossier ; rien d'autre
 ne référençait ces fichiers.
+
+### Lot 189 — Une commande pour tout contrôler depuis la racine
+
+Suite du lot 188. Turborepo et les workspaces npm sont écartés : ils
+imposeraient de refaire trois Dockerfiles, deux workflows CI et les lockfiles
+pour un gain mince. À la place, un `package.json` privé à la racine, sans
+workspaces ni dépendances (donc ni lockfile ni `node_modules` racine), dont
+les scripts appellent `npm --prefix` : `check:kit`, `check:web`,
+`check:play`, `check` (le kit d'abord : son test régénère le CSS que les
+apps consomment) et `up` (`docker compose up --build -d` d'`iozycore/backend`).
+Rien ne change pour les Dockerfiles ni la CI.
+
+Vérifié : chaque script depuis la racine sort en 0 (kit : 86 paires de
+contraste ; web : 495 tests, typecheck, lint ; play : typecheck, lint, 130
+tests serveur, 178 tests unitaires), `npm run check` aussi, et une étape en
+échec arrête bien la chaîne (code 1). `up` n'a pas été lancé (Docker Desktop
+éteint) : `docker compose config` résout bien les trois contextes de build
+depuis la racine. Piège : le test du kit réécrit `iozykit/css/tokens.css` en
+LF ; sous `autocrlf` git le montre modifié, remets les CRLF.
