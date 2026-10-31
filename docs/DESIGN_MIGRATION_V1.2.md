@@ -1481,6 +1481,11 @@ dit comment vérifier IozyPlay en direct. Trois règles par chemin
 (`iozykit`, `iozyplay`, déploiement) portent les pièges déjà rencontrés, et le
 tableau de `CLAUDE.md` gagne la ligne `npm run check`.
 
+Une liste de permissions partagée (`settings.json`) laisse passer sans
+demander les contrôles et les lectures seules : `npm run check|typecheck|lint|
+test|test:unit`, `git status|diff|log|fetch`, `gh pr|run` en lecture,
+`docker compose ps|logs`. Rien qui écrive, pousse ou supprime.
+
 Pas de serveur MCP ajouté : `gh`, Docker et Playwright couvrent les besoins
 réels, et un MCP de plus alourdirait chaque tour (ses outils restent dans le
 contexte) sans rien débloquer. Pas de modèle imposé non plus : il se choisit
