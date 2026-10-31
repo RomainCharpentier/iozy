@@ -113,33 +113,42 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         }
         String cql = buildQuery(seriesTitle, author);
         try {
-            String encodedQuery = URLEncoder.encode(cql, StandardCharsets.UTF_8);
             // Page by page (measured on 2026-09-05: One Piece returned 44 volumes
             // out of 112, the first 100 records only). One request per
             // page, and we stop as soon as the BnF says there is nothing more.
+            // The author is tried in several spellings (see queriesFor): the
+            // next one is only asked when the previous found NO record.
             List<String> pages = new ArrayList<>();
-            int total = Integer.MAX_VALUE;
-            for (int debut = 1; debut <= Math.min(total, NOTICES_MAX); debut += PAGE) {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(SEARCH_URL.formatted(debut, encodedQuery)))
-                        .timeout(Duration.ofSeconds(10))
-                        .GET()
-                        .build();
+            for (String query : queriesFor(seriesTitle, author)) {
+                cql = query;
+                String encodedQuery = URLEncoder.encode(cql, StandardCharsets.UTF_8);
+                int total = Integer.MAX_VALUE;
+                for (int debut = 1; debut <= Math.min(total, NOTICES_MAX); debut += PAGE) {
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(SEARCH_URL.formatted(debut, encodedQuery)))
+                            .timeout(Duration.ofSeconds(10))
+                            .GET()
+                            .build();
 
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    // A source that refuses (429: the BnF limits the rate per
-                    // address) or that goes down has said nothing - it is not "no
-                    // volume": reported as such, TomeSearchService will not
-                    // cache this empty result (see searchVolumes).
-                    log.warn("The BnF answered {} for the volume search '{}'", response.statusCode(), cql);
-                    throw new SourceUnavailableException("La BnF a répondu " + response.statusCode());
+                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() != 200) {
+                        // A source that refuses (429: the BnF limits the rate per
+                        // address) or that goes down has said nothing - it is not "no
+                        // volume": reported as such, TomeSearchService will not
+                        // cache this empty result (see searchVolumes).
+                        log.warn("The BnF answered {} for the volume search '{}'", response.statusCode(), cql);
+                        throw new SourceUnavailableException("La BnF a répondu " + response.statusCode());
+                    }
+                    Matcher nombre = NOMBRE_DE_NOTICES.matcher(response.body());
+                    total = nombre.find() ? Integer.parseInt(nombre.group(1)) : 0;
+                    // The covers are no longer checked here (Batch 127): see
+                    // BnfCouverture - one per volume KEPT, never one per volume listed.
+                    pages.add(response.body());
                 }
-                Matcher nombre = NOMBRE_DE_NOTICES.matcher(response.body());
-                total = nombre.find() ? Integer.parseInt(nombre.group(1)) : 0;
-                // The covers are no longer checked here (Batch 127): see
-                // BnfCouverture - one per volume KEPT, never one per volume listed.
-                pages.add(response.body());
+                if (!pages.isEmpty() && !pages.stream().allMatch(BnfVolumeSearchProvider::sansNotice)) {
+                    break;
+                }
+                pages.clear();
             }
             return parse(pages, seriesTitle, excludedTitleFragments);
         } catch (SourceUnavailableException e) {
@@ -151,6 +160,12 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             log.warn("BnF volume search failed for '{}': {}", cql, e.getMessage());
             throw new SourceUnavailableException("La BnF n'a pas répondu : " + e.getMessage());
         }
+    }
+
+    /** An answer page that announces no record at all. */
+    private static boolean sansNotice(String page) {
+        Matcher nombre = NOMBRE_DE_NOTICES.matcher(page);
+        return !nombre.find() || Integer.parseInt(nombre.group(1)) == 0;
     }
 
     /** 010$a - the ISBN of the volume, in a dedicated MARC field. */
@@ -180,6 +195,46 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             query += " and bib.author all \"" + author.replace("\"", "") + "\"";
         }
         return query;
+    }
+
+    /**
+     * The queries to try, in order, until one of them finds a record.
+     *
+     * <p>The catalog (AniList, MyAnimeList) writes Japanese names in Hepburn
+     * with the long vowel spelled out: "Kentarou Miura", "Tatsuya Endou",
+     * "Yuusei Matsui". The BnF writes them with a macron, "Miura, Kentarō",
+     * and its {@code all} match is literal: the first query finds NOTHING,
+     * and the series stayed without any volume (measured on 2026-10-31:
+     * "Kentarou Miura" 0 records, "Kentaro Miura" 64; "Tatsuya Endou" 0,
+     * "Tatsuya Endo" 30). So, after the name as given: the name with its
+     * long vowels simplified, then the family name alone, simplified. Never
+     * the title alone: "Monster" is 2,334 records and "Kingdom" 6,511, a
+     * request that is too wide, not a series. A query that finds nothing
+     * costs one request and answers at once.
+     */
+    static List<String> queriesFor(String seriesTitle, String author) {
+        List<String> queries = new ArrayList<>();
+        queries.add(buildQuery(seriesTitle, author));
+        if (author != null && !author.isBlank()) {
+            String simplified = sansVoyellesLongues(author);
+            if (!queries.contains(buildQuery(seriesTitle, simplified))) {
+                queries.add(buildQuery(seriesTitle, simplified));
+            }
+            String[] mots = simplified.trim().split("\\s+");
+            String nomDeFamille = mots[mots.length - 1];
+            if (mots.length > 1 && !queries.contains(buildQuery(seriesTitle, nomDeFamille))) {
+                queries.add(buildQuery(seriesTitle, nomDeFamille));
+            }
+        }
+        return queries;
+    }
+
+    /** "Kentarou" becomes "Kentaro", "Yuusei" "Yusei": the two long vowels
+     *  of a Hepburn transcription that the BnF writes with a macron (ō, ū).
+     *  Nothing else: "ii" stays "ii" at the BnF too ("Iida"), and touching
+     *  "ee" would turn a Western "Lee" into something else. */
+    static String sansVoyellesLongues(String nom) {
+        return nom.replaceAll("(?i)ou", "o").replaceAll("(?i)uu", "u");
     }
 
     /** Mirror of {@link #searchVolumes} for the tests - parses a single

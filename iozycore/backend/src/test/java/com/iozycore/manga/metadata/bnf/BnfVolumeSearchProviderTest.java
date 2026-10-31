@@ -10,6 +10,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BnfVolumeSearchProviderTest {
 
     @Test
+    void tries_the_author_as_given_then_without_long_vowels_then_the_family_name_alone() {
+        assertThat(BnfVolumeSearchProvider.queriesFor("Berserk", "Kentarou Miura")).containsExactly(
+                "bib.title all \"Berserk\" and bib.author all \"Kentarou Miura\"",
+                "bib.title all \"Berserk\" and bib.author all \"Kentaro Miura\"",
+                "bib.title all \"Berserk\" and bib.author all \"Miura\"");
+        assertThat(BnfVolumeSearchProvider.queriesFor("Spy x Family", "Tatsuya Endou")).containsExactly(
+                "bib.title all \"Spy x Family\" and bib.author all \"Tatsuya Endou\"",
+                "bib.title all \"Spy x Family\" and bib.author all \"Tatsuya Endo\"",
+                "bib.title all \"Spy x Family\" and bib.author all \"Endo\"");
+    }
+
+    @Test
+    void never_repeats_a_query_and_never_falls_back_to_the_title_alone() {
+        // No long vowel: the simplified name is the same, so only the family name is added.
+        assertThat(BnfVolumeSearchProvider.queriesFor("Monster", "Naoki Urasawa")).containsExactly(
+                "bib.title all \"Monster\" and bib.author all \"Naoki Urasawa\"",
+                "bib.title all \"Monster\" and bib.author all \"Urasawa\"");
+        // A single word: nothing to fall back to.
+        assertThat(BnfVolumeSearchProvider.queriesFor("Monster", "Urasawa")).containsExactly(
+                "bib.title all \"Monster\" and bib.author all \"Urasawa\"");
+        // No author: the title alone, once, as before.
+        assertThat(BnfVolumeSearchProvider.queriesFor("Monster", null)).containsExactly("bib.title all \"Monster\"");
+        assertThat(BnfVolumeSearchProvider.queriesFor("Monster", " ")).containsExactly("bib.title all \"Monster\"");
+    }
+
+    @Test
     void extracts_the_volume_number_edition_and_publisher_from_a_real_marc_record() throws Exception {
         // Fixture based on the real SRU response of the BnF (checked
         // manually at the user's request, see the history of the
