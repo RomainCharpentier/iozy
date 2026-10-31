@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { gradientFor } from '@/common/theme/gradient'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
+import { Jaquette } from '@/common/components/Jaquette'
 
 interface CoverTileProps {
   title: string
@@ -65,28 +65,26 @@ export function CoverTile({
   signal,
   onClick,
 }: CoverTileProps) {
-  const [imageFailed, setImageFailed] = useState(false)
-  const showImage = !!imageUrl && !imageFailed
-
   return (
-    <button type="button" onClick={onClick} className={`flex w-full min-w-0 flex-col text-left ${onClick ? 'cursor-pointer transition-transform active:scale-[0.98]' : 'cursor-default'}`}>
+    // Lifts by half a pixel grid under the pointer and settles back under
+    // the finger (batch 191): the tile answers before it is opened. `group`
+    // so that its frame deepens its shadow at the same time.
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group flex w-full min-w-0 flex-col text-left ${onClick ? 'cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]' : 'cursor-default'}`}
+    >
       <div
-        className={`relative w-full overflow-hidden rounded-2xl ring-1 ring-line shadow-token-sm ${aspectClassName}`}
-        style={showImage ? undefined : { background: gradientFor(gradientKey ?? title) }}
+        className={`relative w-full overflow-hidden rounded-2xl ring-1 ring-line shadow-token-sm transition-shadow duration-200 group-hover:shadow-token-md ${aspectClassName}`}
+        // The gradient stays UNDER the cover: it is what shows while the
+        // image fades in, and what remains when it fails.
+        style={{ background: gradientFor(gradientKey ?? title) }}
       >
-        {showImage && (
-          // Loaded when it gets close to the screen, not all at once: a
-          // collection of 300 series is 300 covers from Google Books
-          // at the first render (batch 141).
-          <img
-            src={imageUrl}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setImageFailed(true)}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        )}
+        {/* Loaded when it gets close to the screen, not all at once: a
+            collection of 300 series is 300 covers from Google Books
+            at the first render (batch 141). It fades in once there, and
+            a URL that fails leaves the gradient alone (Jaquette). */}
+        <Jaquette src={imageUrl} className="absolute inset-0 h-full w-full object-cover" repli={null} />
         {showBadge && (
           <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accentInk">
             <Check size={14} strokeWidth={3} />

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 type Props = {
   /** The URL of the cover. Absent or empty: `repli` is rendered directly. */
@@ -43,10 +43,32 @@ export function Jaquette({ src, className, repli, loading = 'lazy' }: Props) {
   // cover of a series ("Modifier la couverture") would leave the fallback
   // displayed for the NEW URL, which has never failed.
   const [urlEnEchec, setUrlEnEchec] = useState<string | null>(null)
+  // The URL that has ARRIVED, for the same reason: a new cover starts
+  // invisible again until it is really there.
+  const [urlChargee, setUrlChargee] = useState<string | null>(null)
+  const ref = useRef<HTMLImageElement>(null)
+
+  // An image served from the cache is complete before React attaches
+  // `onLoad` in some browsers: it would stay invisible for ever.
+  useEffect(() => {
+    const img = ref.current
+    if (src && img && img.complete && img.naturalWidth > 0) setUrlChargee(src)
+  }, [src])
 
   if (!src || src === urlEnEchec) return <>{repli}</>
 
+  // Fades in once downloaded (batch 191): a cover that pops in over its
+  // fallback, a few hundred milliseconds after the page, read as a glitch.
+  const arrivee = urlChargee === src
   return (
-    <img src={src} alt="" loading={loading} onError={() => setUrlEnEchec(src)} className={className} />
+    <img
+      ref={ref}
+      src={src}
+      alt=""
+      loading={loading}
+      onLoad={() => setUrlChargee(src)}
+      onError={() => setUrlEnEchec(src)}
+      className={`${className ?? ''} transition-opacity duration-300 ${arrivee ? 'opacity-100' : 'opacity-0'}`}
+    />
   )
 }

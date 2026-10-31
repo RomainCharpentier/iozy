@@ -189,7 +189,7 @@ export function CustomTierBoardPage() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Menu de la Tier List"
-                className="absolute right-0 top-full z-10 mt-1 w-56 rounded-xl border border-surface2 bg-surface p-1.5 shadow-token-elevated"
+                className="entree-douce absolute right-0 top-full z-10 mt-1 w-56 rounded-xl border border-surface2 bg-surface p-1.5 shadow-token-elevated"
               >
                 {renaming ? (
                   <div className="flex flex-col gap-2 p-2">

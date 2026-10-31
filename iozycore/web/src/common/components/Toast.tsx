@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           // Above the thumb bar on mobile (see TabBar), at the bottom
           // left on desktop where nothing hides this area.
-          className="fixed inset-x-4 bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] z-[60] flex items-center gap-3 rounded-xl bg-surface2 p-3 shadow-token-elevated ring-1 ring-line md:inset-x-auto md:bottom-6 md:left-6 md:w-[360px]"
+          className="entree-douce fixed inset-x-4 bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] z-[60] flex items-center gap-3 rounded-xl bg-surface2 p-3 shadow-token-elevated ring-1 ring-line md:inset-x-auto md:bottom-6 md:left-6 md:w-[360px]"
           role="status"
           aria-live="polite"
         >

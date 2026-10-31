@@ -61,13 +61,13 @@ export function ScanActionMenu({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/45" onClick={onSkip} />
+      <div className="voile-entree fixed inset-0 z-40 bg-black/45" onClick={onSkip} />
       <div
         ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="scan-action-title"
-        className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-2xl bg-surface shadow-token-elevated md:inset-x-auto md:top-1/2 md:left-1/2 md:bottom-auto md:w-[360px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:border md:border-surface2"
+        className="feuille-entree fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-2xl bg-surface shadow-token-elevated md:inset-x-auto md:top-1/2 md:left-1/2 md:bottom-auto md:w-[360px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:border md:border-surface2"
       >
         <div className="flex items-start gap-3 border-b border-surface2 p-4">
           <Jaquette

@@ -1493,3 +1493,42 @@ par session.
 
 Vérifié : le hook sort en 0 sans changement, en 2 sur une erreur de type dans
 IozyPlay, en 0 sur un fichier valide.
+
+### Lot 191 — Le mouvement, une fois pour toutes
+
+Demande du propriétaire : « solidifier toutes les features déjà présentes et
+rendre le design fluide et moderne ». Relevé d'abord : trente-et-un écrans
+photographiés sur la pile jetable avec une collection semée par l'API
+(neuf séries AniList, jeux, envies, suivis, tier lists, tags, partage), à
+390 px et 1 280 px, sombre et clair, avec la sonde de débordement et de
+cibles. Un seul défaut réel : la Tier List personnalisée débordait à 390 px
+(fenêtre élargie à 492 px, barre du pouce hors écran), ses trois actions
+refusant de passer sous le titre ; son lien de retour faisait 20 px. Les
+deux rangées passent à la ligne, et le retour est `LienRetour`.
+
+Puis le mouvement, dit une fois dans `index.css` : chaque écran arrive en
+fondu (`main` est clé par le chemin, donc deux fiches de suite ont chacune
+leur entrée), une feuille monte sous le pouce et se pose sur grand écran
+(`feuille-entree`, `voile-entree`), un menu ou un toast se pose
+(`entree-douce`), une jaquette apparaît en fondu une fois téléchargée
+(`Jaquette`, que `CoverTile` utilise désormais aussi, le dégradé restant
+dessous), le squelette est balayé par une lumière plutôt que de clignoter,
+les rayons s'arrêtent sur une tuile (`rail-defilant`), une tuile se soulève
+sous le pointeur, et le changement de thème est un fondu croisé par l'API
+View Transitions quand le navigateur l'a. Seuls `opacity` et `transform`
+bougent ; l'entrée d'écran ne bouge que l'opacité, sinon le bouton d'aide
+fixe de la fiche se retrouvait au mauvais endroit le temps de l'entrée.
+Le kit coupe tout sous `prefers-reduced-motion`, et une règle explicite
+arrête aussi les pseudo-éléments de la transition de vue.
+
+Vérifié dans un vrai Chromium à 390 et 1 280 px : plus de débordement,
+retour à 44 px, toutes les jaquettes chargées à opacité 1, l'entrée d'écran
+retombe sur `opacity: 1` et `transform: none`, la feuille d'outils s'anime
+(`entree-feuille` sur téléphone, `entree-panneau` sur bureau) et se pose au
+bon endroit, le thème bascule et reste mémorisé, le bouton d'aide est à sa
+place. 495 tests, typecheck, lint et les 19 parcours e2e au vert.
+
+Reste noté : la console garde deux bruits qui ne viennent pas de ce lot,
+l'image CORS refusée par AniList pour la teinte du hero (repli terracotta
+prévu) et les 404 de `/metadata/french-title` quand aucun titre français
+n'existe.

@@ -80,13 +80,13 @@ export function CollectionFilters({
           screen sheet) - desktop stays a simple anchored popover, closing by click
           outside handled by a transparent full-screen layer (see the
           V1.2 mockup, line ~1752: overlay without visible background on desktop). */}
-      <div className="fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={onClose} />
+      <div className="voile-entree fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={onClose} />
       <div
         ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="collection-filters-title"
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-token-elevated md:inset-x-auto md:top-20 md:right-[max(12px,calc((100%-min(100%-48px,1600px))/2))] md:bottom-auto md:w-[312px] md:rounded-2xl md:border md:border-surface2"
+        className="feuille-entree fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-token-elevated md:inset-x-auto md:top-20 md:right-[max(12px,calc((100%-min(100%-48px,1600px))/2))] md:bottom-auto md:w-[312px] md:rounded-2xl md:border md:border-surface2"
       >
         <div className="flex items-center justify-between gap-2 p-4 pb-2">
           <h2 id="collection-filters-title" className="font-display text-base font-semibold text-textPrimary">

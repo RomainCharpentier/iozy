@@ -399,13 +399,13 @@ export function ShelfPage() {
 
       {hubMenuOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={() => setHubMenuOpen(false)} />
+          <div className="voile-entree fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={() => setHubMenuOpen(false)} />
           <div
             ref={hubMenuRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="hub-menu-title"
-            className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-surface p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-token-elevated md:inset-x-auto md:top-32 md:left-[max(12px,calc((100%-min(100%-48px,1600px))/2))] md:bottom-auto md:w-[280px] md:rounded-2xl md:border md:border-surface2 md:p-2"
+            className="feuille-entree fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-surface p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-token-elevated md:inset-x-auto md:top-32 md:left-[max(12px,calc((100%-min(100%-48px,1600px))/2))] md:bottom-auto md:w-[280px] md:rounded-2xl md:border md:border-surface2 md:p-2"
           >
             <div className="flex items-center justify-between gap-2 px-2 py-2">
               <span id="hub-menu-title" className="font-display text-sm font-semibold text-textPrimary">

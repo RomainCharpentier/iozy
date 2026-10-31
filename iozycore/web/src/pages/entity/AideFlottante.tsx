@@ -103,7 +103,7 @@ export function AideFlottante({
           ref={panneauRef}
           role="dialog"
           aria-label={`Aide sur ${titreSerie}`}
-          className="flex w-[min(304px,calc(100vw-2.5rem))] flex-col gap-3 rounded-2xl bg-surface p-4 shadow-token-elevated ring-1 ring-line ring-inset"
+          className="entree-douce flex w-[min(304px,calc(100vw-2.5rem))] flex-col gap-3 rounded-2xl bg-surface p-4 shadow-token-elevated ring-1 ring-line ring-inset"
         >
           <div className="flex items-center justify-between gap-3">
             <span className="min-w-0 truncate font-display text-sm font-medium tracking-[-0.01em] text-textPrimary">

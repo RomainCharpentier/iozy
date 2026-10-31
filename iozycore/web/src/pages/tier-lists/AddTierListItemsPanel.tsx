@@ -78,13 +78,13 @@ export function AddTierListItemsPanel({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
+      <div className="voile-entree fixed inset-0 z-40 bg-black/40" onClick={onClose} />
       <div
         ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-tier-items-title"
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-token-elevated md:inset-0 md:m-auto md:h-fit md:max-h-[85vh] md:w-[520px] md:rounded-2xl md:border md:border-surface2"
+        className="feuille-entree fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-token-elevated md:inset-0 md:m-auto md:h-fit md:max-h-[85vh] md:w-[520px] md:rounded-2xl md:border md:border-surface2"
       >
         <div className="flex items-center justify-between gap-2 border-b border-surface2 p-4">
           <h2 id="add-tier-items-title" className="font-display text-base font-semibold text-textPrimary">

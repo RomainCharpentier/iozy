@@ -70,11 +70,32 @@ export function applyStoredTheme(): void {
   appliquerAttribut(themeCourant)
 }
 
+/**
+ * Switches the theme, as a crossfade when the browser can.
+ *
+ * <p>Before, every surface switched in one frame while the body took 200 ms
+ * - a mixed screen for the time of a blink. The View Transitions API
+ * snapshots the screen, applies the attribute, and fades the old snapshot
+ * into the new one (240 ms, see index.css). Without the API (Firefox, the
+ * test runner), the attribute is applied at once, as before. The reduced
+ * motion preference is read here too: the CSS stops the fade, but starting
+ * a transition for nothing would still delay the switch by a frame.
+ */
 export function setTheme(theme: Theme): void {
   themeCourant = theme
-  appliquerAttribut(theme)
   window.localStorage.setItem(STORAGE_KEY, theme)
-  for (const rappel of abonnes) rappel()
+  const appliquer = () => {
+    appliquerAttribut(theme)
+    for (const rappel of abonnes) rappel()
+  }
+  const document_ = document as Document & { startViewTransition?: (update: () => void) => unknown }
+  const mouvementReduit =
+    typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (typeof document_.startViewTransition === 'function' && !mouvementReduit) {
+    document_.startViewTransition(appliquer)
+  } else {
+    appliquer()
+  }
 }
 
 export function toggleTheme(): void {
