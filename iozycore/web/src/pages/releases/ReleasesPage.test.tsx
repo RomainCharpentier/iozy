@@ -231,11 +231,17 @@ describe('ReleasesPage', () => {
     rendre('/releases?mois=octobre')
 
     await waitFor(() => expect(insights.getReleaseCalendar).toHaveBeenCalled())
-    const appelDuMois = insights.getReleaseCalendar.mock.calls.find((appel) => String(appel[0]).endsWith('-01'))
+    // The page asks for TWO windows: the month, and the year ahead. On the
+    // first of a month both start on a "-01", so the month is the one that
+    // ends in the same month it starts (seen on 2026-11-01: the first
+    // "-01" call was the year, ending in October 2027).
+    const appelDuMois = insights.getReleaseCalendar.mock.calls.find(
+      (appel) => String(appel[0]).endsWith('-01') && String(appel[1]).slice(0, 7) === String(appel[0]).slice(0, 7),
+    )
     expect(appelDuMois).toBeDefined()
     const [from, to] = appelDuMois as [string, string]
     expect(from).toMatch(/^\d{4}-\d{2}-01$/)
-    expect(to.slice(0, 7)).toBe(from.slice(0, 7))
+    expect(to).toMatch(/^\d{4}-\d{2}-(28|29|30|31)$/)
     expect(screen.queryByRole('button', { name: "Aujourd'hui" })).not.toBeInTheDocument()
   })
 })

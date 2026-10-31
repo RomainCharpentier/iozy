@@ -733,6 +733,7 @@ export function EntityDetailPage() {
             // A visitor sees the volumes of the edition, not holes in a
             // collection they do not have, and no "Je l'ai" / "Je le veux".
             consultation={estInvite}
+            teinte={teinte}
           />
 
           <div className="pt-4 empty:hidden">

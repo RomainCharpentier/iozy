@@ -1,5 +1,6 @@
 import { coverImageUrlFrom } from '@/common/lib/coverImage'
 import { GrilleVolumes, type FiltreVolumes, type VolumeAffiche } from './GrilleVolumes'
+import { useVueTomes } from './vueTomes'
 import type { TomeTile } from './tomeTiles'
 
 export type { FiltreVolumes as FiltreTomes }
@@ -36,6 +37,7 @@ export function GrilleTomes({
   modeEdition,
   onAjouterTome,
   consultation = false,
+  teinte,
 }: {
   titre: string
   /** True when the work has more than one edition. This is the only case where one
@@ -60,7 +62,11 @@ export function GrilleTomes({
   /** A visitor: the volumes of the edition, without any personal state or
    *  gesture (see GrilleVolumes, mode `consultation`). */
   consultation?: boolean
+  /** The tint of the series (see useTeinteJaquette): the spine of an owned
+   *  volume without a cover takes it on the shelf. */
+  teinte?: [number, number, number]
 }) {
+  const [vue, definirVue] = useVueTomes()
   // The key is the number: a detail page grid only shows ONE edition at a
   // time, so the number is already unique there (unlike the add screen,
   // which mixes editions - see lib/volumeKey).
@@ -101,6 +107,10 @@ export function GrilleTomes({
         onJeLAi={(cle) => onJeLAi(Number(cle))}
         onJeLeVeux={(cle) => onBasculerEnvie(Number(cle))}
         action={modeEdition ? { libelle: 'Ajouter un tome', onClick: onAjouterTome } : undefined}
+        vue={vue}
+        onVue={definirVue}
+        teinte={teinte}
+        edition={titre}
       />
     </section>
   )

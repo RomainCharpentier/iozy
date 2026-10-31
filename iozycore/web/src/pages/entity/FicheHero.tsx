@@ -91,16 +91,37 @@ export function FicheHero({
   colleEnHaut?: boolean
 }) {
   return (
-    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative ${colleEnHaut ? '-mt-6' : ''}`}>
+    // `isolate`: the band is its own stacking context, so its `-z-10` layers
+    // paint just under its content - and not under the background of the
+    // page, where a negative z-index lands without it.
+    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative isolate ${colleEnHaut ? '-mt-6' : ''}`}>
+      {/* The cover itself, blurred into the top of the page (batch 195):
+          the tinted gradients below gave a mood, the owner found the page
+          "trop sobre" - the blurred artwork gives each series its own
+          light, like a record sleeve behind a player. An <img>, never a
+          canvas: the host does not need to allow CORS for a blur. Its
+          opacity keeps the text at the contrast the gradients had. */}
+      {couvertureUrl && (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <img
+            src={couvertureUrl}
+            alt=""
+            loading="eager"
+            decoding="async"
+            className="absolute -top-[30%] -left-[10%] h-[160%] w-[120%] max-w-none object-cover opacity-40 blur-[70px] saturate-[1.4]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/55 to-background" />
+        </div>
+      )}
       {/* The two layers of the mockup, in order: the vertical gradient
           that sets the mood, then the radial wash that breaks it so that it
-          does not look like a flat color. `-z-10` and not `z-0`: they must
-          go BEHIND the content without forcing a stacking
-          context on it, otherwise the panel of a volume opened further down would go
-          under it. */}
+          does not look like a flat color. `-z-10`: behind the content of
+          the band. All three layers stop at the band's edge (`inset-0`):
+          taller, they covered the filters and the first shelf below, which
+          are not positioned and so paint under a positioned band. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[660px]"
+        className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
             `linear-gradient(178deg, ${tonDe(teinte, 34, 0.2)} 0%, ${tonDe(teinte, 20, 0.3)} 26%,` +
@@ -110,7 +131,7 @@ export function FicheHero({
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px]"
+        className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
             `radial-gradient(72% 62% at 8% -4%, ${tonDe(teinte, 30, 0.12)} 0%, ${tonDe(teinte, 0, 0.12)} 62%),` +

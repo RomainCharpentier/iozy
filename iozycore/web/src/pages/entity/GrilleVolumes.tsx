@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react'
-import { Check, CheckCheck, Heart, Plus, Trash2, X } from 'lucide-react'
+import { Check, CheckCheck, Heart, LayoutGrid, Library, Plus, Trash2, X } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
+import { Etagere } from './Etagere'
+import type { VueTomes } from './vueTomes'
 
 /**
  * A volume as a grid shows it, whatever its origin.
@@ -69,6 +71,10 @@ export function GrilleVolumes({
   enTete,
   action,
   videMessage,
+  vue = 'grille',
+  onVue,
+  teinte,
+  edition,
 }: {
   volumes: VolumeAffiche[]
   /** `consultation`: the catalog seen by a visitor. The volumes of the
@@ -97,6 +103,15 @@ export function GrilleVolumes({
   /** An action tile at the end of the grid ("ajouter un tome"). */
   action?: { libelle: string; onClick: () => void }
   videMessage?: string
+  /** Standing on shelves (see Etagere) or as tiles. The shelf only exists
+   *  outside the selection mode, where checking needs the tiles. */
+  vue?: VueTomes
+  /** Offered as a switch next to the filters when given. */
+  onVue?: (vue: VueTomes) => void
+  /** The tint of the series, for the spine of an owned volume without a cover. */
+  teinte?: [number, number, number]
+  /** Named next to an owned volume pulled out of the shelf. */
+  edition?: string
 }) {
   // On `volumes` and not on `visibles`: a counter that only counted what
   // is already on screen would always say the total of the current view.
@@ -111,6 +126,7 @@ export function GrilleVolumes({
   }
 
   const consultation = mode === 'consultation'
+  const surEtagere = vue === 'etagere' && mode !== 'selection'
   const visibles = volumes.filter((volume) => {
     if (consultation) return true
     if (filtre === 'possedes') return volume.possede
@@ -132,6 +148,11 @@ export function GrilleVolumes({
             A real group of radio buttons despite the look: three views that
             exclude each other, which `aria-pressed` would not say - it would announce
             three independent switches of which two are "inactive". */}
+        {/* Filters and the shelf/grid switch share the right side; the
+            switch wraps under the filters when the line is short (seen at
+            390 px on a series of 110: "Tous 110 · Manquants 80 · Possédés
+            30" plus the switch pushed the page to 396 px). */}
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
         {!consultation && (
         <div
           role="radiogroup"
@@ -168,9 +189,49 @@ export function GrilleVolumes({
           })}
         </div>
         )}
+        {/* Shelf or grid: two readings of the same volumes, remembered on
+            this device (see vueTomes). Not in selection mode, where the
+            tiles carry the checks. */}
+        {onVue && mode !== 'selection' && (
+          <div role="radiogroup" aria-label="Affichage des tomes" className="flex items-center gap-0.5 rounded-xl bg-softBtn p-0.5">
+            {(
+              [
+                { cle: 'etagere', libelle: 'Étagère', Icone: Library },
+                { cle: 'grille', libelle: 'Grille', Icone: LayoutGrid },
+              ] as const
+            ).map(({ cle, libelle, Icone }) => (
+              <button
+                key={cle}
+                type="button"
+                role="radio"
+                aria-checked={vue === cle}
+                aria-label={libelle}
+                title={libelle}
+                onClick={() => onVue(cle)}
+                className={`flex h-9 w-10 items-center justify-center rounded-[10px] transition-colors ${
+                  vue === cle ? 'bg-surface text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
+                }`}
+              >
+                <Icone size={16} />
+              </button>
+            ))}
+          </div>
+        )}
+        </div>
       </div>
 
-      {visibles.length === 0 ? (
+      {surEtagere && visibles.length > 0 ? (
+        <Etagere
+          volumes={visibles}
+          mode={consultation ? 'consultation' : 'navigation'}
+          teinte={teinte}
+          edition={edition}
+          onJeLAi={consultation ? undefined : onJeLAi}
+          onJeLeVeux={consultation ? undefined : onJeLeVeux}
+          onRetirer={consultation ? undefined : onRetirer}
+          action={action}
+        />
+      ) : visibles.length === 0 ? (
         <p className="py-6 text-sm text-faint">
           {videMessage ??
             (consultation

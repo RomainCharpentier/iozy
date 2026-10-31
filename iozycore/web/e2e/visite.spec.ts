@@ -60,10 +60,11 @@ test('visit without an account: the catalog, nothing personal, and no write', as
   await expect(pageVisiteur).toHaveURL(new RegExp(`/entity/${entityId}$`))
   await expect(pageVisiteur.getByRole('heading', { name: titre })).toBeVisible()
   // Volume 1 is the account's one. The visitor sees the three volumes of the
-  // edition, neither owned nor MISSING: a visitor has no collection, so
-  // nothing can be missing from it.
+  // edition on the shelf, neither owned nor MISSING: a visitor has no
+  // collection, so nothing can be missing from it. A spine is named by its
+  // number alone (an account's spine says "Tome 2, manquant").
   for (const numero of [1, 2, 3]) {
-    await expect(pageVisiteur.getByRole('img', { name: `Tome ${numero}`, exact: true })).toBeVisible()
+    await expect(pageVisiteur.getByRole('button', { name: `Tome ${numero}`, exact: true })).toBeVisible()
   }
   await expect(pageVisiteur.getByText(/manquant|possédé/i)).toHaveCount(0)
   await expect(pageVisiteur.getByRole('radiogroup', { name: 'Filtrer les tomes' })).toHaveCount(0)

@@ -1603,3 +1603,27 @@ après reconstruction de l'image.
 Reste noté : la BnF coupe après une rafale (recherche plus un contrôle par
 jaquette posée) ; la passe horaire reprend, mais une grande collection se
 remplit en plusieurs heures.
+
+### Lot 195 — L'étagère
+
+Le propriétaire trouvait la grille des tomes illisible : l'état d'un tome
+(possédé, envie, manquant) ne se voyait pas, et l'ensemble faisait daté.
+Six planches tranchées sur un canevas ; la retenue est une étagère. Chaque
+tome est un dos de 22 px, découpé dans sa jaquette quand elle est connue :
+plein s'il est possédé, en pointillé s'il manque, bordé d'accent s'il est
+dans les envies. Le survol (un appui sur mobile) ouvre la jaquette au-dessus
+du dos avec ses gestes : « Je l'ai » et le cœur pour un tome manquant, la
+corbeille en deux temps pour un tome possédé. Les dos se répartissent en
+étages selon la largeur mesurée (`dosParEtage`), jamais plus large que la
+fenêtre ; près d'un bord, la jaquette s'ouvre vers l'intérieur, sinon un
+élément caché qui dépasse élargit la page. La grille reste derrière un
+commutateur « Étagère / Grille » mémorisé par le navigateur ; la sélection
+garde la grille. En visite, les dos n'ont ni état ni geste. Sur le bandeau,
+la jaquette floutée donne sa lumière à chaque série ; les trois couches du
+fond s'arrêtent au bord du bandeau, plus hautes elles couvraient les filtres
+et le premier étage.
+
+Vérifié : 505 tests web, typecheck, lint, 19 parcours e2e ; mesures
+Playwright à 1280 et 390 px pour 13, 41 et 110 tomes (1 à 10 étages, aucun
+débordement) ; captures bureau et mobile, en visiteur, sur la collection du
+propriétaire.
