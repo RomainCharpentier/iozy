@@ -11,6 +11,6 @@ disable-model-invocation: true
 3. **Journal** : une section dans `docs/DESIGN_MIGRATION_V1.2.md`.
 4. **Revue** : lance `/code-review` sur le diff du lot. Corrige les défauts de **correction** ou d'exigence non tenue ; ignore le reste (style, abstractions en plus), il pousse à sur-concevoir.
 5. **Commit** : lance le skill `commit`.
-6. **Push** : `git push` juste après le commit (sur `main` si c'est le propriétaire, sinon `git push -u origin <branche>`). Jamais de push forcé. Un push sur `main` déclenche le déploiement.
-7. **Déploiement** : après la fusion ou le push sur `main`, suis le run (`gh run list --branch main`, puis `gh run watch <id> --exit-status`). Un job rouge veut dire que le lot n'est pas clos : trois fusions de suite sont passées avec « Contrôles IozyPlay » en échec parce que personne ne regardait.
-8. **Conclusion** : dis que le lot est clos et poussé (et que le déploiement est vert) et conseille `/clear` avant le suivant. Ne vide pas la conversation toi-même.
+6. **Push** : `git push` juste après le commit (sur `main` si c'est le propriétaire, sinon `git push -u origin <branche>`). Jamais de push forcé. Un push sur `main` lance la CI.
+7. **Contrôles de la CI** : on ne déploie pas, on reste en local. Regarde seulement les jobs de contrôle du run sur `main` (`gh run list --branch main`) : un rouge veut dire que le lot n'est pas clos (trois fusions de suite sont passées avec « Contrôles IozyPlay » en échec parce que personne ne regardait). N'attends pas le job de publication des images.
+8. **Conclusion** : dis que le lot est clos et poussé (contrôles de la CI verts) et conseille `/clear` avant le suivant. Ne vide pas la conversation toi-même.
