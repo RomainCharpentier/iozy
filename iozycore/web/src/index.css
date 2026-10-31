@@ -366,9 +366,19 @@ button, a, input, textarea, select {
   @apply bg-surface/85 backdrop-blur-xl backdrop-saturate-150;
 }
 
-/* A block waiting for its data: the shape of what is going to come. */
+/* A block waiting for its data: the shape of what is going to come.
+   A light sweeps across it (batch 191) rather than the whole block blinking:
+   the pulse read as "something is wrong", the sweep reads as "it is coming". */
 @utility squelette {
-  @apply animate-pulse rounded-xl bg-surface2;
+  @apply rounded-xl bg-surface2;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-textPrimary) 6%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: miroitement 1.6s ease-in-out infinite;
 }
 
 /* A long list row: the browser only renders it close to the screen.
@@ -381,4 +391,131 @@ button, a, input, textarea, select {
 /* Counters line up: every digit has the same width. */
 @utility compteur {
   font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Motion (batch 191): a screen arrives, a sheet rises, a veil fades.
+
+   Nothing moved between two states before: a screen replaced the previous
+   one in one frame, a sheet appeared already open, a cover popped in once
+   downloaded. Each change is now said once here, short (180 to 280 ms) and
+   with the same ease-out, so that the interface feels continuous without
+   ever making anyone wait. The kit already stops all of it under
+   prefers-reduced-motion (iozykit/css/base.css).
+
+   Only `opacity` and `transform` move: both are composited, neither one
+   triggers a layout. The screen entrance moves `opacity` ALONE - a
+   transform on a page block would turn it into the containing block of
+   its `position: fixed` children (the help button of a detail page, the
+   sheets), which would then sit at the wrong place for the whole entrance.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --ease-sortie: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes entree-ecran {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes entree-feuille {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+@keyframes entree-panneau {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+}
+
+@keyframes entree-douce {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes entree-voile {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes miroitement {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Every block of a screen fades in when it appears: the page itself, and
+   later the content that replaces its skeleton. `main` is keyed by the
+   pathname (see AppShell), so a new screen is always a new block.
+   `backwards` so that nothing ends with a transform left behind. */
+@layer base {
+  main[data-grille] > * {
+    animation: entree-ecran 200ms var(--ease-sortie) backwards;
+  }
+}
+
+/* A bottom sheet rises from under the thumb; the same sheet, centered on a
+   wide screen, settles instead of rising - 24 px of travel there would read
+   as a jump. The `md` threshold is the one where the sheets change shape
+   (see CollectionFilters, TierPicker...). */
+@utility feuille-entree {
+  animation: entree-feuille 280ms var(--ease-sortie) backwards;
+
+  @media (width >= 48rem) {
+    animation-name: entree-panneau;
+    animation-duration: 220ms;
+  }
+}
+
+/* A menu, a toast, a floating panel: a short settle where it opens. */
+@utility entree-douce {
+  animation: entree-douce 200ms var(--ease-sortie) backwards;
+}
+
+/* The scrim behind a sheet: fades, never slides. */
+@utility voile-entree {
+  animation: entree-voile 200ms ease-out backwards;
+}
+
+/* A rail of tiles stops on a tile, not in the middle of one; a swipe that
+   reaches the end does not pull the whole page sideways. */
+@utility rail-defilant {
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+}
+
+/* The theme switch crossfades the whole screen (see lib/theme.ts, which
+   goes through the View Transitions API when the browser has it). While
+   it runs, the per-element transitions are off: they would make the new
+   snapshot start with the colors of the OLD theme. The kit's
+   reduced-motion rule does not reach these pseudo-elements, hence the
+   explicit stop below. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: ease;
+}
+
+html:active-view-transition * {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }

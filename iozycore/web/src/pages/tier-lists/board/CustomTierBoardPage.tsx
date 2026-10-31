@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { retourDepuis } from '@/common/lib/retour'
-import { ArrowLeft, MoreHorizontal, Pencil, Plus, Trash2, Zap } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { MoreHorizontal, Pencil, Plus, Trash2, Zap } from 'lucide-react'
+import { LienRetour } from '@/common/components/LienRetour'
 import {
   addTierListItems,
   deleteTierList,
@@ -30,7 +30,6 @@ export function CustomTierBoardPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   // Named by the screen of origin when it passes it, otherwise the natural parent.
-  const retour = retourDepuis(useLocation().state) ?? { to: '/tier-lists', libelle: 'Tier Lists' }
   const queryClient = useQueryClient()
   const toast = useToast()
   const [activeEntry, setActiveEntry] = useState<TierListEntryDto | null>(null)
@@ -135,21 +134,18 @@ export function CustomTierBoardPage() {
           name it (see lib/retour): a board opened from Découvrir used to
           go back to it through Tier Lists, and the Previous button of the
           browser then said something different from the one of the page (UX-8).
-          The default below stays the natural parent - received link, F5. */}
-      <button
-        type="button"
-        onClick={() => navigate(retour.to)}
-        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim"
-      >
-        <ArrowLeft size={15} />
-        {retour.libelle}
-      </button>
+          The default stays the natural parent - received link, F5. */}
+      <LienRetour parDefaut={{ to: '/tier-lists', libelle: 'Tier Lists' }} />
 
-      <div className="flex items-start justify-between gap-3">
+      {/* Both rows wrap: on a phone the three actions did not fit next to
+          the title and pushed the page to 492 px (measured at 390 px), the
+          thumb bar going off screen with it. The title keeps a readable
+          width, the actions go under it when the line is too short. */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <EnTeteSection
           niveau={1}
           titre={list.name}
-          className="flex-1"
+          className="min-w-[14rem] flex-1"
           sousTitre={
             <>
               {list.description && <span className="block">{list.description}</span>}
@@ -158,7 +154,7 @@ export function CustomTierBoardPage() {
             </>
           }
         />
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {unranked.length > 0 && (
             <button
               type="button"
@@ -193,7 +189,7 @@ export function CustomTierBoardPage() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Menu de la Tier List"
-                className="absolute right-0 top-full z-10 mt-1 w-56 rounded-xl border border-surface2 bg-surface p-1.5 shadow-token-elevated"
+                className="entree-douce absolute right-0 top-full z-10 mt-1 w-56 rounded-xl border border-surface2 bg-surface p-1.5 shadow-token-elevated"
               >
                 {renaming ? (
                   <div className="flex flex-col gap-2 p-2">

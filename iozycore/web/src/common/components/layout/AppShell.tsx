@@ -138,7 +138,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           class: it says what the element IS (a page grid), not what
           it looks like, and nothing can replace it by accident when
           rewriting a className. */}
-      <main data-grille className={`${CONTAINER_CLASS[width]} pt-6 pb-6`}>{children}</main>
+      {/* Keyed by the pathname: a new screen is a new element, so its blocks
+          get their entrance (see the `main[data-grille] > *` animation in
+          index.css) even when two addresses share the same page component
+          - two detail pages in a row, for instance. A search parameter is
+          not a new screen and does not remount anything. */}
+      <main key={pathname} data-grille className={`${CONTAINER_CLASS[width]} pt-6 pb-6`}>{children}</main>
       {/* The clearance for the thumb bar moved from `main` to this footer:
           it is now the last element of the page, and the space must
           be UNDER it - otherwise the version would be read behind the fixed bar. The
