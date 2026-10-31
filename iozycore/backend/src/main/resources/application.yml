@@ -17,6 +17,24 @@ iozycore:
       series-per-run: ${RELEASES_REFRESH_SERIES_PER_NIGHT:10}
       # A series re-read less than a week ago is not re-read again.
       stale-after-days: 7
+  covers:
+    # The missing covers of the manga volumes (batch 194): a volume added by
+    # number, by photo or during a provider outage has none, and nobody
+    # presses "Retrouver les jaquettes manquantes". The catalogue fills them
+    # itself from the volume searches (BnF first, served from cache when
+    # fresh): a little after each start, then every hour as long as volumes
+    # miss a cover (a run that finds nothing to do costs one database read).
+    # A run stops at the first series that gets nothing while a provider is
+    # silent - the BnF drops connections after a burst - and the next hour
+    # picks up where it stopped. Off on the e2e stack, like the release
+    # refresh, so that no test reaches a provider.
+    backfill:
+      enabled: ${COVERS_BACKFILL_ENABLED:${RELEASES_REFRESH_ENABLED:true}}
+      initial-delay-ms: ${COVERS_BACKFILL_INITIAL_DELAY_MS:120000}
+      every-ms: 3600000
+      series-per-run: ${COVERS_BACKFILL_SERIES_PER_RUN:25}
+      # Between two series that may reach the BnF, which limits the rate per address.
+      pause-ms: 1500
 
 spring:
   application:

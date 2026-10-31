@@ -1571,3 +1571,35 @@ suite backend complète après `clean` (les `.class` périmés de `target/`
 faisaient échouer le contexte Spring, le piège documenté) ; 498 tests web,
 typecheck, lint, 19 parcours e2e ; dans Chromium, la recherche ne produit
 plus aucun 404 et la seconde fiche AniList n'écrit plus rien en console.
+
+### Lot 194 — Les jaquettes des tomes se posent toutes seules
+
+« Il manque plein d'images, notamment celles des éditions de manga. » Mesuré
+en visiteur sur la pile locale du propriétaire : les 19 séries ont leur
+jaquette, mais 81 tomes sur 96 n'en ont aucune. Deux causes. La BnF, source
+des jaquettes de tomes, ne trouvait rien pour les auteurs romanisés avec une
+voyelle longue (« Kentarou Miura » : 0 notice, « Kentaro Miura » : 64 ;
+« Tatsuya Endou » : 0, « Tatsuya Endo » : 30) : la requête essaie maintenant
+le nom tel quel, puis sans « ou »/« uu », puis le nom de famille seul, jamais
+le titre seul. Et le rattrapage des jaquettes n'existait que derrière un
+bouton du rayon Manga que personne ne presse, pendant que Google Books
+répondait 503 ou 429 : `MangaCoverBackfill` fait le même travail tout seul,
+deux minutes après chaque démarrage puis chaque heure tant qu'il manque des
+jaquettes, avec les mêmes règles d'appariement et le même contrôle de
+jaquette que le bouton, et s'arrête quand une recherche ne rend plus rien
+pendant qu'une source se tait (pas au premier silence : Google en quota est
+l'état normal, les jaquettes viennent de la BnF, et une notice sans image
+est une réponse). Éteint sur la pile e2e
+comme la relecture des sorties ; `COVERS_BACKFILL_*` dans `.env.example`.
+
+Vérifié : contrat des fournisseurs BnF (16 tests), `MangaCoverBackfillTest`
+(5), `ModulesTest`, `LayersTest`, suite backend complète ; sur une pile
+jetable semée de 89 tomes sans jaquette, deux passes ont posé 18 jaquettes
+BnF (Chainsaw Man 6/6, Vinland Saga 7/12, One Piece 5/30 : la BnF n'a de
+couverture que pour les tirages récents) avant que la BnF coupe la connexion,
+ce qui arrête la passe comme prévu. Puis sur la pile locale du propriétaire,
+après reconstruction de l'image.
+
+Reste noté : la BnF coupe après une rafale (recherche plus un contrôle par
+jaquette posée) ; la passe horaire reprend, mais une grande collection se
+remplit en plusieurs heures.
