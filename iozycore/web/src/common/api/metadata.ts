@@ -101,9 +101,10 @@ export function importBggCollection(username: string): Promise<BggImportResult> 
  * if absent. `titleRomaji` is tried as a fallback for `query` for this same
  * detection (checked manually on "Attack on Titan"/"Shingeki no
  * Kyojin", see history) - a spin-off can be indexed on the
- * MyAnimeList side under the romaji title rather than the displayed title. 404 = nothing
- * found, not an error: returns null, the caller then keeps the
- * English/romaji title already displayed. */
+ * MyAnimeList side under the romaji title rather than the displayed title. Nothing
+ * found is not an error: the server answers 204 (a 404 before batch 193, still
+ * accepted from an older server) and this returns null, the caller then keeps
+ * the English/romaji title already displayed. */
 export async function fetchFrenchTitle(
   entityTypeId: string,
   query: string,
@@ -111,11 +112,11 @@ export async function fetchFrenchTitle(
 ): Promise<string | null> {
   const { author, malId, titleRomaji, signal } = options ?? {}
   try {
-    const result = await get<{ frenchTitle: string }>(
+    const result = await get<{ frenchTitle: string } | undefined>(
       `/metadata/french-title${buildQuery({ entityTypeId, query, author, malId, titleRomaji })}`,
       signal,
     )
-    return result.frenchTitle
+    return result?.frenchTitle ?? null
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null
     throw error

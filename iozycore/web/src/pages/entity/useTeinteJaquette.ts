@@ -24,6 +24,25 @@ const REPLI: [number, number, number] = [188, 88, 59]
  * In both cases the cover displayed on screen is
  * never touched - this is the whole point of not reusing the same tag.
  */
+/**
+ * The hosts that refused a CORS read during this page load.
+ *
+ * <p>A refusal is logged by the browser as an error, loudly, and it cannot
+ * be silenced from here. AniList's CDN refuses every time: trying again on
+ * every detail page of the collection meant one error per page for a tint
+ * we already knew we would not get. A host that refused once is not asked
+ * again until the next load; the fallback applies at once.
+ */
+const hotesSansCors = new Set<string>()
+
+function hoteDe(url: string): string | null {
+  try {
+    return new URL(url, window.location.href).host
+  } catch {
+    return null
+  }
+}
+
 export function useTeinteJaquette(url: string | null | undefined): [number, number, number] {
   // The tint, kept with the cover it was read from: another cover reads the
   // fallback until its own tint arrives, with no reset in an effect.
@@ -31,12 +50,20 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
 
   useEffect(() => {
     if (!url) return
+    const hote = hoteDe(url)
+    if (hote && hotesSansCors.has(hote)) return
     // `annule` rather than an AbortController: an Image cannot be cancelled, we
     // just ignore its answer if the detail page changed in the meantime - otherwise
     // the tint of a previous series would overwrite that of the new one.
     let annule = false
     const image = new Image()
     image.crossOrigin = 'anonymous'
+    image.onerror = () => {
+      // A load that fails WITH crossOrigin while the cover itself shows on
+      // screen is a CORS refusal: remember the host. (A cover that is
+      // really broken is handled by Jaquette, not here.)
+      if (hote) hotesSansCors.add(hote)
+    }
     image.onload = () => {
       if (annule) return
       try {

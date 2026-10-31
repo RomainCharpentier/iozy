@@ -1551,3 +1551,23 @@ Découvrir passe de 1 313 à 1 105 px de haut sur bureau avec une seule
 sortie, aucun débordement, les jaquettes du Catalogue se chargent (AniList)
 et les œuvres sans jaquette gardent leur dégradé. 495 tests, typecheck,
 lint et les 19 parcours e2e au vert sur l'arbre combiné avec le lot 191.
+
+### Lot 193 — Une console qui se tait
+
+Les deux bruits notés aux lots 191 et 192. Une recherche sur le Catalogue
+demandait le titre français de chaque suggestion, et le serveur répondait
+404 quand il n'en connaissait pas : six lignes rouges en console pour
+« Berserk », pour une réponse normale. « Aucun titre connu » est un 204
+sans corps ; le client le lit comme `null` et lit encore le 404 d'un
+serveur plus ancien de la même façon, un test unitaire garde les deux. Sur
+une fiche, la teinte du bandeau se lit dans les pixels de la jaquette par
+une image chargée en `crossOrigin` ; le CDN d'AniList refuse à chaque fois
+et le navigateur le crie, deux erreurs par fiche de la collection, pour un
+refus déjà connu. Un hôte qui a refusé une fois n'est plus sollicité
+jusqu'au prochain chargement : le repli terracotta s'applique tout de suite.
+
+Vérifié : contrat HTTP des métadonnées, `ModulesTest`, `LayersTest` et la
+suite backend complète après `clean` (les `.class` périmés de `target/`
+faisaient échouer le contexte Spring, le piège documenté) ; 498 tests web,
+typecheck, lint, 19 parcours e2e ; dans Chromium, la recherche ne produit
+plus aucun 404 et la seconde fiche AniList n'écrit plus rien en console.
