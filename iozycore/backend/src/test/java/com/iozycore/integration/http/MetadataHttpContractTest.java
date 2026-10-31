@@ -268,17 +268,20 @@ class MetadataHttpContractTest extends HttpContractTestBase {
     // ═══════════════════════════════════════ GET /metadata/french-title
 
     @Test
-    void resolves_a_french_title_and_answers_404_when_none_is_known() throws Exception {
+    void resolves_a_french_title_and_answers_204_when_none_is_known() throws Exception {
         mockMvc.perform(get(META + "/french-title")
                         .param("entityTypeId", universDeTest().toString())
                         .param("query", "Kingdom"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.frenchTitle").value("Titre français de test"));
 
+        // "None known" is an answer, not an error: a 204 and an empty body. A
+        // 404 here used to log one console error per suggestion in the browser.
         mockMvc.perform(get(META + "/french-title")
                         .param("entityTypeId", universDeTest().toString())
                         .param("query", DECLENCHE_VIDE))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
     }
 
     @Test

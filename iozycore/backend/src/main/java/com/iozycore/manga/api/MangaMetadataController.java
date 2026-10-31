@@ -7,11 +7,10 @@ import com.iozycore.manga.metadata.VolumeCandidate;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,14 +46,17 @@ public class MangaMetadataController {
             + "when a spin-off is indexed under the romaji title rather than the displayed title (e.g. \"Attack on "
             + "Titan\"/\"Shingeki no Kyojin\").")
     @GetMapping("/french-title")
-    public FrenchTitleResponse frenchTitle(@RequestParam UUID entityTypeId, @RequestParam String query,
-                                            @RequestParam(required = false) String author,
-                                            @RequestParam(required = false) String malId,
-                                            @RequestParam(required = false) String titleRomaji) {
+    public ResponseEntity<FrenchTitleResponse> frenchTitle(@RequestParam UUID entityTypeId, @RequestParam String query,
+                                                            @RequestParam(required = false) String author,
+                                                            @RequestParam(required = false) String malId,
+                                                            @RequestParam(required = false) String titleRomaji) {
+        // No French title is a normal answer, not a missing resource: the
+        // web client asks for every suggestion of a search, and a 404 per
+        // suggestion filled the browser console with errors for nothing.
         return volumeLookup.frenchTitle(entityTypeId, query, author, malId, titleRomaji)
                 .map(FrenchTitleResponse::new)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Aucun titre français trouvé pour : " + query));
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     public record FrenchTitleResponse(String frenchTitle) {
