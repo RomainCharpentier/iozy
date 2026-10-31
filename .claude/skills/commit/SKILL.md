@@ -10,6 +10,11 @@ disable-model-invocation: true
 2. Lance la suite complète du dossier touché avant de commiter :
    - `iozycore/web/` : `npm test`, `npm run typecheck`, `npm run lint` (plus `npm run check:contrast` si une couleur a bougé, `npm run check:deploiement` si nginx ou le Dockerfile ont bougé).
    - `iozycore/backend/` : suite complète via le skill `test-backend`. Si des paquets ont bougé, `ModulesTest` d'abord.
+   - `iozyplay/` : `npm run typecheck`, `npm run lint`, `npm test` et `npm run test:unit`.
+   - `iozykit/` : `npm test` (régénère `css/tokens.css` en LF : remets-le en CRLF si git le montre modifié sans raison).
+   - nginx, Dockerfile, compose, workflows : voir la ligne « nginx, Dockerfile, compose » du `CLAUDE.md` racine.
+   - Plusieurs dossiers touchés : `npm run check` à la racine enchaîne le kit, IozyCore web et IozyPlay (pas le backend).
+   - Lis le **code de sortie** de chaque commande, pas un `grep` des lignes vertes : Vitest peut afficher tous les tests passés et sortir en 1 (rejets non gérés), et la CI casse alors que le terminal semblait vert.
 3. Branche : le propriétaire commite sur `main`. Pour tout le reste, une branche, jamais de push forcé.
 4. Message, **en anglais simple** (sujet comme corps) :
 

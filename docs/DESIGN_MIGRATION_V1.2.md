@@ -1465,3 +1465,31 @@ tests serveur, 178 tests unitaires), `npm run check` aussi, et une étape en
 éteint) : `docker compose config` résout bien les trois contextes de build
 depuis la racine. Piège : le test du kit réécrit `iozykit/css/tokens.css` en
 LF ; sous `autocrlf` git le montre modifié, remets les CRLF.
+
+### Lot 190 — La configuration Claude suit le monorepo
+
+Demande du propriétaire : regarder ce qui manque dans la configuration
+Claude. Écart constaté : tout y datait d'avant les trois apps. Le hook de fin
+de tour ne contrôlait que `iozycore/web` ; un test d'IozyPlay en échec a donc
+fait rougir le déploiement trois fois sans que rien ne l'arrête. Il contrôle
+maintenant aussi IozyPlay (typecheck et tests unitaires), saute une app dont
+les dépendances ne sont pas installées (worktree neuf) et laisse le kit de
+côté (son test réécrit un fichier généré). Le skill `/commit` couvre
+IozyPlay, le kit, les fichiers de déploiement et `npm run check`, et rappelle
+de lire le code de sortie ; `/fin-de-lot` suit le déploiement jusqu'au vert et
+dit comment vérifier IozyPlay en direct. Trois règles par chemin
+(`iozykit`, `iozyplay`, déploiement) portent les pièges déjà rencontrés, et le
+tableau de `CLAUDE.md` gagne la ligne `npm run check`.
+
+Une liste de permissions partagée (`settings.json`) laisse passer sans
+demander les contrôles et les lectures seules : `npm run check|typecheck|lint|
+test|test:unit`, `git status|diff|log|fetch`, `gh pr|run` en lecture,
+`docker compose ps|logs`. Rien qui écrive, pousse ou supprime.
+
+Pas de serveur MCP ajouté : `gh`, Docker et Playwright couvrent les besoins
+réels, et un MCP de plus alourdirait chaque tour (ses outils restent dans le
+contexte) sans rien débloquer. Pas de modèle imposé non plus : il se choisit
+par session.
+
+Vérifié : le hook sort en 0 sans changement, en 2 sur une erreur de type dans
+IozyPlay, en 0 sur un fichier valide.

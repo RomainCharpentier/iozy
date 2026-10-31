@@ -30,6 +30,7 @@ Le site est une seule adresse : `/` la page d'accueil, `/core/` IozyCore, `/play
 | un parcours d'écran | `npm run test:e2e` dans `iozycore/web/` |
 | `iozyplay/` | `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:unit` (voir `iozyplay/CLAUDE.md`) |
 | `iozykit/` | `npm test` (régénère le CSS et vérifie le contraste AA) |
+| plusieurs dossiers | `npm run check` à la racine : kit, IozyCore web, IozyPlay (pas le backend) |
 | nginx, Dockerfile, compose | `docker compose up --build` dans `iozycore/backend/`, puis `npm run check:deploiement http://localhost:8081` dans `iozycore/web/` |
 
 Une vérification qui ne s'exécute pas ne vaut rien : plusieurs commandes évidentes ne contrôlent rien ici (`npx tsc --noEmit`, `mvn` sans Docker). Voir les pièges dans chaque sous-dossier.
