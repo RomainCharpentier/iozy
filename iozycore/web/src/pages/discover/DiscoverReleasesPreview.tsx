@@ -18,6 +18,14 @@ import { ReleaseRefreshLine } from './ReleaseRefreshLine'
  * from the tablet width on they read in two columns (the five newest on the left,
  * the next five on the right), so a title is never far from its relation.
  */
+/** The newest half on the left, the rest on the right; a single column
+ *  when there is only one release to show. */
+function colonnes<T>(lignes: T[]): T[][] {
+  if (lignes.length < 2) return [lignes]
+  const moitie = Math.ceil(lignes.length / 2)
+  return [lignes.slice(0, moitie), lignes.slice(moitie)]
+}
+
 export function DiscoverReleasesPreview() {
   const calendrierQuery = useLatestReleases()
   const typesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
@@ -46,17 +54,26 @@ export function DiscoverReleasesPreview() {
         </div>
       )}
 
+      {/* Two explicit columns rather than a grid of five rows: with fewer
+          than ten releases, `grid-rows-5` kept four EMPTY rows as tall as
+          the only full one - a blank band of 240 px under a single release
+          on a wide screen. Each column ends without a line; on a phone the
+          two columns stack and the first one keeps its last line. */}
       {sorties.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-flow-col md:grid-cols-2 md:grid-rows-5 md:gap-x-8 [&>a:last-child]:border-b-0 md:[&>a:nth-child(5n)]:border-b-0">
-          {sorties.map((entry) => (
-            <ReleaseRow
-              key={`${entry.entityId}|${entry.label}|${entry.date}`}
-              entry={entry}
-              typeLabel={libelleParType.get(entry.entityTypeId)}
-              date={entry.date}
-              retour={retour}
-              dense
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8">
+          {colonnes(sorties).map((colonne, index) => (
+            <div key={index} className={`flex flex-col ${index === 0 ? 'md:[&>a:last-child]:border-b-0' : '[&>a:last-child]:border-b-0'}`}>
+              {colonne.map((entry) => (
+                <ReleaseRow
+                  key={`${entry.entityId}|${entry.label}|${entry.date}`}
+                  entry={entry}
+                  typeLabel={libelleParType.get(entry.entityTypeId)}
+                  date={entry.date}
+                  retour={retour}
+                  dense
+                />
+              ))}
+            </div>
           ))}
         </div>
       )}

@@ -16,7 +16,8 @@ import { useWishlist } from '@/common/hooks/useWishlist'
 import { useCollecteParTome } from '@/common/lib/typeDeCollection'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle, resolvePrimaryTitle } from '@/common/lib/titleLanguage'
-import { COVER_IMAGE_ATTRIBUTE_KEY } from '@/common/lib/coverImage'
+import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/coverImage'
+import { gradientFor } from '@/common/theme/gradient'
 import { BarcodeLookupField } from './BarcodeLookupField'
 import type { EntityResponse, MetadataCandidateDto } from '@/common/types/api'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
@@ -543,6 +544,18 @@ export function SearchPage() {
                       lines rather than being cut at ten characters on a phone -
                       it is what tells one row from its neighbour. */}
                   <button type="button" onClick={() => goToEntity(entity)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 py-1 text-left">
+                    {/* The cover, small, before the title (batch 192): the
+                        catalogue was the only list of works without one, a
+                        column of bare titles next to a home made of covers.
+                        The gradient of the title stands in when there is
+                        none, like on a tile. */}
+                    <span
+                      className="h-12 w-9 shrink-0 overflow-hidden rounded-md ring-1 ring-line"
+                      style={{ background: gradientFor(entity.title) }}
+                      aria-hidden="true"
+                    >
+                      <Jaquette src={coverImageUrlFrom(entity.attributes)} className="h-full w-full object-cover" repli={null} />
+                    </span>
                     <TexteCoupe texte={entity.title} className="line-clamp-2 flex-1 text-sm font-medium text-textPrimary" />
                     {/* Two clearly distinct states: owned, or only
                         known (existing page with no copy - typical

@@ -1532,3 +1532,22 @@ Reste noté : la console garde deux bruits qui ne viennent pas de ce lot,
 l'image CORS refusée par AniList pour la teinte du hero (repli terracotta
 prévu) et les 404 de `/metadata/french-title` quand aucun titre français
 n'existe.
+
+### Lot 192 — Découvrir sans trou, le Catalogue avec ses jaquettes
+
+Suite du relevé du lot 191, les deux écarts de design qu'il restait. Sur
+bureau, Découvrir laissait une bande vide de 240 px sous « Dernières
+sorties » : l'aperçu posait ses lignes dans une grille de cinq rangées par
+colonne, et avec moins de dix sorties les rangées vides prenaient la hauteur
+de la seule pleine. Deux colonnes explicites (la moitié la plus récente à
+gauche), hautes de ce qu'elles montrent. Le Catalogue était la seule liste
+d'œuvres sans jaquette, une colonne de titres nus à côté d'un accueil fait
+de jaquettes : chaque ligne commence par la sienne, petite, paresseuse et
+en fondu (`Jaquette`), le dégradé du titre dessous quand il n'y en a pas,
+comme sur une tuile ; les lignes gardent leur rendu différé.
+
+Vérifié dans Chromium à 390 et 1 280 px sur la pile jetable semée :
+Découvrir passe de 1 313 à 1 105 px de haut sur bureau avec une seule
+sortie, aucun débordement, les jaquettes du Catalogue se chargent (AniList)
+et les œuvres sans jaquette gardent leur dégradé. 495 tests, typecheck,
+lint et les 19 parcours e2e au vert sur l'arbre combiné avec le lot 191.
