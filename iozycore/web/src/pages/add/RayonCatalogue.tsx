@@ -3,14 +3,17 @@ import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import type { EntityTypeDto } from '@/common/types/api'
 
 /**
- * The grid of the catalogue (lot 198): covers of 150 px at least, as many
- * per row as the width allows - seven at 1,280 px, nine at 1,600 - and three
- * on a phone, like a shelf. `items-start`: a tile holds its own height, so
- * the heart pinned at its foot stays with its text and not at the bottom
- * of the tallest tile of the row.
+ * The grid of the catalogue (lot 198): as many covers per row as the width
+ * allows - 150 px at least from 768 px (seven at 1,280 px, nine at 1,600),
+ * 110 px at least below (three on a phone, five in a 700 px window). A
+ * fixed three columns below 768 px gave 215 px tiles in a reduced window,
+ * six covers on the screen where a phone showed twelve (owner, 2026-11-01:
+ * "on voit pas toutes les couvertures"). `items-start`: a tile holds its
+ * own height, so the heart pinned at its foot stays with its text and not
+ * at the bottom of the tallest tile of the row.
  */
 export const CLASSE_GRILLE_CATALOGUE =
-  'grid grid-cols-3 items-start gap-3 md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] md:gap-4'
+  'grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] items-start gap-3 md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] md:gap-4'
 
 /**
  * The works of one universe on the catalogue.

@@ -542,8 +542,10 @@ export function SearchPage() {
 
         {/* On a phone, the universes and the tags share ONE row that scrolls
             sideways, edge to edge: wrapped, they stacked four rows of chips
-            before the first cover. On desktop they wrap next to the field. */}
-        <div className="defilement-discret -mx-4 flex w-[calc(100%+2rem)] items-center gap-2 overflow-x-auto px-4 md:mx-0 md:w-auto md:flex-1 md:flex-wrap md:overflow-visible md:px-0">
+            before the first cover. From 640 px they wrap: a reduced window
+            cut the row without a hint, and choosing a universe meant finding
+            a scroll nobody expects there (owner, 2026-11-01). */}
+        <div className="defilement-discret -mx-4 flex w-[calc(100%+2rem)] items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:w-auto sm:flex-1 sm:flex-wrap sm:overflow-visible sm:px-0">
           {/* "Tout" first, and it did not exist: the chips only served to
               frame a search at a provider, which is queried type by
               type. They now also filter the catalogue displayed, and without
@@ -560,7 +562,7 @@ export function SearchPage() {
           {tags.length > 0 && (
             <>
               <span className="h-6 w-px shrink-0 bg-lineStrong" aria-hidden="true" />
-              <div role="group" aria-label="Filtrer par tag" className="flex shrink-0 items-center gap-2 md:flex-wrap">
+              <div role="group" aria-label="Filtrer par tag" className="flex shrink-0 items-center gap-2 sm:flex-wrap">
                 <span className="shrink-0 text-xs font-semibold tracking-wide text-textDim uppercase">Tag</span>
                 {tags.map((tag) => (
                   <Chip

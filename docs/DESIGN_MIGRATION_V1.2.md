@@ -1702,3 +1702,11 @@ mesures Playwright en visiteur sur la pile du propriétaire : 7 colonnes de
 162 × 243 px à 1 280, 3 de 111 × 167 à 390, aucun débordement, aucune cible
 sous 44 px, les 35 jaquettes chargées ; captures clair et sombre, bureau et
 téléphone, puis connectées sur la pile jetable.
+
+Retour du propriétaire dans une fenêtre réduite : « on voit pas toutes les
+couvertures et la sélection est pas facile ». Sous 768 px la grille gardait
+trois colonnes (six jaquettes de 215 px visibles à 700 px, contre douze sur
+un téléphone) et les puces défilaient en une rangée coupée sans indice. La
+grille remplit la largeur avec des jaquettes de 110 px au moins sous 768 px
+(cinq colonnes à 700 px, seize à dix-huit jaquettes visibles) et les puces se
+replient dès 640 px ; seul un téléphone garde la rangée qui défile.
