@@ -252,9 +252,16 @@ export function SearchPage() {
     (ownershipsQuery.data ?? []).filter((o) => o.status === 'OWNED').map((o) => o.entityId),
   )
   const idsEnEnvies = new Set(wishlist.entries.map((e) => e.entityId))
-  const localMatches = localMatchesBrutes.filter(
-    (entity) => entity.variants.length > 0 || entityIdsPossedes.has(entity.id) || idsEnEnvies.has(entity.id),
-  )
+  // A visitor owns and wants nothing: with that filter, the catalogue they
+  // are shown lost every work without a catalogued volume - all the games
+  // of the instance (seen on the owner's stack, lot 198: 18 works of 35).
+  // The links are the owner's, which a visitor cannot read; they get the
+  // catalogue as the server knows it.
+  const localMatches = estInvite
+    ? localMatchesBrutes
+    : localMatchesBrutes.filter(
+        (entity) => entity.variants.length > 0 || entityIdsPossedes.has(entity.id) || idsEnEnvies.has(entity.id),
+      )
 
   /**
    * The works we ALREADY know to have no volume, flagged in the list.
