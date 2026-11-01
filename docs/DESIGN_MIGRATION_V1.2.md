@@ -1650,3 +1650,26 @@ Vérifié : 508 tests web, typecheck, lint, 19 parcours e2e ; mesures
 Playwright sur la pile jetable : aperçu inerte au survol, barre à 72 px
 sous l'en-tête après défilement (60 px sur mobile), aucun débordement à
 1280 et 390 px, « J'ai ces 2 tomes » ajoute vraiment les deux dos et le dit.
+
+### Lot 197 — Passe bureau des écrans
+
+Seize écrans du compte capturés à 1280 × 900, sombre et clair, sur une
+collection semée avec de vraies jaquettes : aucun débordement, aucune
+cible sous 40 px hors les dos de l'étagère (22 px, voulus), une erreur
+console par fiche. Trois défauts corrigés. Découvrir affichait « Les
+sources de sorties n'ont pas encore été consultées » puis, juste dessous,
+« Aucune sortie annoncée pour ta collection » : rien n'était annoncé parce
+que rien n'avait été demandé ; la carte attend qu'une passe ait eu lieu.
+Le calendrier des sorties disait « Rien ne sort en novembre » et « Rien
+d'annoncé pour l'année qui vient » sans jamais dire que les sources
+n'avaient pas été lues, et sans bouton pour le faire : la ligne de mise à
+jour (déplacée dans `common`, elle sert deux pages) y est maintenant, et
+ses deux états vides disent « pas encore cherché ». Enfin, la première
+fiche de chaque session écrivait encore l'erreur CORS du CDN d'AniList
+pour la teinte : l'hôte est connu d'avance, plus rien n'est écrit. Reste à
+repenser le Catalogue sur bureau (une colonne de 672 px, des vignettes de
+40 px) : une planche avant de coder.
+
+Vérifié : 509 tests web, typecheck, lint, frontières, 19 parcours e2e ; en
+direct sur la pile jetable : Découvrir sans carte contradictoire, le
+calendrier avec sa ligne et son bouton, console vide sur une fiche AniList.

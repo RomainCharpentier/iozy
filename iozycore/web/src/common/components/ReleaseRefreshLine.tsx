@@ -3,7 +3,7 @@ import { useAuth } from '@/common/hooks/useAuth'
 import { useNow } from '@/common/hooks/useNow'
 import { libelleIlYA } from '@/common/lib/releaseDate'
 import type { ReleaseRefreshRunDto } from '@/common/types/api'
-import { useReleaseRefresh } from './useReleaseRefresh'
+import { useReleaseRefresh } from '@/common/hooks/useReleaseRefresh'
 
 /** What the last pass left behind, said in one line - nothing is promised that the pass did not do. */
 function resume(run: ReleaseRefreshRunDto | null, now: Date): string {

@@ -19,10 +19,11 @@ import { typeDeCollection } from '@/test/fixtures'
 import { isoLocal } from '@/common/lib/releaseDate'
 import type { ReleaseCalendarDto, ReleaseEntryDto } from '@/common/types/api'
 
-const insights = vi.hoisted(() => ({ getReleaseCalendar: vi.fn() }))
+const insights = vi.hoisted(() => ({ getReleaseCalendar: vi.fn(), getReleaseRefreshStatus: vi.fn(), startReleaseRefresh: vi.fn() }))
 vi.mock('@/common/api/insights', () => insights)
 const types = vi.hoisted(() => ({ listEntityTypes: vi.fn() }))
 vi.mock('@/common/api/entityTypes', () => types)
+vi.mock('@/common/hooks/useAuth', () => ({ useAuth: () => ({ estInvite: false }) }))
 
 const MANGA = { ...typeDeCollection('MANGA', 'Manga'), hasReleaseSource: true }
 const SOCIETE = typeDeCollection('BOARD_GAME', 'Jeu de société')
@@ -102,6 +103,8 @@ function rendre(url: string) {
 beforeEach(() => {
   vi.clearAllMocks()
   types.listEntityTypes.mockResolvedValue([MANGA, SOCIETE])
+  // No refresh on this instance: the page reads the calendar alone.
+  insights.getReleaseRefreshStatus.mockResolvedValue({ available: false, running: false, lastRun: null })
 })
 
 describe('ReleasesPage', () => {
@@ -224,6 +227,18 @@ describe('ReleasesPage', () => {
     expect(screen.getByRole('table', { name: 'Grille de janvier 2000' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /sortie/ })).not.toBeInTheDocument()
     expect(await screen.findByText("Rien d'annoncé pour l'année qui vient.")).toBeInTheDocument()
+  })
+
+  it('says the sources were never read, and offers the pass, rather than "nothing announced"', async () => {
+    insights.getReleaseRefreshStatus.mockResolvedValue({ available: true, running: false, lastRun: null })
+    servir({ from: '2000-01-01', to: '2000-01-31', entries: [] })
+    rendre('/releases?mois=2000-01')
+
+    expect(await screen.findByText("Les sorties n'ont pas encore été cherchées.")).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mettre à jour maintenant' })).toBeInTheDocument()
+    expect(await screen.findByText("Rien de connu : les sources n'ont pas encore été consultées.")).toBeInTheDocument()
+    expect(screen.queryByText(/Rien ne sort en janvier 2000/)).not.toBeInTheDocument()
+    expect(screen.queryByText("Rien d'annoncé pour l'année qui vient.")).not.toBeInTheDocument()
   })
 
   it('falls back on the month of the device when the URL derails, without breaking anything', async () => {
