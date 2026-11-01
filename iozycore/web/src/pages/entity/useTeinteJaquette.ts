@@ -32,8 +32,12 @@ const REPLI: [number, number, number] = [188, 88, 59]
  * every detail page of the collection meant one error per page for a tint
  * we already knew we would not get. A host that refused once is not asked
  * again until the next load; the fallback applies at once.
+ *
+ * <p>AniList's CDN is known from the start: without this, the FIRST detail
+ * page of each session still wrote its error (desktop pass of 2026-11-01).
+ * Any other host is learned the day it refuses.
  */
-const hotesSansCors = new Set<string>()
+const hotesSansCors = new Set<string>(['s4.anilist.co'])
 
 function hoteDe(url: string): string | null {
   try {
