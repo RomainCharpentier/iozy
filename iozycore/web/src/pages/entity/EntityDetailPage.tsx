@@ -726,8 +726,34 @@ export function EntityDetailPage() {
             onJeLAi={(numero) =>
               ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
             }
+            onJeLesAi={async (numeros) => {
+              // A range picked on the shelf. One after the other, not all at
+              // once: the first add searches the covers at the providers and
+              // fills the server cache, the next ones read it - thirty
+              // searches fired together would hit the BnF rate limit. The
+              // spines fill in as the adds land.
+              let ajoutes = 0
+              for (const numero of numeros) {
+                try {
+                  await ajoutTome.mutateAsync({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
+                  ajoutes++
+                } catch {
+                  break
+                }
+              }
+              toast(
+                ajoutes === 0
+                  ? 'Aucun tome ajouté'
+                  : ajoutes === numeros.length
+                    ? `${ajoutes} tomes ajoutés`
+                    : `${ajoutes} tomes ajoutés sur ${numeros.length}`,
+              )
+            }}
             tomesVoulus={tomesVoulus}
             onBasculerEnvie={basculerEnvieDuTome}
+            onJeLesVeux={(numeros) =>
+              wishlist.addMany(numeros.map((numero) => ({ entityId, volumeNumber: numero, edition: groupeActif?.editionName || undefined })))
+            }
             modeEdition={modeEdition}
             onAjouterTome={() => setAjoutTomeOuvert(true)}
             // A visitor sees the volumes of the edition, not holes in a

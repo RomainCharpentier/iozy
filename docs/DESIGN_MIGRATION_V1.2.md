@@ -1627,3 +1627,26 @@ Vérifié : 505 tests web, typecheck, lint, 19 parcours e2e ; mesures
 Playwright à 1280 et 390 px pour 13, 41 et 110 tomes (1 à 10 étages, aucun
 débordement) ; captures bureau et mobile, en visiteur, sur la collection du
 propriétaire.
+
+### Lot 196 — L'étagère : choisir, puis agir
+
+Retour du propriétaire sur le lot 195 : « au survol c'est joli mais pas
+pratique à utiliser ». Les gestes vivaient dans une carte ouverte sous la
+souris : la pilule bougeait avec chaque dos, se refermait dès que le
+pointeur quittait une cible de 22 px, et trente tomes demandaient trente
+survols précis. Un clic choisit maintenant un dos (un second le repose,
+Maj+clic prend une plage, Échap repose tout), et une seule barre au-dessus
+des étages porte les gestes de ce qui est choisi : « Je l'ai », le cœur, le
+retrait en deux temps. Chaque geste est nommé d'après ses cibles (« J'ai le
+tome 11 », « J'ai ces 10 tomes »). La barre colle sous l'en-tête pour rester
+à portée au dixième étage. Le survol n'est plus qu'un aperçu de la
+jaquette, inerte, sous l'en-tête et la barre ; le focus clavier l'ouvre
+aussi, pas un tap ni un clic. Une plage entre dans la collection ajout
+après ajout (le premier remplit le cache de jaquettes, les suivants le
+lisent : pas trente recherches BnF d'un coup) ; plusieurs envies passent par
+l'ajout groupé de la liste d'envies, un seul message et une seule annulation.
+
+Vérifié : 508 tests web, typecheck, lint, 19 parcours e2e ; mesures
+Playwright sur la pile jetable : aperçu inerte au survol, barre à 72 px
+sous l'en-tête après défilement (60 px sur mobile), aucun débordement à
+1280 et 390 px, « J'ai ces 2 tomes » ajoute vraiment les deux dos et le dit.

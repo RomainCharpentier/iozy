@@ -32,8 +32,10 @@ export function GrilleTomes({
   onChoisirTome,
   onRetirerTome,
   onJeLAi,
+  onJeLesAi,
   tomesVoulus,
   onBasculerEnvie,
+  onJeLesVeux,
   modeEdition,
   onAjouterTome,
   consultation = false,
@@ -54,9 +56,13 @@ export function GrilleTomes({
   onRetirerTome: (numero: number) => void
   /** "Je l'ai" - adds the volume in one click. */
   onJeLAi: (numero: number) => void
+  /** "Je les ai" - a range picked on the shelf, added in one gesture. */
+  onJeLesAi?: (numeros: number[]) => void
   /** The ids of the volumes of this work that are in the wishes. */
   tomesVoulus: Set<string>
   onBasculerEnvie: (numero: number) => void
+  /** "Je les veux" - a range picked on the shelf, into the wishes at once. */
+  onJeLesVeux?: (numeros: number[]) => void
   modeEdition: boolean
   onAjouterTome: () => void
   /** A visitor: the volumes of the edition, without any personal state or
@@ -105,7 +111,9 @@ export function GrilleTomes({
         // asks for a condition or price, "Je l'ai" has no more reason to open a
         // panel than "Je le veux".
         onJeLAi={(cle) => onJeLAi(Number(cle))}
+        onJeLesAi={onJeLesAi ? (cles) => onJeLesAi(cles.map(Number)) : undefined}
         onJeLeVeux={(cle) => onBasculerEnvie(Number(cle))}
+        onJeLesVeux={onJeLesVeux ? (cles) => onJeLesVeux(cles.map(Number)) : undefined}
         action={modeEdition ? { libelle: 'Ajouter un tome', onClick: onAjouterTome } : undefined}
         vue={vue}
         onVue={definirVue}
