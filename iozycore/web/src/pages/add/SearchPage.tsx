@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { Camera, Languages, Loader2, ScanBarcode, ScanLine, SearchX, Upload } from 'lucide-react'
+import { Camera, Languages, Loader2, ScanBarcode, ScanLine, Search, SearchX, Upload } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '@/common/api/metadata'
 import { searchEntities } from '@/common/api/entities'
 import { listTags } from '@/common/api/tags'
@@ -17,16 +17,35 @@ import { useCollecteParTome } from '@/common/lib/typeDeCollection'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle, resolvePrimaryTitle } from '@/common/lib/titleLanguage'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/coverImage'
-import { gradientFor } from '@/common/theme/gradient'
 import { BarcodeLookupField } from './BarcodeLookupField'
-import type { EntityResponse, MetadataCandidateDto } from '@/common/types/api'
-import { TexteCoupe } from '@/common/components/TexteCoupe'
-import { Jaquette } from '@/common/components/Jaquette'
+import type { EntityResponse, EntityTypeDto, MetadataCandidateDto } from '@/common/types/api'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import type { EtatRetour } from '@/common/lib/retour'
 import { indicesDe } from '@/common/lib/indicesOeuvre'
 import { nomDeSource } from '@/common/lib/sources'
 import { EtatVide } from '@/common/components/EtatVide'
+import { CoverTile, type EtatTuile } from '@/common/components/CoverTile'
+import { SqueletteGrille } from '@/common/components/Squelette'
+import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
+import { CLASSE_GRILLE_CATALOGUE, RayonCatalogue } from './RayonCatalogue'
+import { sousTitreCatalogue } from './sousTitreCatalogue'
+
+/**
+ * What the header counts: the works on the screen, and among them what is
+ * owned and what is wanted - a count must name what it counts, and under
+ * "Manga" or a typed title it counts what that filter keeps. A visitor only
+ * gets the works: the two other numbers would describe somebody else's
+ * collection.
+ */
+function phraseDuCompte(oeuvres: number, etats: { possedees: number; voulues: number } | null): string {
+  if (oeuvres === 0) return 'Aucune œuvre'
+  const parts = [`${oeuvres} œuvre${oeuvres > 1 ? 's' : ''}`]
+  if (etats) {
+    parts.push(`${etats.possedees} possédée${etats.possedees > 1 ? 's' : ''}`)
+    if (etats.voulues > 0) parts.push(`${etats.voulues} dans tes envies`)
+  }
+  return parts.join(' · ')
+}
 
 /** e.g. "Manga · 1999 · MYANIMELIST" - see the usage comment in the rendering
  * of the suggestions list. mediaType/startYear are missing for
@@ -233,9 +252,16 @@ export function SearchPage() {
     (ownershipsQuery.data ?? []).filter((o) => o.status === 'OWNED').map((o) => o.entityId),
   )
   const idsEnEnvies = new Set(wishlist.entries.map((e) => e.entityId))
-  const localMatches = localMatchesBrutes.filter(
-    (entity) => entity.variants.length > 0 || entityIdsPossedes.has(entity.id) || idsEnEnvies.has(entity.id),
-  )
+  // A visitor owns and wants nothing: with that filter, the catalogue they
+  // are shown lost every work without a catalogued volume - all the games
+  // of the instance (seen on the owner's stack, lot 198: 18 works of 35).
+  // The links are the owner's, which a visitor cannot read; they get the
+  // catalogue as the server knows it.
+  const localMatches = estInvite
+    ? localMatchesBrutes
+    : localMatchesBrutes.filter(
+        (entity) => entity.variants.length > 0 || entityIdsPossedes.has(entity.id) || idsEnEnvies.has(entity.id),
+      )
 
   /**
    * The works we ALREADY know to have no volume, flagged in the list.
@@ -382,6 +408,59 @@ export function SearchPage() {
         ? 'Aucune œuvre de ce type dans le catalogue.'
         : 'Le catalogue est encore vide.'
 
+  /**
+   * The catalogue as covers (lot 198), the same tile as Ma collection.
+   *
+   * <p>The state is said by the object: an owned work is whole, a missing
+   * one faded and dashed, a wanted one ringed - and a sentence for screen
+   * readers, never a visible word on the tile. Owned wins over wanted: a
+   * series with five volumes and one wish is first of all owned. Nothing
+   * for a visitor, who owns nothing. The heart only lives on what is not
+   * owned, and WishlistToggle itself declines a series collected by
+   * volume - wanting a group means nothing, it is volume 47 that one wants.
+   */
+  function tuileDe(entity: EntityResponse, type: EntityTypeDto | undefined) {
+    const possede = entityIdsPossedes.has(entity.id)
+    const etat: EtatTuile | undefined = estInvite
+      ? undefined
+      : possede
+        ? 'possede'
+        : idsEnEnvies.has(entity.id)
+          ? 'envie'
+          : 'manquant'
+    return (
+      <CoverTile
+        key={entity.id}
+        title={entity.title}
+        subtitle={sousTitreCatalogue(entity.attributes)}
+        imageUrl={coverImageUrlFrom(entity.attributes)}
+        aspectClassName={getEntityTypeVisual(type).aspectClassName}
+        etat={etat}
+        action={
+          !estInvite && !possede ? (
+            <WishlistToggle entityId={entity.id} entityTypeId={entity.entityTypeId} variant="icone" />
+          ) : undefined
+        }
+        onClick={() => goToEntity(entity)}
+      />
+    )
+  }
+
+  // One shelf per universe, in the order of the chips. A work whose type
+  // the screen does not know (it should not happen: both lists come from the
+  // same server) is not lost, it goes in a last grid of its own.
+  const typesConnus = entityTypesQuery.data ?? []
+  const groupesLocaux = typesConnus
+    .map((type) => ({ type, entities: localMatches.filter((entity) => entity.entityTypeId === type.id) }))
+    .filter((groupe) => groupe.entities.length > 0)
+  const sansType = localMatches.filter((entity) => !typesConnus.some((type) => type.id === entity.entityTypeId))
+  // Until the ownerships are there, every work would read as missing: the
+  // skeleton takes the place of the shelves rather than a wrong state.
+  const catalogueEnChargement =
+    localMatchQuery.isLoading || entityTypesQuery.isLoading || (!estInvite && ownershipsQuery.isLoading)
+  const possedees = localMatches.filter((entity) => entityIdsPossedes.has(entity.id)).length
+  const voulues = localMatches.filter((entity) => !entityIdsPossedes.has(entity.id) && idsEnEnvies.has(entity.id)).length
+
   return (
     <div className="flex flex-col gap-5">
       {/* "Catalogue" and no longer "Rechercher": the screen no longer starts from an
@@ -390,8 +469,6 @@ export function SearchPage() {
           only entry point to add (see §24 of the brief) - searching at
           a provider has become the second half of the screen, not its
           reason for being. */}
-      <EnTeteSection niveau={1} titre="Catalogue" />
-
       {/* Scanning stays here: it is the same intention as searching, entered
           differently. "Analyser une annonce" left it - it is an
           independent flow, which now has its own navigation entry (product
@@ -406,81 +483,99 @@ export function SearchPage() {
           The import from a photo of the shelf (batch 147) is the fourth:
           the original mockup already planned "photo" among the ways
           to add, the reading engine existed for listings, only the door
-          was missing. */}
-      {/* Both lead to ADD screens, closed to a visitor (see
+          was missing. They sit on the header, where a screen keeps its
+          main actions (lot 198). */}
+      {/* All three lead to ADD screens, closed to a visitor (see
           lib/accesInvite): offering them would have sent them back here without a word,
           which reads as a breakdown. It is the general rule of this
           visit - we do not show a door that bounces. */}
-      {!estInvite && (
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/scan"
-            className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-          >
-            <ScanLine size={16} />
-            Scanner
-          </Link>
-          <Link
-            to="/import-bgg"
-            className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-          >
-            <Upload size={16} />
-            Importer depuis BGG
-          </Link>
-          <Link
-            to="/import-photo"
-            className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-          >
-            <Camera size={16} />
-            Importer depuis une photo
-          </Link>
-        </div>
-      )}
+      <EnTeteSection
+        niveau={1}
+        titre="Catalogue"
+        sousTitre={
+          catalogueEnChargement
+            ? 'Chargement…'
+            : phraseDuCompte(localMatches.length, estInvite ? null : { possedees, voulues })
+        }
+        action={
+          !estInvite ? (
+            <>
+              <Link to="/scan" className="btn-secondaire">
+                <ScanLine size={16} />
+                Scanner
+              </Link>
+              <Link to="/import-bgg" className="btn-secondaire">
+                <Upload size={16} />
+                Importer depuis BGG
+              </Link>
+              <Link to="/import-photo" className="btn-secondaire">
+                <Camera size={16} />
+                Importer depuis une photo
+              </Link>
+            </>
+          ) : undefined
+        }
+      />
 
       {entityTypesQuery.isLoading && <p className="text-sm text-textDim">Chargement des types...</p>}
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
 
-      <div className="flex flex-wrap gap-2">
-        {/* "Tout" first, and it did not exist: the chips only served to
-            frame a search at a provider, which is queried type by
-            type. They now also filter the catalogue displayed, and without
-            this entry there was no way to see it in full. */}
-        <Chip label="Tout" isActive={!entityTypeId} onClick={() => choisirType(undefined)} />
-        {(entityTypesQuery.data ?? []).map((type) => (
-          <Chip key={type.id} label={type.label} isActive={entityTypeId === type.id} onClick={() => choisirType(type.id)} />
-        ))}
-      </div>
-
-      {/* The tags, only if there are any: an empty row would be the filter
-          that never filters anything. A click sets the tag, a second removes it;
-          it combines with the type and the title, and it also applies to a visitor
-          - tags describe works, not a collection. */}
-      {tags.length > 0 && (
-        <div role="group" aria-label="Filtrer par tag" className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Tag</span>
-          {tags.map((tag) => (
-            <Chip
-              key={tag.id}
-              label={tag.label}
-              isActive={tagId === tag.id}
-              onClick={() => setTagId(tagId === tag.id ? undefined : tag.id)}
-            />
-          ))}
+      {/* One row of tools (lot 198): the field, the universes, the tags. On a
+          phone the field takes the width and the chips wrap under it. */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* The label is for screen readers and for the tests: on the screen,
+            the magnifier and the placeholder say the same thing. */}
+        <div className="relative w-full md:w-[380px]">
+          <label className="sr-only" htmlFor="title">
+            Titre
+          </label>
+          <Search size={16} aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-faint" />
+          <input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Un titre, un auteur…"
+            autoComplete="off"
+            className="champ w-full pl-10"
+          />
         </div>
-      )}
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm text-textDim" htmlFor="title">
-          Titre
-        </label>
-        <input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Un titre, un auteur…"
-          autoComplete="off"
-          className="champ"
-        />
+        {/* On a phone, the universes and the tags share ONE row that scrolls
+            sideways, edge to edge: wrapped, they stacked four rows of chips
+            before the first cover. From 640 px they wrap: a reduced window
+            cut the row without a hint, and choosing a universe meant finding
+            a scroll nobody expects there (owner, 2026-11-01). */}
+        <div className="defilement-discret -mx-4 flex w-[calc(100%+2rem)] items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:w-auto sm:flex-1 sm:flex-wrap sm:overflow-visible sm:px-0">
+          {/* "Tout" first, and it did not exist: the chips only served to
+              frame a search at a provider, which is queried type by
+              type. They now also filter the catalogue displayed, and without
+              this entry there was no way to see it in full. */}
+          <Chip label="Tout" isActive={!entityTypeId} onClick={() => choisirType(undefined)} />
+          {typesConnus.map((type) => (
+            <Chip key={type.id} label={type.label} isActive={entityTypeId === type.id} onClick={() => choisirType(type.id)} />
+          ))}
+
+          {/* The tags, only if there are any: an empty row would be the filter
+              that never filters anything. A click sets the tag, a second removes it;
+              it combines with the type and the title, and it also applies to a visitor
+              - tags describe works, not a collection. */}
+          {tags.length > 0 && (
+            <>
+              <span className="h-6 w-px shrink-0 bg-lineStrong" aria-hidden="true" />
+              <div role="group" aria-label="Filtrer par tag" className="flex shrink-0 items-center gap-2 sm:flex-wrap">
+                <span className="shrink-0 text-xs font-semibold tracking-wide text-textDim uppercase">Tag</span>
+                {tags.map((tag) => (
+                  <Chip
+                    key={tag.id}
+                    label={tag.label}
+                    isActive={tagId === tag.id}
+                    onClick={() => setTagId(tagId === tag.id ? undefined : tag.id)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* A silence that read as a breakdown: under three characters, the
@@ -518,71 +613,34 @@ export function SearchPage() {
         )
       )}
 
+      {catalogueEnChargement && <SqueletteGrille tuiles={7} className={CLASSE_GRILLE_CATALOGUE} />}
+
       {/* Personal state BEFORE the metadata (see §24/§420 of the brief): the
           owned collection comes as the first group, always visible before
           the external suggestions. */}
-      {localMatches.length > 0 && (
+      {/* At rest, this IS the catalogue: one shelf per universe, as on Ma
+          collection (lot 198). With a title typed, the same tiles under
+          "Déjà dans IozyCore", against the external suggestions that follow -
+          the eyebrow only makes sense against them. */}
+      {!catalogueEnChargement && localMatches.length > 0 && (
         <div className="flex flex-col gap-2">
-          {/* With no title typed, this list IS the catalogue - announcing it
-              "Déjà dans IozyCore" would only make sense against external
-              suggestions, which only appear once we
-              search for something. */}
-          <span className="text-xs font-semibold tracking-wide text-textDim uppercase">
-            {debouncedTitle.trim() ? 'Déjà dans IozyCore' : 'Le catalogue'}
-          </span>
-          <div className="flex flex-col gap-1.5">
-            {localMatches.map((entity) => {
-              const possede = entityIdsPossedes.has(entity.id)
-              return (
-                <div
-                  key={entity.id}
-                  className="ligne-differee flex items-center gap-2.5 rounded-xl bg-surface px-2.5 py-1 transition-transform hover:-translate-y-0.5"
-                >
-                  {/* The button takes the full height of the row (44 px at least):
-                      it only measured its line of text, 24 px, and the rest of the
-                      card did not respond to a finger. The title can take two
-                      lines rather than being cut at ten characters on a phone -
-                      it is what tells one row from its neighbour. */}
-                  <button type="button" onClick={() => goToEntity(entity)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 py-1 text-left">
-                    {/* The cover, small, before the title (batch 192): the
-                        catalogue was the only list of works without one, a
-                        column of bare titles next to a home made of covers.
-                        The gradient of the title stands in when there is
-                        none, like on a tile. */}
-                    <span
-                      className="h-12 w-9 shrink-0 overflow-hidden rounded-md ring-1 ring-line"
-                      style={{ background: gradientFor(entity.title) }}
-                      aria-hidden="true"
-                    >
-                      <Jaquette src={coverImageUrlFrom(entity.attributes)} className="h-full w-full object-cover" repli={null} />
-                    </span>
-                    <TexteCoupe texte={entity.title} className="line-clamp-2 flex-1 text-sm font-medium text-textPrimary" />
-                    {/* Two clearly distinct states: owned, or only
-                        known (existing page with no copy - typical
-                        of a work put on the wishlist). */}
-                    {/* None of this for a visitor: they own
-                        nothing, and these two badges would speak of
-                        someone else's collection - or, worse, of their
-                        own, which does not exist. */}
-                    {estInvite ? null : possede ? (
-                      <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-xs font-semibold text-accentText">
-                        Possédé
-                      </span>
-                    ) : (
-                      <span className="shrink-0 rounded-full bg-surface2 px-2.5 py-1 text-xs font-semibold text-textDim">
-                        Pas encore possédé
-                      </span>
-                    )}
-                  </button>
-                  {/* No heart on what we already own: wanting a game we have
-                      makes no sense, and the "Possédé" badge already says it all. */}
-                  {!estInvite && !possede && (
-                    <WishlistToggle entityId={entity.id} entityTypeId={entity.entityTypeId} variant="inline" />
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          {titreCherche && (
+            <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Déjà dans IozyCore</span>
+          )}
+          {groupesLocaux.map(({ type, entities }) => (
+            <RayonCatalogue
+              key={type.id}
+              entityType={type}
+              nombre={entities.length}
+              compact={titreCherche}
+              nommer={groupesLocaux.length > 1}
+            >
+              {entities.map((entity) => tuileDe(entity, type))}
+            </RayonCatalogue>
+          ))}
+          {sansType.length > 0 && (
+            <div className={CLASSE_GRILLE_CATALOGUE}>{sansType.map((entity) => tuileDe(entity, undefined))}</div>
+          )}
         </div>
       )}
 
@@ -652,75 +710,66 @@ export function SearchPage() {
             </Link>
           </div>
           {/* One group per category searched, named only when there are
-              several: under "Manga", the word would repeat the chip. */}
+              several: under "Manga", the word would repeat the chip. The
+              suggestions take the same tile as the catalogue (lot 198): a
+              work found at a source looks like a work already here. */}
           {groupesAvecResultats.map(({ type, requete }) => (
             <section key={type.id} aria-label={type.label} className="flex flex-col gap-1.5">
               {typesCherches.length > 1 && (
                 <h2 className="text-xs font-medium text-textDim">{type.label}</h2>
               )}
-              <ul className="flex flex-col gap-1.5">
-                {requete.data!.map((candidate) => (
-                  <li key={candidateKey(candidate)} className="ligne-differee flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5">
-                    <button
-                      type="button"
+              <div className={CLASSE_GRILLE_CATALOGUE}>
+                {requete.data!.map((candidate) => {
+                  const titrePrimaire = resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
+                  return (
+                    <CoverTile
+                      key={candidateKey(candidate)}
+                      title={candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])}
+                      subtitle={candidateSubtitle(candidate)}
+                      imageUrl={candidate.imageUrl}
+                      aspectClassName={getEntityTypeVisual(type).aspectClassName}
+                      // Flagged, never hidden: the work can still be added by
+                      // hand from its preview (see AddVolumeSection). The
+                      // mention only avoids arriving there expecting
+                      // a list of volumes. Only applies to manga.
+                      mention={
+                        type.code === 'MANGA' && titresSansTomes.has(titrePrimaire.trim().toLowerCase())
+                          ? 'Aucun tome connu — à saisir à la main'
+                          : undefined
+                      }
                       onClick={() => ouvrirApercu(candidate, type.id)}
-                      className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-                    >
-                      <Jaquette
-                        src={candidate.imageUrl}
-                        className="h-16 w-11 shrink-0 rounded object-cover"
-                        repli={<span className="h-16 w-11 shrink-0 rounded bg-surface2" />}
-                      />
-                      <div className="flex min-w-0 flex-col">
-                        <TexteCoupe
-                          as="div"
-                          texte={candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])}
-                          className="line-clamp-2 text-sm font-medium text-textPrimary"
+                      // Two possible outcomes for a work found: "I
+                      // buy it" (the click, which leads to entering the owned
+                      // volumes) and "I want it" - the second did not exist,
+                      // for lack of a way to reference a work without owning it. The
+                      // backend creates its catalogue page, with no ownership.
+                      action={
+                        <WishlistToggle
+                          variant="icone"
+                          entityTypeId={type.id}
+                          external={{
+                            entityTypeId: type.id,
+                            // The PRIMARY title, not the displayed one: the tile shows
+                            // "Titre (Autre titre)" to help recognise the work,
+                            // but deduplication relies on the title alone
+                            // on the backend. Sending the composed label created a
+                            // second page for the same work as soon as another path
+                            // (opening the detail page, quick add) used the bare title.
+                            title: titrePrimaire,
+                            // Same rule as everywhere else: the
+                            // candidate's cover is persisted under the shared
+                            // key, otherwise the work would appear with no image
+                            // in the Wishlist and in the shared list.
+                            attributes: candidate.imageUrl
+                              ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
+                              : candidate.attributes,
+                          }}
                         />
-                        <div className="text-xs text-textDim">{candidateSubtitle(candidate)}</div>
-                        {/* Flagged, never hidden: the work can still be added by
-                            hand from its preview (see AddVolumeSection). The
-                            mention only avoids arriving there expecting
-                            a list of volumes. Only applies to manga. */}
-                        {type.code === 'MANGA' &&
-                          titresSansTomes.has(
-                            resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
-                              .trim()
-                              .toLowerCase(),
-                          ) && (
-                            <div className="mt-0.5 text-xs text-faint">Aucun tome connu — à saisir à la main</div>
-                          )}
-                      </div>
-                    </button>
-                    {/* Two possible outcomes for a work found: "I
-                        buy it" (the click, which leads to entering the owned
-                        volumes) and "I want it" - the second did not exist,
-                        for lack of a way to reference a work without owning it. The
-                        backend creates its catalogue page, with no ownership. */}
-                    <WishlistToggle
-                      variant="inline"
-                      entityTypeId={type.id}
-                      external={{
-                        entityTypeId: type.id,
-                        // The PRIMARY title, not the displayed one: the row shows
-                        // "Titre (Autre titre)" to help recognise the work,
-                        // but deduplication relies on the title alone
-                        // on the backend. Sending the composed label created a
-                        // second page for the same work as soon as another path
-                        // (opening the detail page, quick add) used the bare title.
-                        title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
-                        // Same rule as everywhere else: the
-                        // candidate's cover is persisted under the shared
-                        // key, otherwise the work would appear with no image
-                        // in the Wishlist and in the shared list.
-                        attributes: candidate.imageUrl
-                          ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
-                          : candidate.attributes,
-                      }}
+                      }
                     />
-                  </li>
-                ))}
-              </ul>
+                  )
+                })}
+              </div>
             </section>
           ))}
         </div>
