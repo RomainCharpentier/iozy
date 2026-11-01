@@ -125,6 +125,8 @@ describe('DiscoverReleasesPreview - the refresh of the dates', () => {
     render(<DiscoverReleasesPreview />, { wrapper: enrobage })
 
     expect(await screen.findByText("Les sources de sorties n'ont pas encore été consultées.")).toBeInTheDocument()
+    // Not "nothing announced" under it: nothing was asked yet.
+    expect(screen.queryByText('Aucune sortie annoncée pour ta collection ni tes envies.')).not.toBeInTheDocument()
   })
 
   it('says how many series are still waiting, and when a source went silent or the pass failed', async () => {

@@ -12,7 +12,9 @@ import { EtatVide } from '@/common/components/EtatVide'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { LienRetour } from '@/common/components/LienRetour'
+import { ReleaseRefreshLine } from '@/common/components/ReleaseRefreshLine'
 import { ReleaseRow } from '@/common/components/ReleaseRow'
+import { useReleaseRefresh } from '@/common/hooks/useReleaseRefresh'
 import { GrilleDuMois } from './GrilleDuMois'
 import { ListeAVenir } from './ListeAVenir'
 import { bornesDuMois, cleDeSortie, compterParCategorie, moisDepuisParametre, moisPrecedent, moisSuivant, rangerParJour } from './releaseCalendar'
@@ -62,6 +64,11 @@ export function ReleasesPage() {
 
   const toutes = calendrierQuery.data?.entries ?? []
   const comptes = compterParCategorie(toutes)
+  // An empty calendar has two meanings: nothing announced, or sources never
+  // read. The page used to say the first in both cases, with no way to
+  // launch a pass from here (desktop pass of 2026-11-01).
+  const { status: etatMiseAJour } = useReleaseRefresh()
+  const jamaisConsultees = !!etatMiseAJour?.available && !etatMiseAJour.lastRun
   // A chosen category that has nothing this month falls back on "Tout": a
   // chip that can no longer be seen must not filter silently.
   const categorieActive = categorie && comptes.has(categorie) ? categorie : null
@@ -101,6 +108,8 @@ export function ReleasesPage() {
       <LienRetour parDefaut={{ to: '/discover', libelle: 'Découvrir' }} />
 
       <EnTeteSection niveau={1} titre="Calendrier des sorties" sousTitre="Ce qui sort pour ta collection et tes envies." />
+
+      <ReleaseRefreshLine />
 
       {/* Two columns from 1100 px (the page goes to 960 px, see AppShell): the
           month on the left, everything that is coming on the right. On mobile, one under the other. */}
@@ -157,8 +166,16 @@ export function ReleasesPage() {
           {calendrierQuery.isSuccess && toutes.length === 0 && (
             <EtatVide
               icone={CalendarDays}
-              titre={`Rien ne sort en ${libelleMois(mois).toLowerCase()} pour ta collection ni tes envies.`}
-              detail="Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici."
+              titre={
+                jamaisConsultees
+                  ? "Les sorties n'ont pas encore été cherchées."
+                  : `Rien ne sort en ${libelleMois(mois).toLowerCase()} pour ta collection ni tes envies.`
+              }
+              detail={
+                jamaisConsultees
+                  ? 'Lance une mise à jour ci-dessus : les sources seront lues pour ta collection et tes envies.'
+                  : 'Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici.'
+              }
             />
           )}
 
@@ -187,6 +204,7 @@ export function ReleasesPage() {
         <ListeAVenir
           libelleParType={libelleParType}
           onVoir={voirDansLaGrille}
+          jamaisConsultees={jamaisConsultees}
           className="defilement-discret min-[1100px]:sticky min-[1100px]:top-20 min-[1100px]:max-h-[calc(100vh-6rem)] min-[1100px]:overflow-y-auto"
         />
       </div>

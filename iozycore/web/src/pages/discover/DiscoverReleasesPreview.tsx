@@ -6,8 +6,9 @@ import { CLASSE_CARTE } from '@/common/components/Carte'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { ReleaseRow } from '@/common/components/ReleaseRow'
 import { Squelette } from '@/common/components/Squelette'
+import { ReleaseRefreshLine } from '@/common/components/ReleaseRefreshLine'
+import { useReleaseRefresh } from '@/common/hooks/useReleaseRefresh'
 import { useLatestReleases } from './useLatestReleases'
-import { ReleaseRefreshLine } from './ReleaseRefreshLine'
 
 /**
  * "Dernières sorties" panel of Découvrir: the ten releases with the latest
@@ -32,6 +33,11 @@ export function DiscoverReleasesPreview() {
   const libelleParType = new Map((typesQuery.data ?? []).map((t) => [t.id, t.label]))
   const sorties = calendrierQuery.data ?? []
   const retour = { to: '/discover', libelle: 'Découvrir' }
+  // The sources were never read: the refresh line says so, with its button.
+  // "Aucune sortie annoncée" under it contradicted it (desktop pass of
+  // 2026-11-01) - nothing was announced because nothing was asked.
+  const { status } = useReleaseRefresh()
+  const jamaisConsultees = !!status?.available && !status.lastRun
 
   return (
     <div className="flex flex-col gap-3">
@@ -47,7 +53,7 @@ export function DiscoverReleasesPreview() {
       {calendrierQuery.isError && <ErrorBanner message={calendrierQuery.error.message} />}
       {calendrierQuery.isLoading && <Squelette lignes={3} />}
 
-      {calendrierQuery.isSuccess && sorties.length === 0 && (
+      {calendrierQuery.isSuccess && sorties.length === 0 && !jamaisConsultees && (
         <div className={CLASSE_CARTE}>
           <p className="text-sm font-semibold text-textPrimary">Aucune sortie annoncée pour ta collection ni tes envies.</p>
           <p className="mt-1 text-sm text-textDim">Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici.</p>

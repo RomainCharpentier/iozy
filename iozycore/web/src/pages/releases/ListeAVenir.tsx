@@ -23,11 +23,15 @@ import { Squelette } from '@/common/components/Squelette'
 export function ListeAVenir({
   libelleParType,
   onVoir,
+  jamaisConsultees = false,
   className = '',
 }: {
   libelleParType: Map<string, string>
   /** The month to show ("2026-11"), and the day to choose when the source knows it. */
   onVoir: (mois: string, jour: string | null) => void
+  /** The sources were never read (see ReleasesPage): an empty year then
+   *  means "not looked at", not "nothing coming". */
+  jamaisConsultees?: boolean
   className?: string
 }) {
   const { from, to } = periodeSurUnAn(useNow())
@@ -48,7 +52,11 @@ export function ListeAVenir({
 
       {query.isError && <ErrorBanner message={query.error.message} />}
       {query.isLoading && <Squelette lignes={3} />}
-      {query.isSuccess && mois.length === 0 && <p className="text-sm text-textDim">Rien d'annoncé pour l'année qui vient.</p>}
+      {query.isSuccess && mois.length === 0 && (
+        <p className="text-sm text-textDim">
+          {jamaisConsultees ? "Rien de connu : les sources n'ont pas encore été consultées." : "Rien d'annoncé pour l'année qui vient."}
+        </p>
+      )}
 
       {mois.map((m) => (
         <section key={m.mois} className="flex flex-col gap-1">
