@@ -39,21 +39,15 @@ test('read the progress of an edition, then tick a missing volume', async ({ pag
   await expect(page.getByRole('button', { name: 'Tome 1, possédé' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Tome 2, manquant' })).toBeVisible()
 
-  // --- "Je l'ai": one click, nothing to fill in.
+  // --- "Je l'ai": pick the spine, then the gesture in the bar, nothing to fill in.
   //
-  //     Two gestures lead to the same place, and this test was used to find
-  //     out which one belongs to whom. With the MOUSE, hovering the tile
-  //     shows an overlay with two buttons ("Je l'ai" / "Je le veux") that
-  //     fully covers the tile: clicking the tile itself is then impossible,
-  //     the overlay intercepts. With a FINGER, there is no hover: the overlay
-  //     never shows and the tile receives the gesture. Both call the same
-  //     add, no path is missing.
-  //     The hover targets the WHOLE TILE (the container), not the button
-  //     below: hovering the tile itself is refused for the same reason as a
-  //     click - as soon as the overlay appears, it receives the pointer. The
-  //     container, on the other hand, contains it.
-  await page.getByRole('button', { name: 'Tome 2, manquant' }).locator('..').hover()
-  await page.getByTitle("J'ai le tome 2").click()
+  //     A click on a spine PICKS it (a toggle, `aria-pressed`), and the bar
+  //     above the shelves carries the gestures for what is picked. The mouse
+  //     never chases a card: the first shelf put the pill under the pointer,
+  //     and the owner found it "pas pratique" (2026-11-01). Same gesture with
+  //     a finger or the keyboard.
+  await page.getByRole('button', { name: 'Tome 2, manquant' }).click()
+  await page.getByRole('button', { name: "J'ai le tome 2" }).click()
 
   await expect(page.getByRole('button', { name: 'Tome 2, possédé' })).toBeVisible()
   // The progress followed - this is the link that breaks silently when a cache

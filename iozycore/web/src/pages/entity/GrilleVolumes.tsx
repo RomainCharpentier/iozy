@@ -64,7 +64,9 @@ export function GrilleVolumes({
   mode,
   onActiver,
   onJeLAi,
+  onJeLesAi,
   onJeLeVeux,
+  onJeLesVeux,
   onRetirer,
   filtre,
   onFiltre,
@@ -87,6 +89,10 @@ export function GrilleVolumes({
    *  mode, where checking IS the gesture. */
   onJeLAi?: (cle: string) => void
   onJeLeVeux?: (cle: string) => void
+  /** The same gestures for several volumes at once - a range picked on the
+   *  shelf (see Etagere). The grid itself never calls them. */
+  onJeLesAi?: (cles: string[]) => void
+  onJeLesVeux?: (cles: string[]) => void
   /** Remove an OWNED volume from the collection - in two gestures (see
    *  TuileVolume): with this prop, activating an owned tile ARMS it instead of
    *  calling `onActiver`, and the tile asks the question. When absent,
@@ -110,7 +116,7 @@ export function GrilleVolumes({
   onVue?: (vue: VueTomes) => void
   /** The tint of the series, for the spine of an owned volume without a cover. */
   teinte?: [number, number, number]
-  /** Named next to an owned volume pulled out of the shelf. */
+  /** Named under the volume picked on the shelf. */
   edition?: string
 }) {
   // On `volumes` and not on `visibles`: a counter that only counted what
@@ -227,7 +233,9 @@ export function GrilleVolumes({
           teinte={teinte}
           edition={edition}
           onJeLAi={consultation ? undefined : onJeLAi}
+          onJeLesAi={consultation ? undefined : onJeLesAi}
           onJeLeVeux={consultation ? undefined : onJeLeVeux}
+          onJeLesVeux={consultation ? undefined : onJeLesVeux}
           onRetirer={consultation ? undefined : onRetirer}
           action={action}
         />
