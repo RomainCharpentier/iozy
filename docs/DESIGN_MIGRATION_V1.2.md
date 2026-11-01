@@ -1673,3 +1673,32 @@ repenser le Catalogue sur bureau (une colonne de 672 px, des vignettes de
 Vérifié : 509 tests web, typecheck, lint, frontières, 19 parcours e2e ; en
 direct sur la pile jetable : Découvrir sans carte contradictoire, le
 calendrier avec sa ligne et son bouton, console vide sur une fiche AniList.
+
+### Lot 198 — Le Catalogue en jaquettes
+
+Le propriétaire a tranché une planche faite avec ses vraies jaquettes, lues
+en visiteur sur sa pile. Le Catalogue quitte sa colonne de 672 px, ses
+lignes de 70 px et sa pilule « Possédé » sur chaque ligne pour la largeur
+de Ma collection : un rayon par univers, les œuvres en jaquettes de 150 px
+au moins, sept par rangée à 1 280 px et trois sur téléphone, la même tuile
+que les rayons (`CoverTile`, montée dans `common` avec la ligne auteur).
+L'état est dit par l'objet : une œuvre possédée est entière, une œuvre pas
+encore possédée atténuée et cerclée de pointillés, une envie cerclée
+d'accent avec son cœur plein ; la phrase ne reste que pour les lecteurs
+d'écran. Le cœur vit au pied de la tuile, seulement sur une œuvre non
+possédée d'un type possédé d'une pièce, jamais au survol. L'en-tête compte
+ce qu'il montre (« 35 œuvres · 32 possédées · 2 dans tes envies ») et porte
+les trois portes d'ajout ; une seule rangée réunit le champ, les univers et
+les tags, et défile sur téléphone au lieu d'empiler quatre rangées de puces
+avant la première jaquette. Sous un titre tapé, « Déjà dans IozyCore » puis
+les suggestions des sources prennent la même tuile, avec l'année et
+l'auteur, le studio ou le designer en sous-titre. Au passage : un visiteur
+voyait 18 œuvres sur 35, le filtre des œuvres « reliées » ne pouvant rien
+relier à quelqu'un qui ne possède rien ; il voit maintenant le catalogue
+tel que le serveur le connaît.
+
+Vérifié : 516 tests web, typecheck, lint, frontières, 19 parcours e2e ;
+mesures Playwright en visiteur sur la pile du propriétaire : 7 colonnes de
+162 × 243 px à 1 280, 3 de 111 × 167 à 390, aucun débordement, aucune cible
+sous 44 px, les 35 jaquettes chargées ; captures clair et sombre, bureau et
+téléphone, puis connectées sur la pile jetable.
