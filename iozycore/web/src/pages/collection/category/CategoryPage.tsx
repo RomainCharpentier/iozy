@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { LienRetour } from '@/common/components/LienRetour'
 import { CalendarCheck, Heart, Layers, SlidersHorizontal } from 'lucide-react'
-import { CoverTile } from '@/pages/collection/CoverTile'
+import { CoverTile } from '@/common/components/CoverTile'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import {

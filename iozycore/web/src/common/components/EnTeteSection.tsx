@@ -43,7 +43,11 @@ export function EnTeteSection({
       {/* `shrink-0` without `ml-auto`: `justify-between` already places the action on
           the right, and an `ml-auto` would push it to the right AGAIN after a line
           wrap, detaching it from the title instead of putting it below. */}
-      {action && <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div>}
+      {/* `max-w-full` as well: three actions in a row (the catalogue, lot 198)
+          are wider than a phone, and a `shrink-0` block keeps its full width
+          even once it has wrapped under the title - it overflowed the page by
+          190 px at 390 px. Capped, it wraps its own actions instead. */}
+      {action && <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">{action}</div>}
     </div>
   )
 }

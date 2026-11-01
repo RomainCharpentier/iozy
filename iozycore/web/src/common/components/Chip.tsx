@@ -11,7 +11,10 @@ interface ChipProps {
 
 /** Capsule pill - type filters (Shelf) and display of tags (EntityDetail). */
 export function Chip({ label, isActive = false, onClick, count }: ChipProps) {
-  const className = `inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+  // `shrink-0` and no wrapping: in a row that scrolls sideways (the
+  // catalogue on a phone, lot 198), a chip keeps its shape instead of
+  // folding "Jeu de société" on two lines.
+  const className = `inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
     isActive ? 'bg-accent text-accentInk' : 'bg-surface text-textDim ring-1 ring-line'
   }`
   const content = (
