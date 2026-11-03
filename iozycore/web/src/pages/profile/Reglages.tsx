@@ -239,7 +239,7 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
                   onClick={() => reorder(index, index - 1)}
                   disabled={index === 0}
                   aria-label={`Monter ${TITLE_LANGUAGE_LABELS[item.language]}`}
-                  className="flex h-11 w-9 items-center justify-center rounded-lg text-textDim hover:text-textPrimary disabled:opacity-30"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-textDim hover:text-textPrimary disabled:opacity-30"
                 >
                   <ChevronUp size={18} />
                 </button>
@@ -248,7 +248,7 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
                   onClick={() => reorder(index, index + 1)}
                   disabled={index === composition.length - 1}
                   aria-label={`Descendre ${TITLE_LANGUAGE_LABELS[item.language]}`}
-                  className="flex h-11 w-9 items-center justify-center rounded-lg text-textDim hover:text-textPrimary disabled:opacity-30"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-textDim hover:text-textPrimary disabled:opacity-30"
                 >
                   <ChevronDown size={18} />
                 </button>

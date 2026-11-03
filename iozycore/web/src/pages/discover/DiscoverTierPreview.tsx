@@ -141,7 +141,7 @@ export function DiscoverTierPreview() {
               key={list.id}
               type="button"
               onClick={() => navigate(`/tier-lists/${list.id}`, { state: { retour: { to: '/discover', libelle: 'Découvrir' } } })}
-              className="flex min-w-[210px] flex-1 items-center gap-2.5 rounded-2xl border border-surface2 bg-surface px-3.5 py-2.5 text-left transition-transform hover:-translate-y-0.5"
+              className="flex min-h-11 min-w-[210px] flex-1 items-center gap-2.5 rounded-2xl border border-surface2 bg-surface px-3.5 py-2.5 text-left transition-transform hover:-translate-y-0.5"
             >
               <TexteCoupe texte={list.name} className="min-w-0 flex-1 truncate text-sm font-semibold text-textPrimary" />
               <span className="shrink-0 text-xs text-textDim">

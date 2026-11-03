@@ -255,7 +255,7 @@ export function BoutonEnviesHero({
       aria-label={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
       aria-pressed={dedans}
       title={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
-      className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50 ${
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50 ${
         dedans ? 'bg-accentTint text-accentText' : 'bg-surface text-textDim shadow-token-sm hover:text-accentText'
       }`}
     >
@@ -285,7 +285,7 @@ export function BoutonSuivreHero({
       aria-label={libelle}
       aria-pressed={suivie}
       title={libelle}
-      className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50 ${
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50 ${
         suivie ? 'bg-accentTint text-accentText' : 'bg-surface text-textDim shadow-token-sm hover:text-accentText'
       }`}
     >

@@ -94,7 +94,7 @@ export function PiedDePage({ sansSession = false }: { sansSession?: boolean } = 
     >
       {/* A plain link, not a router one: the home page is the root of the
           site, outside the app. */}
-      <a href="/" className="underline underline-offset-2">
+      <a href="/" className="inline-flex min-h-11 items-center align-middle underline underline-offset-2">
         Toutes les apps
       </a>
       {' · '}

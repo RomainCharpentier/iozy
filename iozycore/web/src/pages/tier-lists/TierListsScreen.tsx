@@ -153,7 +153,7 @@ export function TierListsScreen() {
                   <Link
                     key={list.id}
                     to={`/tier-lists/${list.id}`}
-                    className="flex items-center justify-between gap-3 rounded-xl p-2.5 transition-colors hover:bg-rowHover"
+                    className="flex min-h-11 items-center justify-between gap-3 rounded-xl p-2.5 transition-colors hover:bg-rowHover"
                   >
                     <TexteCoupe texte={list.name} className="truncate text-sm font-semibold text-textPrimary" />
                     <span className="shrink-0 text-xs text-textDim">
@@ -185,7 +185,7 @@ export function TierListsScreen() {
                 <Link
                   key={list.id}
                   to={`/tier-lists/${list.id}`}
-                  className="flex items-center justify-between gap-3 rounded-xl p-2.5 transition-colors hover:bg-rowHover"
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl p-2.5 transition-colors hover:bg-rowHover"
                 >
                   <TexteCoupe texte={list.name} className="truncate text-sm font-semibold text-textPrimary" />
                   <span className="shrink-0 text-xs text-textDim">
