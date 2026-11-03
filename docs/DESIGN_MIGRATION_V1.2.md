@@ -1710,3 +1710,22 @@ un téléphone) et les puces défilaient en une rangée coupée sans indice. La
 grille remplit la largeur avec des jaquettes de 110 px au moins sous 768 px
 (cinq colonnes à 700 px, seize à dix-huit jaquettes visibles) et les puces se
 replient dès 640 px ; seul un téléphone garde la rangée qui défile.
+
+### Lot 199 — Passe mobile des écrans
+
+Les seize écrans du compte à 390 × 844, sombre et clair, sur la même
+collection semée qu'au lot 197 : aucun débordement, aucune erreur console,
+les grilles à trois colonnes et l'étagère à douze dos par étage tiennent.
+Seul reste : des cibles tactiles sous les 44 px de la règle, mesurées
+élément par élément. La barre Tout / Possédés / Suivies / Envies (36 px),
+les filtres et le commutateur Étagère / Grille de la fiche (40 et 36 px),
+les boutons envies et suivre du bandeau (42 px), une ligne de Tier List
+personnalisée sur Découvrir et sur la page des Tier Lists, les flèches de
+l'ordre des langues du profil (36 px de large), le lien de retour de
+l'aperçu et le lien du pied de page. Tous à 44 px ; la sonde ne trouve plus
+que les cases à cocher du profil, dont l'étiquette entière est la cible.
+
+Vérifié : 516 tests web, typecheck, lint, 19 parcours e2e ; sonde
+Playwright sur douze écrans à 390 px, plus aucune cible sous 44 px hors les
+dos de l'étagère (22 px, voulus) ; captures mobile et bureau de Ma
+collection et d'une fiche après coup.

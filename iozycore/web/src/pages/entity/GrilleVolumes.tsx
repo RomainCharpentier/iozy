@@ -181,7 +181,7 @@ export function GrilleVolumes({
                   aria-checked={actif}
                   aria-label={`${libelle} : ${compte} tome${compte > 1 ? 's' : ''}`}
                   onClick={() => onFiltre(cle)}
-                  className={`flex min-h-10 items-center gap-1.5 rounded-lg px-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
+                  className={`flex min-h-11 items-center gap-1.5 rounded-lg px-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
                     actif ? 'font-semibold text-textPrimary' : 'text-faint hover:text-textPrimary'
                   }`}
                 >
@@ -214,7 +214,7 @@ export function GrilleVolumes({
                 aria-label={libelle}
                 title={libelle}
                 onClick={() => onVue(cle)}
-                className={`flex h-9 w-10 items-center justify-center rounded-[10px] transition-colors ${
+                className={`flex h-11 w-11 items-center justify-center rounded-[10px] transition-colors ${
                   vue === cle ? 'bg-surface text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
                 }`}
               >

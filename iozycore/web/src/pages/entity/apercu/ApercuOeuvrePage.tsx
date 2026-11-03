@@ -167,7 +167,7 @@ export function ApercuOeuvrePage() {
     return (
       <div className="flex flex-col gap-4">
         <p className="text-textDim">Aucune œuvre à afficher.</p>
-        <Link to={retour.to} className="w-fit text-sm font-semibold text-accentText">
+        <Link to={retour.to} className="flex min-h-11 w-fit items-center text-sm font-semibold text-accentText">
           Retour au catalogue
         </Link>
       </div>

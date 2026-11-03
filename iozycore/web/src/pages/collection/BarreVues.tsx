@@ -60,7 +60,7 @@ export function BarreVues({
             role="radio"
             aria-checked={actif}
             onClick={() => onFiltre(cle)}
-            className={`flex min-h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 text-[12px] whitespace-nowrap transition-colors sm:flex-none sm:gap-1.5 sm:px-3.5 sm:text-[13px] ${
+            className={`flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 text-[12px] whitespace-nowrap transition-colors sm:flex-none sm:gap-1.5 sm:px-3.5 sm:text-[13px] ${
               actif ? 'bg-surface font-semibold text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
             }`}
           >
