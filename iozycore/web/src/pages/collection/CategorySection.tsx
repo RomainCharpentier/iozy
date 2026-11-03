@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import { CoverTile } from './CoverTile'
+import { CoverTile } from '@/common/components/CoverTile'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import type { EntityTypeDto } from '@/common/types/api'
 import type { ShelfTile } from './shelfTiles'

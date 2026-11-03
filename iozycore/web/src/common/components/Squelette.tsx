@@ -43,10 +43,20 @@ export function SqueletteRail({ tuiles = 4 }: { tuiles?: number }) {
   )
 }
 
-/** A grid of tiles while waiting (shelf, volumes). */
-export function SqueletteGrille({ tuiles = 6, aspect = 'aspect-[2/3]' }: { tuiles?: number; aspect?: string }) {
+/** A grid of tiles while waiting (shelf, volumes). `className` replaces the
+ *  grid when the screen lays its tiles out differently (the catalogue, lot
+ *  198): the skeleton must take the exact place of what is coming. */
+export function SqueletteGrille({
+  tuiles = 6,
+  aspect = 'aspect-[2/3]',
+  className = 'grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6',
+}: {
+  tuiles?: number
+  aspect?: string
+  className?: string
+}) {
   return (
-    <div role="status" className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
+    <div role="status" className={className}>
       <span className="sr-only">Chargement…</span>
       {Array.from({ length: tuiles }, (_, i) => (
         <div key={i} aria-hidden="true">

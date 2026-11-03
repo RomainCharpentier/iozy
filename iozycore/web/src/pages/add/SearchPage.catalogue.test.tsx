@@ -18,7 +18,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SearchPage } from './SearchPage'
-import { typeDeCollection } from '@/test/fixtures'
+import { oeuvre, possession, tome, typeDeCollection } from '@/test/fixtures'
 
 const metadata = vi.hoisted(() => ({
   searchMetadata: vi.fn(),
@@ -33,8 +33,14 @@ vi.mock('@/common/api/entities', () => ({ searchEntities: api.searchEntities }))
 vi.mock('@/common/api/ownerships', () => ({ listAllOwnerships: api.listAllOwnerships }))
 vi.mock('@/common/api/entityTypes', () => ({ listEntityTypes: api.listEntityTypes }))
 vi.mock('@/common/api/tags', () => ({ listTags: vi.fn().mockResolvedValue([]) }))
+const wishlist = vi.hoisted(() => ({ entries: [] as { id: string; entityId: string; variantId: null; addedAt: string }[] }))
 vi.mock('@/common/hooks/useWishlist', () => ({
-  useWishlist: () => ({ entries: [], variantsVoulus: new Set(), isLoading: false, entryFor: () => undefined }),
+  useWishlist: () => ({
+    entries: wishlist.entries,
+    variantsVoulus: new Set(),
+    isLoading: false,
+    entryFor: (entityId: string) => wishlist.entries.find((entry) => entry.entityId === entityId),
+  }),
 }))
 
 const auth = vi.hoisted(() => ({ estInvite: true }))
@@ -66,6 +72,7 @@ function rendre() {
 beforeEach(() => {
   vi.clearAllMocks()
   auth.estInvite = true
+  wishlist.entries = []
   api.listEntityTypes.mockResolvedValue([MANGA, JEU_VIDEO])
   api.searchEntities.mockResolvedValue([])
   api.listAllOwnerships.mockResolvedValue([])
@@ -132,5 +139,68 @@ describe('an empty catalog list', () => {
 
     expect(screen.queryByText(/Aucune œuvre/)).not.toBeInTheDocument()
     expect(screen.queryByText('Le catalogue est encore vide.')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * The catalogue as covers (lot 198). Three rules that no eye would catch:
+ * a count that names what it counts, a state that a screen reader still
+ * hears once no word is left on the tile, and a heart only where wanting
+ * makes sense.
+ */
+describe('the catalogue as covers', () => {
+  const berserk = oeuvre({ titre: 'Berserk', tomes: [tome(1)] })
+  const monster = oeuvre({ titre: 'Monster', tomes: [tome(1)] })
+  const hades = oeuvre({ titre: 'Hades', typeId: JEU_VIDEO.id })
+  const celeste = oeuvre({ titre: 'Celeste', typeId: JEU_VIDEO.id })
+
+  beforeEach(() => {
+    api.searchEntities.mockResolvedValue([berserk, monster, hades, celeste])
+    api.listAllOwnerships.mockResolvedValue([
+      possession({ entityId: monster.id, variantId: 'tome-1' }),
+      possession({ entityId: hades.id }),
+    ])
+    wishlist.entries = [{ id: 'envie-celeste', entityId: celeste.id, variantId: null, addedAt: '2026-10-01' }]
+  })
+
+  it('lays one shelf per universe, and counts what it shows', async () => {
+    auth.estInvite = false
+    rendre()
+
+    expect(await screen.findByRole('heading', { name: 'Manga' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Jeu vidéo' })).toBeInTheDocument()
+    expect(screen.getByText('4 œuvres · 2 possédées · 1 dans tes envies')).toBeInTheDocument()
+  })
+
+  it('still tells a screen reader which work is not owned yet', async () => {
+    auth.estInvite = false
+    rendre()
+
+    expect(await screen.findByRole('button', { name: /Berserk/ })).toHaveTextContent('Pas encore possédé')
+    expect(screen.getByRole('button', { name: /Celeste/ })).toHaveTextContent('Dans tes envies')
+    expect(screen.getByRole('button', { name: /Monster/ })).not.toHaveTextContent(/possédé|envies/)
+    expect(screen.getByRole('button', { name: /Hades/ })).not.toHaveTextContent(/possédé|envies/)
+  })
+
+  it('puts the heart on a game not owned, never on a series nor on what is owned', async () => {
+    auth.estInvite = false
+    rendre()
+    await screen.findByRole('button', { name: /Berserk/ })
+
+    // Celeste only: Berserk is collected by volume (the wanted thing is a
+    // volume), Hades and Monster are owned.
+    expect(screen.getAllByRole('button', { name: /mes envies/ })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Retirer de mes envies' })).toBeInTheDocument()
+  })
+
+  it('shows a visitor the works, with no state and no heart', async () => {
+    auth.estInvite = true
+    rendre()
+
+    expect(await screen.findByRole('button', { name: /Berserk/ })).toBeInTheDocument()
+    expect(screen.getByText('4 œuvres')).toBeInTheDocument()
+    expect(screen.queryByText('Pas encore possédé')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dans tes envies')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /mes envies/ })).not.toBeInTheDocument()
   })
 })

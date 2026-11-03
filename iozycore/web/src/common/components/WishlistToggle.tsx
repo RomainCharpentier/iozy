@@ -37,7 +37,7 @@ export function WishlistToggle({
    *  or a group, and therefore whether this button should exist. */
   entityTypeId: string
   external?: { entityTypeId: string; title: string; attributes?: Record<string, unknown> }
-  variant?: 'default' | 'inline'
+  variant?: 'default' | 'inline' | 'icone'
 }) {
   const parTome = useCollecteParTome(entityTypeId)
   const wishlist = useWishlist()
@@ -56,18 +56,22 @@ export function WishlistToggle({
   if (parTome) return null
 
   const base = 'flex items-center gap-1.5 font-semibold transition-colors disabled:opacity-50'
+  // `icone` (lot 198): the heart alone, a 44 px square at the foot of a
+  // cover tile, where a word would cover the title it lives next to.
   const taille =
     variant === 'inline'
       ? 'min-h-11 rounded-lg px-2 text-xs'
-      : 'min-h-12 rounded-[14px] px-4 text-sm'
+      : variant === 'icone'
+        ? 'h-11 w-11 justify-center rounded-xl'
+        : 'min-h-12 rounded-[14px] px-4 text-sm'
   // Outside a list row, this is a REAL secondary action, with its
   // own surface (mockup v4): placed bare next to a filled button, it no longer
   // read as a button at all - just as gray text.
   const couleur = dedans
     ? 'bg-accentTint text-accentText hover:bg-accent/25'
-    : variant === 'inline'
-      ? 'text-textDim hover:bg-rowHover hover:text-textPrimary'
-      : 'bg-softBtn text-textPrimary hover:bg-softPress'
+    : variant === 'default'
+      ? 'bg-softBtn text-textPrimary hover:bg-softPress'
+      : 'text-textDim hover:bg-rowHover hover:text-textPrimary'
 
   async function basculer() {
     if (entry && idConnu) {
@@ -100,12 +104,22 @@ export function WishlistToggle({
       aria-label={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
       className={`${base} ${taille} ${couleur}`}
     >
-      {dedans ? <HeartOff size={variant === 'inline' ? 13 : 16} /> : <Heart size={variant === 'inline' ? 13 : 16} />}
+      {variant === 'icone' ? (
+        // The state is the heart itself: filled once wanted, like the ring of
+        // the tile it sits on. The accessible name still says the action.
+        <Heart size={16} fill={dedans ? 'currentColor' : 'none'} />
+      ) : dedans ? (
+        <HeartOff size={variant === 'inline' ? 13 : 16} />
+      ) : (
+        <Heart size={variant === 'inline' ? 13 : 16} />
+      )}
       {/* Inline on a phone, the heart is enough: the text took the place of the
           title next to which it lives. The accessible name always says the action. */}
-      <span className={variant === 'inline' ? 'hidden sm:inline' : undefined}>
-        {dedans ? 'Dans tes envies' : 'Ajouter aux envies'}
-      </span>
+      {variant !== 'icone' && (
+        <span className={variant === 'inline' ? 'hidden sm:inline' : undefined}>
+          {dedans ? 'Dans tes envies' : 'Ajouter aux envies'}
+        </span>
+      )}
     </button>
   )
 }
