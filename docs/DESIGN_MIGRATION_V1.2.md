@@ -1729,3 +1729,20 @@ Vérifié : 516 tests web, typecheck, lint, 19 parcours e2e ; sonde
 Playwright sur douze écrans à 390 px, plus aucune cible sous 44 px hors les
 dos de l'étagère (22 px, voulus) ; captures mobile et bureau de Ma
 collection et d'une fiche après coup.
+
+### Lot 200 — Une œuvre possédée ne peut pas être voulue
+
+Dernière incohérence de la passe bureau : un jeu de société possédé et
+dans les envies s'affichait « Possédé » sous le filtre Envies. Les tomes
+avaient la règle depuis la V21 (le serveur refuse de vouloir ce qu'on
+possède, 409) ; les œuvres entières ne l'avaient pas. Le serveur la tient
+maintenant pour les deux, par le même message en français ; la migration
+V38 efface les envies d'œuvres entières déjà possédées (la possession
+gagne, l'envie part), sans toucher aux envies de tomes. L'acquisition
+levait déjà l'envie (QuickAddService). Sur la fiche, le cœur du bandeau ne
+se propose plus sur une œuvre possédée ; il reste tant qu'une envie
+d'avant la règle existe, pour pouvoir la retirer.
+
+Vérifié : 1 315 tests backend après `test-compile` (le nouveau test
+`refuses_a_whole_work_that_is_already_owned`, la migration jouée par les
+tests d'intégration), 516 tests web, typecheck, lint.
