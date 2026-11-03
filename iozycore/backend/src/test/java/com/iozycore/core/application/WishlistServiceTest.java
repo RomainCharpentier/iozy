@@ -89,6 +89,17 @@ class WishlistServiceTest {
     }
 
     @Test
+    void refuses_a_whole_work_that_is_already_owned() {
+        // A board game, owned as a whole: wanting it has no object (same rule as a volume).
+        Entity game = entities.save(Entity.create(EntityTypeFixtures.MANGA.id(), "Azul"));
+        ownerships.save(Ownership.acquire(game.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+
+        assertThatThrownBy(() -> service.add(byEntity(game.id(), null, null)))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(wishes.findAll()).isEmpty();
+    }
+
+    @Test
     void a_volume_number_creates_the_missing_volume_in_the_catalog() {
         Entity work = entities.save(Entity.create(EntityTypeFixtures.MANGA.id(), "Frieren"));
 
