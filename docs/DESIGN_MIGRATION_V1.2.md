@@ -1729,3 +1729,25 @@ Vérifié : 516 tests web, typecheck, lint, 19 parcours e2e ; sonde
 Playwright sur douze écrans à 390 px, plus aucune cible sous 44 px hors les
 dos de l'étagère (22 px, voulus) ; captures mobile et bureau de Ma
 collection et d'une fiche après coup.
+
+### Lot 201 — La fiche prend les couleurs de sa série
+
+Retour du propriétaire sur la fiche de Frieren : un fond sans couleur, une
+étagère qui ressemble à un graphique. La teinte était la moyenne de la
+jaquette, un gris sur une couverture très colorée, et une couche opaque cachait
+le flou du lot 195. Le fond est maintenant un dégradé des deux couleurs
+dominantes de la jaquette, qui se fond dans le fond de la page dans les deux
+thèmes. Un hébergeur qui refuse la lecture (AniList) garde le terracotta.
+
+Un tome possédé sans jaquette est découpé dans celle de la série et garde son
+numéro lisible ; les tranches s'élargissent tant que la série tient sur un
+étage, et chaque repère est sous son tome. L'aperçu au survol s'ouvre du côté
+d'où vient la souris : les tomes visés restent visibles, sauf près d'un bord
+où il prend le seul côté qui a la place. Sans total, la carte d'édition dit
+« 10 tomes possédés », sans jauge vide ; le contour et le badge « Suivie » ne
+restent que s'il y a plusieurs éditions. Le statut « En pause » s'affiche.
+
+Vérifié : 533 tests web, typecheck, lint, contraste, 20 parcours e2e ; captures
+à 1 280 px en sombre et clair et à 390 px en sombre, survol mesuré avec une
+vraie souris, sur la pile jetable. Les données de Frieren (tomes 13 à 15, total,
+jaquette française) restent à compléter.
