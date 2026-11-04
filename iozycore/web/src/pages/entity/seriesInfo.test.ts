@@ -11,7 +11,7 @@
  * from being shown with a guessed denominator.
  */
 import { describe, expect, it } from 'vitest'
-import { isSeriesOngoing, libelleStatutSerie, totalVolumesFrom } from './seriesInfo'
+import { isSeriesOngoing, libelleStatutSerie, statutAffiche, totalVolumesFrom } from './seriesInfo'
 
 describe('totalVolumesFrom', () => {
   it('returns the total when the source has closed it', () => {
@@ -64,5 +64,15 @@ describe('libelleStatutSerie', () => {
 
   it('reads the AniList word for an ongoing series', () => {
     expect(isSeriesOngoing({ seriesStatus: 'RELEASING' })).toBe(true)
+  })
+})
+
+describe('statutAffiche', () => {
+  it('says a series on hiatus is paused, instead of showing nothing', () => {
+    expect(statutAffiche({ seriesStatus: 'on_hiatus' })?.libelle).toBe('En pause')
+  })
+
+  it('shows nothing when the source said nothing', () => {
+    expect(statutAffiche({})).toBeNull()
   })
 })

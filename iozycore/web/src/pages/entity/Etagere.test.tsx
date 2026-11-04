@@ -10,7 +10,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Etagere } from './Etagere'
-import { coteDeLaCarte, dosParEtage, repartirEnEtages } from './etages'
+import { coteDeLaCarte, coteSelonVenue, dosParEtage, largeurDos, repartirEnEtages } from './etages'
 import type { VolumeAffiche } from './GrilleVolumes'
 
 function volume(numero: number, etat: 'possede' | 'manquant' | 'voulu'): VolumeAffiche {
@@ -143,5 +143,59 @@ describe('the shelves', () => {
     // The last, short shelf has room on its right: nothing opens to the left of the page.
     expect(coteDeLaCarte(1, 2)).toBe('gauche')
     expect(coteDeLaCarte(7, 8)).toBe('gauche')
+  })
+})
+
+// A flat colored bar read as a chart. Owned without its own cover, a volume is
+// cut from the cover of the series, and its number is the only thing that tells
+// it from the next one.
+describe('an owned volume without a cover', () => {
+  it('is cut from the cover of the series and shows its number', () => {
+    const { container } = render(<Etagere volumes={[volume(7, 'possede')]} mode="navigation" jaquetteSerie="https://x/serie.jpg" />)
+
+    expect(container.querySelector('img[src="https://x/serie.jpg"]')).not.toBeNull()
+    expect(screen.getAllByText('07').length).toBeGreaterThan(0)
+  })
+
+  it('keeps its own cover when it has one', () => {
+    const avecJaquette = { ...volume(7, 'possede'), jaquetteUrl: 'https://x/tome.jpg' }
+    const { container } = render(<Etagere volumes={[avecJaquette]} mode="navigation" jaquetteSerie="https://x/serie.jpg" />)
+
+    expect(container.querySelector('img[src="https://x/serie.jpg"]')).toBeNull()
+  })
+
+  it('never lends the cover to a missing volume: it is a hole', () => {
+    const { container } = render(<Etagere volumes={[volume(7, 'manquant')]} mode="navigation" jaquetteSerie="https://x/serie.jpg" />)
+
+    expect(container.querySelector('img[src="https://x/serie.jpg"]')).toBeNull()
+  })
+})
+
+describe('the width of a spine', () => {
+  it('is thick while the series fits on one shelf', () => {
+    expect(largeurDos(12, 1280)).toBe(34)
+    expect(largeurDos(35, 1280)).toBe(28)
+  })
+
+  it('goes back to thin for a long series or a narrow screen', () => {
+    expect(largeurDos(100, 1280)).toBe(22)
+    expect(largeurDos(12, 390)).toBe(22)
+  })
+})
+
+// The cover hid the volumes the mouse was heading to: moving left along a shelf,
+// the next spines were behind the preview.
+describe('the side a cover opens on', () => {
+  it('leaves the left spines in sight for a mouse coming from the right', () => {
+    expect(coteSelonVenue('droite', 8, 34, 1232)).toBe('gauche')
+  })
+
+  it('leaves the right spines in sight for a mouse coming from the left', () => {
+    expect(coteSelonVenue('gauche', 8, 34, 1232)).toBe('droite')
+  })
+
+  it('never opens out of the shelf at either end', () => {
+    expect(coteSelonVenue('gauche', 0, 34, 1232)).toBe('gauche')
+    expect(coteSelonVenue('droite', 30, 34, 1232)).toBe('droite')
   })
 })

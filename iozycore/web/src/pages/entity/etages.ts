@@ -10,9 +10,19 @@ export const MARGE_ETAGE = 18
  * floor of eight keeps a very narrow screen from making one shelf per
  * volume.
  */
-export function dosParEtage(largeur: number): number {
+export function dosParEtage(largeur: number, dos: number = LARGEUR_DOS): number {
   if (largeur <= 0) return 48
-  return Math.max(8, Math.floor((largeur - 2 * MARGE_ETAGE + ECART_DOS) / (LARGEUR_DOS + ECART_DOS)))
+  return Math.max(8, Math.floor((largeur - 2 * MARGE_ETAGE + ECART_DOS) / (dos + ECART_DOS)))
+}
+
+/**
+ * The width of a spine for this series: thicker as long as the whole series
+ * still stands on one shelf. Twelve spines of 22 px looked like the bars of a
+ * chart in the corner of a 1,300 px shelf.
+ */
+export function largeurDos(nombre: number, largeur: number): number {
+  if (largeur <= 0) return LARGEUR_DOS
+  return [34, 28].find((dos) => dosParEtage(largeur, dos) >= nombre) ?? LARGEUR_DOS
 }
 
 /**
@@ -28,6 +38,29 @@ export function coteDeLaCarte(index: number, longueur: number): 'gauche' | 'cent
   if (index < 4 || longueur <= 8) return 'gauche'
   if (index >= longueur - 4) return 'droite'
   return 'centre'
+}
+
+/** The width of the cover that opens above a spine. */
+export const LARGEUR_CARTE = 112
+
+/**
+ * Where the cover opens for a mouse that comes from this side: over the volumes
+ * it just left, so the ones it is heading to stay in sight. Near an end of the
+ * shelf the cover takes the only side that has room: a hidden element that
+ * sticks out still widens the page.
+ */
+export function coteSelonVenue(
+  venue: 'gauche' | 'droite',
+  index: number,
+  dos: number,
+  largeur: number,
+): 'gauche' | 'droite' {
+  const debutDuDos = MARGE_ETAGE + index * (dos + ECART_DOS)
+  const placeAGauche = debutDuDos + dos >= LARGEUR_CARTE
+  const placeADroite = largeur <= 0 || largeur - debutDuDos >= LARGEUR_CARTE
+  // `droite` anchors the cover on the right edge of the spine: it opens leftward.
+  if (venue === 'gauche') return placeAGauche ? 'droite' : 'gauche'
+  return placeADroite ? 'gauche' : 'droite'
 }
 
 /** The volumes, shelf by shelf, in reading order. */

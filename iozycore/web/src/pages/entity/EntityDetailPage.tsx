@@ -13,7 +13,7 @@ import { getEntityProgress } from '@/common/api/insights'
 import { findEdition } from '@/common/api/purchaseAnalysis'
 import { getEntityTierSummary } from '@/common/api/tierLists'
 import { followEdition, listFollowedEdition, unfollowEdition } from '@/common/api/followedEdition'
-import { isSeriesOngoing, libelleStatutSerie } from './seriesInfo'
+import { isSeriesOngoing, libelleStatutSerie, statutAffiche } from './seriesInfo'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { indicesDe } from '@/common/lib/indicesOeuvre'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
@@ -394,7 +394,7 @@ export function EntityDetailPage() {
   const entityType = entityTypesQuery.data?.find((t) => t.id === entity?.entityTypeId)
   const isManga = entityType?.code === 'MANGA'
   const couvertureUrl = entity ? coverImageUrlFrom(entity.attributes) : null
-  const teinte = useTeinteJaquette(couvertureUrl)
+  const { principale: teinte, seconde: teinteSeconde } = useTeinteJaquette(couvertureUrl)
 
   /**
    * "X volumes owned out of Y", asked from the server.
@@ -483,6 +483,7 @@ export function EntityDetailPage() {
 
   const auteur = creatorFrom(entity.attributes)
   const ongoing = isSeriesOngoing(entity.attributes)
+  const statut = statutAffiche(entity.attributes)
   const statutSerie = libelleStatutSerie(entity.attributes.seriesStatus)
   const startYear = typeof entity.attributes.startYear === 'string' ? entity.attributes.startYear : null
   const endYear = typeof entity.attributes.endYear === 'string' ? entity.attributes.endYear : null
@@ -596,16 +597,11 @@ export function EntityDetailPage() {
       <FicheHero
         colleEnHaut={!retour}
         teinte={teinte}
+        teinteSeconde={teinteSeconde}
         kicker={entityType?.label ?? null}
         titre={entity.title}
         auteur={auteur}
-        statut={
-          ongoing === null
-            ? null
-            : ongoing
-              ? { libelle: 'En cours', couleur: 'var(--color-warning)' }
-              : { libelle: 'Terminée', couleur: 'var(--color-ok)' }
-        }
+        statut={statut}
         annees={annees}
         couvertureUrl={couvertureUrl}
         repliCouverture={
@@ -760,6 +756,7 @@ export function EntityDetailPage() {
             // collection they do not have, and no "Je l'ai" / "Je le veux".
             consultation={estInvite}
             teinte={teinte}
+            jaquetteSerie={couvertureUrl}
           />
 
           <div className="pt-4 empty:hidden">
@@ -960,18 +957,11 @@ export function EntityDetailPage() {
                   {auteur}
                 </RangeeInspecteur>
               )}
-              {ongoing !== null && (
+              {statut && (
                 <RangeeInspecteur libelle="Statut">
-                  <span
-                    className="inline-flex items-center gap-1.5"
-                    style={{ color: ongoing ? 'var(--color-warning)' : 'var(--color-ok)' }}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: ongoing ? 'var(--color-warning)' : 'var(--color-ok)' }}
-                    />
-                    {ongoing ? 'En cours' : 'Terminée'}
+                  <span className="inline-flex items-center gap-1.5" style={{ color: statut.couleur }}>
+                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ background: statut.couleur }} />
+                    {statut.libelle}
                   </span>
                 </RangeeInspecteur>
               )}

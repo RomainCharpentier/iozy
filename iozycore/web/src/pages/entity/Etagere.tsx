@@ -1,13 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Check, Heart, Plus, Trash2, X } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
 import { tonDe } from './useTeinteJaquette'
 import type { VolumeAffiche } from './GrilleVolumes'
-import { ECART_DOS, LARGEUR_DOS, MARGE_ETAGE, coteDeLaCarte, dosParEtage, repartirEnEtages } from './etages'
+import { ECART_DOS, LARGEUR_CARTE, MARGE_ETAGE, coteDeLaCarte, coteSelonVenue, dosParEtage, largeurDos, repartirEnEtages } from './etages'
 
 const HAUTEUR_DOS = 150
-/** The cover that opens above a spine. */
-const LARGEUR_CARTE = 112
+/** The width a cover is drawn at before a spine shows a slice of it. */
+const LARGEUR_TRANCHE = 100
 
 /**
  * The volumes of an edition, standing on shelves - what a collector sees
@@ -20,7 +20,10 @@ const LARGEUR_CARTE = 112
  * c'est surtout de voir l'état actuel du tome"). On a shelf, the state IS
  * the object: an owned volume is a slice of its cover standing there, a
  * missing one is an empty, dashed slot with its number, a wanted one is
- * that slot with a heart on top. Nothing is written on the volumes.
+ * that slot with a heart on top. Nothing is written on a volume that has its
+ * own cover. One that has none is cut from the cover of the series, at another
+ * place for each number, and carries its number: flat colored bars read as a
+ * chart, not as books.
  *
  * <h2>Shelves, never a wider page</h2>
  * The spines are small, so a shelf holds about forty-seven of them at
@@ -37,7 +40,8 @@ const LARGEUR_CARTE = 112
  * all), and one bar above the shelves carries the gestures for the whole
  * selection: "Je l'ai", the heart, the removal in two gestures as
  * everywhere. The bar sticks under the header, so it stays in reach on
- * the tenth shelf. Hovering only previews the cover above its slot.
+ * the tenth shelf. Hovering only previews the cover above its slot, on the
+ * side the mouse comes from: the volumes it is heading to stay in sight.
  * The gestures keep the names of the grid: the journeys and the screen
  * readers do not notice the shelf.
  */
@@ -45,6 +49,7 @@ export function Etagere({
   volumes,
   mode,
   teinte,
+  jaquetteSerie,
   edition,
   onJeLAi,
   onJeLesAi,
@@ -58,6 +63,8 @@ export function Etagere({
   mode: 'navigation' | 'consultation'
   /** The tint of the series, for an owned volume that has no cover yet. */
   teinte?: [number, number, number]
+  /** The cover of the series, for an owned volume that has none of its own. */
+  jaquetteSerie?: string | null
   /** Named under the picked volume ("manquant · Glénat"). */
   edition?: string
   onJeLAi?: (cle: string) => void
@@ -77,6 +84,8 @@ export function Etagere({
   const [selection, setSelection] = useState<ReadonlySet<string>>(() => new Set())
   // The last spine picked without Shift: a Shift+click takes the range from it.
   const ancre = useRef<string | null>(null)
+  // The last position of the mouse, to know which side it reaches a spine from.
+  const dernierX = useRef<number | null>(null)
   // The removal of the picked owned volumes is being confirmed.
   const [armee, setArmee] = useState(false)
 
@@ -104,7 +113,8 @@ export function Etagere({
     return () => document.removeEventListener('keydown', surTouche)
   }, [selection.size])
 
-  const etages = repartirEnEtages(volumes, dosParEtage(largeur))
+  const dos = largeurDos(volumes.length, largeur)
+  const etages = repartirEnEtages(volumes, dosParEtage(largeur, dos))
   const gestes = mode === 'navigation'
   // In shelf order, and only what the filter still shows: a volume hidden
   // since it was picked gets no gesture.
@@ -136,7 +146,13 @@ export function Etagere({
   }
 
   return (
-    <div ref={conteneur} className="flex flex-col gap-6">
+    <div
+      ref={conteneur}
+      className="flex flex-col gap-6"
+      onPointerMove={(evenement) => {
+        dernierX.current = evenement.clientX
+      }}
+    >
       {choisis.length > 0 && (
         <BarreSelection
           choisis={choisis}
@@ -186,7 +202,11 @@ export function Etagere({
                 volume={volume}
                 gestes={gestes}
                 teinte={teinte}
-                cote={coteDeLaCarte(index, etage.length)}
+                jaquetteSerie={jaquetteSerie}
+                largeur={dos}
+                coteParDefaut={coteDeLaCarte(index, etage.length)}
+                coteVenantDe={(venue) => coteSelonVenue(venue, index, dos, largeur)}
+                dernierX={dernierX}
                 choisi={selection.has(volume.cle)}
                 onChoisir={(plage) => choisir(volume.cle, plage)}
               />
@@ -196,11 +216,22 @@ export function Etagere({
               underneath, in the colors of the theme. */}
           <div
             aria-hidden="true"
-            className="h-3 rounded-[3px] bg-gradient-to-b from-surface2 to-surface shadow-token-md ring-1 ring-line"
+            className="h-3 rounded-[3px] bg-gradient-to-b from-surface2 to-surface shadow-token-md ring-1 ring-lineStrong"
           />
-          <div aria-hidden="true" className="compteur flex justify-between px-5 pt-1.5 text-[11px] text-faint">
-            <span>{etage[0]?.numero}</span>
-            {etage.length > 1 && <span>{etage[etage.length - 1]?.numero}</span>}
+          {/* Each number under its own spine: spread over the plank, the last
+              one stood far from a short row of volumes. */}
+          <div aria-hidden="true" className="compteur relative mt-1.5 h-4 text-[11px] text-faint">
+            <span className="absolute text-center" style={{ left: MARGE_ETAGE, width: dos }}>
+              {etage[0]?.numero}
+            </span>
+            {etage.length > 1 && (
+              <span
+                className="absolute text-center"
+                style={{ left: MARGE_ETAGE + (etage.length - 1) * (dos + ECART_DOS), width: dos }}
+              >
+                {etage[etage.length - 1]?.numero}
+              </span>
+            )}
           </div>
         </div>
       ))}
@@ -391,19 +422,30 @@ function Dos({
   volume,
   gestes,
   teinte,
-  cote,
+  jaquetteSerie,
+  largeur,
+  coteParDefaut,
+  coteVenantDe,
+  dernierX,
   choisi,
   onChoisir,
 }: {
   volume: VolumeAffiche
   gestes: boolean
   teinte?: [number, number, number]
-  cote: 'gauche' | 'centre' | 'droite'
+  jaquetteSerie?: string | null
+  largeur: number
+  /** Where the cover opens for the keyboard, which comes from no side. */
+  coteParDefaut: 'gauche' | 'centre' | 'droite'
+  /** Where the cover opens for a mouse coming from this side. */
+  coteVenantDe: (venue: 'gauche' | 'droite') => 'gauche' | 'droite'
+  dernierX: RefObject<number | null>
   choisi: boolean
   /** `plage`: Shift was held - take every spine from the last pick to this one. */
   onChoisir: (plage: boolean) => void
 }) {
   const { numero, jaquetteUrl, possede, voulu } = volume
+  const [coteSouris, setCoteSouris] = useState<'gauche' | 'droite' | null>(null)
   const numeroAffiche = String(numero).padStart(2, '0')
   // A visitor has no collection: every volume of the edition stands there,
   // with its cover when the catalogue has one, never as a hole. The name
@@ -422,9 +464,21 @@ function Dos({
       ? 'ring-1 ring-lineStrong ring-inset'
       : ''
   const couleurNumero = present ? 'text-textPrimary' : voulu ? 'text-accentText' : 'text-faint'
+  const tranche = present ? (jaquetteUrl ?? jaquetteSerie ?? null) : null
+  // Cut near the left edge of its own cover; from the cover of the series, at
+  // another place per number, or ten volumes would be the same slice.
+  const decalage = jaquetteUrl ? 26 : ((numero - 1) * 29) % (LARGEUR_TRANCHE - largeur + 1)
 
   return (
-    <div className="group relative shrink-0" style={{ width: LARGEUR_DOS, height: HAUTEUR_DOS }}>
+    <div
+      className="group relative shrink-0"
+      style={{ width: largeur, height: HAUTEUR_DOS }}
+      onPointerEnter={(evenement) => {
+        const avant = dernierX.current
+        if (evenement.pointerType !== 'mouse' || avant === null || evenement.clientX === avant) return
+        setCoteSouris(coteVenantDe(evenement.clientX < avant ? 'droite' : 'gauche'))
+      }}
+    >
       <button
         type="button"
         onClick={gestes ? (evenement) => onChoisir(evenement.shiftKey) : undefined}
@@ -433,31 +487,37 @@ function Dos({
         className={`relative block h-full w-full overflow-hidden rounded-t-[3px] rounded-b-[1px] transition duration-150 ${forme} ${anneau} ${
           gestes && !choisi ? 'group-hover:-translate-y-0.5' : ''
         }`}
-        style={present && !jaquetteUrl && teinte ? { background: tonDe(teinte, 100, 0.35) } : undefined}
+        style={present && !tranche && teinte ? { background: tonDe(teinte, 100, 0.35) } : undefined}
       >
-        {present && jaquetteUrl ? (
-          // A slice of the cover, cropped near its left edge: the colors of
-          // the real book, not its text. The gradient rounds the spine.
+        {tranche && (
+          // A slice of the cover: the colors of the real book, not its text.
+          // The gradient rounds the spine.
           <>
             <img
-              src={jaquetteUrl}
+              src={tranche}
               alt=""
               loading="lazy"
               decoding="async"
               className="absolute top-0 h-full max-w-none object-cover"
-              style={{ width: 100, left: -26 }}
+              style={{ width: LARGEUR_TRANCHE, left: -decalage }}
             />
             <span
               aria-hidden="true"
               className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/30"
             />
           </>
-        ) : (
-          <span
-            aria-hidden="true"
-            className={`absolute inset-x-0 bottom-2 flex justify-center font-display text-[11px] font-medium ${couleurNumero} [writing-mode:vertical-rl] rotate-180`}
-          >
-            {numeroAffiche}
+        )}
+        {!jaquetteUrl && (
+          // On a colored spine the scrim keeps the number readable, whatever
+          // the cover: a theme color fell to about 1.9:1 on a light tint.
+          <span aria-hidden="true" className="absolute inset-x-0 bottom-1.5 flex justify-center">
+            <span
+              className={`rotate-180 rounded-[3px] py-1 font-display text-[11px] font-medium [writing-mode:vertical-rl] ${
+                present ? 'bg-scrim px-0.5 text-white' : couleurNumero
+              }`}
+            >
+              {numeroAffiche}
+            </span>
           </span>
         )}
       </button>
@@ -486,7 +546,7 @@ function Dos({
           neighbours on a phone, where the bar already shows the cover. */}
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute bottom-0 z-[5] scale-75 opacity-0 transition duration-200 ease-[var(--ease-sortie)] group-hover:scale-100 group-hover:opacity-100 group-has-[:focus-visible]:scale-100 group-has-[:focus-visible]:opacity-100 ${PLACEMENT_CARTE[cote]}`}
+        className={`pointer-events-none absolute bottom-0 z-[5] scale-75 opacity-0 transition duration-200 ease-[var(--ease-sortie)] group-hover:scale-100 group-hover:opacity-100 group-has-[:focus-visible]:scale-100 group-has-[:focus-visible]:opacity-100 ${PLACEMENT_CARTE[coteSouris ?? coteParDefaut]}`}
         style={{ width: LARGEUR_CARTE }}
       >
         <div className="aspect-[2/3] w-full overflow-hidden rounded-md bg-surface2 shadow-token-elevated ring-1 ring-line">

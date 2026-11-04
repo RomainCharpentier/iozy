@@ -40,6 +40,7 @@ export function GrilleTomes({
   onAjouterTome,
   consultation = false,
   teinte,
+  jaquetteSerie,
 }: {
   titre: string
   /** True when the work has more than one edition. This is the only case where one
@@ -71,6 +72,8 @@ export function GrilleTomes({
   /** The tint of the series (see useTeinteJaquette): the spine of an owned
    *  volume without a cover takes it on the shelf. */
   teinte?: [number, number, number]
+  /** The cover of the series: the spine of an owned volume without its own. */
+  jaquetteSerie?: string | null
 }) {
   const [vue, definirVue] = useVueTomes()
   // The key is the number: a detail page grid only shows ONE edition at a
@@ -118,6 +121,7 @@ export function GrilleTomes({
         vue={vue}
         onVue={definirVue}
         teinte={teinte}
+        jaquetteSerie={jaquetteSerie}
         edition={titre}
       />
     </section>
