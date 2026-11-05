@@ -8,6 +8,8 @@ par priorité décroissante en cas de contradiction :
 3. Screenshots V1.2
 4. Anciens prototypes (`v1.1`, explorations, `Prototype.dc.html`...) — historiques, jamais source de comportement final. Le dossier `design_handoff_ma_collection/` (README + `IozyCore Prototype.html`) est l'un de ces anciens prototypes : nav à 5 destinations (avec Wishlist en pair), palette lime différente de la DS v1.1 — **non suivi**, contredit par v1.2/DS v1.1.
 
+Depuis le 2026-11-05, ces sources et `iozycore/design_handoff_v2/` ne sont plus dans le dépôt : elles décrivaient un état dépassé. L'app livrée et les lots ci-dessous font foi.
+
 Décision utilisateur actée (2026-08-19) : adopter la palette terracotta complète
 de la DS v1.1 (accent `#c05a3c` clair / `#d9694a` sombre), avec vrai support
 clair+sombre. iOS restera visuellement désynchronisé (Theme.swift non touché
