@@ -58,7 +58,7 @@ Pour juger un écran, sors des captures **mobile (390×844) et bureau (1280×900
 ## Accessibilité et design
 
 - Contraste AA dans les deux thèmes (le script le vérifie). Cibles tactiles, noms accessibles et ordre du focus font partie du travail, pas d'une passe finale.
-- Les maquettes de référence sont dans `../design_handoff_v2/`. S'il y a plusieurs planches du même écran, demande au propriétaire **avant** de coder.
+- Le dépôt ne garde aucune maquette : l'app livrée et le journal des lots font foi. Une maquette se fait au lot concerné, avec les vraies jaquettes. S'il y a plusieurs planches du même écran, demande au propriétaire **avant** de coder.
 - Le journal des lots d'interface est `../../docs/DESIGN_MIGRATION_V1.2.md`. Ajoute-y une section par lot.
 
 ## PWA et déploiement
