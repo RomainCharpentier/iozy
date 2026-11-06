@@ -1,24 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { BarChart3, CalendarCheck, Heart, Layers, Library, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { Link, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { BarreCategories } from './BarreCategories'
 import { CollectionFilters } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
-import { deplacer, installerLesObjets, sortirLesDos } from './mouvement'
-import { naviguerAvecVol } from '@/common/lib/volJaquette'
-import { SalleCollection, type ObjetSalle } from './SalleCollection'
-import { dosDeLOeuvre, pisteDeLOeuvre, tomesManquants } from './salles'
-import { consolesDeLOeuvre, nomDeConsole } from '@/common/lib/consoles'
+import { BasculeAffichage } from './BasculeAffichage'
+import { deplacer, sortirLesDos } from './mouvement'
+import { SalleCollection } from './SalleCollection'
 import {
-  buildShelfTile,
   compterLesTitresParType,
   correspondAuFiltre,
-  editionRepresentative,
-  etatDeLOeuvre,
   ordonnerLesTypes,
 } from './shelfTiles'
+import { indexerVenues, plusRecentes } from './venues'
+import { useObjetsCollection } from './useObjetsCollection'
+import { useOuvrirOeuvre } from './useOuvrirOeuvre'
 import {
   usePreferencesCollection,
   type AffichageCollection,
@@ -27,8 +24,6 @@ import {
 
 import { useModalA11y } from '@/common/hooks/useModalA11y'
 import { useNow } from '@/common/hooks/useNow'
-import { queryKeys } from '@/common/lib/queryKeys'
-import type { EntityResponse } from '@/common/types/api'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { EtatVide } from '@/common/components/EtatVide'
 import { useDonneesCollection } from './useDonneesCollection'
@@ -46,20 +41,9 @@ const LIBELLES_DECOMPTE: Record<FiltreCollection, (n: number) => string> = {
   envies: (n) => `titre${n > 1 ? 's' : ''} avec une envie en cours`,
 }
 
-/** This visit already saw the shelves: coming back to them is not an arrival. */
-let pageDejaVue = false
-
-const AFFICHAGES: { cle: AffichageCollection; libelle: string }[] = [
-  { cle: 'etageres', libelle: 'Étagères' },
-  { cle: 'compact', libelle: 'Compact' },
-]
-
-/** What the copies say; without any, a work that only exists on one console has no doubt left. */
-function consolesPour(entity: EntityResponse, desExemplaires: Set<string> | undefined): string[] {
-  if (desExemplaires && desExemplaires.size > 0) return [...desExemplaires]
-  const connues = consolesDeLOeuvre(entity.attributes)
-  return connues.length === 1 ? [nomDeConsole(connues[0])] : []
-}
+/** A room shows what moved last, about one screen: everything is one click away, on its shelf page. */
+const OEUVRES_PAR_SALLE = 10
+const RETOUR_COLLECTION = { to: '/', libelle: 'Ma collection' }
 
 /** An empty screen must say WHY it is empty, and how to get out of it. */
 function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre: string; detail: string } {
@@ -88,13 +72,9 @@ function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre:
 }
 
 /**
- * My collection: one room per category, shelves of one height (batch 202,
- * validated on a prototype).
- *
- * <h2>The order is decided, not chosen</h2>
- * The page used to offer a grouping and a sort. A shelf is only useful if a
- * work is always in the same place, so the page decides. The shelf page of a
- * category keeps these settings, and the tools of that category.
+ * My collection: one room per category, showing the ten works that moved last
+ * (batch 206). "Tout voir" opens its shelf page, in the same style, with everything
+ * and the tools of the category.
  *
  * <h2>The core screen (batch 136)</h2>
  * This page works for any collection: nothing that it shows assumes a
@@ -104,10 +84,6 @@ function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre:
  */
 export function ShelfPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const typeDeNavigation = useNavigationType()
-  // Set by the back link of a detail page: the scroll to find again.
-  const positionDeRetour = (useLocation().state as { position?: unknown } | null)?.position
   const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
   const [hubMenuOpen, setHubMenuOpen] = useState(false)
@@ -117,29 +93,9 @@ export function ShelfPage() {
   const zone = useRef<HTMLDivElement>(null)
 
   const donnees = useDonneesCollection()
-  const {
-    entities: allEntities,
-    entityTypes,
-    ownerships,
-    progression,
-    owned,
-    oeuvresVoulues,
-    oeuvresSuivies,
-    tomesVoulus,
-  } = donnees
-
-  // The state of each work, computed once: the counters of the bar and the
-  // displayed list all read it, instead of deriving it again each.
-  const etats = useMemo(
-    () => new Map(allEntities.map((e) => [e.id, etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies)])),
-    [allEntities, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies],
-  )
-
-  /** The volumes each work lacks: "À compléter" keeps them and starts with the shortest list. */
-  const manquants = useMemo(
-    () => new Map(allEntities.map((e) => [e.id, tomesManquants(editionRepresentative(e, progression)).length])),
-    [allEntities, progression],
-  )
+  const { entities: allEntities, entityTypes, ownerships, wishlist } = donnees
+  const { etats, manquants, objetDe } = useObjetsCollection(donnees, preferences.filtre)
+  const venues = useMemo(() => indexerVenues(ownerships, wishlist.entries), [ownerships, wishlist.entries])
 
   /** The works that THIS filter keeps. The tag applies to all: it is set on the
    *  work, owned or not. */
@@ -171,11 +127,7 @@ export function ShelfPage() {
   )
   const filtre: FiltreCollection = preferences.filtre === 'completer' && !avecCompleter ? 'tout' : preferences.filtre
 
-  const triees = useMemo(() => {
-    const parTitre = [...retenuesPour(filtre)].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
-    if (filtre !== 'completer') return parTitre
-    return parTitre.sort((a, b) => (manquants.get(a.id) ?? 0) - (manquants.get(b.id) ?? 0))
-  }, [retenuesPour, filtre, manquants])
+  const triees = useMemo(() => retenuesPour(filtre), [retenuesPour, filtre])
 
   // The order of the rooms is computed on the WHOLE collection, before any filter,
   // the tag included: a filter must not move a room, nor take its name away.
@@ -191,54 +143,19 @@ export function ShelfPage() {
   )
   const unSeulType = titresParType.size <= 1
 
-  /** The consoles said on the copies of each work. */
-  const consolesDesExemplaires = useMemo(() => {
-    const parOeuvre = new Map<string, Set<string>>()
-    for (const o of ownerships) {
-      if (o.status !== 'OWNED' || !o.platform) continue
-      const consoles = parOeuvre.get(o.entityId) ?? new Set<string>()
-      consoles.add(nomDeConsole(o.platform))
-      parOeuvre.set(o.entityId, consoles)
-    }
-    return parOeuvre
-  }, [ownerships])
-
-  const objetDe = useCallback(
-    (entity: EntityResponse): ObjetSalle => {
-      const etat = etats.get(entity.id)
-      const edition = editionRepresentative(entity, progression)
-      const tomesVoulusIci =
-        entity.variants.filter((v) => tomesVoulus.has(v.id)).length + (oeuvresVoulues.has(entity.id) ? 1 : 0)
-      return {
-        tuile: buildShelfTile(entity, progression, {
-          possede: etat?.possede ?? false,
-          suivi: etat?.suivi ?? false,
-          tomesVoulus: tomesVoulusIci,
-          prioritaire: filtre === 'envies',
-        }),
-        envie: !etat?.possede && Boolean(etat?.voulu),
-        aDesTomes: entity.variants.length > 0,
-        dosPour: (dosMax) => dosDeLOeuvre(entity, edition, tomesVoulus, dosMax),
-        piste: pisteDeLOeuvre(edition),
-        consoles: consolesPour(entity, consolesDesExemplaires.get(entity.id)),
-        editeur:
-          typeof entity.attributes.publisher === 'string' && entity.attributes.publisher.trim() !== ''
-            ? entity.attributes.publisher.trim()
-            : null,
-      }
-    },
-    [etats, progression, tomesVoulus, oeuvresVoulues, filtre, consolesDesExemplaires],
-  )
-
   const salles = useMemo(
     () =>
       ordonnerLesTypes(entityTypes, titresParType)
-        .map((entityType) => ({
-          entityType,
-          objets: triees.filter((e) => e.entityTypeId === entityType.id).map(objetDe),
-        }))
-        .filter((salle) => salle.objets.length > 0),
-    [entityTypes, titresParType, triees, objetDe],
+        .map((entityType) => {
+          const duType = triees.filter((e) => e.entityTypeId === entityType.id)
+          return {
+            entityType,
+            nombre: duType.length,
+            objets: plusRecentes(duType, venues, OEUVRES_PAR_SALLE).map(objetDe),
+          }
+        })
+        .filter((salle) => salle.nombre > 0),
+    [entityTypes, titresParType, triees, venues, objetDe],
   )
 
   const now = useNow()
@@ -258,28 +175,12 @@ export function ShelfPage() {
   const affiches = triees.length
   const vide = messageVide(filtre, filtres.nombreActifs > 0)
 
-  // The objects settle on their shelves on arrival, not when coming back to a
-  // place one already knows: the browser restores the scroll there. The first
-  // load is a POP too, hence the memory of this visit.
-  const dejaInstalle = useRef(false)
-  useEffect(() => {
-    if (isLoading || dejaInstalle.current || salles.length === 0) return
-    dejaInstalle.current = true
-    if (typeof positionDeRetour === 'number') window.scrollTo(0, positionDeRetour)
-    else if (typeDeNavigation !== 'POP' || !pageDejaVue) installerLesObjets(zone.current)
-    pageDejaVue = true
-  }, [isLoading, salles.length, typeDeNavigation, positionDeRetour])
-
-  /** The page already holds the work: the detail page can draw its cover at once, so that the
-   *  flight has somewhere to land. It still asks the server, and corrects itself if needed. */
-  const ouvrir = (entityId: string, jaquette: HTMLElement | null) => {
-    const entity = allEntities.find((e) => e.id === entityId)
-    if (entity) {
-      queryClient.setQueryData<EntityResponse>(queryKeys.entities.detail(entityId), (connue) => connue ?? entity)
-    }
-    const retour = { to: '/', libelle: 'Ma collection', position: window.scrollY, depuisOeuvre: entityId }
-    naviguerAvecVol(jaquette, () => navigate(`/entity/${entityId}`, { state: { retour } }))
-  }
+  const ouvrir = useOuvrirOeuvre({
+    entities: allEntities,
+    retour: RETOUR_COLLECTION,
+    zone,
+    pret: !isLoading && salles.length > 0,
+  })
 
   const choisirFiltre = (suivant: FiltreCollection) =>
     deplacer(zone.current, () => preferences.definir({ filtre: suivant }))
@@ -318,25 +219,7 @@ export function ShelfPage() {
             comptes={!isLoading ? comptes : null}
             avecCompleter={avecCompleter}
           />
-          <div role="radiogroup" aria-label="Affichage" className="flex items-center gap-1 rounded-full bg-softBtn p-1">
-            {AFFICHAGES.map(({ cle, libelle }) => {
-              const actif = cle === preferences.affichage
-              return (
-                <button
-                  key={cle}
-                  type="button"
-                  role="radio"
-                  aria-checked={actif}
-                  onClick={() => choisirAffichage(cle)}
-                  className={`min-h-11 rounded-full px-3.5 text-[13px] whitespace-nowrap transition-colors ${
-                    actif ? 'bg-surface font-semibold text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
-                  }`}
-                >
-                  {libelle}
-                </button>
-              )
-            })}
-          </div>
+          <BasculeAffichage affichage={preferences.affichage} onChoisir={choisirAffichage} />
           {/* Without any tag there is nothing to filter on: no button at all. */}
           {filtres.tags.length > 0 && (
             <button
@@ -414,17 +297,18 @@ export function ShelfPage() {
       )}
 
       {!unSeulType && salles.length > 1 && (
-        <BarreCategories salles={salles.map((s) => ({ entityType: s.entityType, nombre: s.objets.length }))} />
+        <BarreCategories salles={salles.map((s) => ({ entityType: s.entityType, nombre: s.nombre }))} />
       )}
 
       <div ref={zone} data-affichage={preferences.affichage} className="mt-3 flex flex-col">
-        {salles.map(({ entityType, objets }) => (
+        {salles.map(({ entityType, objets, nombre }) => (
           <SalleCollection
             key={entityType.id}
             entityType={entityType}
             objets={objets}
             affichage={preferences.affichage}
             nommee={!unSeulType}
+            lienRayon={nombre}
             onOuvrir={ouvrir}
           />
         ))}
@@ -433,7 +317,6 @@ export function ShelfPage() {
       <CollectionFilters
         open={filtres.ouverts}
         onClose={filtres.fermer}
-        titre="Filtres"
         status={filtres.status}
         tags={filtres.tags}
         tagId={filtres.tagId}

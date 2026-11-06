@@ -49,17 +49,16 @@ type ObjetPlace = Omit<ObjetSalle, 'dosPour'> & { dos: DosSalle[] }
  * series does. The width of an object is known in advance, not measured: all
  * the shelves of a room are decided before the first paint.
  *
- * <h2>Why no limit of tiles</h2>
- * The old rail stopped at 48 tiles behind a "Tout voir". Here everything is
- * readable at once, and the grouping by console and publisher would be cut by
- * a limit. The cost is paid another way: a shelf far from the screen is not
- * rendered (`content-visibility`, see index.css).
+ * <h2>A shelf page can hold 300 series</h2>
+ * A shelf far from the screen is not rendered (`content-visibility`, see
+ * index.css), so that a long category costs what the screen shows.
  */
 export function SalleCollection({
   entityType,
   objets,
   affichage,
   nommee,
+  lienRayon,
   onOuvrir,
 }: {
   entityType: EntityTypeDto
@@ -67,6 +66,8 @@ export function SalleCollection({
   affichage: AffichageCollection
   /** With a single category owned, the name of the room would only repeat the page. */
   nommee: boolean
+  /** How many works its shelf page holds. Absent: this IS the shelf page. */
+  lienRayon?: number
   onOuvrir: (entityId: string, jaquette: HTMLElement | null) => void
 }) {
   const visual = getEntityTypeVisual(entityType)
@@ -103,16 +104,18 @@ export function SalleCollection({
       className="salle"
       style={{ '--u': visual.color } as React.CSSProperties}
     >
-      <div className="salle-tete">
+      <div className="salle-tete empty:hidden">
         {nommee && <h2 className="salle-titre font-display font-semibold text-textPrimary">{entityType.label}</h2>}
-        {/* The room shows every work; the shelf page keeps the tools of the category. */}
-        <Link
-          to={`/collection/${entityType.id}`}
-          className="ml-auto flex min-h-11 items-center gap-1 text-sm font-semibold whitespace-nowrap text-textDim hover:text-textPrimary"
-        >
-          Voir le rayon
-          <ChevronRight size={15} />
-        </Link>
+        {lienRayon !== undefined && (
+          <Link
+            to={`/collection/${entityType.id}`}
+            className="ml-auto flex min-h-11 items-center gap-1 text-sm font-semibold whitespace-nowrap text-textDim hover:text-textPrimary"
+          >
+            Tout voir
+            {lienRayon > objets.length && <span className="font-normal text-faint">{lienRayon}</span>}
+            <ChevronRight size={15} />
+          </Link>
+        )}
       </div>
       <div ref={contenu} className="salle-consoles">
         {sections.map((section) => (

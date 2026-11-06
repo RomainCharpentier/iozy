@@ -1,6 +1,5 @@
 import { X } from 'lucide-react'
 import { useModalA11y } from '@/common/hooks/useModalA11y'
-import type { TriCollection, VueCollection } from '@/common/lib/preferencesCollection'
 import type { TagDto } from '@/common/types/api'
 
 export type CompletionFilter = 'ALL' | 'INCOMPLETE' | 'COMPLETE'
@@ -11,27 +10,9 @@ const STATUS_OPTIONS: { value: CompletionFilter; label: string }[] = [
   { value: 'COMPLETE', label: 'Complètes' },
 ]
 
-// "Un par un", and not "les tomes": the volume is the vocabulary of manga,
-// and each collection type has its own groups (a series, a saga, a range).
-const VUE_OPTIONS: { value: VueCollection; label: string }[] = [
-  { value: 'groupee', label: 'Groupés' },
-  { value: 'plate', label: 'Un par un' },
-]
-
-const TRI_OPTIONS: { value: TriCollection; label: string }[] = [
-  { value: 'recent', label: 'Récents d’abord' },
-  { value: 'titre', label: 'Par titre' },
-]
-
 /**
  * Desktop popover / mobile bottom sheet - same content, a single responsive
  * component (same pattern as TierPicker).
- *
- * <h2>How the shelf is shown, then what it keeps</h2>
- * The grouping and the sort used to be two more buttons above the shelf: with
- * Filtres, Valeur and "Plus d'outils" that made eight controls before the
- * first cover, about 40% of a phone screen (UI review of 2026-10-13). They are
- * settings one changes rarely, so they live here, first, under "Affichage".
  *
  * <p>Two filters, both computable today: "État de la collection"
  * (same logic as Purchase suggestions / detail page completeness) and "Tag", whose
@@ -44,11 +25,6 @@ const TRI_OPTIONS: { value: TriCollection; label: string }[] = [
 export function CollectionFilters({
   open,
   onClose,
-  titre = 'Affichage',
-  vue,
-  onVue,
-  tri,
-  onTri,
   status,
   onStatusChange,
   tags,
@@ -58,13 +34,8 @@ export function CollectionFilters({
 }: {
   open: boolean
   onClose: () => void
-  titre?: string
-  /** Absent on My collection, whose order is decided: only the shelf page still offers them. */
-  vue?: VueCollection
-  onVue?: (vue: VueCollection) => void
-  tri?: TriCollection
-  onTri?: (tri: TriCollection) => void
   status: CompletionFilter
+  /** Absent on My collection, which only filters by tag. */
   onStatusChange?: (status: CompletionFilter) => void
   tags: TagDto[]
   tagId: string | null
@@ -93,7 +64,7 @@ export function CollectionFilters({
       >
         <div className="flex items-center justify-between gap-2 p-4 pb-2">
           <h2 id="collection-filters-title" className="font-display text-base font-semibold text-textPrimary">
-            {titre}
+            Filtres
           </h2>
           <button
             type="button"
@@ -105,8 +76,6 @@ export function CollectionFilters({
           </button>
         </div>
         <div className="flex flex-col gap-4 overflow-y-auto p-4 pt-2">
-          {vue && onVue && <GroupeRadio titre="Regrouper" options={VUE_OPTIONS} valeur={vue} onChoisir={onVue} />}
-          {tri && onTri && <GroupeRadio titre="Trier" options={TRI_OPTIONS} valeur={tri} onChoisir={onTri} />}
           {onStatusChange && (
             <GroupeRadio titre="État de la collection" options={STATUS_OPTIONS} valeur={status} onChoisir={onStatusChange} />
           )}
@@ -121,8 +90,6 @@ export function CollectionFilters({
               onChoisir={onTagChange}
             />
           )}
-          {/* Resets the FILTERS only: grouping and sort are a way of looking,
-              they never hide part of the collection. */}
           {(status !== 'ALL' || tagId !== null) && (
             <button type="button" onClick={onReset} className="w-fit px-2 text-sm font-semibold text-accentText">
               Effacer les filtres

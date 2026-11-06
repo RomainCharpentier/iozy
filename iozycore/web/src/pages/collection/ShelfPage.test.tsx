@@ -140,7 +140,26 @@ describe('the rooms', () => {
   it('leaves the tools of a category within reach', () => {
     render(<ShelfPage />, { wrapper: enrobage })
 
-    expect(screen.getByRole('link', { name: 'Voir le rayon' })).toHaveAttribute('href', `/collection/${MANGA.id}`)
+    expect(screen.getByRole('link', { name: /^Tout voir/ })).toHaveAttribute('href', `/collection/${MANGA.id}`)
+  })
+
+  it('shows about ten works per room, and says how many its shelf page holds', () => {
+    const jeux = Array.from({ length: 14 }, (_, i) => oeuvre({ titre: `Jeu ${String(i).padStart(2, '0')}`, typeId: JEU.id }))
+    donnees.useDonneesCollection.mockReturnValue({
+      ...donnees.useDonneesCollection(),
+      entities: jeux,
+      entityTypes: [JEU],
+      ownerships: jeux.map((jeu, i) =>
+        possession({ entityId: jeu.id, acquiseLe: i === 13 ? '2026-11-01' : '2026-01-01' }),
+      ),
+      owned: new Set<string>(),
+    })
+    render(<ShelfPage />, { wrapper: enrobage })
+
+    expect(screen.getAllByRole('button', { name: /^Jeu \d+/ })).toHaveLength(10)
+    // The last one arrived: alphabetically last, and there all the same.
+    expect(screen.getByRole('button', { name: /^Jeu 13/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /^Tout voir/ })).toHaveTextContent('14')
   })
 
   it('offers no way to choose another order', () => {

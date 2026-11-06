@@ -76,7 +76,7 @@ test('create a universe, add a work to it, and find it again rather than duplica
   await page.goto('/')
   await expect(page.getByText(/\d+ titres?( ·|$)/)).toBeVisible()
   const salle = page.getByRole('region', { name: univers })
-  await expect(salle.getByRole('link', { name: 'Voir le rayon' })).toBeVisible()
+  await expect(salle.getByRole('link', { name: /^Tout voir/ })).toBeVisible()
   // The tile carries the title AND its state: "Possédé" rather than a count
   // of volumes, because for a type with no notion of volume, the work IS the
   // collectible object.

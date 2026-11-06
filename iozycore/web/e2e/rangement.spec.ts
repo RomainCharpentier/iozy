@@ -53,6 +53,15 @@ test('say the console of a game on its detail page, then find it on its shelf', 
   await expect(page).toHaveURL(/\/$/)
   await expect(salle.getByRole('button', { name: new RegExp(titre) })).toBeVisible()
 
+  // --- "Tout voir" opens the same room, and the way back names it
+  await salle.getByRole('link', { name: /^Tout voir/ }).click()
+  await expect(page).toHaveURL(/collection/)
+  await expect(page.getByRole('heading', { name: 'Console B' })).toBeVisible()
+  await page.getByRole('button', { name: new RegExp(titre) }).click()
+  await expect(page.getByRole('heading', { name: titre })).toBeVisible()
+  await page.getByRole('button', { name: 'Jeu vidéo' }).click()
+  await expect(page).toHaveURL(/collection/)
+
   // --- Even without an origin: a received link, a reload
   await page.goto(`/entity/${entityId}`)
   await expect(page.getByRole('button', { name: 'Ma collection' })).toBeVisible()

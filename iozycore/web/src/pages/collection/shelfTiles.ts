@@ -7,9 +7,7 @@ import type {
   EntityResponse,
   EntityTypeDto,
   OwnershipResponse,
-  VariantDto,
 } from '@/common/types/api'
-import { editionDe, numeroDe } from '@/common/lib/attributsTome'
 
 export interface ShelfTile {
   key: string
@@ -225,118 +223,4 @@ export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection, a
   if (filtre === 'envies') return etat.voulu
   if (filtre === 'suivies') return etat.suivi
   return etat.possede || etat.voulu || etat.suivi
-}
-
-/**
- * An ITEM, as the UNGROUPED view shows it: the individual object, taken out
- * of the group that only served to store it. A volume for a manga, the work
- * itself for a type that is owned as a single piece.
- *
- * `etat` is what tells apart two tiles of the same group under the
- * "Tout" filter - without it, a wished item and an owned item would
- * look exactly alike.
- */
-export interface TuileElement extends ShelfTile {
-  etat: 'possede' | 'voulu' | 'suivi'
-  /** The type carries the cover format (2/3 for a manga, square for a
-   *  board game): without it, the flat grid would mix the frames. */
-  entityTypeId: string
-  /** Date of the acquisition or of the wish - what the "recent" sort is based on. */
-  depuis: string
-}
-
-function libelleDeLElement(variant: VariantDto): string {
-  const numero = numeroDe(variant)
-  const edition = editionDe(variant)
-  const base = numero !== null ? `Tome ${numero}` : variant.label
-  return edition ? `${base} · ${edition}` : base
-}
-
-/**
- * Flattens the kept works into ITEM tiles.
- *
- * A work without variants (video game, board game) gives a single tile,
- * itself: it is already the individual object of its type, there is nothing to
- * flatten. A work with variants gives one per kept variant - volumes
- * for a manga, and the variant label for any other type.
- *
- * <p>Tiles do NOT carry their type: the section announces it
- * (see GrilleElements), and repeating it on each of the seventy-two tiles
- * of the same section would teach nothing.
- */
-export function aplatirEnElements(
-  entities: EntityResponse[],
-  filtre: FiltreCollection,
-  contexte: {
-    ownerships: OwnershipResponse[]
-    owned: Set<string>
-    tomesVoulus: Set<string>
-    oeuvresVoulues: Set<string>
-    /** The followed works: a one-piece work that is followed without being owned is a "Suivie" tile. */
-    oeuvresSuivies?: Set<string>
-    /** Since when this item is owned, or wished - depending on what it is. */
-    depuisTome: (variantId: string) => string
-    depuisOeuvre: (entityId: string) => string
-  },
-): TuileElement[] {
-  const tuiles: TuileElement[] = []
-  for (const entity of entities) {
-    if (entity.variants.length === 0) {
-      const etat = isOwned(entity, ownershipsDe(entity, contexte.ownerships), contexte.owned)
-        ? ('possede' as const)
-        : contexte.oeuvresSuivies?.has(entity.id)
-          ? ('suivi' as const)
-          : ('voulu' as const)
-      if (retenu(etat, filtre)) {
-        tuiles.push({
-          key: entity.id,
-          title: entity.title,
-          subtitle: etat === 'possede' ? 'Possédé' : etat === 'suivi' ? 'Suivie' : 'Dans mes envies',
-          imageUrl: coverImageUrlFrom(entity.attributes),
-          entityId: entity.id,
-          entityTypeId: entity.entityTypeId,
-          etat,
-          depuis: contexte.depuisOeuvre(entity.id),
-        })
-      }
-      continue
-    }
-    for (const variant of entity.variants) {
-      const etat = contexte.owned.has(variant.id)
-        ? ('possede' as const)
-        : contexte.tomesVoulus.has(variant.id)
-          ? ('voulu' as const)
-          : null
-      if (etat === null || !retenu(etat, filtre)) continue
-      const sousTitre = libelleDeLElement(variant)
-      tuiles.push({
-        key: variant.id,
-        title: entity.title,
-        subtitle: sousTitre,
-        imageUrl: coverImageUrlFrom(variant.attributes) ?? coverImageUrlFrom(entity.attributes),
-        // Without a cover of its own for the volume, the fallback gradient would be the same
-        // for the whole series: the subtitle makes it vary volume by volume.
-        gradientKey: `${entity.title} ${sousTitre}`,
-        entityId: entity.id,
-        entityTypeId: entity.entityTypeId,
-        etat,
-        depuis: contexte.depuisTome(variant.id),
-        signal: etat === 'voulu' ? 'Je le veux' : undefined,
-      })
-    }
-  }
-  return tuiles
-}
-
-function retenu(etat: 'possede' | 'voulu' | 'suivi', filtre: FiltreCollection): boolean {
-  if (filtre === 'completer') return etat === 'possede'
-  if (filtre === 'envies') return etat === 'voulu'
-  if (filtre === 'suivies') return etat === 'suivi'
-  return true
-}
-
-/** The ownerships of THIS work - `isOwned` without a volume goes through the whole list,
- *  so give it only what concerns it. */
-function ownershipsDe(entity: EntityResponse, ownerships: OwnershipResponse[]): OwnershipResponse[] {
-  return ownerships.filter((o) => o.entityId === entity.id)
 }

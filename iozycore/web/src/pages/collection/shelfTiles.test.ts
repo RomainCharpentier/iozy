@@ -14,7 +14,6 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
-  aplatirEnElements,
   buildShelfTile,
   correspondAuFiltre,
   etatDeLOeuvre,
@@ -176,55 +175,3 @@ describe('etatDeLOeuvre and correspondAuFiltre', () => {
   })
 })
 
-describe('aplatirEnElements', () => {
-  const serie = oeuvre({ titre: 'Berserk', tomes: [tome(1), tome(2), tome(3)] })
-  const possessions = [possession({ entityId: serie.id, variantId: 'tome-1' })]
-  const contexte = {
-    ownerships: possessions,
-    owned: ownedVariantIds(possessions),
-    tomesVoulus: new Set(['tome-3']),
-    oeuvresVoulues: new Set<string>(),
-    depuisTome: () => '2026-02-01',
-    depuisOeuvre: () => '2026-02-01',
-  }
-
-  it('only returns the volumes that have a state: neither owned nor wished does not exist here', () => {
-    const tuiles = aplatirEnElements([serie], 'tout', contexte)
-
-    expect(tuiles.map((t) => t.key)).toEqual(['tome-1', 'tome-3'])
-    expect(tuiles.map((t) => t.etat)).toEqual(['possede', 'voulu'])
-  })
-
-  it('tells a wished volume from an owned volume under "Tout"', () => {
-    const [possede, voulu] = aplatirEnElements([serie], 'tout', contexte)
-
-    expect(possede.signal).toBeUndefined()
-    expect(voulu.signal).toBe('Je le veux')
-    expect(voulu.subtitle).toBe('Tome 3')
-  })
-
-  it('follows the current filter', () => {
-    expect(aplatirEnElements([serie], 'completer', contexte).map((t) => t.key)).toEqual(['tome-1'])
-    expect(aplatirEnElements([serie], 'envies', contexte).map((t) => t.key)).toEqual(['tome-3'])
-  })
-
-  it('a work without volumes gives one single tile - it IS already the object', () => {
-    const jeu = oeuvre({ titre: 'Hades', typeId: 'type-video-game' })
-    const possessionsJeu = [possession({ entityId: jeu.id })]
-
-    const tuiles = aplatirEnElements([jeu], 'tout', {
-      ...contexte,
-      ownerships: possessionsJeu,
-      owned: new Set(),
-    })
-
-    expect(tuiles).toHaveLength(1)
-    expect(tuiles[0]).toMatchObject({ key: jeu.id, etat: 'possede', subtitle: 'Possédé' })
-  })
-
-  it('gives the volume a gradient of its own, not the one of the series', () => {
-    const [premier, second] = aplatirEnElements([serie], 'tout', contexte)
-
-    expect(premier.gradientKey).not.toBe(second.gradientKey)
-  })
-})

@@ -9,7 +9,7 @@
  *   <li>the validation is done <b>field by field</b>: a setting added later,
  *       or a corrupted one, must not make the others fall back to their
  *       default;</li>
- *   <li>writing only replaces what is named - `definir({ tri })` must not
+ *   <li>writing only replaces what is named - `definir({ affichage })` must not
  *       erase the current filter.</li>
  * </ul>
  */
@@ -27,28 +27,28 @@ beforeEach(() => localStorage.clear())
 afterEach(() => vi.restoreAllMocks())
 
 describe('the reading', () => {
-  it('opens on "all / grouped / recent" when nothing was ever chosen', () => {
+  it('opens on "all / shelves" when nothing was ever chosen', () => {
     const { result } = renderHook(() => usePreferencesCollection())
 
-    expect(result.current).toMatchObject({ filtre: 'tout', vue: 'groupee', tri: 'recent' })
+    expect(result.current).toMatchObject({ filtre: 'tout', affichage: 'etageres' })
   })
 
   it('reads back what was chosen', () => {
-    localStorage.setItem(CLE, JSON.stringify({ filtre: 'envies', vue: 'plate', tri: 'titre' }))
+    localStorage.setItem(CLE, JSON.stringify({ filtre: 'envies', affichage: 'compact' }))
 
     const { result } = renderHook(() => usePreferencesCollection())
 
-    expect(result.current).toMatchObject({ filtre: 'envies', vue: 'plate', tri: 'titre' })
+    expect(result.current).toMatchObject({ filtre: 'envies', affichage: 'compact' })
   })
 
   it('does not let a corrupted field carry the others away', () => {
     // The case of a setting renamed between two versions: "grille" no longer
     // exists, but the chosen filter and sort are still valid.
-    localStorage.setItem(CLE, JSON.stringify({ filtre: 'completer', vue: 'grille', tri: 'titre' }))
+    localStorage.setItem(CLE, JSON.stringify({ filtre: 'completer', affichage: 'grille' }))
 
     const { result } = renderHook(() => usePreferencesCollection())
 
-    expect(result.current).toMatchObject({ filtre: 'completer', vue: 'groupee', tri: 'titre' })
+    expect(result.current).toMatchObject({ filtre: 'completer', affichage: 'etageres' })
   })
 
   it('survives a content that is not even JSON', () => {
@@ -56,7 +56,7 @@ describe('the reading', () => {
 
     const { result } = renderHook(() => usePreferencesCollection())
 
-    expect(result.current).toMatchObject({ filtre: 'tout', vue: 'groupee', tri: 'recent' })
+    expect(result.current).toMatchObject({ filtre: 'tout', affichage: 'etageres' })
   })
 
   it('survives a valid JSON that is not an object', () => {
@@ -71,9 +71,9 @@ describe('the reading', () => {
 describe('the writing', () => {
   it('only replaces what is named', () => {
     definirPreferencesCollection({ filtre: 'envies' })
-    definirPreferencesCollection({ tri: 'titre' })
+    definirPreferencesCollection({ affichage: 'compact' })
 
-    expect(lireBrut()).toEqual({ filtre: 'envies', vue: 'groupee', tri: 'titre', affichage: 'etageres' })
+    expect(lireBrut()).toEqual({ filtre: 'envies', affichage: 'compact' })
   })
 
   it('updates the screens that are already open, without a reload', () => {
@@ -81,9 +81,9 @@ describe('the writing', () => {
     // follow each other, not each start from their own default.
     const { result } = renderHook(() => usePreferencesCollection())
 
-    act(() => definirPreferencesCollection({ vue: 'plate' }))
+    act(() => definirPreferencesCollection({ affichage: 'compact' }))
 
-    expect(result.current.vue).toBe('plate')
+    expect(result.current.affichage).toBe('compact')
   })
 
   it('leaves the page usable when the storage is refused', () => {
