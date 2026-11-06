@@ -1825,9 +1825,28 @@ Le retour est toujours là, y compris sur un lien reçu (« Ma collection », ou
 pour un visiteur). Depuis une salle, il retrouve la position et la jaquette revole à sa
 place ; le bouton Retour du navigateur restaure la position, sans vol.
 
-Pas repris du prototype : le classement S à F et les lectures à même la page. Ils restent
-derrière « Éditer », dans le panneau Personnel.
-
 Vérifié : 574 tests web, typecheck, lint, contraste, 20 parcours e2e ; captures à 390 et
 1 280 px, en sombre et en clair ; vol retour mesuré. Depuis le bas d'une salle, le retour
 est revenu à 22 px près sur 979.
+
+### Lot 205 — Le choix des tomes et le bas de la fiche
+
+Retour du propriétaire : la sélection n'était pas celle de la maquette. Prototype et app ont
+été comparés geste par geste. La barre a sa place réservée, rien ne bouge quand on choisit ;
+au repos elle dit comment choisir et montre le tome survolé, l'aperçu flottant du lot 201 a
+disparu. Les gestes sont nommés : Reposer, Je le veux, Je l'ai ou J'ai ces 3 tomes, Retirer puis
+Confirmer le retrait. Un choix mêlé agit sur les manquants. Les dos ont une taille unique, avec
+leur numéro ; les filtres ne restent que sur la grille. Un tome ajouté descend dans sa place,
+la planche encaisse, le compte réagit, et « Annuler » reprend l'ajout.
+
+Le classement S à F, les lectures et les tags sont sur la page, plus derrière « Éditer ». Le
+panneau Personnel ne garde que la note et les remarques. Un jeu seulement voulu a « Je l'ai »
+et « Retirer de mes envies ». À l'arrivée depuis une salle, la couleur s'ouvre depuis la
+jaquette, la page monte, les tomes se dressent, les planches se tracent.
+
+Restent différents du prototype : les listes de classement personnelles et les relations,
+en mode Éditer ; le bouton de bascule étagère ou grille, gardé dans la barre ; la lueur
+« le tome sort », inventée.
+
+Vérifié : 571 tests web, typecheck, lint, contraste, 20 parcours e2e ; gestes rejoués à 390 et
+1 280 px, en sombre et en clair, à côté du prototype : choisir décale l'étagère de 0 px.
