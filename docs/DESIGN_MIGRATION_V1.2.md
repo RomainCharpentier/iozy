@@ -1729,3 +1729,137 @@ Vérifié : 516 tests web, typecheck, lint, 19 parcours e2e ; sonde
 Playwright sur douze écrans à 390 px, plus aucune cible sous 44 px hors les
 dos de l'étagère (22 px, voulus) ; captures mobile et bureau de Ma
 collection et d'une fiche après coup.
+
+### Lot 201 — La fiche prend les couleurs de sa série
+
+Retour du propriétaire sur la fiche de Frieren : un fond sans couleur, une
+étagère qui ressemble à un graphique. La teinte était la moyenne de la
+jaquette, un gris sur une couverture très colorée, et une couche opaque cachait
+le flou du lot 195. Le fond est maintenant un dégradé des deux couleurs
+dominantes de la jaquette, qui se fond dans le fond de la page dans les deux
+thèmes. Un hébergeur qui refuse la lecture (AniList) garde le terracotta.
+
+Un tome possédé sans jaquette est découpé dans celle de la série et garde son
+numéro lisible ; les tranches s'élargissent tant que la série tient sur un
+étage, et chaque repère est sous son tome. L'aperçu au survol s'ouvre du côté
+d'où vient la souris : les tomes visés restent visibles, sauf près d'un bord
+où il prend le seul côté qui a la place. Sans total, la carte d'édition dit
+« 10 tomes possédés », sans jauge vide ; le contour et le badge « Suivie » ne
+restent que s'il y a plusieurs éditions. Le statut « En pause » s'affiche.
+
+Vérifié : 533 tests web, typecheck, lint, contraste, 20 parcours e2e ; captures
+à 1 280 px en sombre et clair et à 390 px en sombre, survol mesuré avec une
+vraie souris, sur la pile jetable. Les données de Frieren (tomes 13 à 15, total,
+jaquette française) restent à compléter.
+
+### Lot 202 — Ma collection en salles
+
+Accueil refait d'après le prototype validé par le propriétaire le 2026-11-06.
+Une salle colorée par catégorie, une barre collante, des étagères à hauteur
+unique ; une série montre ses dos, un jeu sa seule jaquette. Une vue Compact,
+retenue sur l'appareil, ne garde que de petites jaquettes et un filet par série.
+L'ordre est imposé (par titre pour l'instant) : le regroupement et le tri restent
+sur le rayon, qui garde sa grille et ses outils.
+
+Sont retirés de cet écran : la vue « Un par un », le tri, le filtre Complètes
+et le filtre Possédés, remplacé par « À compléter », aussi sur le rayon. Le lien
+de salle se nomme « Voir le rayon » : « Tout voir » mentirait, tout est déjà là.
+Les œuvres glissent au changement de filtre ou de vue, la jaquette vole vers la
+fiche (View Transitions) ; le retour arrière n'a pas de vol.
+
+Écarts au prototype : l'ombre prend la couleur de la salle plutôt que celle de
+chaque jaquette, qui demanderait de lire 300 images ; pas de lueur « le tome sort »,
+la sortie du prototype était inventée.
+
+Vérifié : 557 tests web, typecheck, lint, frontières, 19 parcours e2e ; dans
+Chromium sur la pile jetable, à 390, 1 280 et 1 920 px, en sombre et en clair, avec
+un compte mixte, manga seul et jeux seuls : aucun débordement, aucune erreur, retour
+à la même position, aucune animation sous « réduire les animations ». Sur 300 séries
+générées, sans image réseau : plus longue tâche 133 ms en étagères, 75 ms en compact.
+
+### Lot 200 — Une œuvre possédée ne peut pas être voulue
+
+Dernière incohérence de la passe bureau : un jeu de société possédé et
+dans les envies s'affichait « Possédé » sous le filtre Envies. Les tomes
+avaient la règle depuis la V21 (le serveur refuse de vouloir ce qu'on
+possède, 409) ; les œuvres entières ne l'avaient pas. Le serveur la tient
+maintenant pour les deux, par le même message en français ; la migration
+V38 efface les envies d'œuvres entières déjà possédées (la possession
+gagne, l'envie part), sans toucher aux envies de tomes. L'acquisition
+levait déjà l'envie (QuickAddService). Sur la fiche, le cœur du bandeau ne
+se propose plus sur une œuvre possédée ; il reste tant qu'une envie
+d'avant la règle existe, pour pouvoir la retirer.
+
+Vérifié : 1 315 tests backend après `test-compile` (le nouveau test
+`refuses_a_whole_work_that_is_already_owned`, la migration jouée par les
+tests d'intégration), 516 tests web, typecheck, lint.
+
+### Lot 203 — Le rangement par console et par éditeur
+
+Les salles se rangent comme demandé : jeux vidéo par console puis éditeur, jeux de
+société par éditeur, le reste par titre. La console vit sur l'exemplaire (V39) : le
+catalogue est partagé, et un jeu possédé sur deux consoles se range sous chacune.
+Elle est demandée à l'ajout quand la source en connaît plusieurs, sans bloquer,
+prise d'office s'il n'y en a qu'une, et se corrige sur la fiche. Sans réponse, le jeu
+attend sous « Console à préciser » ; sans éditeur, sous « Éditeur inconnu ».
+
+IGDB garde toutes les plateformes et lit les sociétés par leur rôle : Celeste n'est
+plus sur Stadia, Zelda n'est plus de Monolith Soft. BGG donne son premier éditeur, celui
+d'origine, pas l'éditeur français. « Compléter les éditeurs », sur le rayon, remplit les
+œuvres déjà là sans toucher à ce qui a été saisi.
+
+Vérifié : 1 322 tests backend, 571 tests web, typecheck, lint, contraste, frontières, 20 parcours
+e2e ; captures à 390, 1 280 et 1 920 px, en sombre et en clair. Réponses réelles relues le 2026-11-06 sur quatre jeux BGG et trois
+jeux IGDB. Le choix de console à l'ajout et le bouton de rattrapage n'ont pas tourné
+contre les vrais fournisseurs dans l'app : testés avec des réponses simulées.
+
+### Lot 204 — La fiche du prototype
+
+Retour du propriétaire : la fiche n'avait pas été retravaillée et le retour manquait. Une
+grande jaquette reste à gauche, au format du type, et la page occupe la colonne d'à côté.
+Une série montre « 8 / 41 » et ce qui manque ; une seule édition devient un mot sous le
+titre, sa carte ne servant plus qu'en édition. Un jeu montre ses faits en cartes, dont la
+console de l'exemplaire. « Suivre » est nommé. « Possédée » n'est plus écrit.
+
+Le retour est toujours là, y compris sur un lien reçu (« Ma collection », ou « Catalogue »
+pour un visiteur). Depuis une salle, il retrouve la position et la jaquette revole à sa
+place ; le bouton Retour du navigateur restaure la position, sans vol.
+
+Vérifié : 574 tests web, typecheck, lint, contraste, 20 parcours e2e ; captures à 390 et
+1 280 px, en sombre et en clair ; vol retour mesuré. Depuis le bas d'une salle, le retour
+est revenu à 22 px près sur 979.
+
+### Lot 205 — Le choix des tomes et le bas de la fiche
+
+Retour du propriétaire : la sélection n'était pas celle de la maquette. Prototype et app ont
+été comparés geste par geste. La barre a sa place réservée, rien ne bouge quand on choisit ;
+au repos elle dit comment choisir et montre le tome survolé, l'aperçu flottant du lot 201 a
+disparu. Les gestes sont nommés : Reposer, Je le veux, Je l'ai ou J'ai ces 3 tomes, Retirer puis
+Confirmer le retrait. Un choix mêlé agit sur les manquants. Les dos ont une taille unique, avec
+leur numéro ; les filtres ne restent que sur la grille. Un tome ajouté descend dans sa place,
+la planche encaisse, le compte réagit, et « Annuler » reprend l'ajout.
+
+Le classement S à F, les lectures et les tags sont sur la page, plus derrière « Éditer ». Le
+panneau Personnel ne garde que la note et les remarques. Un jeu seulement voulu a « Je l'ai »
+et « Retirer de mes envies ». À l'arrivée depuis une salle, la couleur s'ouvre depuis la
+jaquette, la page monte, les tomes se dressent, les planches se tracent.
+
+Restent différents du prototype : les listes de classement personnelles et les relations,
+en mode Éditer ; le bouton de bascule étagère ou grille, gardé dans la barre ; la lueur
+« le tome sort », inventée.
+
+Vérifié : 571 tests web, typecheck, lint, contraste, 20 parcours e2e ; gestes rejoués à 390 et
+1 280 px, en sombre et en clair, à côté du prototype : choisir décale l'étagère de 0 px.
+
+### Lot 206 — Le fond de la fiche, et des salles courtes
+
+Le fond de la fiche prend vraiment les couleurs de la jaquette : deux halos issus de ses
+couleurs dominantes, comme sur le prototype. 15 jaquettes sur 35 retombaient sur le terracotta,
+car BGG interdit de lire ses images et AniList était écarté d'office. Le serveur les relaie
+désormais, pour les seuls hébergeurs de jaquettes connus (`CoverImageReader`) : une adresse
+saisie à la main ne lui fait appeler aucun autre site.
+
+Une salle ne montre plus que les 10 œuvres les plus récentes. « Tout voir » ouvre le rayon, qui
+devient la même salle avec tout, ses filtres et ses outils. La vue « Un par un » et le tri du
+rayon disparaissent. « Récent » veut dire le dernier tome ou la dernière envie, à la date près :
+une correction de fiche ne compte pas, et les œuvres d'un même jour restent par titre.

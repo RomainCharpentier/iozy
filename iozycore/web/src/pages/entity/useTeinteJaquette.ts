@@ -1,111 +1,69 @@
 import { useEffect, useState } from 'react'
+import { couleursDominantes, type CouleursJaquette } from './couleursJaquette'
 
-/** Brand terracotta: the fallback tint when the cover is missing, does not
- *  load, or refuses to be read (see below). */
-const REPLI: [number, number, number] = [188, 88, 59]
+/** Brand terracotta: only for a work without a cover, or one that cannot be read at all. */
+const REPLI: CouleursJaquette = { principale: [188, 88, 59], seconde: [188, 88, 59] }
 
-/**
- * The average color of a cover, to tint the top of its detail page.
- *
- * <h2>Why sampling and not a stored color</h2>
- * The mockup "Fiche série - multi-éditions" derives the whole top band
- * from the cover: each series has its own mood without anyone having to enter
- * anything. Storing a color in the database would be one more piece of data to
- * keep up to date at each cover change, for information that is
- * recomputed in three milliseconds.
- *
- * <h2>What fails, and why it does not matter</h2>
- * Covers come from external hosts (MyAnimeList, Google Books, BGG).
- * Reading the pixels of an image from another domain "taints" the canvas and makes
- * `getImageData` throw - unless the host returns the CORS headers, which
- * many do not. So we load a SEPARATE image with
- * `crossOrigin = 'anonymous'`: if the host cooperates, we get the tint; if it
- * refuses, that image fails silently and we keep the brand terracotta.
- * In both cases the cover displayed on screen is
- * never touched - this is the whole point of not reusing the same tag.
- */
-/**
- * The hosts that refused a CORS read during this page load.
- *
- * <p>A refusal is logged by the browser as an error, loudly, and it cannot
- * be silenced from here. AniList's CDN refuses every time: trying again on
- * every detail page of the collection meant one error per page for a tint
- * we already knew we would not get. A host that refused once is not asked
- * again until the next load; the fallback applies at once.
- *
- * <p>AniList's CDN is known from the start: without this, the FIRST detail
- * page of each session still wrote its error (desktop pass of 2026-11-01).
- * Any other host is learned the day it refuses.
- */
-const hotesSansCors = new Set<string>(['s4.anilist.co'])
+/** What was already read in this visit: going back to a work shows its colors at once. */
+const lues = new Map<string, CouleursJaquette | null>()
 
-function hoteDe(url: string): string | null {
-  try {
-    return new URL(url, window.location.href).host
-  } catch {
-    return null
-  }
-}
-
-export function useTeinteJaquette(url: string | null | undefined): [number, number, number] {
-  // The tint, kept with the cover it was read from: another cover reads the
-  // fallback until its own tint arrives, with no reset in an effect.
-  const [reading, setReading] = useState<{ url: string; teinte: [number, number, number] } | null>(null)
-
-  useEffect(() => {
-    if (!url) return
-    const hote = hoteDe(url)
-    if (hote && hotesSansCors.has(hote)) return
-    // `annule` rather than an AbortController: an Image cannot be cancelled, we
-    // just ignore its answer if the detail page changed in the meantime - otherwise
-    // the tint of a previous series would overwrite that of the new one.
-    let annule = false
+function lire(source: string): Promise<CouleursJaquette | null> {
+  return new Promise((resolve) => {
     const image = new Image()
     image.crossOrigin = 'anonymous'
-    image.onerror = () => {
-      // A load that fails WITH crossOrigin while the cover itself shows on
-      // screen is a CORS refusal: remember the host. (A cover that is
-      // really broken is handled by Jaquette, not here.)
-      if (hote) hotesSansCors.add(hote)
-    }
+    image.onerror = () => resolve(null)
     image.onload = () => {
-      if (annule) return
       try {
-        // 24x24 is more than enough for an average, and avoids decoding
-        // a full-resolution cover just to get three numbers out of it.
+        // 32x32 is enough to tell the colors apart, and avoids decoding a
+        // full-resolution cover just to get a few numbers out of it.
         const canvas = document.createElement('canvas')
-        canvas.width = 24
-        canvas.height = 24
+        canvas.width = 32
+        canvas.height = 32
         const contexte = canvas.getContext('2d')
-        if (!contexte) return
-        contexte.drawImage(image, 0, 0, 24, 24)
-        const pixels = contexte.getImageData(0, 0, 24, 24).data
-        let r = 0
-        let v = 0
-        let b = 0
-        let n = 0
-        for (let i = 0; i < pixels.length; i += 4) {
-          // Nearly transparent pixels say nothing about the color of the
-          // cover and would pull the average toward black.
-          if (pixels[i + 3] < 32) continue
-          r += pixels[i]
-          v += pixels[i + 1]
-          b += pixels[i + 2]
-          n += 1
-        }
-        if (n === 0) return
-        setReading({ url, teinte: [Math.round(r / n), Math.round(v / n), Math.round(b / n)] })
+        if (!contexte) return resolve(null)
+        contexte.drawImage(image, 0, 0, 32, 32)
+        resolve(couleursDominantes(contexte.getImageData(0, 0, 32, 32).data))
       } catch {
-        // Canvas tainted by an image without CORS: we keep the fallback.
+        resolve(null)
       }
     }
-    image.src = url
+    image.src = source
+  })
+}
+
+/**
+ * The colors of a cover (see couleursDominantes): the background of its detail page.
+ *
+ * <h2>Why through the server</h2>
+ * A browser only reads the pixels of an image whose host allows it. BoardGameGeek
+ * does not, and AniList only answers when its image is not already in the cache:
+ * 15 covers out of 35 fell back on the brand color. So the known cover hosts are read
+ * through the API, from this origin (see CoverImageController). A cover typed by
+ * hand on another host is still tried directly: it may allow it. The image shown on
+ * screen is never touched.
+ *
+ * <p>`connue`: the colors have an answer. Until then the page shows no color rather
+ * than the terracotta, which would flash on every series that is not red.
+ */
+export function useTeinteJaquette(url: string | null | undefined): CouleursJaquette & { connue: boolean } {
+  const [, setLues] = useState(0)
+
+  useEffect(() => {
+    if (!url || lues.has(url)) return
+    let annule = false
+    void (async () => {
+      const couleurs = (await lire(`/api/covers/image?url=${encodeURIComponent(url)}`)) ?? (await lire(url))
+      lues.set(url, couleurs)
+      if (!annule) setLues((n) => n + 1)
+    })()
     return () => {
       annule = true
     }
   }, [url])
 
-  return url && reading?.url === url ? reading.teinte : REPLI
+  if (!url) return { ...REPLI, connue: true }
+  if (!lues.has(url)) return { ...REPLI, connue: false }
+  return { ...(lues.get(url) ?? REPLI), connue: true }
 }
 
 /**

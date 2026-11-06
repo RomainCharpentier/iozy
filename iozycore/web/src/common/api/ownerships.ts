@@ -1,4 +1,4 @@
-import { get, del, buildQuery } from './client'
+import { get, del, patch, buildQuery } from './client'
 import type { OwnershipResponse } from '@/common/types/api'
 
 export function listOwnerships(entityId: string): Promise<OwnershipResponse[]> {
@@ -10,6 +10,11 @@ export function listOwnerships(entityId: string): Promise<OwnershipResponse[]> {
  * (see Ma collection). */
 export function listAllOwnerships(): Promise<OwnershipResponse[]> {
   return get<OwnershipResponse[]>('/ownerships')
+}
+
+/** Says or corrects the console of a copy. An empty value clears it. */
+export function updateOwnershipPlatform(id: string, platform: string): Promise<OwnershipResponse> {
+  return patch<OwnershipResponse>(`/ownerships/${id}/platform`, { platform })
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * <b>"Récents d'abord": since when is this object here?</b>
+ * <b>What moved last: since when is this object here?</b>
  *
  * Two columns of two tables - the acquisition date of an ownership, the
  * date of a wish - answer a single screen question. Three rules come
@@ -15,7 +15,7 @@
  * </ul>
  */
 import { describe, expect, it } from 'vitest'
-import { indexerVenues, trierOeuvres } from './venues'
+import { indexerVenues, plusRecentes } from './venues'
 import { oeuvre, possession, tome } from '@/test/fixtures'
 import type { WishlistEntryResponse } from '@/common/types/api'
 
@@ -62,18 +62,9 @@ describe('indexerVenues', () => {
   })
 })
 
-describe('trierOeuvres', () => {
+describe('plusRecentes', () => {
   const berserk = oeuvre({ titre: 'Berserk', tomes: [tome(1), tome(2)] })
   const pluto = oeuvre({ titre: 'Pluto', tomes: [tome(3)] })
-
-  it('sorts by title following the French alphabet', () => {
-    const ecole = oeuvre({ titre: 'École' })
-    const zoo = oeuvre({ titre: 'Zoo' })
-    const abc = oeuvre({ titre: 'Abc' })
-
-    expect(trierOeuvres([zoo, ecole, abc], 'titre', indexerVenues([], [])).map((e) => e.title))
-      .toEqual(['Abc', 'École', 'Zoo'])
-  })
 
   it('brings an old series up when a volume has just been added to it', () => {
     // This is THE case that tells "more recent" from "older": Berserk
@@ -87,14 +78,17 @@ describe('trierOeuvres', () => {
       [],
     )
 
-    expect(trierOeuvres([pluto, berserk], 'recent', venues).map((e) => e.title)).toEqual(['Berserk', 'Pluto'])
+    expect(plusRecentes([pluto, berserk], venues, 10).map((e) => e.title)).toEqual(['Berserk', 'Pluto'])
   })
 
-  it('puts last a work whose arrival is unknown, without hiding it', () => {
+  it('keeps only what is asked, the most recent', () => {
     const venues = indexerVenues([possession({ entityId: pluto.id, variantId: 'tome-3' })], [])
-    const inconnue = oeuvre({ titre: 'Blame' })
 
-    expect(trierOeuvres([inconnue, pluto], 'recent', venues).map((e) => e.title)).toEqual(['Pluto', 'Blame'])
+    expect(plusRecentes([berserk, pluto], venues, 1).map((e) => e.title)).toEqual(['Pluto'])
+  })
+
+  it('stands the works of one day by title: the same order at every opening', () => {
+    expect(plusRecentes([pluto, berserk], indexerVenues([], []), 10).map((e) => e.title)).toEqual(['Berserk', 'Pluto'])
   })
 
   it('does not modify the list it is given', () => {
@@ -102,7 +96,7 @@ describe('trierOeuvres', () => {
     // would reorder the data shared by all the screens.
     const liste = [pluto, berserk]
 
-    trierOeuvres(liste, 'titre', indexerVenues([], []))
+    plusRecentes(liste, indexerVenues([], []), 10)
 
     expect(liste.map((e) => e.title)).toEqual(['Pluto', 'Berserk'])
   })

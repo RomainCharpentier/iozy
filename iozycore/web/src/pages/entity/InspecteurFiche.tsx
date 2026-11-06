@@ -41,7 +41,8 @@ export function InspecteurFiche({
   /** Absent for a visitor: they have no rating, no readings, no ranking, and
    *  the column told them "Pas encore notée" - nothing to rate, nobody. */
   personnel?: ReactNode
-  oeuvre: ReactNode
+  /** Absent when the facts above the page already say what the work is. */
+  oeuvre?: ReactNode
   source: ReactNode
   /** True outside edit mode: SOURCE becomes a closed disclosure row. */
   sourceRepliee?: boolean
@@ -67,9 +68,11 @@ export function InspecteurFiche({
             {personnel}
           </ColonneInspecteur>
         )}
-        <ColonneInspecteur titre="Œuvre" icone={<AlignLeft size={16} className="text-textDim" />} souligne="bg-line">
+        {oeuvre !== undefined && (
+          <ColonneInspecteur titre="Œuvre" icone={<AlignLeft size={16} className="text-textDim" />} souligne="bg-line">
           {oeuvre}
         </ColonneInspecteur>
+        )}
         {!sourceRepliee && (
           <ColonneInspecteur
             titre="Source"
@@ -144,8 +147,10 @@ function ColonneInspecteur({
   )
 }
 
-/** A "label on the left, value on the right" row separated by a rule -
- *  the shape of the WORK and SOURCE columns.
+/** A "label then value" row separated by a rule - the shape of the WORK and
+ *  SOURCE columns. The value stays next to its label: pushed to the far right
+ *  of a wide column, the eye had to cross 480 px to join them. The first row
+ *  has no top padding, so it lines up with the first readout of PERSONAL.
  *
  *  <p>In edit mode the SAME row carries an input field in place of
  *  the value (`saisie`), and a "saisi" pill when the value in the database
@@ -167,18 +172,18 @@ export function RangeeInspecteur({
 }) {
   return (
     <div
-      className={`flex gap-3.5 border-b border-line last:border-0 ${
-        saisie ? 'items-center' : 'items-baseline justify-between'
-      } ${compact ? 'py-1.5' : 'py-[7px]'}`}
+      className={`flex gap-3.5 border-b border-line first:pt-0 last:border-0 ${saisie ? 'items-center' : 'items-baseline'} ${
+        compact ? 'py-1.5' : 'py-[7px]'
+      }`}
     >
-      <span className={`flex items-center gap-1.5 text-[12.5px] text-faint ${saisie ? 'w-[38%] shrink-0' : ''}`}>
+      <span className="flex w-[38%] shrink-0 items-center gap-1.5 text-[12.5px] text-faint">
         {libelle}
         {saisi && <PastilleSaisi />}
       </span>
       {saisie ? (
         <span className="min-w-0 flex-1">{children}</span>
       ) : (
-        <span className={`text-right font-medium text-textPrimary ${compact ? 'text-[13px]' : 'text-[13.5px]'}`}>
+        <span className={`min-w-0 flex-1 font-medium text-textPrimary ${compact ? 'text-[13px]' : 'text-[13.5px]'}`}>
           {children}
         </span>
       )}

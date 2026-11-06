@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { expect, test, type Browser } from '@playwright/test'
-import { serieAvecEdition } from './amorcage'
+import { serieAvecEdition, jetonCsrf } from './amorcage'
 import { CODE_INVITATION } from './compte'
 
 /**
@@ -63,6 +63,13 @@ test('export one\'s collection, lose one\'s account, restore it', async ({ page,
     tomesPossedes: [1, 2],
     prixNeufAuTome: 12.5,
   })
+  // The console of a copy goes along: the shelves depend on it.
+  const copies = (await (await avant.page.request.get(`/api/ownerships?entityId=${entityId}`)).json()) as { id: string }[]
+  const console_ = await avant.page.request.patch(`/api/ownerships/${copies[0].id}/platform`, {
+    headers: { 'X-XSRF-TOKEN': await jetonCsrf(avant.page) },
+    data: { platform: 'Console du test' },
+  })
+  expect(console_.ok()).toBe(true)
   await avant.page.goto('/')
   await expect(avant.page.getByRole('button', { name: new RegExp(`${titre}.*2/4 tomes`) })).toBeVisible()
 
@@ -121,9 +128,11 @@ test('export one\'s collection, lose one\'s account, restore it', async ({ page,
   await expect(apres.page.getByRole('button', { name: new RegExp(`${titre}.*2/4 tomes`) })).toBeVisible()
   await apres.page.getByRole('button', { name: new RegExp(titre) }).click()
   await expect(apres.page.getByRole('heading', { name: titre })).toBeVisible()
-  await expect(apres.page.getByText('2/4')).toBeVisible()
+  await expect(apres.page.getByText('2 / 4')).toBeVisible()
   await expect(apres.page.getByRole('button', { name: 'Tome 2, possédé' })).toBeVisible()
   await expect(apres.page.getByRole('button', { name: 'Tome 3, manquant' })).toBeVisible()
+  const retrouvees = (await (await apres.page.request.get('/api/ownerships')).json()) as { platform: string | null }[]
+  expect(retrouvees.map((o) => o.platform)).toContain('Console du test')
 
   // --- The same file, sent again: nothing to create, everything is found -
   //     so nothing would be duplicated. Only the purchase analysis

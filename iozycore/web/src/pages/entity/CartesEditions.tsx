@@ -28,6 +28,14 @@ export interface EditionAffichee {
  * comparing three editions before choosing one is the normal case, and each
  * glance must not rewrite what is being collected.
  */
+/** "10 tomes possédés": the count of an edition whose total is unknown. */
+function compteSansTotal(nombre: number, sens: 'possession' | 'selection'): string {
+  const verbe = sens === 'selection' ? 'sélectionné' : 'possédé'
+  if (nombre === 0) return `Aucun tome ${verbe}`
+  const s = nombre > 1 ? 's' : ''
+  return `${nombre} tome${s} ${verbe}${s}`
+}
+
 export function CartesEditions({
   editions,
   editionAffichee,
@@ -69,7 +77,7 @@ export function CartesEditions({
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-[18px]">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <span className="text-[11px] font-semibold tracking-[0.14em] text-faint uppercase">
+        <span className="text-[11px] font-semibold tracking-[0.14em] text-textDim uppercase">
           Éditions · {editions.length}
         </span>
         {/* The switch to edit mode left this row for the header of
@@ -99,7 +107,10 @@ export function CartesEditions({
         {editions.map((edition) => {
           const cle = edition.nom || '(non précisée)'
           const affichee = edition.nom === editionAffichee
-          const suivie = edition.nom !== '' && edition.nom === editionSuivie
+          const plusieurs = editions.length > 1
+          // With one edition there is nothing to tell apart: no accent ring,
+          // and the band already says "Suivie".
+          const suivie = plusieurs && edition.nom !== '' && edition.nom === editionSuivie
           const pourcentage =
             edition.total !== null && edition.total > 0
               ? Math.round((edition.possedes / edition.total) * 100)
@@ -108,9 +119,9 @@ export function CartesEditions({
             <div
               key={cle}
               className={`flex flex-col gap-2.5 rounded-[14px] p-[13px_15px] transition-shadow ${
-                affichee
+                affichee && plusieurs
                   ? 'bg-surface shadow-token-md ring-2 ring-accent ring-inset'
-                  : 'bg-surface/70 ring-1 ring-line ring-inset'
+                  : 'bg-surface ring-1 ring-line ring-inset'
               }`}
             >
               <button
@@ -131,17 +142,25 @@ export function CartesEditions({
                   )}
                 </span>
                 {/* What is known about the edition - its PUBLISHER and its number of
-                    volumes, not its name, which is just above. Hence
-                    "Détails à renseigner" and not "Édition à renseigner":
-                    the second one, placed under "Crunchyroll", read like a
-                    contradiction (the edition is named AND said to need
-                    filling in). The correction pencil is in "L'œuvre". */}
-                <span className="text-[12.5px] text-faint">
-                  {[edition.editeur, edition.total !== null ? `${edition.total} tomes` : null]
+                    volumes, not its name, which is just above. With no total
+                    there is no gauge, and the count says what it counts: an empty
+                    gauge beside a bare "10 tomes" read as a broken bar on an
+                    edition of ten volumes. No "2/?" either: a ratio whose
+                    denominator is unknown reads like missing data. The total of
+                    an edition is only known when filled in (see MangaEdition) -
+                    deducing it from the number of volumes a search BROUGHT BACK
+                    would poison the completeness engine, which uses it to say
+                    what is missing and what it costs. */}
+                <span className="text-[12.5px] text-textDim">
+                  {[
+                    edition.editeur,
+                    edition.total !== null ? `${edition.total} tomes` : null,
+                    edition.total === null && !consultation ? compteSansTotal(edition.possedes, sensProgression) : null,
+                  ]
                     .filter(Boolean)
-                    .join(' · ') || (consultation ? 'Nombre de tomes non renseigné' : 'Détails à renseigner')}
+                    .join(' · ') || 'Nombre de tomes non renseigné'}
                 </span>
-                {!consultation && (
+                {!consultation && edition.total !== null && (
                 <span className="flex w-full items-center gap-2.5">
                   <span className="h-[5px] flex-1 overflow-hidden rounded-full bg-line">
                     {pourcentage !== null && (
@@ -156,24 +175,12 @@ export function CartesEditions({
                       edition.possedes > 0 ? 'text-accentText' : 'text-faint'
                     }`}
                   >
-                    {/* No "2/?": a ratio whose denominator is
-                        unknown reads like missing data while the
-                        numerator is perfectly known. We simply show
-                        what we have. The total of an edition is only
-                        known when filled in (see MangaEdition) - deducing it from the
-                        number of volumes a search BROUGHT BACK
-                        would poison the completeness engine, which then uses it
-                        to say what is missing and what it costs. */}
-                    <span aria-hidden="true">
-                      {edition.total !== null
-                        ? `${edition.possedes}/${edition.total}`
-                        : `${edition.possedes} tome${edition.possedes > 1 ? 's' : ''}`}
-                    </span>
+                    <span aria-hidden="true">{`${edition.possedes}/${edition.total}`}</span>
                     <span className="sr-only">
                       {edition.possedes} tome{edition.possedes > 1 ? 's' : ''}{' '}
                       {sensProgression === 'selection' ? 'sélectionné' : 'possédé'}
                       {edition.possedes > 1 ? 's' : ''}
-                      {edition.total !== null ? ` sur ${edition.total}` : ''}
+                      {` sur ${edition.total}`}
                     </span>
                   </span>
                 </span>

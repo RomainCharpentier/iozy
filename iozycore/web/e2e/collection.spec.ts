@@ -62,9 +62,9 @@ test('create a universe, add a work to it, and find it again rather than duplica
   await expect(page).toHaveURL(/\/entity\/[0-9a-f-]{36}$/)
   await expect(page.getByRole('heading', { name: oeuvre })).toBeVisible()
 
-  // --- 5. Ma collection shows it, with its rail and its counters
+  // --- 5. Ma collection shows it, in the room of its category, with its counters
   //
-  //     The count read here is that of the RAIL of this universe, not the
+  //     The count read here is that of the ROOM of this universe, not the
   //     total of the collection: this test shares its stack with the other
   //     journeys, which sow their own series in it. The first version stated
   //     "1 titre suivi" and held only as long as this file ran first - it
@@ -75,12 +75,12 @@ test('create a universe, add a work to it, and find it again rather than duplica
   //     says "N titres" plainly - "suivis" became a separate filter.
   await page.goto('/')
   await expect(page.getByText(/\d+ titres?( ·|$)/)).toBeVisible()
-  await expect(page.getByRole('heading', { name: univers })).toBeVisible()
-  await expect(page.getByRole('button', { name: new RegExp(`^${univers} 1 Tout voir$`) })).toBeVisible()
+  const salle = page.getByRole('region', { name: univers })
+  await expect(salle.getByRole('link', { name: /^Tout voir/ })).toBeVisible()
   // The tile carries the title AND its state: "Possédé" rather than a count
   // of volumes, because for a type with no notion of volume, the work IS the
   // collectible object.
-  await expect(page.getByRole('button', { name: `${oeuvre} Possédé` })).toBeVisible()
+  await expect(salle.getByRole('button', { name: `${oeuvre}, Possédé` })).toBeVisible()
 
   // --- 6. Searching for it again FINDS it, instead of offering a duplicate
   await page.goto('/add')

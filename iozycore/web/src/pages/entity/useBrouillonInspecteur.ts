@@ -116,6 +116,7 @@ const LIBELLES: Record<string, string> = {
   author: 'Auteur',
   publisher: 'Éditeur',
   platform: 'Plateforme',
+  platforms: 'Plateformes',
   studio: 'Studio',
   developer: 'Studio',
   seriesStatus: 'Statut source',

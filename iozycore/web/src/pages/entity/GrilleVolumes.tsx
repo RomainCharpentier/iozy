@@ -76,7 +76,7 @@ export function GrilleVolumes({
   vue = 'grille',
   onVue,
   teinte,
-  edition,
+  jaquetteSerie,
 }: {
   volumes: VolumeAffiche[]
   /** `consultation`: the catalog seen by a visitor. The volumes of the
@@ -116,8 +116,8 @@ export function GrilleVolumes({
   onVue?: (vue: VueTomes) => void
   /** The tint of the series, for the spine of an owned volume without a cover. */
   teinte?: [number, number, number]
-  /** Named under the volume picked on the shelf. */
-  edition?: string
+  /** The cover of the series, for the spine of an owned volume without a cover. */
+  jaquetteSerie?: string | null
 }) {
   // On `volumes` and not on `visibles`: a counter that only counted what
   // is already on screen would always say the total of the current view.
@@ -134,71 +134,18 @@ export function GrilleVolumes({
   const consultation = mode === 'consultation'
   const surEtagere = vue === 'etagere' && mode !== 'selection'
   const visibles = volumes.filter((volume) => {
-    if (consultation) return true
+    // The shelf shows the whole series: a missing volume is a hole in it, not a filter.
+    if (consultation || surEtagere) return true
     if (filtre === 'possedes') return volume.possede
     if (filtre === 'manquants') return !volume.possede
     return true
   })
 
-  return (
-    <div className="flex flex-col gap-3">
-      {/* A single row: what is looked at on the left, how it is filtered on the
-          right. It folds by itself when there is not enough room. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        {enTete}
-        {/* TEXT, not pills in a container: three labels
-            separated by dots, the active one in solid ink. And each one carries its
-            number, so that the row informs instead of only taking up space -
-            one sees how many are missing without having to click.
-
-            A real group of radio buttons despite the look: three views that
-            exclude each other, which `aria-pressed` would not say - it would announce
-            three independent switches of which two are "inactive". */}
-        {/* Filters and the shelf/grid switch share the right side; the
-            switch wraps under the filters when the line is short (seen at
-            390 px on a series of 110: "Tous 110 · Manquants 80 · Possédés
-            30" plus the switch pushed the page to 396 px). */}
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-        {!consultation && (
-        <div
-          role="radiogroup"
-          aria-label="Filtrer les tomes"
-          className="flex w-fit shrink-0 flex-wrap items-center"
-        >
-          {FILTRES.map(({ cle, libelle }, index) => {
-            const actif = cle === filtre
-            const compte = comptes[cle]
-            return (
-              <span key={cle} className="flex items-center">
-                {index > 0 && (
-                  <span aria-hidden="true" className="px-1 text-[12px] text-line select-none">
-                    ·
-                  </span>
-                )}
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={actif}
-                  aria-label={`${libelle} : ${compte} tome${compte > 1 ? 's' : ''}`}
-                  onClick={() => onFiltre(cle)}
-                  className={`flex min-h-11 items-center gap-1.5 rounded-lg px-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
-                    actif ? 'font-semibold text-textPrimary' : 'text-faint hover:text-textPrimary'
-                  }`}
-                >
-                  {libelle}
-                  <span className={`text-[11.5px] tabular-nums ${actif ? 'text-accentText' : 'text-faint'}`}>
-                    {compte}
-                  </span>
-                </button>
-              </span>
-            )
-          })}
-        </div>
-        )}
-        {/* Shelf or grid: two readings of the same volumes, remembered on
-            this device (see vueTomes). Not in selection mode, where the
-            tiles carry the checks. */}
-        {onVue && mode !== 'selection' && (
+  // Shelf or grid: two readings of the same volumes, remembered on this device
+  // (see vueTomes). Not in selection mode, where the tiles carry the checks.
+  const reglageVue = (
+    <>
+{onVue && mode !== 'selection' && (
           <div role="radiogroup" aria-label="Affichage des tomes" className="flex items-center gap-0.5 rounded-xl bg-softBtn p-0.5">
             {(
               [
@@ -223,21 +170,83 @@ export function GrilleVolumes({
             ))}
           </div>
         )}
+    </>
+  )
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* A single row: what is looked at on the left, how it is filtered on the
+          right. It folds by itself when there is not enough room. */}
+      {(!surEtagere || enTete) && (
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        {enTete}
+        {/* TEXT, not pills in a container: three labels
+            separated by dots, the active one in solid ink. And each one carries its
+            number, so that the row informs instead of only taking up space -
+            one sees how many are missing without having to click.
+
+            A real group of radio buttons despite the look: three views that
+            exclude each other, which `aria-pressed` would not say - it would announce
+            three independent switches of which two are "inactive". */}
+        {/* Filters and the shelf/grid switch share the right side; the
+            switch wraps under the filters when the line is short (seen at
+            390 px on a series of 110: "Tous 110 · Manquants 80 · Possédés
+            30" plus the switch pushed the page to 396 px). */}
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+        {!consultation && !surEtagere && (
+        <div
+          role="radiogroup"
+          aria-label="Filtrer les tomes"
+          className="flex w-fit shrink-0 flex-wrap items-center"
+        >
+          {FILTRES.map(({ cle, libelle }, index) => {
+            const actif = cle === filtre
+            const compte = comptes[cle]
+            return (
+              <span key={cle} className="flex items-center">
+                {index > 0 && (
+                  <span aria-hidden="true" className="px-1 text-[13px] text-lineStrong select-none">
+                    ·
+                  </span>
+                )}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={actif}
+                  aria-label={`${libelle} : ${compte} tome${compte > 1 ? 's' : ''}`}
+                  onClick={() => onFiltre(cle)}
+                  className={`flex min-h-11 items-center gap-1.5 rounded-lg px-1.5 text-[13.5px] whitespace-nowrap transition-colors ${
+                    actif ? 'font-semibold text-textPrimary' : 'text-textDim hover:text-textPrimary'
+                  }`}
+                >
+                  {libelle}
+                  <span className={`text-[12.5px] tabular-nums ${actif ? 'text-accentText' : 'text-textDim'}`}>
+                    {compte}
+                  </span>
+                </button>
+              </span>
+            )
+          })}
+        </div>
+        )}
+        {!surEtagere && reglageVue}
         </div>
       </div>
+      )}
 
       {surEtagere && visibles.length > 0 ? (
         <Etagere
           volumes={visibles}
           mode={consultation ? 'consultation' : 'navigation'}
           teinte={teinte}
-          edition={edition}
+          jaquetteSerie={jaquetteSerie}
           onJeLAi={consultation ? undefined : onJeLAi}
           onJeLesAi={consultation ? undefined : onJeLesAi}
           onJeLeVeux={consultation ? undefined : onJeLeVeux}
           onJeLesVeux={consultation ? undefined : onJeLesVeux}
           onRetirer={consultation ? undefined : onRetirer}
           action={action}
+          reglage={reglageVue}
         />
       ) : visibles.length === 0 ? (
         <p className="py-6 text-sm text-faint">

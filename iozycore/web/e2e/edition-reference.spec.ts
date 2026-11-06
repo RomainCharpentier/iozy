@@ -8,7 +8,7 @@ import { serieSansReference } from './amorcage'
  * <p>Eighth of the ten structuring journeys, and the only one whose effect is
  * seen <b>elsewhere</b> than where we act: we fill in two fields on a detail
  * page, and the progress of the whole application becomes computable. As long
- * as the number of volumes is unknown, the app counts what it has ("2 tomes")
+ * as the number of volumes is unknown, the app counts what it has ("2 tomes possédés")
  * without ever inventing a denominator — no "2/?", which would read as
  * missing data while the numerator is perfectly known.
  *
@@ -31,8 +31,7 @@ test('fill in the number of volumes of an edition, and see "X/Y" appear', async 
   await expect(page.getByRole('heading', { name: titre })).toBeVisible()
 
   // --- Before: what we own, and the admission that the rest is unknown
-  await expect(page.getByText('2 tomes', { exact: true })).toBeVisible()
-  await expect(page.getByText('Détails à renseigner')).toBeVisible()
+  await expect(page.getByText('tomes dans ta collection, total inconnu')).toBeVisible()
 
   // --- Fill in the reference record
   //
@@ -45,10 +44,15 @@ test('fill in the number of volumes of an edition, and see "X/Y" appear', async 
   await page.getByRole('button', { name: 'Enregistrer la fiche' }).click()
 
   // --- After: the progress exists, on the same screen, without a reload
-  await expect(page.getByText('2/18')).toBeVisible()
+  await expect(page.getByText('2 / 18')).toBeVisible()
+  await expect(page.getByText('Il te manque 16 tomes.')).toBeVisible()
   await expect(page.getByText('Kana · 18 tomes')).toBeVisible()
   // And as a screen reader hears it - "2/18" is not enough.
-  await expect(page.getByText('2 tomes possédés sur 18')).toBeAttached()
+  await expect(page.getByText('2 tomes possédés sur 18').first()).toBeAttached()
+
+  // --- Out of edit mode, one edition is a line under the title
+  await page.getByRole('button', { name: 'Terminer' }).click()
+  await expect(page.getByText('Standard · Kana')).toBeVisible()
 
   // --- And elsewhere: Ma collection knows it too
   //

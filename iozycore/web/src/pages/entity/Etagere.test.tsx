@@ -10,7 +10,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Etagere } from './Etagere'
-import { coteDeLaCarte, dosParEtage, repartirEnEtages } from './etages'
+import { dosParEtage, formatEtagere, plageDeTomes, repartirEnEtages } from './etages'
 import type { VolumeAffiche } from './GrilleVolumes'
 
 function volume(numero: number, etat: 'possede' | 'manquant' | 'voulu'): VolumeAffiche {
@@ -65,8 +65,7 @@ describe('the shelf', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tome 2, manquant' }))
     fireEvent.click(screen.getByRole('button', { name: 'Tome 5, possédé' }), { shiftKey: true })
     const barre = screen.getByRole('toolbar', { name: 'Tomes choisis' })
-    expect(barre).toHaveTextContent('4 tomes')
-    expect(barre).toHaveTextContent('1 possédé · 2 manquants · 1 envie')
+    expect(barre).toHaveTextContent('Tomes 2 à 5')
     fireEvent.click(screen.getByRole('button', { name: "J'ai ces 3 tomes" }))
     expect(onJeLesAi).toHaveBeenCalledWith(['2', '3', '4'])
     expect(onJeLAi).not.toHaveBeenCalled()
@@ -76,25 +75,34 @@ describe('the shelf', () => {
     render(<Etagere volumes={VOLUMES} mode="navigation" onJeLAi={vi.fn()} onJeLeVeux={vi.fn()} onRetirer={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Tome 1, possédé' }))
     fireEvent.click(screen.getByRole('button', { name: 'Tome 2, manquant' }))
-    // Two picked, but "Je l'ai" concerns one volume, and the trash the other.
+    // Two picked: the gestures act on the missing one, and removing waits for a pick of owned volumes.
     expect(screen.getByRole('button', { name: "J'ai le tome 2" })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Je veux le tome 2' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Retirer le tome 1 de ma collection' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Retirer le tome 1/ })).not.toBeInTheDocument()
   })
 
-  it('removing an owned volume takes two gestures, and "Garder" undoes the first', () => {
+  it('removing an owned volume takes two gestures, and "Reposer" undoes the first', () => {
     const onRetirer = vi.fn()
     render(<Etagere volumes={VOLUMES} mode="navigation" onRetirer={onRetirer} />)
     fireEvent.click(screen.getByRole('button', { name: 'Tome 1, possédé' }))
     fireEvent.click(screen.getByRole('button', { name: 'Retirer le tome 1 de ma collection' }))
     expect(onRetirer).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Garder le tome 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reposer les tomes' }))
     expect(screen.queryByRole('button', { name: 'Confirmer le retrait du tome 1' })).not.toBeInTheDocument()
-    // Kept: still picked, the bar still there.
-    expect(screen.getByRole('button', { name: 'Tome 1, possédé' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Tome 1, possédé' })).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(screen.getByRole('button', { name: 'Tome 1, possédé' }))
     fireEvent.click(screen.getByRole('button', { name: 'Retirer le tome 1 de ma collection' }))
     fireEvent.click(screen.getByRole('button', { name: 'Confirmer le retrait du tome 1' }))
     expect(onRetirer).toHaveBeenCalledWith('1')
+  })
+
+  it('says how to pick at rest, and only previews a volume under the pointer', () => {
+    render(<Etagere volumes={VOLUMES} mode="navigation" onJeLAi={vi.fn()} />)
+    expect(screen.getByText('Clique un tome, Maj+clic pour une plage.')).toBeInTheDocument()
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Tome 2, manquant' }))
+    expect(screen.getByText(/· manquant/)).toBeInTheDocument()
+    // Nothing was picked by hovering.
+    expect(screen.queryByRole('toolbar')).not.toBeInTheDocument()
   })
 
   it('Escape puts every volume back', () => {
@@ -117,12 +125,12 @@ describe('the shelf', () => {
 })
 
 describe('the shelves', () => {
-  it('hold as many spines as the width allows, never fewer than eight', () => {
-    expect(dosParEtage(1232)).toBe(46)
-    expect(dosParEtage(358)).toBe(12)
-    expect(dosParEtage(120)).toBe(8)
+  it('hold as many spines as the width allows, with a floor for a narrow screen', () => {
+    expect(dosParEtage(880, 32)).toBe(25)
+    expect(dosParEtage(358, 22)).toBe(14)
+    expect(dosParEtage(100, 32)).toBe(6)
     // Unmeasured: one wide shelf rather than a tower of short ones.
-    expect(dosParEtage(0)).toBe(48)
+    expect(dosParEtage(0, 32)).toBe(48)
   })
 
   it('split the volumes in reading order, the last shelf shorter', () => {
@@ -134,14 +142,47 @@ describe('the shelves', () => {
     expect(repartirEnEtages([], 46)).toEqual([])
   })
 
-  it('open a cover where it fits: centered, or towards the inside near an end', () => {
-    expect(coteDeLaCarte(0, 12)).toBe('gauche')
-    expect(coteDeLaCarte(3, 12)).toBe('gauche')
-    expect(coteDeLaCarte(5, 12)).toBe('centre')
-    expect(coteDeLaCarte(8, 12)).toBe('droite')
-    expect(coteDeLaCarte(11, 12)).toBe('droite')
-    // The last, short shelf has room on its right: nothing opens to the left of the page.
-    expect(coteDeLaCarte(1, 2)).toBe('gauche')
-    expect(coteDeLaCarte(7, 8)).toBe('gauche')
+})
+
+// A flat colored bar read as a chart. Owned without its own cover, a volume is
+// cut from the cover of the series, and its number is the only thing that tells
+// it from the next one.
+describe('an owned volume without a cover', () => {
+  it('is cut from the cover of the series and shows its number', () => {
+    const { container } = render(<Etagere volumes={[volume(7, 'possede')]} mode="navigation" jaquetteSerie="https://x/serie.jpg" />)
+
+    expect(container.querySelector('img[src="https://x/serie.jpg"]')).not.toBeNull()
+    expect(screen.getAllByText('7').length).toBeGreaterThan(0)
+  })
+
+  it('keeps its own cover when it has one', () => {
+    const avecJaquette = { ...volume(7, 'possede'), jaquetteUrl: 'https://x/tome.jpg' }
+    const { container } = render(<Etagere volumes={[avecJaquette]} mode="navigation" jaquetteSerie="https://x/serie.jpg" />)
+
+    expect(container.querySelector('img[src="https://x/serie.jpg"]')).toBeNull()
+  })
+
+  it('never lends the cover to a missing volume: it is a hole', () => {
+    const { container } = render(<Etagere volumes={[volume(7, 'manquant')]} mode="navigation" jaquetteSerie="https://x/serie.jpg" />)
+
+    expect(container.querySelector('img[src="https://x/serie.jpg"]')).toBeNull()
   })
 })
+
+describe('the size of a spine', () => {
+  it('is the same for every series, and smaller on a phone', () => {
+    expect(formatEtagere(880)).toEqual({ dos: 32, hauteur: 196 })
+    expect(formatEtagere(358)).toEqual({ dos: 22, hauteur: 150 })
+  })
+})
+
+describe('plageDeTomes', () => {
+  it('says the volumes as a person would', () => {
+    expect(plageDeTomes([3])).toBe('3')
+    expect(plageDeTomes([5, 3, 4])).toBe('3 à 5')
+    expect(plageDeTomes([1, 3, 4, 8])).toBe('1, 3 à 4 et 8')
+  })
+})
+
+// The cover hid the volumes the mouse was heading to: moving left along a shelf,
+// the next spines were behind the preview.

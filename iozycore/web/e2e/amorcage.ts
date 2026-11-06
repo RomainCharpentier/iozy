@@ -27,7 +27,7 @@ import type { Page } from '@playwright/test'
 /** The identifier of the "Manga" type, set by the V1 migration. */
 export const TYPE_MANGA = '00000000-0000-0000-0000-000000000001'
 
-async function jetonCsrf(page: Page): Promise<string> {
+export async function jetonCsrf(page: Page): Promise<string> {
   const cookies = await page.context().cookies()
   return cookies.find((c) => c.name === 'XSRF-TOKEN')?.value ?? ''
 }

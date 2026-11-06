@@ -9,13 +9,14 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/coverImage'
 import { creatorFrom } from '@/common/lib/creatorInfo'
 import { avecDetails, identifiantsSource } from '@/pages/entity/rechargerSource'
-import { isSeriesOngoing } from '@/pages/entity/seriesInfo'
+import { isSeriesOngoing, statutAffiche } from '@/pages/entity/seriesInfo'
 import { useTeinteJaquette } from '@/pages/entity/useTeinteJaquette'
 import { resolvePrimaryTitle, useTitleComposition } from '@/common/lib/titleLanguage'
 import { gradientFor } from '@/common/theme/gradient'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { ColonneSource, InspecteurFiche, RangeeInspecteur } from '@/pages/entity/InspecteurFiche'
 import type { MetadataCandidateDto } from '@/common/types/api'
+import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import { FicheHero } from '@/pages/entity/FicheHero'
 import { retourDepuis } from '@/common/lib/retour'
 import { useCollecteParTome } from '@/common/lib/typeDeCollection'
@@ -142,8 +143,9 @@ export function ApercuOeuvrePage() {
     : {}
 
   const couvertureUrl = coverImageUrlFrom(attributs)
-  const teinte = useTeinteJaquette(couvertureUrl)
+  const { principale: teinte, seconde: teinteSeconde, connue: teinteConnue } = useTeinteJaquette(couvertureUrl)
   const ongoing = isSeriesOngoing(attributs)
+  const statut = statutAffiche(attributs)
   const startYear = typeof attributs.startYear === 'string' ? attributs.startYear : null
   const endYear = typeof attributs.endYear === 'string' ? attributs.endYear : null
 
@@ -185,25 +187,22 @@ export function ApercuOeuvrePage() {
       </Link>
 
       <FicheHero
-        colleEnHaut={false}
+        aspectClassName={getEntityTypeVisual(type).aspectClassName}
+        grandeJaquette={!parTome}
         teinte={teinte}
+        teinteSeconde={teinteSeconde}
+        teinteConnue={teinteConnue}
         kicker={type?.label ?? null}
         titre={titre}
         auteur={creatorFrom(attributs)}
-        statut={
-          ongoing === null
-            ? null
-            : ongoing
-              ? { libelle: 'En cours', couleur: 'var(--color-warning)' }
-              : { libelle: 'Terminée', couleur: 'var(--color-ok)' }
-        }
+        statut={statut}
         annees={startYear ? (endYear ? `${startYear} → ${endYear}` : ongoing ? `Depuis ${startYear}` : startYear) : null}
         couvertureUrl={couvertureUrl}
         repliCouverture={
           <div className="absolute inset-0" style={{ background: gradientFor(titre) }} aria-hidden="true" />
         }
         editions={proposition.cartesEditions}
-      />
+      >
 
       {rechercheQuery.isError && <ErrorBanner message={rechercheQuery.error.message} />}
 
@@ -236,8 +235,8 @@ export function ApercuOeuvrePage() {
                   {creatorFrom(attributs)}
                 </RangeeInspecteur>
               )}
-              {ongoing !== null && (
-                <RangeeInspecteur libelle="Statut">{ongoing ? 'En cours' : 'Terminée'}</RangeeInspecteur>
+              {statut && (
+                <RangeeInspecteur libelle="Statut">{statut.libelle}</RangeeInspecteur>
               )}
               {startYear && <RangeeInspecteur libelle="Année de début">{startYear}</RangeeInspecteur>}
             </div>
@@ -245,6 +244,7 @@ export function ApercuOeuvrePage() {
           source={<ColonneSource attributs={attributs} />}
         />
       </div>
+      </FicheHero>
     </>
   )
 }

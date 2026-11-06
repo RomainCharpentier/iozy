@@ -132,6 +132,11 @@ public class BggMetadataProvider implements MetadataProvider {
         if (!thing.designers().isEmpty()) {
             details.put("designers", String.join(", ", thing.designers()));
         }
+        // BGG lists the publishers of every translation; the first one is the
+        // original (checked on Catan, 7 Wonders, Wingspan and Azul on 2026-11-06).
+        if (!thing.publishers().isEmpty()) {
+            details.put("publisher", thing.publishers().get(0));
+        }
         return details;
     }
 

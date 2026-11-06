@@ -44,6 +44,7 @@ public class Ownership {
     private final LocalDate acquiredAt;
     private String note;
     private BigDecimal purchasePrice; // nullable: never guessed, see the class Javadoc
+    private String platform; // nullable: the console of this copy, never guessed
     private final List<DomainEvent> pendingEvents = new ArrayList<>();
 
     private Ownership(UUID id, UUID entityId, UUID variantId, UUID ownerId, OwnershipCondition condition,
@@ -121,6 +122,15 @@ public class Ownership {
 
     /** {@code null} erases the filled-in price (e.g. corrected entry) - never refused,
      * an Ownership can very well become "unknown price" on purpose. */
+    /** A blank value means "not said", so that a form cannot store an empty console. */
+    public void updatePlatform(String newPlatform) {
+        this.platform = newPlatform == null || newPlatform.isBlank() ? null : newPlatform.trim();
+    }
+
+    public Optional<String> platform() {
+        return Optional.ofNullable(platform);
+    }
+
     public void updatePurchasePrice(BigDecimal newPurchasePrice) {
         this.purchasePrice = newPurchasePrice;
     }

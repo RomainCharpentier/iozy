@@ -530,3 +530,285 @@ html:active-view-transition * {
     animation: none !important;
   }
 }
+
+/* My collection: one room per category (batch 202). A room carries the color
+   of its category in --u; a shelf gives its height in --h and its spine width
+   in --w, so that a change of view only changes two numbers. */
+.salle {
+  --marge-salle: 14px;
+  scroll-margin-top: 124px;
+  margin-bottom: 18px;
+  padding: 18px var(--marge-salle) 6px;
+  border-radius: 18px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--u) 20%, var(--color-surface)) 0%,
+    color-mix(in srgb, var(--u) 4%, var(--color-background)) 360px
+  );
+}
+.salle-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.salle-titre {
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+/* A shelf far from the screen is not rendered: 300 series cost what the screen
+   shows. The margins give the shadows and the lift of an object room, because
+   this containment also clips. */
+.salle-rangee {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  margin: -12px calc(var(--marge-salle) * -1) 14px;
+  padding: 12px var(--marge-salle) 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto calc(var(--h) + var(--tete, 0px) + 60px);
+}
+.salles-en-mouvement .salle-rangee {
+  content-visibility: visible;
+}
+.salle-planche {
+  position: absolute;
+  top: calc(var(--h) + var(--tete, 0px) + 12px);
+  left: var(--marge-salle);
+  right: var(--marge-salle);
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--u) 22%, var(--color-surface2));
+  border-top: 1px solid color-mix(in srgb, var(--u) 40%, var(--color-lineStrong));
+  box-shadow: 0 10px 18px -10px rgba(0, 0, 0, 0.55);
+}
+.salle-objet {
+  position: relative;
+  display: block;
+  flex: none;
+  min-width: 0;
+  text-align: left;
+}
+.salle-nom-console {
+  margin: 6px 0 12px;
+  color: var(--color-textPrimary);
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+.salle-lot {
+  flex: none;
+  min-width: 0;
+}
+.salle-editeur {
+  display: block;
+  height: var(--tete);
+  overflow: hidden;
+  color: var(--color-textDim);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.salle-objets {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: var(--h);
+}
+.salle-face {
+  position: relative;
+  flex: none;
+  height: var(--h);
+  margin-right: 3px;
+  overflow: hidden;
+  border-radius: 4px 4px 1px 1px;
+  box-shadow: 0 10px 26px -8px color-mix(in srgb, var(--u) 55%, transparent);
+  transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 280ms;
+}
+.salle-objet:hover .salle-face {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 32px -8px color-mix(in srgb, var(--u) 80%, transparent);
+}
+.salle-objet:hover .salle-dos {
+  transform: translateY(-3px);
+}
+.salle-objet-envie .salle-face {
+  opacity: 0.34;
+  filter: saturate(0.55);
+  box-shadow: none;
+}
+.salle-objet-envie:hover .salle-face {
+  opacity: 0.6;
+}
+.salle-coeur {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-background);
+  color: var(--color-accentText);
+}
+.salle-dos {
+  position: relative;
+  display: block;
+  flex: none;
+  width: var(--w);
+  height: var(--h);
+  overflow: hidden;
+  border-radius: 2px 2px 1px 1px;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.salle-repli {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 6px;
+  overflow: hidden;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.salle-dos-possede {
+  background: color-mix(in srgb, var(--u) 45%, var(--color-surface2));
+  box-shadow:
+    inset -1px 0 0 rgba(0, 0, 0, 0.28),
+    inset 1px 0 0 rgba(255, 255, 255, 0.12);
+}
+.salle-dos-manquant {
+  background: color-mix(in srgb, var(--u) 10%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-lineStrong);
+}
+.salle-dos-voulu {
+  background: var(--color-accentTint);
+  box-shadow: inset 0 0 0 2px var(--color-accentText);
+}
+/* The compact view: the bar that replaces the spines. */
+.salle-piste {
+  position: relative;
+  display: block;
+  height: 3px;
+  margin-top: 15px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-line);
+}
+.salle-piste-nue {
+  background: none;
+}
+.salle-piste i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--color-accent);
+}
+[data-affichage='compact'] .salle {
+  padding-bottom: 2px;
+  margin-bottom: 12px;
+}
+[data-affichage='compact'] .salle-face {
+  margin-right: 0;
+  border-radius: 3px 3px 1px 1px;
+}
+/* The plank stands under the covers: without a title, the shelf must make room
+   for it, or its containment would clip it. */
+[data-affichage='compact'] .salle-rangee {
+  margin-bottom: 8px;
+  padding-bottom: 16px;
+}
+[data-affichage='compact'] .salle-consoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+}
+[data-affichage='compact'] .salle-console {
+  flex: none;
+  max-width: 100%;
+}
+[data-affichage='compact'] .salle-nom-console {
+  margin: 0 0 6px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+[data-affichage='compact'] .salle-editeur {
+  font-size: 11.5px;
+}
+[data-affichage='compact'] .salle-titre {
+  font-size: 22px;
+}
+.salle-barre {
+  position: sticky;
+  top: 56px;
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 0;
+  overflow-x: auto;
+  background: var(--color-background);
+}
+.salle-categorie {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  color: var(--color-textDim);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 250ms, color 250ms;
+}
+.salle-categorie[aria-current='true'] {
+  color: var(--color-textPrimary);
+  background: color-mix(in srgb, var(--u) 22%, var(--color-surface));
+}
+::view-transition-group(vol-jaquette) {
+  z-index: 3;
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+::view-transition-old(vol-jaquette),
+::view-transition-new(vol-jaquette) {
+  height: 100%;
+  object-fit: cover;
+}
+@media (min-width: 768px) {
+  .salle {
+    --marge-salle: 26px;
+    scroll-margin-top: 132px;
+    padding-top: 26px;
+    padding-bottom: 12px;
+    border-radius: 24px;
+  }
+  .salle-titre {
+    font-size: 34px;
+  }
+  .salle-barre {
+    top: 64px;
+  }
+}
+
+/* The background of a detail page: the colors of its cover, opening from the top
+   corners and fading into the page in both themes (the color is mixed with the
+   page, so the text above it stays readable). */
+.fiche-teinte {
+  --mix: 34%;
+  background:
+    radial-gradient(90% 110% at 10% 0%, color-mix(in srgb, var(--t1) var(--mix), var(--color-background)) 0%, transparent 70%),
+    radial-gradient(70% 90% at 90% 0%, color-mix(in srgb, var(--t2) calc(var(--mix) * 0.8), var(--color-background)) 0%, transparent 72%);
+}
+[data-theme='dark'] .fiche-teinte {
+  --mix: 40%;
+}

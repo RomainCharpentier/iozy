@@ -76,7 +76,7 @@ class ExportCsvWriterTest {
     void a_value_containing_a_comma_or_quote_is_escaped_per_rfc4180() {
         ExportDocument.OwnershipExport ownership = new ExportDocument.OwnershipExport(
                 UUID.randomUUID(), UUID.randomUUID(), "Death Note", null, null, "NEW", "OWNED",
-                LocalDate.now(), "Acheté \"pas cher\", en lot", new BigDecimal("6.90"));
+                LocalDate.now(), "Acheté \"pas cher\", en lot", new BigDecimal("6.90"), null);
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(), List.of(ownership), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), List.of(),

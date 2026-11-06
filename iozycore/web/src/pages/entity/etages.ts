@@ -1,33 +1,24 @@
-/** The width of a spine, the gap between two, and the margin inside a shelf (see Etagere). */
-export const LARGEUR_DOS = 22
-export const ECART_DOS = 4
-export const MARGE_ETAGE = 18
+/** The gap between two spines, and the margin inside a shelf (see Etagere). */
+export const ECART_DOS = 2
+export const MARGE_ETAGE = 6
+
+/** Under this width, the shelf has the sizes of a phone. */
+const LARGEUR_TELEPHONE = 480
+
+/** The size of a spine: the same for every series, so that a shelf reads like a shelf. */
+export function formatEtagere(largeur: number): { dos: number; hauteur: number } {
+  return largeur > 0 && largeur <= LARGEUR_TELEPHONE ? { dos: 22, hauteur: 150 } : { dos: 32, hauteur: 196 }
+}
 
 /**
  * How many spines one shelf of this width holds.
  *
- * <p>Unmeasured (the first paint, the test runner): one wide shelf. The
- * floor of eight keeps a very narrow screen from making one shelf per
- * volume.
+ * <p>Unmeasured (the first paint, the test runner): one wide shelf. The floor
+ * keeps a very narrow screen from making one shelf per volume.
  */
-export function dosParEtage(largeur: number): number {
+export function dosParEtage(largeur: number, dos: number): number {
   if (largeur <= 0) return 48
-  return Math.max(8, Math.floor((largeur - 2 * MARGE_ETAGE + ECART_DOS) / (LARGEUR_DOS + ECART_DOS)))
-}
-
-/**
- * Where the cover opens, relative to its spine: centered, unless the spine
- * sits near an end of the shelf - the cover (112 px) and its pill would
- * then stick out of the page, and a hidden element that sticks out still
- * widens the page (measured: 409 px for 390 on a phone).
- */
-export function coteDeLaCarte(index: number, longueur: number): 'gauche' | 'centre' | 'droite' {
-  // A short shelf (the last one) has room on its right: everything opens
-  // to the right of its spine. Aligning its last spines to the right made
-  // their cover start before the page (measured: 46 px to the left).
-  if (index < 4 || longueur <= 8) return 'gauche'
-  if (index >= longueur - 4) return 'droite'
-  return 'centre'
+  return Math.max(6, Math.floor((largeur - 2 * MARGE_ETAGE + ECART_DOS) / (dos + ECART_DOS)))
 }
 
 /** The volumes, shelf by shelf, in reading order. */
@@ -37,4 +28,24 @@ export function repartirEnEtages<T>(volumes: T[], parEtage: number): T[][] {
     etages.push(volumes.slice(debut, debut + parEtage))
   }
   return etages
+}
+
+/** A spine cut from the cover of the series is taken at another place for each number. */
+export function positionTranche(numero: number, aSaJaquette: boolean): number {
+  return aSaJaquette ? 15 : 22 + (numero * 17) % 56
+}
+
+/** "3", "3 à 5", "1, 3 à 5 et 8": what a person says of these volumes. */
+export function plageDeTomes(numeros: number[]): string {
+  const tries = [...new Set(numeros)].sort((a, b) => a - b)
+  const morceaux: string[] = []
+  for (let i = 0; i < tries.length; i++) {
+    let fin = i
+    while (tries[fin + 1] === tries[fin] + 1) fin++
+    morceaux.push(i === fin ? `${tries[i]}` : `${tries[i]} à ${tries[fin]}`)
+    i = fin
+  }
+  return morceaux.length > 1
+    ? `${morceaux.slice(0, -1).join(', ')} et ${morceaux[morceaux.length - 1]}`
+    : (morceaux[0] ?? '')
 }

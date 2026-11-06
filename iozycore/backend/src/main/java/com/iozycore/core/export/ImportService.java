@@ -400,6 +400,7 @@ public class ImportService {
                 }
                 Ownership creee = Ownership.acquire(entityId, variantId, condition, o.acquiredAt(), o.note());
                 creee.updatePurchasePrice(o.purchasePrice());
+                creee.updatePlatform(o.platform());
                 if (statut == OwnershipStatus.SOLD) {
                     creee.markSold();
                 } else if (statut == OwnershipStatus.LOST) {

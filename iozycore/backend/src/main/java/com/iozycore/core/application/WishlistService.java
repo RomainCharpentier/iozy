@@ -66,6 +66,8 @@ public class WishlistService {
 
         if (variantId != null) {
             refuseIfAlreadyOwned(variantId);
+        } else {
+            refuseIfWorkAlreadyOwned(entityId);
         }
         // One state at a time (Owned / Followed / Wish): wanting the WHOLE work
         // means no longer following it. Wanting a volume says nothing about its series.
@@ -158,6 +160,22 @@ public class WishlistService {
         if (owned) {
             throw new IllegalStateException(
                     "Ce tome est déjà dans ta collection - « je le veux » n'a plus lieu d'être");
+        }
+    }
+
+    /**
+     * The same rule for a WHOLE work (a type without volumes, or a series wanted
+     * as a whole): owning any of it means the wish has no object. Until the
+     * desktop pass of 2026-11-01 only volumes were checked, and a board game
+     * could be owned and wanted at once - shown as "Possédé" under the Envies
+     * filter. The migration V38 removes the entries created before this rule.
+     */
+    private void refuseIfWorkAlreadyOwned(UUID entityId) {
+        boolean owned = ownershipRepository.findAll().stream()
+                .anyMatch(o -> o.status() == OwnershipStatus.OWNED && o.entityId().equals(entityId));
+        if (owned) {
+            throw new IllegalStateException(
+                    "Cette œuvre est déjà dans ta collection - « je la veux » n'a plus lieu d'être");
         }
     }
 

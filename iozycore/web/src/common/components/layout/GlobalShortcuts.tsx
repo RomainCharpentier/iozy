@@ -51,7 +51,7 @@ import { useAuth } from '@/common/hooks/useAuth'
  * <h2>The "Envies" heart was removed (2026-08-28)</h2>
  * It no longer led to a screen of its own since Batch 38: the wishes are a
  * READING of Ma collection, and the heart only set the filter before
- * navigating there. Yet this page already carries "Tout / Possédés / Envies" in its
+ * navigating there. Yet this page already carries "Tout / À compléter / Suivies / Envies" in its
  * views bar: the shortcut doubled a visible button, permanently, on
  * all screens. The count is not lost: the views bar shows
  * "Envies · N" where the number is read together with what it counts.

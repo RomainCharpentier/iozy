@@ -5,6 +5,7 @@ import { quickAdd } from '@/common/api/entities'
 import { volumeKey } from './volumeKey'
 import { useTomesProposes } from './useTomesProposes'
 import { useCollecteParTome } from '@/common/lib/typeDeCollection'
+import { consolesDeLOeuvre } from '@/common/lib/consoles'
 import { AjoutDirect } from './AjoutDirect'
 import { GrilleVolumes, type FiltreVolumes, type VolumeAffiche } from './GrilleVolumes'
 import { CartesEditions } from './CartesEditions'
@@ -110,7 +111,7 @@ export function usePropositionTomes({
   })
 
   const ajout = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (console?: string) => {
       let identifiant = entityId
 
       // A work without volumes is added with a single call, without volumeNumber:
@@ -125,6 +126,7 @@ export function usePropositionTomes({
           // required in the database and has no "not filled in" value.
           condition: 'NEW',
           attributes: attributs,
+          platform: console,
         })
         return resultat.entityId
       }
@@ -163,10 +165,11 @@ export function usePropositionTomes({
       section: (
         <section className="flex flex-col gap-4 pt-5">
           <AjoutDirect
-            onAjouter={() => ajout.mutate()}
+            onAjouter={(console) => ajout.mutate(console)}
             enCours={ajout.isPending}
             attente={attributsEnCours}
             erreur={ajout.isError ? ajout.error.message : null}
+            consoles={consolesDeLOeuvre(attributs)}
           />
         </section>
       ),

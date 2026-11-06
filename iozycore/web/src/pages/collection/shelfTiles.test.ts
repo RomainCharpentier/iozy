@@ -14,11 +14,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
-  aplatirEnElements,
   buildShelfTile,
   correspondAuFiltre,
   etatDeLOeuvre,
-  groupByEntityType,
   matchesCompletionFilter,
   ordonnerLesTypes,
 } from './shelfTiles'
@@ -108,7 +106,7 @@ describe('matchesCompletionFilter', () => {
   })
 })
 
-describe('ordonnerLesTypes and groupByEntityType', () => {
+describe('ordonnerLesTypes', () => {
   const manga = typeDeCollection('MANGA')
   const jeuVideo = typeDeCollection('VIDEO_GAME')
   const vinyle = typeDeCollection('VINYL')
@@ -134,21 +132,6 @@ describe('ordonnerLesTypes and groupByEntityType', () => {
     expect(ordonnerLesTypes([manga, vinyle], titres).map((t) => t.label)).toEqual(attendu)
   })
 
-  it('a type created later is placed like the others, never hidden', () => {
-    const serie = oeuvre({ titre: 'Berserk', typeId: manga.id, tomes: [tome(1)] })
-    const disque = oeuvre({ titre: 'Abbey Road', typeId: vinyle.id, tomes: [] })
-    const autre = oeuvre({ titre: 'Rumours', typeId: vinyle.id, tomes: [] })
-    const sections = groupByEntityType([serie, disque, autre], [manga, vinyle], AUCUNE_PROGRESSION)
-
-    expect(sections.map((s) => s.entityType.code)).toEqual(['VINYL', 'MANGA'])
-  })
-
-  it('does not open a rail for a type without any title', () => {
-    const serie = oeuvre({ titre: 'Berserk', typeId: manga.id, tomes: [tome(1)] })
-    const sections = groupByEntityType([serie], [manga, jeuVideo], AUCUNE_PROGRESSION)
-
-    expect(sections.map((s) => s.entityType.code)).toEqual(['MANGA'])
-  })
 })
 
 describe('etatDeLOeuvre and correspondAuFiltre', () => {
@@ -159,7 +142,7 @@ describe('etatDeLOeuvre and correspondAuFiltre', () => {
 
     expect(etat).toEqual({ possede: false, voulu: true, suivi: false })
     expect(correspondAuFiltre(etat, 'envies')).toBe(true)
-    expect(correspondAuFiltre(etat, 'possedes')).toBe(false)
+    expect(correspondAuFiltre(etat, 'completer', true)).toBe(false)
     expect(correspondAuFiltre(etat, 'tout')).toBe(true)
   })
 
@@ -168,7 +151,8 @@ describe('etatDeLOeuvre and correspondAuFiltre', () => {
     const etat = etatDeLOeuvre(serie, possessions, ownedVariantIds(possessions), new Set(['tome-2']), new Set())
 
     expect(etat).toEqual({ possede: true, voulu: true, suivi: false })
-    expect(correspondAuFiltre(etat, 'possedes')).toBe(true)
+    expect(correspondAuFiltre(etat, 'completer', true)).toBe(true)
+    expect(correspondAuFiltre(etat, 'completer', false)).toBe(false)
     expect(correspondAuFiltre(etat, 'envies')).toBe(true)
   })
 
@@ -187,59 +171,7 @@ describe('etatDeLOeuvre and correspondAuFiltre', () => {
     expect(correspondAuFiltre(etat, 'suivies')).toBe(true)
     expect(correspondAuFiltre(etat, 'tout')).toBe(true)
     expect(correspondAuFiltre(etat, 'envies')).toBe(false)
-    expect(correspondAuFiltre(etat, 'possedes')).toBe(false)
+    expect(correspondAuFiltre(etat, 'completer', true)).toBe(false)
   })
 })
 
-describe('aplatirEnElements', () => {
-  const serie = oeuvre({ titre: 'Berserk', tomes: [tome(1), tome(2), tome(3)] })
-  const possessions = [possession({ entityId: serie.id, variantId: 'tome-1' })]
-  const contexte = {
-    ownerships: possessions,
-    owned: ownedVariantIds(possessions),
-    tomesVoulus: new Set(['tome-3']),
-    oeuvresVoulues: new Set<string>(),
-    depuisTome: () => '2026-02-01',
-    depuisOeuvre: () => '2026-02-01',
-  }
-
-  it('only returns the volumes that have a state: neither owned nor wished does not exist here', () => {
-    const tuiles = aplatirEnElements([serie], 'tout', contexte)
-
-    expect(tuiles.map((t) => t.key)).toEqual(['tome-1', 'tome-3'])
-    expect(tuiles.map((t) => t.etat)).toEqual(['possede', 'voulu'])
-  })
-
-  it('tells a wished volume from an owned volume under "Tout"', () => {
-    const [possede, voulu] = aplatirEnElements([serie], 'tout', contexte)
-
-    expect(possede.signal).toBeUndefined()
-    expect(voulu.signal).toBe('Je le veux')
-    expect(voulu.subtitle).toBe('Tome 3')
-  })
-
-  it('follows the current filter', () => {
-    expect(aplatirEnElements([serie], 'possedes', contexte).map((t) => t.key)).toEqual(['tome-1'])
-    expect(aplatirEnElements([serie], 'envies', contexte).map((t) => t.key)).toEqual(['tome-3'])
-  })
-
-  it('a work without volumes gives one single tile - it IS already the object', () => {
-    const jeu = oeuvre({ titre: 'Hades', typeId: 'type-video-game' })
-    const possessionsJeu = [possession({ entityId: jeu.id })]
-
-    const tuiles = aplatirEnElements([jeu], 'tout', {
-      ...contexte,
-      ownerships: possessionsJeu,
-      owned: new Set(),
-    })
-
-    expect(tuiles).toHaveLength(1)
-    expect(tuiles[0]).toMatchObject({ key: jeu.id, etat: 'possede', subtitle: 'Possédé' })
-  })
-
-  it('gives the volume a gradient of its own, not the one of the series', () => {
-    const [premier, second] = aplatirEnElements([serie], 'tout', contexte)
-
-    expect(premier.gradientKey).not.toBe(second.gradientKey)
-  })
-})

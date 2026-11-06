@@ -29,6 +29,9 @@ export interface Retour {
   to: string
   /** What the link announces. The name of the screen, never "Retour" alone. */
   libelle: string
+  /** Where the list was scrolled, and the work that was opened: going back lands there. */
+  position?: number
+  depuisOeuvre?: string
 }
 
 export interface EtatRetour {
