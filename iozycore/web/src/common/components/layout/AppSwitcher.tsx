@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { ChevronDown } from 'lucide-react'
 import iozycoreMark from 'iozykit/brand/iozycore.svg'
-import iozyplayMark from 'iozykit/brand/iozyplay.svg'
+import iozytestMark from 'iozykit/brand/iozytest.svg'
 
 /**
- * The brand in the header opens the other Iozy apps: this app, IozyPlay, and a last
+ * The brand in the header opens the other Iozy apps: this app, IozyTest, and a last
  * link to the home of the site, which shows every app. Only when the app lives under a prefix (/core/ next to the
  * others): alone at the root (dev, the e2e stack), the brand stays a link to
  * the home of the app, and nothing here exists. A plain link, not a router
@@ -13,7 +13,7 @@ import iozyplayMark from 'iozykit/brand/iozyplay.svg'
  * <p>A <details>, so the menu opens and closes without a script; the effect
  * only closes it on a click elsewhere or on Escape. The styles are the
  * charter's (`.iozy-apps`, iozykit/css/components.css), the same in
- * IozyPlay.
+ * IozyTest.
  */
 export function AppSwitcher({ compact = false }: { compact?: boolean }) {
   const details = useRef<HTMLDetailsElement>(null)
@@ -69,11 +69,11 @@ export function AppSwitcher({ compact = false }: { compact?: boolean }) {
             <small>Ta collection</small>
           </span>
         </a>
-        <a className="iozy-apps__app" href="/play/">
-          <img src={iozyplayMark} alt="" />
+        <a className="iozy-apps__app" href="/test/">
+          <img src={iozytestMark} alt="" />
           <span>
             <b>
-              Iozy<span className="text-accent">Play</span>
+              Iozy<span className="text-accent">Test</span>
             </b>
             <small>Le blindtest</small>
           </span>
