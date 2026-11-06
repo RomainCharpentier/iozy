@@ -29,6 +29,7 @@ const CLASSE_JAQUETTE =
 export function FicheHero({
   teinte,
   teinteSeconde = teinte,
+  teinteConnue = true,
   kicker,
   titre,
   auteur,
@@ -53,6 +54,8 @@ export function FicheHero({
   teinte: [number, number, number]
   /** A second color of the cover, for the other side of the band. */
   teinteSeconde?: [number, number, number]
+  /** False until the cover has answered: no color rather than a wrong one. */
+  teinteConnue?: boolean
   /** The collection type in small caps above the title. */
   kicker: string | null
   titre: string
@@ -121,8 +124,12 @@ export function FicheHero({
       <div
         aria-hidden="true"
         data-teinte-fiche=""
-        className="pointer-events-none absolute inset-x-0 -top-[68px] h-[760px] opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)] [[data-theme=dark]_&]:opacity-40"
-        style={{ background: `linear-gradient(90deg, ${tonDe(teinte, 100, 0.05)}, ${tonDe(teinteSeconde, 100, 0.05)})` }}
+        className={`fiche-teinte pointer-events-none absolute inset-x-0 -top-[68px] h-[760px] transition-opacity duration-300 ${
+          teinteConnue ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={
+          { '--t1': `rgb(${teinte.join(' ')})`, '--t2': `rgb(${teinteSeconde.join(' ')})` } as React.CSSProperties
+        }
       />
 
       <div

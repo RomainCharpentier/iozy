@@ -417,7 +417,7 @@ export function EntityDetailPage() {
   const entityType = entityTypesQuery.data?.find((t) => t.id === entity?.entityTypeId)
   const isManga = entityType?.code === 'MANGA'
   const couvertureUrl = entity ? coverImageUrlFrom(entity.attributes) : null
-  const { principale: teinte, seconde: teinteSeconde } = useTeinteJaquette(couvertureUrl)
+  const { principale: teinte, seconde: teinteSeconde, connue: teinteConnue } = useTeinteJaquette(couvertureUrl)
 
   /**
    * "X volumes owned out of Y", asked from the server.
@@ -687,6 +687,7 @@ export function EntityDetailPage() {
         }
         teinte={teinte}
         teinteSeconde={teinteSeconde}
+        teinteConnue={teinteConnue}
         kicker={null}
         titre={entity.title}
         auteur={avecTomes || modeEdition ? auteur : null}

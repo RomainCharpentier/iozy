@@ -143,7 +143,7 @@ export function ApercuOeuvrePage() {
     : {}
 
   const couvertureUrl = coverImageUrlFrom(attributs)
-  const { principale: teinte, seconde: teinteSeconde } = useTeinteJaquette(couvertureUrl)
+  const { principale: teinte, seconde: teinteSeconde, connue: teinteConnue } = useTeinteJaquette(couvertureUrl)
   const ongoing = isSeriesOngoing(attributs)
   const statut = statutAffiche(attributs)
   const startYear = typeof attributs.startYear === 'string' ? attributs.startYear : null
@@ -191,6 +191,7 @@ export function ApercuOeuvrePage() {
         grandeJaquette={!parTome}
         teinte={teinte}
         teinteSeconde={teinteSeconde}
+        teinteConnue={teinteConnue}
         kicker={type?.label ?? null}
         titre={titre}
         auteur={creatorFrom(attributs)}

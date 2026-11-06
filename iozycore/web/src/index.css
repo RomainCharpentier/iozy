@@ -799,3 +799,16 @@ html:active-view-transition * {
     top: 64px;
   }
 }
+
+/* The background of a detail page: the colors of its cover, opening from the top
+   corners and fading into the page in both themes (the color is mixed with the
+   page, so the text above it stays readable). */
+.fiche-teinte {
+  --mix: 34%;
+  background:
+    radial-gradient(90% 110% at 10% 0%, color-mix(in srgb, var(--t1) var(--mix), var(--color-background)) 0%, transparent 70%),
+    radial-gradient(70% 90% at 90% 0%, color-mix(in srgb, var(--t2) calc(var(--mix) * 0.8), var(--color-background)) 0%, transparent 72%);
+}
+[data-theme='dark'] .fiche-teinte {
+  --mix: 40%;
+}
