@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, mergeVariantAttributes, quickAdd, renameEntity } from '@/common/api/entities'
@@ -34,7 +34,6 @@ import { BoutonEnviesHero, BoutonSuivreHero, FicheHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
 import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
 import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeDateDeSortie, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
-import { RELEASE_DATE_ATTRIBUTE_KEY } from '@/common/lib/releaseDate'
 import { CLES_SOURCE, libelleDe, useBrouillonInspecteur } from './useBrouillonInspecteur'
 import { AideFlottante } from './AideFlottante'
 import { ReponseAssistant, ReponseCatalogue, type QuestionAssistant } from './AssistantSection'
@@ -55,6 +54,12 @@ import { consolesDeLOeuvre } from '@/common/lib/consoles'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import { naviguerAvecVol } from '@/common/lib/volJaquette'
 import { CompteTomes, FaitsFiche } from './FaitsFiche'
+import { AjoutDirect } from './AjoutDirect'
+import { BasFiche } from './BasFiche'
+import { animerEntreeFiche } from './entreeFiche'
+import { plageDeTomes } from './etages'
+import { RELEASE_DATE_ATTRIBUTE_KEY } from '@/common/lib/releaseDate'
+import type { QuickAddResponse } from '@/common/types/api'
 import { faitsDeLOeuvre, type Fait } from './faitsDeLOeuvre'
 import { ConsoleExemplaire } from './ConsoleExemplaire'
 
@@ -165,6 +170,8 @@ export function EntityDetailPage() {
       condition?: string
       acquiredAt?: string
       purchasePrice?: number
+      /** Called as soon as the copy exists: the cover that follows can take thirty seconds. */
+      quandEcrit?: (resultat: QuickAddResponse) => void
     }) => {
       const resultat = await quickAdd({
         entityTypeId: tome.entityTypeId,
@@ -181,6 +188,7 @@ export function EntityDetailPage() {
       // to thirty seconds depending on their mood - the tile stayed "missing"
       // all that time, and the E2E flow measured it (2026-09-05).
       invaliderApresPossession(queryClient)
+      tome.quandEcrit?.(resultat)
 
       // The cover of the volume, searched right away - and without asking anything.
       //
@@ -273,6 +281,15 @@ export function EntityDetailPage() {
             purchasePrice: premier.purchasePrice ?? undefined,
           }),
       })
+    },
+  })
+
+  const ajoutOeuvre = useMutation({
+    mutationFn: (console?: string) =>
+      quickAdd({ entityTypeId: entity!.entityTypeId, title: entity!.title, condition: 'NEW', platform: console }),
+    onSuccess: () => {
+      invaliderApresPossession(queryClient)
+      toast(`${entity?.title} ajouté`)
     },
   })
 
@@ -425,6 +442,15 @@ export function EntityDetailPage() {
   })
 
   const groupes = isManga ? (progressQuery.data?.editions ?? []) : []
+
+  // Arriving from a shelf, once the volumes are there to stand up.
+  const entreeJouee = useRef(false)
+  const pretePourEntree = entityQuery.isSuccess && entityTypesQuery.isSuccess && (!isManga || progressQuery.isSuccess)
+  useEffect(() => {
+    if (entreeJouee.current || !retour?.depuisOeuvre || !pretePourEntree) return
+    entreeJouee.current = true
+    animerEntreeFiche()
+  }, [retour?.depuisOeuvre, pretePourEntree])
   const editionSuivie = followedQuery.data?.[0]?.editionName ?? null
   // The edition opened by default is the one being FOLLOWED - this is the whole point
   // of having persisted it. Failing that, the first of the catalog.
@@ -517,9 +543,6 @@ export function EntityDetailPage() {
     })),
     ...faitsDeLOeuvre(entityType?.code, entity.attributes),
   ]
-  const persoVide =
-    generalRank === null && meilleureNote === null && !remarques && experiences.length === 0 && entity.tagIds.length === 0
-
   /**
    * A single "Éditer" for the whole page (user request of
    * 2026-09-04): it opens the personal editors - ranking, rating and
@@ -599,6 +622,30 @@ export function EntityDetailPage() {
    * and are cataloged nowhere. It is the backend that makes them exist
    * along the way (see TomeResolver), without ever creating an ownership.
    */
+  function ajouterUnTome(numero: number) {
+    if (!entity) return
+    ajoutTome.mutate({
+      entityTypeId: entity.entityTypeId,
+      titre: entity.title,
+      numero,
+      edition: groupeActif?.editionName || undefined,
+      quandEcrit: (resultat) =>
+        toast(`Tome ${numero} ajouté`, {
+          label: 'Annuler',
+          onAction: () => void annulerAjout(resultat.variantId ? [resultat.variantId] : []),
+        }),
+    })
+  }
+
+  /** Undoing an add: the copies were just created, so nothing is lost with them. */
+  async function annulerAjout(variantes: string[]) {
+    const copies = await listOwnerships(entityId)
+    for (const copie of copies) {
+      if (copie.variantId && variantes.includes(copie.variantId)) await deleteOwnership(copie.id)
+    }
+    invaliderApresPossession(queryClient)
+  }
+
   function basculerEnvieDuTome(numero: number) {
     const tuile = tuiles.find((t) => t.volumeNumber === numero)
     const entree = tuile?.variant ? wishlist.entryForVariant(tuile.variant.id) : undefined
@@ -640,7 +687,7 @@ export function EntityDetailPage() {
         }
         teinte={teinte}
         teinteSeconde={teinteSeconde}
-        kicker={entityType?.label ?? null}
+        kicker={null}
         titre={entity.title}
         auteur={avecTomes || modeEdition ? auteur : null}
         statut={statut}
@@ -675,7 +722,7 @@ export function EntityDetailPage() {
           // An owned work cannot be wanted (the server refuses it): no button
           // to offer. It stays while a wish from before that rule remains, so
           // that it can be removed.
-          isManga || estInvite || (possedee && !dansEnvies) ? null : (
+          isManga || estInvite || dansEnvies || possedee ? null : (
             <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
           )
         }
@@ -742,6 +789,27 @@ export function EntityDetailPage() {
         </div>
       )}
 
+      {/* A game that is only wanted: the gesture of the page is having it. */}
+      {!avecTomes && !possedee && !estInvite && !modeEdition && (
+        <div className="pt-[18px]">
+          <AjoutDirect
+            libelle="Je l'ai"
+            consoles={consolesDeLOeuvre(entity.attributes)}
+            onAjouter={(console) => ajoutOeuvre.mutate(console)}
+            enCours={ajoutOeuvre.isPending}
+            attente={false}
+            erreur={ajoutOeuvre.isError ? ajoutOeuvre.error.message : null}
+            apres={
+              dansEnvies ? (
+                <button type="button" onClick={() => void basculerEnvies()} className="btn-secondaire">
+                  Retirer de mes envies
+                </button>
+              ) : undefined
+            }
+          />
+        </div>
+      )}
+
       {proposition.section}
 
       {groupeActif && (
@@ -755,7 +823,7 @@ export function EntityDetailPage() {
             onChoisirTome={(numero) =>
               // A missing volume enters the collection in one gesture: nothing to
               // fill in, nothing to lose.
-              ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
+              ajouterUnTome(numero)
             }
             onRetirerTome={(numero) => {
               // Removal only comes on the second gesture - the tile asks
@@ -767,7 +835,7 @@ export function EntityDetailPage() {
               }
             }}
             onJeLAi={(numero) =>
-              ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
+              ajouterUnTome(numero)
             }
             onJeLesAi={async (numeros) => {
               // A range picked on the shelf. One after the other, not all at
@@ -775,21 +843,26 @@ export function EntityDetailPage() {
               // fills the server cache, the next ones read it - thirty
               // searches fired together would hit the BnF rate limit. The
               // spines fill in as the adds land.
-              let ajoutes = 0
+              const ajoutes: number[] = []
+              const variantes: string[] = []
               for (const numero of numeros) {
                 try {
-                  await ajoutTome.mutateAsync({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
-                  ajoutes++
+                  const resultat = await ajoutTome.mutateAsync({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
+                  ajoutes.push(numero)
+                  if (resultat.variantId) variantes.push(resultat.variantId)
                 } catch {
                   break
                 }
               }
+              if (ajoutes.length === 0) {
+                toast('Aucun tome ajouté')
+                return
+              }
               toast(
-                ajoutes === 0
-                  ? 'Aucun tome ajouté'
-                  : ajoutes === numeros.length
-                    ? `${ajoutes} tomes ajoutés`
-                    : `${ajoutes} tomes ajoutés sur ${numeros.length}`,
+                ajoutes.length === numeros.length
+                  ? `Tomes ${plageDeTomes(ajoutes)} ajoutés`
+                  : `Tomes ${plageDeTomes(ajoutes)} ajoutés sur ${numeros.length}`,
+                { label: 'Annuler', onAction: () => void annulerAjout(variantes) },
               )
             }}
             tomesVoulus={tomesVoulus}
@@ -818,20 +891,27 @@ export function EntityDetailPage() {
         </>
       )}
 
-      <div className="pt-6">
+      {!estInvite && !modeEdition && (
+        <BasFiche
+          entityId={entityId}
+          rang={generalRank}
+          classable={possedee}
+          experiences={experiences}
+          typesDExperience={entityType?.allowedExperienceTypes ?? []}
+          variants={entity.variants}
+          tagIds={entity.tagIds}
+          tags={tagsQuery.data ?? []}
+        />
+      )}
+
+      <div className="pt-2">
         <InspecteurFiche
           teinte={teinte}
           // Nothing personal for a visitor (see InspecteurFiche).
           personnel={
-            estInvite ? undefined : !modeEdition && persoVide ? (
-              <div className="flex flex-col items-start gap-2.5">
-                <span className="text-[13.5px] text-textDim">Rien de personnel pour l&apos;instant.</span>
-                <button type="button" onClick={basculerModeEdition} className="btn-secondaire">
-                  Noter, classer, ajouter un tag
-                </button>
-              </div>
-            ) : <>
-              {(modeEdition || generalRank) && (
+            // In reading, ranking, readings and tags are on the page (see BasFiche).
+            estInvite || (!modeEdition && meilleureNote === null && !remarques) ? undefined : <>
+              {modeEdition && (
               <ReleveInspecteur
                 libelle="Tier list">
                 {generalRank ? (
@@ -879,7 +959,7 @@ export function EntityDetailPage() {
                 )}
               </ReleveInspecteur>
               )}
-              {(modeEdition || experiences.length > 0) && (
+              {modeEdition && (
               <ReleveInspecteur
                 libelle={libelleSectionExperiences(entityType?.allowedExperienceTypes ?? [])}>
                 {experiences.length === 0 ? (
@@ -903,7 +983,7 @@ export function EntityDetailPage() {
               )}
               {/* The tags floated under the three readouts, without a heading: they
                   therefore had nothing to carry their own entry point. */}
-              {(modeEdition || entity.tagIds.length > 0) && (
+              {modeEdition && (
               <ReleveInspecteur
                 libelle="Tags">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -924,7 +1004,7 @@ export function EntityDetailPage() {
             </>
           }
           oeuvre={
-            !avecTomes && !modeEdition ? undefined : modeEdition ? (
+            !modeEdition && (!avecTomes || !entity.attributes[RELEASE_DATE_ATTRIBUTE_KEY]) ? undefined : modeEdition ? (
               // The SAME rows as in reading, as input fields - all of them,
               // even empty, this is where one completes what the source did not
               // give (user request of 2026-09-05). The status is entered

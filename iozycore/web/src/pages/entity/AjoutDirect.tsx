@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Check, Loader2 } from 'lucide-react'
 import { nomDeConsole } from '@/common/lib/consoles'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
@@ -26,6 +26,8 @@ export function AjoutDirect({
   attente,
   erreur,
   consoles = [],
+  libelle = 'Ajouter à ma collection',
+  apres,
 }: {
   /** The console of this copy, when there is one to say. */
   onAjouter: (console?: string) => void
@@ -37,6 +39,9 @@ export function AjoutDirect({
   erreur: string | null
   /** The consoles the source knows for this work. */
   consoles?: string[]
+  libelle?: string
+  /** A second gesture, next to the main one. */
+  apres?: ReactNode
 }) {
   const [choisie, setChoisie] = useState<string | null>(null)
   const uneSeule = consoles.length === 1 ? consoles[0] : undefined
@@ -65,6 +70,7 @@ export function AjoutDirect({
           </div>
         </div>
       )}
+      <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={() => onAjouter(choisie ?? uneSeule)}
@@ -73,8 +79,10 @@ export function AjoutDirect({
         className="btn-primaire w-fit"
       >
         {enCours ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-        Ajouter à ma collection
+        {libelle}
       </button>
+      {apres}
+      </div>
 
       {attente && <p className="text-[13px] text-textDim">Chargement des informations de l&apos;œuvre...</p>}
       {erreur && <ErrorBanner message={erreur} />}

@@ -93,7 +93,7 @@ export function GrilleTomes({
   }))
 
   return (
-    <section className="pt-5">
+    <section>
       <GrilleVolumes
         enTete={
           // The NAME alone, and only if there is a choice. Progress used to live
@@ -122,7 +122,6 @@ export function GrilleTomes({
         onVue={definirVue}
         teinte={teinte}
         jaquetteSerie={jaquetteSerie}
-        edition={titre}
       />
     </section>
   )

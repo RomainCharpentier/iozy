@@ -120,6 +120,7 @@ export function FicheHero({
           color, for the text above it to stay readable. */}
       <div
         aria-hidden="true"
+        data-teinte-fiche=""
         className="pointer-events-none absolute inset-x-0 -top-[68px] h-[760px] opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)] [[data-theme=dark]_&]:opacity-40"
         style={{ background: `linear-gradient(90deg, ${tonDe(teinte, 100, 0.05)}, ${tonDe(teinteSeconde, 100, 0.05)})` }}
       />
@@ -139,6 +140,7 @@ export function FicheHero({
             data-cible-vol=""
             ref={refJaquette as RefObject<HTMLButtonElement | null>}
             className={`${CLASSE_JAQUETTE} ${aspectClassName}`}
+            style={{ boxShadow: `0 26px 60px -18px ${tonDe(teinte, 80, 0.2)}` }}
           >
             <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
           </button>
@@ -147,12 +149,13 @@ export function FicheHero({
             data-cible-vol=""
             ref={refJaquette as RefObject<HTMLDivElement | null>}
             className={`${CLASSE_JAQUETTE} ${aspectClassName}`}
+            style={{ boxShadow: `0 26px 60px -18px ${tonDe(teinte, 80, 0.2)}` }}
           >
             <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
           </div>
         )}
 
-        <div className="flex min-w-0 flex-col gap-4">
+        <div data-colonne-fiche="" className="flex min-w-0 flex-col gap-4">
           <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
             <div className="flex min-w-0 flex-col gap-[7px]">
               {kicker && (

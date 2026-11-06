@@ -1,72 +1,53 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { Check, Heart, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { Plus } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
+import { mouvementReduit } from '@/common/lib/volJaquette'
 import { tonDe } from './useTeinteJaquette'
 import type { VolumeAffiche } from './GrilleVolumes'
-import { ECART_DOS, LARGEUR_CARTE, MARGE_ETAGE, coteDeLaCarte, coteSelonVenue, dosParEtage, largeurDos, repartirEnEtages } from './etages'
-
-const HAUTEUR_DOS = 150
-/** The width a cover is drawn at before a spine shows a slice of it. */
-const LARGEUR_TRANCHE = 100
+import { ECART_DOS, MARGE_ETAGE, dosParEtage, formatEtagere, plageDeTomes, positionTranche, repartirEnEtages } from './etages'
 
 /**
  * The volumes of an edition, standing on shelves - what a collector sees
  * when looking at the real thing.
  *
  * <h2>Why spines, and not tiles</h2>
- * A grid of tiles told the state of a volume by a solid or a dashed
- * border, and a greyed cover, which read as a broken image rather than as a
- * hole (owner's review of 2026-10-31: "ce qui est difficile à comprendre
- * c'est surtout de voir l'état actuel du tome"). On a shelf, the state IS
- * the object: an owned volume is a slice of its cover standing there, a
- * missing one is an empty, dashed slot with its number, a wanted one is
- * that slot with a heart on top. Nothing is written on a volume that has its
- * own cover. One that has none is cut from the cover of the series, at another
- * place for each number, and carries its number: flat colored bars read as a
- * chart, not as books.
+ * A grid of tiles told the state of a volume by a solid or a dashed border,
+ * which read as a broken image rather than as a hole. On a shelf, the state IS
+ * the object: an owned volume is a slice of its cover standing there, a missing
+ * one is an empty slot with its number, a wanted one is that slot ringed.
  *
- * <h2>Shelves, never a wider page</h2>
- * The spines are small, so a shelf holds about forty-seven of them at
- * 1,280 px and thirteen on a phone; a series longer than that gets more
- * shelves, computed from the real width (`ResizeObserver`). A shelf never
- * scrolls sideways and never overflows the window.
+ * <h2>Pick, then act, and nothing moves</h2>
+ * A click PICKS a spine, Shift+click takes a range, Escape releases all. The bar
+ * above the shelves has its place reserved, so picking never shifts the shelves
+ * under the pointer. At rest it says how to pick, and hovering a spine only
+ * previews it there: the cover no longer opens over the volumes one is aiming
+ * at. It sticks under the header while something is picked, so that the gestures
+ * stay in reach on the tenth shelf.
  *
- * <h2>Pick, then act</h2>
- * The first version put the gestures in a card that opened under the
- * mouse: pretty, and "pas pratique" (owner, 2026-11-01) - the pill moved
- * with every spine, closed when the pointer left a 22 px target, and
- * thirty volumes meant thirty precise hovers. Now a click PICKS a spine
- * (a second click releases it, Shift+click takes a range, Escape releases
- * all), and one bar above the shelves carries the gestures for the whole
- * selection: "Je l'ai", the heart, the removal in two gestures as
- * everywhere. The bar sticks under the header, so it stays in reach on
- * the tenth shelf. Hovering only previews the cover above its slot, on the
- * side the mouse comes from: the volumes it is heading to stay in sight.
- * The gestures keep the names of the grid: the journeys and the screen
- * readers do not notice the shelf.
+ * <h2>The gesture is seen</h2>
+ * A volume that was just added comes down into its slot and the plank takes the
+ * weight: the place it fills is what the page is about.
  */
 export function Etagere({
   volumes,
   mode,
   teinte,
   jaquetteSerie,
-  edition,
   onJeLAi,
   onJeLesAi,
   onJeLeVeux,
   onJeLesVeux,
   onRetirer,
   action,
+  reglage,
 }: {
   volumes: VolumeAffiche[]
   /** `consultation`: the catalog seen by a visitor - spines, no gesture. */
   mode: 'navigation' | 'consultation'
-  /** The tint of the series, for an owned volume that has no cover yet. */
+  /** The tint of the series, for an owned volume whose cover is unknown. */
   teinte?: [number, number, number]
   /** The cover of the series, for an owned volume that has none of its own. */
   jaquetteSerie?: string | null
-  /** Named under the picked volume ("manquant · Glénat"). */
-  edition?: string
   onJeLAi?: (cle: string) => void
   /** Several volumes at once (a range picked with Shift). Without it, the
    *  shelf calls `onJeLAi` once per volume. */
@@ -77,17 +58,17 @@ export function Etagere({
   onRetirer?: (cle: string) => void
   /** A button after the shelves ("Ajouter un tome"). */
   action?: { libelle: string; onClick: () => void }
+  /** What stays at the right of the bar at rest: the shelf / grid switch. */
+  reglage?: ReactNode
 }) {
   const conteneur = useRef<HTMLDivElement>(null)
   const [largeur, setLargeur] = useState(0)
-  // The spines picked by a click. The bar lists them in shelf order.
   const [selection, setSelection] = useState<ReadonlySet<string>>(() => new Set())
   // The last spine picked without Shift: a Shift+click takes the range from it.
   const ancre = useRef<string | null>(null)
-  // The last position of the mouse, to know which side it reaches a spine from.
-  const dernierX = useRef<number | null>(null)
   // The removal of the picked owned volumes is being confirmed.
   const [armee, setArmee] = useState(false)
+  const [survole, setSurvole] = useState<VolumeAffiche | null>(null)
 
   useLayoutEffect(() => {
     const element = conteneur.current
@@ -113,11 +94,42 @@ export function Etagere({
     return () => document.removeEventListener('keydown', surTouche)
   }, [selection.size])
 
-  const dos = largeurDos(volumes.length, largeur)
+  // What changed since the last render: a slot that just became a volume.
+  const possedesAvant = useRef<Map<string, boolean> | null>(null)
+  useLayoutEffect(() => {
+    const avant = possedesAvant.current
+    possedesAvant.current = new Map(volumes.map((volume) => [volume.cle, volume.possede]))
+    const racine = conteneur.current
+    if (!avant || !racine || mouvementReduit()) return
+    let rang = 0
+    for (const volume of volumes) {
+      if (!volume.possede || avant.get(volume.cle) !== false) continue
+      const dos = racine.querySelector<HTMLElement>(`[data-dos-cle="${CSS.escape(volume.cle)}"]`)
+      if (!dos || typeof dos.animate !== 'function') continue
+      const delai = rang * 70
+      dos.animate(
+        [
+          { transform: 'translateY(-46px) rotate(-2.5deg)', opacity: 0 },
+          { transform: 'translateY(3px)', opacity: 1, offset: 0.72 },
+          { transform: 'none' },
+        ],
+        { duration: 520, delay: delai, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' },
+      )
+      dos
+        .closest('[data-etage]')
+        ?.querySelector('[data-planche-etage]')
+        ?.animate([{ transform: 'none' }, { transform: 'translateY(2px)' }, { transform: 'none' }], {
+          duration: 260,
+          delay: delai + 340,
+        })
+      rang++
+    }
+  }, [volumes])
+
+  const { dos, hauteur } = formatEtagere(largeur)
   const etages = repartirEnEtages(volumes, dosParEtage(largeur, dos))
   const gestes = mode === 'navigation'
-  // In shelf order, and only what the filter still shows: a volume hidden
-  // since it was picked gets no gesture.
+  // In shelf order, and only what is still there.
   const choisis = gestes ? volumes.filter((volume) => selection.has(volume.cle)) : []
 
   function choisir(cle: string, plage: boolean) {
@@ -146,57 +158,53 @@ export function Etagere({
   }
 
   return (
-    <div
-      ref={conteneur}
-      className="flex flex-col gap-6"
-      onPointerMove={(evenement) => {
-        dernierX.current = evenement.clientX
-      }}
-    >
-      {choisis.length > 0 && (
-        <BarreSelection
-          choisis={choisis}
-          teinte={teinte}
-          edition={edition}
-          armee={armee}
-          onArmer={() => setArmee(true)}
-          onGarder={() => setArmee(false)}
-          onVider={vider}
-          onJeLAi={
-            onJeLAi
-              ? (cles) => {
-                  if (cles.length > 1 && onJeLesAi) onJeLesAi(cles)
-                  else for (const cle of cles) onJeLAi(cle)
-                  vider()
-                }
-              : undefined
-          }
-          onJeLeVeux={
-            onJeLeVeux
-              ? (cles, ajout) => {
-                  if (ajout && cles.length > 1 && onJeLesVeux) onJeLesVeux(cles)
-                  else for (const cle of cles) onJeLeVeux(cle)
-                  vider()
-                }
-              : undefined
-          }
-          onRetirer={
-            onRetirer
-              ? (cles) => {
-                  for (const cle of cles) onRetirer(cle)
-                  vider()
-                }
-              : undefined
-          }
-        />
-      )}
+    <div ref={conteneur} className="flex flex-col">
+      <div className={`z-10 mb-2.5 min-h-[104px] sm:min-h-[60px] ${choisis.length > 0 ? 'sticky top-[60px] md:top-[72px]' : 'relative'}`}>
+        {choisis.length > 0 ? (
+          <BarreChoix
+            choisis={choisis}
+            armee={armee}
+            onArmer={() => setArmee(true)}
+            onVider={vider}
+            onJeLAi={
+              onJeLAi
+                ? (cles) => {
+                    if (cles.length > 1 && onJeLesAi) onJeLesAi(cles)
+                    else for (const cle of cles) onJeLAi(cle)
+                    vider()
+                  }
+                : undefined
+            }
+            onJeLeVeux={
+              onJeLeVeux
+                ? (cles, ajout) => {
+                    if (ajout && cles.length > 1 && onJeLesVeux) onJeLesVeux(cles)
+                    else for (const cle of cles) onJeLeVeux(cle)
+                    vider()
+                  }
+                : undefined
+            }
+            onRetirer={
+              onRetirer
+                ? (cles) => {
+                    for (const cle of cles) onRetirer(cle)
+                    vider()
+                  }
+                : undefined
+            }
+          />
+        ) : (
+          <div className="flex min-h-[60px] items-center justify-between gap-3">
+            <Apercu volume={survole} gestes={gestes} jaquetteSerie={jaquetteSerie} />
+            {reglage}
+          </div>
+        )}
+      </div>
+
       {etages.map((etage, index) => (
-        <div key={index} className="flex flex-col">
-          <div
-            className="flex items-end"
-            style={{ gap: ECART_DOS, paddingLeft: MARGE_ETAGE, paddingRight: MARGE_ETAGE, paddingTop: 28, height: HAUTEUR_DOS + 28 }}
-          >
-            {etage.map((volume, index) => (
+        <div key={index} data-etage="" className="mb-[22px] flex flex-col">
+          <div className="flex items-end" style={{ gap: ECART_DOS, paddingInline: MARGE_ETAGE, height: hauteur }}>
+            {etage.map((volume) => (
               <Dos
                 key={volume.cle}
                 volume={volume}
@@ -204,11 +212,10 @@ export function Etagere({
                 teinte={teinte}
                 jaquetteSerie={jaquetteSerie}
                 largeur={dos}
-                coteParDefaut={coteDeLaCarte(index, etage.length)}
-                coteVenantDe={(venue) => coteSelonVenue(venue, index, dos, largeur)}
-                dernierX={dernierX}
+                hauteur={hauteur}
                 choisi={selection.has(volume.cle)}
                 onChoisir={(plage) => choisir(volume.cle, plage)}
+                onSurvol={() => setSurvole(volume)}
               />
             ))}
           </div>
@@ -216,23 +223,9 @@ export function Etagere({
               underneath, in the colors of the theme. */}
           <div
             aria-hidden="true"
-            className="h-3 rounded-[3px] bg-gradient-to-b from-surface2 to-surface shadow-token-md ring-1 ring-lineStrong"
+            data-planche-etage=""
+            className="h-2.5 rounded-[2px] bg-gradient-to-b from-surface2 to-surface shadow-token-md ring-1 ring-lineStrong"
           />
-          {/* Each number under its own spine: spread over the plank, the last
-              one stood far from a short row of volumes. */}
-          <div aria-hidden="true" className="compteur relative mt-1.5 h-4 text-[11px] text-faint">
-            <span className="absolute text-center" style={{ left: MARGE_ETAGE, width: dos }}>
-              {etage[0]?.numero}
-            </span>
-            {etage.length > 1 && (
-              <span
-                className="absolute text-center"
-                style={{ left: MARGE_ETAGE + (etage.length - 1) * (dos + ECART_DOS), width: dos }}
-              >
-                {etage[etage.length - 1]?.numero}
-              </span>
-            )}
-          </div>
         </div>
       ))}
       {action && (
@@ -249,174 +242,131 @@ function etatDe(volume: VolumeAffiche): string {
   return volume.possede ? 'possédé' : volume.voulu ? 'dans mes envies' : 'manquant'
 }
 
-function pluriel(nombre: number, mot: string): string {
-  return `${nombre} ${mot}${nombre > 1 ? 's' : ''}`
+function phraseDeLEtat(volume: VolumeAffiche): string {
+  return volume.possede ? 'dans ta collection' : volume.voulu ? 'dans tes envies' : 'manquant'
+}
+
+/** The bar at rest: how to pick, and what the pointer is on. An inert preview, never a gesture. */
+function Apercu({
+  volume,
+  gestes,
+  jaquetteSerie,
+}: {
+  volume: VolumeAffiche | null
+  gestes: boolean
+  jaquetteSerie?: string | null
+}) {
+  if (!volume) {
+    return gestes ? <p className="min-w-0 text-[13.5px] text-textDim">Clique un tome, Maj+clic pour une plage.</p> : <span />
+  }
+  const image = volume.jaquetteUrl ?? (volume.possede || !gestes ? jaquetteSerie : null)
+  return (
+    <div className="flex min-w-0 items-center gap-2.5 text-[13.5px] text-textDim">
+      {image && (
+        <span className="h-12 w-8 shrink-0 overflow-hidden rounded-[3px] bg-surface2">
+          <Jaquette src={image} className="h-full w-full object-cover" repli={null} />
+        </span>
+      )}
+      <span className="min-w-0 truncate">
+        <b className="font-semibold text-textPrimary">Tome {volume.numero}</b>
+        {gestes && ` · ${phraseDeLEtat(volume)}`}
+      </span>
+    </div>
+  )
 }
 
 /**
- * The bar of the picked volumes: what is picked, and the gestures that
- * apply to it. Each gesture is named for ONE volume ("J'ai le tome 2") or
- * for the lot ("J'ai ces 3 tomes"): the name says what will happen.
- *
- * <p>Sticky under the header (56 px on a phone, 64 px on a desktop): the
- * tenth shelf is far from the top, the bar must not be. While a removal
- * waits for its confirmation, only the question is shown: on a phone the
- * row has no room for the other gestures next to it.
+ * The gestures of what is picked, named after what they will do. A pick that
+ * holds a missing volume acts on the missing ones; removing only comes on a pick
+ * of owned volumes, and takes a second gesture.
  */
-function BarreSelection({
+function BarreChoix({
   choisis,
-  teinte,
-  edition,
   armee,
   onArmer,
-  onGarder,
   onVider,
   onJeLAi,
   onJeLeVeux,
   onRetirer,
 }: {
   choisis: VolumeAffiche[]
-  teinte?: [number, number, number]
-  edition?: string
   armee: boolean
   onArmer: () => void
-  onGarder: () => void
   onVider: () => void
   onJeLAi?: (cles: string[]) => void
   /** `ajout`: the volumes go INTO the wishes (false: they leave them). */
   onJeLeVeux?: (cles: string[], ajout: boolean) => void
   onRetirer?: (cles: string[]) => void
 }) {
-  const un = choisis.length === 1 ? choisis[0] : null
   const manquants = choisis.filter((volume) => !volume.possede)
   const possedes = choisis.filter((volume) => volume.possede)
-  const voulus = manquants.filter((volume) => volume.voulu)
-  // All the missing ones are wanted: the heart takes them out of the
-  // wishes. Otherwise it puts in those that are not there yet.
-  const tousVoulus = manquants.length > 0 && voulus.length === manquants.length
+  // All the missing ones are wanted: the gesture takes them out of the wishes.
+  const tousVoulus = manquants.length > 0 && manquants.every((volume) => volume.voulu)
   const ciblesEnvie = tousVoulus ? manquants : manquants.filter((volume) => !volume.voulu)
+  const plusieurs = manquants.length > 1
 
-  // Each gesture is named after ITS targets, not after the pick: with an
-  // owned and a missing volume picked, "Je l'ai" concerns one volume and
-  // says which ("J'ai le tome 11"), the trash the other one.
-  const nomAjout = manquants.length === 1 ? `J'ai le tome ${manquants[0].numero}` : `J'ai ces ${manquants.length} tomes`
-  const nomRetrait =
-    possedes.length === 1 ? `Retirer le tome ${possedes[0].numero} de ma collection` : `Retirer ces ${possedes.length} tomes de ma collection`
-  const nomConfirmation =
-    possedes.length === 1 ? `Confirmer le retrait du tome ${possedes[0].numero}` : `Confirmer le retrait de ${possedes.length} tomes`
-  const nomGarder = possedes.length === 1 ? `Garder le tome ${possedes[0].numero}` : `Garder ces ${possedes.length} tomes`
-
-  const titre = un ? `Tome ${un.numero}` : pluriel(choisis.length, 'tome')
-  const detail = un
-    ? `${etatDe(un)}${edition ? ` · ${edition}` : ''}`
-    : [
-        possedes.length > 0 && pluriel(possedes.length, 'possédé'),
-        manquants.length - voulus.length > 0 && pluriel(manquants.length - voulus.length, 'manquant'),
-        voulus.length > 0 && pluriel(voulus.length, 'envie'),
-      ]
-        .filter(Boolean)
-        .join(' · ')
+  const titre = `${choisis.length > 1 ? 'Tomes' : 'Tome'} ${plageDeTomes(choisis.map((volume) => volume.numero))}`
 
   return (
     <div
       role="toolbar"
       aria-label="Tomes choisis"
-      className="entree-douce sticky top-[60px] z-10 flex items-center gap-2 rounded-2xl bg-surface p-1.5 pl-2.5 shadow-token-elevated ring-1 ring-line md:top-[72px]"
+      className="entree-douce flex min-h-[104px] flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-[14px] bg-surface2 py-2 pr-2 pl-3 shadow-token-elevated sm:min-h-[60px] sm:pl-4 max-sm:[&_button]:px-2.5 max-sm:[&_button]:text-[13px]"
     >
-      {un && (
-        <div className="h-[42px] w-[28px] shrink-0 overflow-hidden rounded-[3px] bg-surface2 ring-1 ring-line">
-          <Jaquette
-            src={un.jaquetteUrl}
-            className="h-full w-full object-cover"
-            repli={
-              <span
-                className="flex h-full w-full items-center justify-center font-display text-[11px] font-medium text-textDim"
-                style={un.possede && teinte ? { background: tonDe(teinte, 100, 0.35) } : undefined}
-              >
-                {String(un.numero).padStart(2, '0')}
-              </span>
-            }
-          />
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-semibold text-textPrimary">{titre}</div>
-        <div className="truncate text-[12px] text-textDim">{detail}</div>
-      </div>
-
-      {armee ? (
-        <>
+      <b className="min-w-0 truncate text-[14px] font-semibold text-textPrimary">{titre}</b>
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
+        <button type="button" onClick={onVider} aria-label="Reposer les tomes" className="btn-secondaire">
+          Reposer
+        </button>
+        {onRetirer && manquants.length === 0 && possedes.length > 0 && (
           <button
             type="button"
-            onClick={() => onRetirer?.(possedes.map((volume) => volume.cle))}
-            aria-label={nomConfirmation}
-            className="pilule-action bg-danger text-dangerInk"
+            onClick={armee ? () => onRetirer(possedes.map((volume) => volume.cle)) : onArmer}
+            aria-label={
+              armee
+                ? possedes.length === 1
+                  ? `Confirmer le retrait du tome ${possedes[0].numero}`
+                  : `Confirmer le retrait de ${possedes.length} tomes`
+                : possedes.length === 1
+                  ? `Retirer le tome ${possedes[0].numero} de ma collection`
+                  : `Retirer ces ${possedes.length} tomes de ma collection`
+            }
+            className={armee ? 'btn-primaire' : 'btn-secondaire'}
           >
-            <Trash2 size={13} />
-            Retirer
+            {armee ? 'Confirmer le retrait' : 'Retirer'}
           </button>
-          <button type="button" onClick={onGarder} aria-label={nomGarder} className="pilule-action text-textDim">
-            <X size={13} />
-            Garder
+        )}
+        {onJeLeVeux && manquants.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onJeLeVeux(ciblesEnvie.map((volume) => volume.cle), !tousVoulus)}
+            aria-label={nomDeLEnvie(ciblesEnvie, tousVoulus)}
+            className="btn-secondaire"
+          >
+            {tousVoulus ? 'Ne plus vouloir' : plusieurs ? 'Je les veux' : 'Je le veux'}
           </button>
-        </>
-      ) : (
-        <>
-          {onJeLAi && manquants.length > 0 && (
-            <button
-              type="button"
-              onClick={() => onJeLAi(manquants.map((volume) => volume.cle))}
-              title={nomAjout}
-              aria-label={nomAjout}
-              className="pilule-action bg-accent text-accentInk"
-            >
-              <Check size={13} strokeWidth={3} />
-              {manquants.length > 1 ? 'Je les ai' : "Je l'ai"}
-            </button>
-          )}
-          {onJeLeVeux && manquants.length > 0 && (
-            <button
-              type="button"
-              onClick={() => onJeLeVeux(ciblesEnvie.map((volume) => volume.cle), !tousVoulus)}
-              title={nomDuCoeur(ciblesEnvie, tousVoulus)}
-              aria-label={nomDuCoeur(ciblesEnvie, tousVoulus)}
-              className="pilule-icone text-accentText"
-            >
-              <Heart size={14} className={tousVoulus ? 'fill-current' : undefined} />
-            </button>
-          )}
-          {onRetirer && possedes.length > 0 && (
-            <button
-              type="button"
-              onClick={onArmer}
-              title={nomRetrait}
-              aria-label={nomRetrait}
-              className="pilule-icone text-textDim hover:text-dangerText"
-            >
-              <Trash2 size={14} />
-            </button>
-          )}
-          <button type="button" onClick={onVider} title="Reposer les tomes" aria-label="Reposer les tomes" className="pilule-icone text-textDim">
-            <X size={14} />
+        )}
+        {onJeLAi && manquants.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onJeLAi(manquants.map((volume) => volume.cle))}
+            aria-label={plusieurs ? `J'ai ces ${manquants.length} tomes` : `J'ai le tome ${manquants[0].numero}`}
+            className="btn-primaire"
+          >
+            {plusieurs ? `J'ai ces ${manquants.length} tomes` : "Je l'ai"}
           </button>
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }
 
-function nomDuCoeur(cibles: VolumeAffiche[], tousVoulus: boolean): string {
+function nomDeLEnvie(cibles: VolumeAffiche[], tousVoulus: boolean): string {
   if (cibles.length === 1) {
     return tousVoulus ? `Retirer le tome ${cibles[0].numero} de mes envies` : `Je veux le tome ${cibles[0].numero}`
   }
   return tousVoulus ? `Retirer ces ${cibles.length} tomes de mes envies` : `Je veux ces ${cibles.length} tomes`
 }
-
-const PLACEMENT_CARTE = {
-  gauche: 'left-0 origin-bottom-left',
-  centre: 'left-1/2 -translate-x-1/2 origin-bottom',
-  droite: 'right-0 origin-bottom-right',
-} as const
 
 function Dos({
   volume,
@@ -424,146 +374,71 @@ function Dos({
   teinte,
   jaquetteSerie,
   largeur,
-  coteParDefaut,
-  coteVenantDe,
-  dernierX,
+  hauteur,
   choisi,
   onChoisir,
+  onSurvol,
 }: {
   volume: VolumeAffiche
   gestes: boolean
   teinte?: [number, number, number]
   jaquetteSerie?: string | null
   largeur: number
-  /** Where the cover opens for the keyboard, which comes from no side. */
-  coteParDefaut: 'gauche' | 'centre' | 'droite'
-  /** Where the cover opens for a mouse coming from this side. */
-  coteVenantDe: (venue: 'gauche' | 'droite') => 'gauche' | 'droite'
-  dernierX: RefObject<number | null>
+  hauteur: number
   choisi: boolean
   /** `plage`: Shift was held - take every spine from the last pick to this one. */
   onChoisir: (plage: boolean) => void
+  onSurvol: () => void
 }) {
   const { numero, jaquetteUrl, possede, voulu } = volume
-  const [coteSouris, setCoteSouris] = useState<'gauche' | 'droite' | null>(null)
-  const numeroAffiche = String(numero).padStart(2, '0')
   // A visitor has no collection: every volume of the edition stands there,
   // with its cover when the catalogue has one, never as a hole. The name
-  // says nothing personal either (same rule as the grid's consultation tile).
+  // says nothing personal either.
   const present = possede || !gestes
-  // The slot of a missing volume: dashed, faint; of a wanted one: dashed, accent.
   const forme = present
-    ? 'bg-surface2'
+    ? 'bg-surface2 shadow-[inset_-1px_0_0_rgba(0,0,0,.28),inset_1px_0_0_rgba(255,255,255,.12)]'
     : voulu
-      ? 'border-[1.5px] border-dashed border-accent bg-accentTint'
-      : 'border-[1.5px] border-dashed border-lineStrong bg-surface/40'
-  // A picked spine stands out of the row, ringed in the accent color.
-  const anneau = choisi
-    ? '-translate-y-1.5 ring-2 ring-accent ring-offset-2 ring-offset-background'
-    : present
-      ? 'ring-1 ring-lineStrong ring-inset'
-      : ''
-  const couleurNumero = present ? 'text-textPrimary' : voulu ? 'text-accentText' : 'text-faint'
+      ? 'bg-accentTint ring-2 ring-accentText ring-inset'
+      : 'bg-surface/40 ring-1 ring-lineStrong ring-inset'
   const tranche = present ? (jaquetteUrl ?? jaquetteSerie ?? null) : null
-  // Cut near the left edge of its own cover; from the cover of the series, at
-  // another place per number, or ten volumes would be the same slice.
-  const decalage = jaquetteUrl ? 26 : ((numero - 1) * 29) % (LARGEUR_TRANCHE - largeur + 1)
 
   return (
-    <div
-      className="group relative shrink-0"
-      style={{ width: largeur, height: HAUTEUR_DOS }}
-      onPointerEnter={(evenement) => {
-        const avant = dernierX.current
-        if (evenement.pointerType !== 'mouse' || avant === null || evenement.clientX === avant) return
-        setCoteSouris(coteVenantDe(evenement.clientX < avant ? 'droite' : 'gauche'))
+    <button
+      type="button"
+      data-dos-cle={volume.cle}
+      onClick={gestes ? (evenement) => onChoisir(evenement.shiftKey) : undefined}
+      onPointerEnter={onSurvol}
+      onFocus={onSurvol}
+      aria-label={gestes ? `Tome ${numero}, ${etatDe(volume)}` : `Tome ${numero}`}
+      aria-pressed={gestes ? choisi : undefined}
+      className={`relative block shrink-0 overflow-hidden rounded-t-[2px] rounded-b-[1px] transition-transform duration-200 ${forme} ${
+        choisi ? '-translate-y-[9px] outline-2 outline-offset-1 outline-accentText' : gestes ? 'hover:-translate-y-[5px]' : ''
+      }`}
+      style={{
+        width: largeur,
+        height: hauteur,
+        ...(present && !tranche && teinte ? { background: tonDe(teinte, 100, 0.35) } : {}),
       }}
     >
-      <button
-        type="button"
-        onClick={gestes ? (evenement) => onChoisir(evenement.shiftKey) : undefined}
-        aria-label={gestes ? `Tome ${numero}, ${etatDe(volume)}` : `Tome ${numero}`}
-        aria-pressed={gestes ? choisi : undefined}
-        className={`relative block h-full w-full overflow-hidden rounded-t-[3px] rounded-b-[1px] transition duration-150 ${forme} ${anneau} ${
-          gestes && !choisi ? 'group-hover:-translate-y-0.5' : ''
-        }`}
-        style={present && !tranche && teinte ? { background: tonDe(teinte, 100, 0.35) } : undefined}
-      >
-        {tranche && (
-          // A slice of the cover: the colors of the real book, not its text.
-          // The gradient rounds the spine.
-          <>
-            <img
-              src={tranche}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="absolute top-0 h-full max-w-none object-cover"
-              style={{ width: LARGEUR_TRANCHE, left: -decalage }}
-            />
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/30"
-            />
-          </>
-        )}
-        {!jaquetteUrl && (
-          // On a colored spine the scrim keeps the number readable, whatever
-          // the cover: a theme color fell to about 1.9:1 on a light tint.
-          <span aria-hidden="true" className="absolute inset-x-0 bottom-1.5 flex justify-center">
-            <span
-              className={`rotate-180 rounded-[3px] py-1 font-display text-[11px] font-medium [writing-mode:vertical-rl] ${
-                present ? 'bg-scrim px-0.5 text-white' : couleurNumero
-              }`}
-            >
-              {numeroAffiche}
-            </span>
-          </span>
-        )}
-      </button>
-      {/* The badge on top: the pick first, the wish otherwise. */}
-      {gestes && (choisi || voulu) && (
-        <span
-          aria-hidden="true"
-          className={`absolute left-1/2 flex h-[18px] w-[18px] -translate-x-1/2 items-center justify-center rounded-full bg-accent text-accentInk shadow-token-sm ${
-            choisi ? '-top-3.5' : '-top-2'
-          }`}
-        >
-          {choisi ? <Check size={10} strokeWidth={3} /> : <Heart size={9} className="fill-current" />}
-        </span>
+      {tranche && (
+        // A slice of the cover: the colors of the real book, not its text.
+        <img
+          src={tranche}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ objectPosition: `${positionTranche(numero, Boolean(jaquetteUrl))}% 50%` }}
+        />
       )}
-
-      {/* The preview: the cover above its slot while the mouse or the focus
-          is on the spine. Inert, always: it never takes the pointer, so
-          nothing closes or moves under the hand. `group-hover` only applies
-          where a pointer can hover (Tailwind wraps it in `@media (hover:
-          hover)`); a finger picks the spine and sees the cover in the bar.
-          `z-[5]`: above the neighbouring spines, under the sticky header
-          and the bar (both `z-10`) - a focused spine scrolled under the
-          header painted its preview over the theme button. Focus counts
-          only when it is visible (the keyboard): after a tap or a click
-          the spine keeps the focus, and the preview stayed open over its
-          neighbours on a phone, where the bar already shows the cover. */}
-      <div
+      <span
         aria-hidden="true"
-        className={`pointer-events-none absolute bottom-0 z-[5] scale-75 opacity-0 transition duration-200 ease-[var(--ease-sortie)] group-hover:scale-100 group-hover:opacity-100 group-has-[:focus-visible]:scale-100 group-has-[:focus-visible]:opacity-100 ${PLACEMENT_CARTE[coteSouris ?? coteParDefaut]}`}
-        style={{ width: LARGEUR_CARTE }}
+        className={`absolute inset-x-0 bottom-1.5 text-center font-display text-[10px] font-semibold ${
+          present ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,.9)]' : voulu ? 'text-accentText' : 'text-faint'
+        }`}
       >
-        <div className="aspect-[2/3] w-full overflow-hidden rounded-md bg-surface2 shadow-token-elevated ring-1 ring-line">
-          <Jaquette
-            src={jaquetteUrl}
-            className="h-full w-full object-cover"
-            repli={
-              <span
-                className={`flex h-full w-full items-center justify-center font-display text-[32px] font-medium ${couleurNumero}`}
-                style={present && teinte ? { background: tonDe(teinte, 100, 0.35) } : undefined}
-              >
-                {numeroAffiche}
-              </span>
-            }
-          />
-        </div>
-      </div>
-    </div>
+        {numero}
+      </span>
+    </button>
   )
 }

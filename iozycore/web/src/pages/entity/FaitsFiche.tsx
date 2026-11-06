@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+import { mouvementReduit } from '@/common/lib/volJaquette'
 import type { Fait } from './faitsDeLOeuvre'
 
 export function FaitsFiche({ faits }: { faits: Fait[] }) {
@@ -20,11 +22,20 @@ export function FaitsFiche({ faits }: { faits: Fait[] }) {
 export function CompteTomes({ possedes, total }: { possedes: number; total: number | null }) {
   const manque = total === null ? 0 : Math.max(0, total - possedes)
   const s = possedes > 1 ? 's' : ''
+  // The number answers the gesture.
+  const nombre = useRef<HTMLElement>(null)
+  const avant = useRef(possedes)
+  useEffect(() => {
+    if (avant.current === possedes) return
+    avant.current = possedes
+    if (mouvementReduit()) return
+    nombre.current?.animate?.([{ transform: 'scale(.92)' }, { transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 300 })
+  }, [possedes])
   return (
     <div className="pt-1">
       <div className="flex flex-wrap items-baseline gap-3">
         {total !== null && <span className="sr-only">{`${possedes} tome${s} possédé${s} sur ${total}`}</span>}
-        <b aria-hidden={total !== null} className="font-display text-[30px] font-semibold text-textPrimary tabular-nums">
+        <b ref={nombre} aria-hidden={total !== null} className="inline-block font-display text-[30px] font-semibold text-textPrimary tabular-nums">
           {total === null ? possedes : `${possedes} / ${total}`}
         </b>
         <span className="text-textDim">
