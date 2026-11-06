@@ -192,6 +192,9 @@ réseau externe sur un compte tiers).
 
 ## 3. Parcours — Fiche d'une œuvre
 
+**Retour** (lot 204) : la fiche a toujours son lien retour, qui nomme l'écran d'origine,
+« Ma collection » sans origine connue, « Catalogue » pour un visiteur.
+
 ### 08. Consulter la progression d'une édition
 **Résultat** : « X / Y tomes possédés », pourcentage et barre, nom de l'édition
 et son nombre total de tomes ; avertissements « Cette édition est épuisée » et

@@ -1812,3 +1812,22 @@ Vérifié : 1 322 tests backend, 571 tests web, typecheck, lint, contraste, fron
 e2e ; captures à 390, 1 280 et 1 920 px, en sombre et en clair. Réponses réelles relues le 2026-11-06 sur quatre jeux BGG et trois
 jeux IGDB. Le choix de console à l'ajout et le bouton de rattrapage n'ont pas tourné
 contre les vrais fournisseurs dans l'app : testés avec des réponses simulées.
+
+### Lot 204 — La fiche du prototype
+
+Retour du propriétaire : la fiche n'avait pas été retravaillée et le retour manquait. Une
+grande jaquette reste à gauche, au format du type, et la page occupe la colonne d'à côté.
+Une série montre « 8 / 41 » et ce qui manque ; une seule édition devient un mot sous le
+titre, sa carte ne servant plus qu'en édition. Un jeu montre ses faits en cartes, dont la
+console de l'exemplaire. « Suivre » est nommé. « Possédée » n'est plus écrit.
+
+Le retour est toujours là, y compris sur un lien reçu (« Ma collection », ou « Catalogue »
+pour un visiteur). Depuis une salle, il retrouve la position et la jaquette revole à sa
+place ; le bouton Retour du navigateur restaure la position, sans vol.
+
+Pas repris du prototype : le classement S à F et les lectures à même la page. Ils restent
+derrière « Éditer », dans le panneau Personnel.
+
+Vérifié : 574 tests web, typecheck, lint, contraste, 20 parcours e2e ; captures à 390 et
+1 280 px, en sombre et en clair ; vol retour mesuré. Depuis le bas d'une salle, le retour
+est revenu à 22 px près sur 979.
