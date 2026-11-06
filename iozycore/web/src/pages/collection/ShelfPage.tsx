@@ -1,24 +1,31 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BarChart3, CalendarCheck, Heart, Layers, Library, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate, useNavigationType } from 'react-router-dom'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
-import { CategorySection } from './CategorySection'
+import { BarreCategories } from './BarreCategories'
 import { CollectionFilters } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
+import { deplacer, installerLesObjets, ouvrirAvecVol, sortirLesDos } from './mouvement'
+import { SalleCollection, type ObjetSalle } from './SalleCollection'
+import { dosDeLOeuvre, pisteDeLOeuvre, tomesManquants } from './salles'
 import {
-  aplatirEnElements,
+  buildShelfTile,
   compterLesTitresParType,
   correspondAuFiltre,
+  editionRepresentative,
   etatDeLOeuvre,
-  groupByEntityType,
-  matchesCompletionFilter,
   ordonnerLesTypes,
 } from './shelfTiles'
-import { indexerVenues, trierOeuvres } from './venues'
-import { usePreferencesCollection, type FiltreCollection } from '@/common/lib/preferencesCollection'
+import {
+  usePreferencesCollection,
+  type AffichageCollection,
+  type FiltreCollection,
+} from '@/common/lib/preferencesCollection'
 
 import { useModalA11y } from '@/common/hooks/useModalA11y'
 import { useNow } from '@/common/hooks/useNow'
+import { queryKeys } from '@/common/lib/queryKeys'
 import type { EntityResponse } from '@/common/types/api'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { EtatVide } from '@/common/components/EtatVide'
@@ -27,32 +34,31 @@ import { useFiltresCollection } from './useFiltresCollection'
 import { SqueletteRail } from '@/common/components/Squelette'
 
 /**
- * What the subtitle counts, depending on what is being looked at. A count must name
- * the thing counted: under "Envies + non groupée", "12 titres possédés"
- * would be wrong twice.
+ * What the subtitle counts, depending on what is being looked at. A count must
+ * name the thing counted: under "Envies", "12 titres possédés" would be wrong.
  */
-const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n: number) => string>> = {
-  groupee: {
-    tout: (n) => `titre${n > 1 ? 's' : ''}`,
-    possedes: (n) => `titre${n > 1 ? 's' : ''} possédé${n > 1 ? 's' : ''}`,
-    suivies: (n) => `titre${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
-    envies: (n) => `titre${n > 1 ? 's' : ''} avec une envie en cours`,
-  },
-  // Without an object name in the ungrouped view: "tome" only applies to a manga, and
-  // "élément" sounds like a developer word. The contrast with
-  // "titres" of the grouped view already says what is counted.
-  plate: {
-    tout: (n) => `possédé${n > 1 ? 's' : ''} ou voulu${n > 1 ? 's' : ''}`,
-    possedes: (n) => `possédé${n > 1 ? 's' : ''}`,
-    suivies: () => 'suivis',
-    envies: () => 'dans mes envies',
-  },
+const LIBELLES_DECOMPTE: Record<FiltreCollection, (n: number) => string> = {
+  tout: (n) => `titre${n > 1 ? 's' : ''}`,
+  completer: (n) => `titre${n > 1 ? 's' : ''} à compléter`,
+  suivies: (n) => `titre${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
+  envies: (n) => `titre${n > 1 ? 's' : ''} avec une envie en cours`,
 }
+
+/** This visit already saw the shelves: coming back to them is not an arrival. */
+let pageDejaVue = false
+
+const AFFICHAGES: { cle: AffichageCollection; libelle: string }[] = [
+  { cle: 'etageres', libelle: 'Étagères' },
+  { cle: 'compact', libelle: 'Compact' },
+]
 
 /** An empty screen must say WHY it is empty, and how to get out of it. */
 function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre: string; detail: string } {
   if (filtresActifs) {
     return { titre: 'Rien ne correspond à ces filtres.', detail: '' }
+  }
+  if (filtre === 'completer') {
+    return { titre: 'Rien à compléter.', detail: 'Il ne manque aucun tome connu à tes séries.' }
   }
   if (filtre === 'suivies') {
     return {
@@ -72,49 +78,32 @@ function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre:
   }
 }
 
-// Stable reference for the "not loaded yet" fallback - an inline `[]`
-// would be recreated at every render and would invalidate the memoization.
-
 /**
- * V1.2 structure (see docs/DESIGN_MIGRATION_V1.2.md, Batch 3): one row per
- * owned category (see CategorySection) rather than a single grid
- * filtered by chips Tout/Manga/Jeu vidéo/Jeu de société - the split
- * by type is now structural, no need to choose a filter
- * to see it. The "Par tome" filter (flat grid, one volume = one tile)
- * has no equivalent in this rail structure (each rail shows
- * SERIES, never individual volumes) and appears nowhere in
- * the V1.2 mockup - removed from this screen (documented difference, see
- * docs/DESIGN_MIGRATION_V1.2.md). Nothing is lost on the model/data side: the
- * volume by volume tracking (individual Ownership) stays whole.
+ * My collection: one room per category, shelves of one height (batch 202,
+ * validated on a prototype).
  *
- * <h2>One page, three readings (product study of 2026-08-27)</h2>
- * "Collection" and "Envies" were two screens for the same place. They
- * are now three FILTERS - Tout / Possédés / Envies - which all reason
- * about the ITEMS that a group contains, and two VIEWS: grouped (one
- * card per group) or ungrouped (the items themselves). The "by
- * volume" mode removed in Batch 3 therefore comes back here, but as a full view
- * rather than as a disguised type filter - and without assuming that
- * the item is a volume: each type has its own groups.
- *
- * <p>Filter, view and sort are remembered (see lib/preferencesCollection): they
- * describe a habit, not a choice to redo at every opening.
+ * <h2>The order is decided, not chosen</h2>
+ * The page used to offer a grouping and a sort. A shelf is only useful if a
+ * work is always in the same place, so the page decides. The shelf page of a
+ * category keeps these settings, and the tools of that category.
  *
  * <h2>The core screen (batch 136)</h2>
- * This page works for any collection: nothing that it shows
- * assumes a universe. What belongs to one of them - the cover tool
- * of the mangas, the BoardGameGeek import - lives on its shelf or on the Catalog,
- * never in the toolbar here; and the order of the rails comes from the data
- * (see ordonnerLesTypes), not from a list of codes that named manga
- * first.
+ * This page works for any collection: nothing that it shows assumes a
+ * universe. The order of the rooms comes from the data (see ordonnerLesTypes),
+ * and the page adapts to what the account owns: one category, no room name and
+ * no category bar; no series, no "À compléter".
  */
 export function ShelfPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const typeDeNavigation = useNavigationType()
   const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
   const [hubMenuOpen, setHubMenuOpen] = useState(false)
   // Escape + focus trap + focus returned to the trigger - see
   // useModalA11y (Batch 9).
   const hubMenuRef = useModalA11y<HTMLDivElement>(hubMenuOpen, () => setHubMenuOpen(false))
+  const zone = useRef<HTMLDivElement>(null)
 
   const donnees = useDonneesCollection()
   const {
@@ -126,127 +115,102 @@ export function ShelfPage() {
     oeuvresVoulues,
     oeuvresSuivies,
     tomesVoulus,
-    wishlist,
   } = donnees
 
-  // The state of each work, computed once: the three counters of the bar
-  // and the displayed list all read it, instead of deriving it again each.
+  // The state of each work, computed once: the counters of the bar and the
+  // displayed list all read it, instead of deriving it again each.
   const etats = useMemo(
     () => new Map(allEntities.map((e) => [e.id, etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies)])),
     [allEntities, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies],
   )
 
-  const venues = useMemo(() => indexerVenues(ownerships, wishlist.entries), [ownerships, wishlist.entries])
+  /** The volumes each work lacks: "À compléter" keeps them and starts with the shortest list. */
+  const manquants = useMemo(
+    () => new Map(allEntities.map((e) => [e.id, tomesManquants(editionRepresentative(e, progression)).length])),
+    [allEntities, progression],
+  )
 
-  const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
-
-  /** The works that THIS filter keeps - the state filter (Complètes /
-   *  Incomplètes) only applies to what has a completeness, a work
-   *  that is only wished not having one yet. The tag, for its part, applies to all:
-   *  it is set on the work, owned or not. */
+  /** The works that THIS filter keeps. The tag applies to all: it is set on the
+   *  work, owned or not. */
   const retenuesPour = useCallback(
     (filtre: FiltreCollection) =>
       allEntities.filter((e) => {
         const etat = etats.get(e.id)
-        if (!etat || !correspondAuFiltre(etat, filtre)) return false
-        if (!filtres.porteLeTag(e)) return false
-        return !etat.possede || matchesCompletionFilter(e, filtres.status, progression)
+        if (!etat || !correspondAuFiltre(etat, filtre, (manquants.get(e.id) ?? 0) > 0)) return false
+        return filtres.porteLeTag(e)
       }),
-    [allEntities, etats, filtres, progression],
+    [allEntities, etats, manquants, filtres],
   )
 
-  const contexteAplatissement = useMemo(
+  const comptes = useMemo(
     () => ({
-      ownerships,
-      owned,
-      tomesVoulus,
-      oeuvresVoulues,
-      depuisTome: (variantId: string) => venues.parTome.get(variantId) ?? '',
-      depuisOeuvre: (entityId: string) => venues.parOeuvre.get(entityId) ?? '',
+      tout: retenuesPour('tout').length,
+      completer: retenuesPour('completer').length,
+      suivies: retenuesPour('suivies').length,
+      envies: retenuesPour('envies').length,
     }),
-    [ownerships, owned, tomesVoulus, oeuvresVoulues, venues],
+    [retenuesPour],
   )
 
-  /**
-   * What each filter would give, **in the current view**.
-   *
-   * The counter always went through the groups: in the ungrouped view it
-   * announced "Possédés 6" above twelve tiles. A number placed next
-   * to a label must count what this label shows - otherwise it is not
-   * a help, it is a contradiction. It therefore follows the same path as
-   * the display, state filter included.
-   */
-  const comptes = useMemo(() => {
-    const compter = (filtre: FiltreCollection) => {
-      const retenues = retenuesPour(filtre)
-      return preferences.vue === 'groupee'
-        ? retenues.length
-        : aplatirEnElements(retenues, filtre, contexteAplatissement).length
-    }
-    return { tout: compter('tout'), possedes: compter('possedes'), suivies: compter('suivies'), envies: compter('envies') }
-  }, [retenuesPour, preferences.vue, contexteAplatissement])
-
-  const triees = useMemo(
-    () => trierOeuvres(retenuesPour(preferences.filtre), preferences.tri, venues),
-    [retenuesPour, preferences.filtre, preferences.tri, venues],
+  // "À compléter" only speaks to what has volumes. A remembered filter must not
+  // leave a collection of games on a choice it no longer sees.
+  const avecCompleter = useMemo(
+    () => allEntities.some((e) => e.variants.length > 0 && etats.get(e.id)?.possede),
+    [allEntities, etats],
   )
+  const filtre: FiltreCollection = preferences.filtre === 'completer' && !avecCompleter ? 'tout' : preferences.filtre
 
-  const envieDe = useMemo(
-    () => (entity: EntityResponse) => ({
-      possede: etats.get(entity.id)?.possede ?? false,
-      suivi: etats.get(entity.id)?.suivi ?? false,
-      tomesVoulus:
-        entity.variants.filter((v) => tomesVoulus.has(v.id)).length + (oeuvresVoulues.has(entity.id) ? 1 : 0),
-      prioritaire: preferences.filtre === 'envies',
-    }),
-    [etats, tomesVoulus, oeuvresVoulues, preferences.filtre],
-  )
+  const triees = useMemo(() => {
+    const parTitre = [...retenuesPour(filtre)].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
+    if (filtre !== 'completer') return parTitre
+    return parTitre.sort((a, b) => (manquants.get(a.id) ?? 0) - (manquants.get(b.id) ?? 0))
+  }, [retenuesPour, filtre, manquants])
 
-  // The order of the rails is computed on the WHOLE collection - owned or wished,
-  // before the filter and whatever the view: changing the filter must not
-  // make a rail jump above another one.
-  const titresParType = useMemo(() => compterLesTitresParType(retenuesPour('tout')), [retenuesPour])
-
-  const sections = useMemo(
-    () => groupByEntityType(triees, entityTypes, progression, envieDe, titresParType),
-    [triees, entityTypes, progression, envieDe, titresParType],
-  )
-
-  const tuilesElements = useMemo(
-    () => aplatirEnElements(triees, preferences.filtre, contexteAplatissement),
-    [triees, preferences.filtre, contexteAplatissement],
-  )
-
-  // The sort by title is already carried by the order of the works; by recency, it
-  // is the ITEMS that must be reordered - otherwise those of the same group
-  // would stay together although the ungrouped view precisely unlinks them.
-  const tuilesAffichees = useMemo(
+  // The order of the rooms is computed on the WHOLE collection, before any filter,
+  // the tag included: a filter must not move a room, nor take its name away.
+  const titresParType = useMemo(
     () =>
-      preferences.tri === 'titre'
-        ? tuilesElements
-        : [...tuilesElements].sort((a, b) => b.depuis.localeCompare(a.depuis)),
-    [tuilesElements, preferences.tri],
+      compterLesTitresParType(
+        allEntities.filter((e) => {
+          const etat = etats.get(e.id)
+          return etat ? correspondAuFiltre(etat, 'tout') : false
+        }),
+      ),
+    [allEntities, etats],
+  )
+  const unSeulType = titresParType.size <= 1
+
+  const objetDe = useCallback(
+    (entity: EntityResponse): ObjetSalle => {
+      const etat = etats.get(entity.id)
+      const edition = editionRepresentative(entity, progression)
+      const tomesVoulusIci =
+        entity.variants.filter((v) => tomesVoulus.has(v.id)).length + (oeuvresVoulues.has(entity.id) ? 1 : 0)
+      return {
+        tuile: buildShelfTile(entity, progression, {
+          possede: etat?.possede ?? false,
+          suivi: etat?.suivi ?? false,
+          tomesVoulus: tomesVoulusIci,
+          prioritaire: filtre === 'envies',
+        }),
+        envie: !etat?.possede && Boolean(etat?.voulu),
+        aDesTomes: entity.variants.length > 0,
+        dosPour: (dosMax) => dosDeLOeuvre(entity, edition, tomesVoulus, dosMax),
+        piste: pisteDeLOeuvre(edition),
+      }
+    },
+    [etats, progression, tomesVoulus, oeuvresVoulues, filtre],
   )
 
-  /**
-   * The rows to display - SAME shape, SAME component, in both views.
-   *
-   * Ungrouping only changes what a row contains: groups or the
-   * items that they contain. The presentation, for its part, does not move - halo
-   * tinted by universe, clickable header, horizontal scroll. A second
-   * layout would only have diverged from this one.
-   */
-  const rangees = useMemo(
+  const salles = useMemo(
     () =>
-      preferences.vue === 'groupee'
-        ? sections
-        : ordonnerLesTypes([...typesParId.values()], titresParType)
-            .map((entityType) => ({
-              entityType,
-              tiles: tuilesAffichees.filter((tuile) => tuile.entityTypeId === entityType.id),
-            }))
-            .filter((rangee) => rangee.tiles.length > 0),
-    [preferences.vue, sections, tuilesAffichees, typesParId, titresParType],
+      ordonnerLesTypes(entityTypes, titresParType)
+        .map((entityType) => ({
+          entityType,
+          objets: triees.filter((e) => e.entityTypeId === entityType.id).map(objetDe),
+        }))
+        .filter((salle) => salle.objets.length > 0),
+    [entityTypes, titresParType, triees, objetDe],
   )
 
   const now = useNow()
@@ -260,80 +224,123 @@ export function ShelfPage() {
    *
    * A count is computed on `data ?? []`: as long as one single one of these
    * queries has not answered, it is zero - and the screen then announces an
-   * empty collection to someone who has one (observed by freezing the API:
-   * "0 possédé ou voulu", filters at 0/0/0, while "Chargement..."
-   * was displayed just below). The editions reference is part of it:
-   * it decides the completeness, therefore the Complètes/Incomplètes filter.
+   * empty collection to someone who has one (observed by freezing the API).
    */
   const isLoading = donnees.chargement
-  const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : triees.length
+  const affiches = triees.length
+  const vide = messageVide(filtre, filtres.nombreActifs > 0)
 
-  const vide = messageVide(preferences.filtre, filtres.nombreActifs > 0)
+  // The objects settle on their shelves on arrival, not when coming back to a
+  // place one already knows: the browser restores the scroll there. The first
+  // load is a POP too, hence the memory of this visit.
+  const dejaInstalle = useRef(false)
+  useEffect(() => {
+    if (isLoading || dejaInstalle.current || salles.length === 0) return
+    dejaInstalle.current = true
+    if (typeDeNavigation !== 'POP' || !pageDejaVue) installerLesObjets(zone.current)
+    pageDejaVue = true
+  }, [isLoading, salles.length, typeDeNavigation])
+
+  /** The page already holds the work: the detail page can draw its cover at once, so that the
+   *  flight has somewhere to land. It still asks the server, and corrects itself if needed. */
+  const ouvrir = (entityId: string, jaquette: HTMLElement | null) => {
+    const entity = allEntities.find((e) => e.id === entityId)
+    if (entity) {
+      queryClient.setQueryData<EntityResponse>(queryKeys.entities.detail(entityId), (connue) => connue ?? entity)
+    }
+    ouvrirAvecVol(jaquette, () => navigate(`/entity/${entityId}`))
+  }
+
+  const choisirFiltre = (suivant: FiltreCollection) =>
+    deplacer(zone.current, () => preferences.definir({ filtre: suivant }))
+
+  const choisirAffichage = (suivant: AffichageCollection) => {
+    if (suivant === preferences.affichage) return
+    deplacer(zone.current, () => preferences.definir({ affichage: suivant }), sortirLesDos)
+  }
 
   return (
     <div className="flex flex-col gap-1">
-      {/* The subtitle follows the filter: under "Envies", announcing a number of
-          titres possédés would describe something other than what is on the screen. */}
-      <EnTeteSection
-        niveau={1}
-        titre="Ma collection"
-        sousTitre={
-          !isLoading ? (
-            <>
-              {affiches} {LIBELLES_DECOMPTE[preferences.vue][preferences.filtre](affiches)}
-              {preferences.filtre !== 'envies' &&
-                addedThisMonthCount > 0 &&
-                ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
-            </>
-          ) : (
-            // Takes the same line so that nothing jumps when the real
-            // count arrives.
-            'Chargement...'
-          )
-        }
-      />
-
-      {/* Calm toolbar, ONE row on desktop: the four readings, one
-          "Affichage" entry (grouping, sort and filters, badge if a filter is
-          active) and "Plus d'outils". Grouping, sort and Valeur used to be
-          visible buttons too: eight controls, three rows on a phone, about 40%
-          of the screen before the first cover (UI review of 2026-10-13). */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <BarreVues
-          filtre={preferences.filtre}
-          onFiltre={(filtre) => preferences.definir({ filtre })}
-          comptes={!isLoading ? comptes : null}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <EnTeteSection
+          niveau={1}
+          titre="Ma collection"
+          sousTitre={
+            !isLoading ? (
+              <>
+                {affiches} {LIBELLES_DECOMPTE[filtre](affiches)}
+                {filtre !== 'envies' &&
+                  addedThisMonthCount > 0 &&
+                  ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
+              </>
+            ) : (
+              // Takes the same line so that nothing jumps when the real
+              // count arrives.
+              'Chargement...'
+            )
+          }
         />
-        <button
-          type="button"
-          onClick={filtres.ouvrir}
-          aria-expanded={filtres.ouverts}
-          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
-            filtres.nombreActifs > 0
-              ? 'border-transparent bg-accentTint text-accentText'
-              : 'border-line bg-surface text-textPrimary shadow-token-sm hover:bg-rowHover'
-          }`}
-        >
-          <SlidersHorizontal size={15} />
-          Affichage
-          {filtres.nombreActifs > 0 && (
-            <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
-              {filtres.nombreActifs}
-            </span>
+
+        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+          <BarreVues
+            filtre={filtre}
+            onFiltre={choisirFiltre}
+            comptes={!isLoading ? comptes : null}
+            avecCompleter={avecCompleter}
+          />
+          <div role="radiogroup" aria-label="Affichage" className="flex items-center gap-1 rounded-full bg-softBtn p-1">
+            {AFFICHAGES.map(({ cle, libelle }) => {
+              const actif = cle === preferences.affichage
+              return (
+                <button
+                  key={cle}
+                  type="button"
+                  role="radio"
+                  aria-checked={actif}
+                  onClick={() => choisirAffichage(cle)}
+                  className={`min-h-11 rounded-full px-3.5 text-[13px] whitespace-nowrap transition-colors ${
+                    actif ? 'bg-surface font-semibold text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
+                  }`}
+                >
+                  {libelle}
+                </button>
+              )
+            })}
+          </div>
+          {/* Without any tag there is nothing to filter on: no button at all. */}
+          {filtres.tags.length > 0 && (
+            <button
+              type="button"
+              onClick={filtres.ouvrir}
+              aria-expanded={filtres.ouverts}
+              className={`flex min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
+                filtres.nombreActifs > 0
+                  ? 'border-transparent bg-accentTint text-accentText'
+                  : 'border-line bg-surface text-textPrimary shadow-token-sm hover:bg-rowHover'
+              }`}
+            >
+              <SlidersHorizontal size={15} />
+              Filtres
+              {filtres.nombreActifs > 0 && (
+                <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
+                  {filtres.nombreActifs}
+                </span>
+              )}
+            </button>
           )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setHubMenuOpen(true)}
-          title="Plus d'outils"
-          // aria-label in addition to title: a button that only has an icon otherwise
-          // takes its accessible name from the title alone, never announced on touch.
-          aria-label="Plus d'outils"
-          aria-expanded={hubMenuOpen}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-textPrimary shadow-token-sm transition-colors hover:bg-rowHover"
-        >
-          <MoreHorizontal size={16} />
-        </button>
+          <button
+            type="button"
+            onClick={() => setHubMenuOpen(true)}
+            title="Plus d'outils"
+            // aria-label in addition to title: a button that only has an icon otherwise
+            // takes its accessible name from the title alone, never announced on touch.
+            aria-label="Plus d'outils"
+            aria-expanded={hubMenuOpen}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-textPrimary shadow-token-sm transition-colors hover:bg-rowHover"
+          >
+            <MoreHorizontal size={16} />
+          </button>
+        </div>
       </div>
 
       {donnees.erreurs.map((message) => (
@@ -353,9 +360,9 @@ export function ShelfPage() {
             icone={
               filtres.nombreActifs > 0
                 ? SlidersHorizontal
-                : preferences.filtre === 'envies'
+                : filtre === 'envies'
                   ? Heart
-                  : preferences.filtre === 'suivies'
+                  : filtre === 'suivies'
                     ? CalendarCheck
                     : Library
             }
@@ -366,7 +373,7 @@ export function ShelfPage() {
                 <button type="button" onClick={filtres.reinitialiser} className="btn-secondaire">
                   Réinitialiser les filtres
                 </button>
-              ) : preferences.filtre === 'tout' ? (
+              ) : filtre === 'tout' ? (
                 <Link to="/add" className="btn-primaire">
                   Ouvrir le Catalogue
                 </Link>
@@ -376,21 +383,28 @@ export function ShelfPage() {
         </div>
       )}
 
-      <div className="mt-6 flex flex-col gap-2">
-        {rangees.map(({ entityType, tiles }) => (
-          <CategorySection key={entityType.id} entityType={entityType} tiles={tiles} />
+      {!unSeulType && salles.length > 1 && (
+        <BarreCategories salles={salles.map((s) => ({ entityType: s.entityType, nombre: s.objets.length }))} />
+      )}
+
+      <div ref={zone} data-affichage={preferences.affichage} className="mt-3 flex flex-col">
+        {salles.map(({ entityType, objets }) => (
+          <SalleCollection
+            key={entityType.id}
+            entityType={entityType}
+            objets={objets}
+            affichage={preferences.affichage}
+            nommee={!unSeulType}
+            onOuvrir={ouvrir}
+          />
         ))}
       </div>
 
       <CollectionFilters
         open={filtres.ouverts}
         onClose={filtres.fermer}
-        vue={preferences.vue}
-        onVue={(vue) => preferences.definir({ vue })}
-        tri={preferences.tri}
-        onTri={(tri) => preferences.definir({ tri })}
+        titre="Filtres"
         status={filtres.status}
-        onStatusChange={filtres.definirStatus}
         tags={filtres.tags}
         tagId={filtres.tagId}
         onTagChange={filtres.definirTag}

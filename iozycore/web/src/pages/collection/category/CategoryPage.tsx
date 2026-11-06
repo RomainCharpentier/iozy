@@ -9,10 +9,12 @@ import {
   aplatirEnElements,
   buildShelfTile,
   correspondAuFiltre,
+  editionRepresentative,
   etatDeLOeuvre,
   matchesCompletionFilter,
 } from '@/pages/collection/shelfTiles'
 import { BarreVues } from '@/pages/collection/BarreVues'
+import { tomesManquants } from '@/pages/collection/salles'
 import { indexerVenues, trierOeuvres } from '@/pages/collection/venues'
 import { usePreferencesCollection, type FiltreCollection } from '@/common/lib/preferencesCollection'
 
@@ -26,13 +28,13 @@ import { SqueletteGrille } from '@/common/components/Squelette'
 
 /**
  * "Category view" (see the V1.2 mockup) - the full grid of a single type,
- * reached through "Tout voir" from a row of My collection.
+ * reached through "Voir le rayon" from a room of My collection.
  *
  * <h2>Two settings, two scopes</h2>
  * The STATE filter (Complètes/Incomplètes) belongs to this page: filtering
  * "Incomplètes" here must not affect the other rails when going back.
- * The Tout/Possédés/Envies filter, the view and the sort, for their part, are the
- * SHARED preferences of My collection: arriving here through "Tout voir" from
+ * The Tout/À compléter/Suivies/Envies filter, the view and the sort, for their part, are the
+ * SHARED preferences of My collection: arriving here through "Voir le rayon" from
  * "Envies" and landing on the owned items would be a break, not a
  * local filter.
  */
@@ -69,7 +71,7 @@ export function CategoryPage() {
     (filtre: FiltreCollection) =>
       duType.filter((e) => {
         const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies)
-        if (!correspondAuFiltre(etat, filtre)) return false
+        if (!correspondAuFiltre(etat, filtre, tomesManquants(editionRepresentative(e, progression)).length > 0)) return false
         if (!filtres.porteLeTag(e)) return false
         return !etat.possede || matchesCompletionFilter(e, filtres.status, progression)
       }),
@@ -99,7 +101,7 @@ export function CategoryPage() {
         ? retenues.length
         : aplatirEnElements(retenues, filtre, contexteAplatissement).length
     }
-    return { tout: compter('tout'), possedes: compter('possedes'), suivies: compter('suivies'), envies: compter('envies') }
+    return { tout: compter('tout'), completer: compter('completer'), suivies: compter('suivies'), envies: compter('envies') }
   }, [retenuesPour, preferences.vue, contexteAplatissement])
 
   const entities = useMemo(
@@ -171,6 +173,7 @@ export function CategoryPage() {
           filtre={preferences.filtre}
           onFiltre={(filtre) => preferences.definir({ filtre })}
           comptes={!isLoading ? comptes : null}
+          avecCompleter={duType.some((e) => e.variants.length > 0)}
         />
         <button
           type="button"

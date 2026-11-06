@@ -1,0 +1,227 @@
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { ChevronRight, Heart } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Jaquette } from '@/common/components/Jaquette'
+import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
+import { gradientFor } from '@/common/theme/gradient'
+import type { AffichageCollection } from '@/common/lib/preferencesCollection'
+import type { EntityTypeDto } from '@/common/types/api'
+import {
+  couperEnRangees,
+  largeurObjet,
+  mesuresDeLaSalle,
+  positionDeLaTranche,
+  ratioDeLAspect,
+  type DosSalle,
+  type MesuresSalle,
+  type SegmentPiste,
+} from './salles'
+import type { ShelfTile } from './shelfTiles'
+
+/** One work on its shelf. */
+export interface ObjetSalle {
+  tuile: ShelfTile
+  /** Wanted and not owned: a faded cover and a heart. A work that is only followed has neither. */
+  envie: boolean
+  /** Decides the empty bar of the compact view. */
+  aDesTomes: boolean
+  /** The spines, at the cap of the room that draws them. */
+  dosPour: (dosMax: number) => DosSalle[]
+  piste: SegmentPiste[] | null
+}
+
+type ObjetPlace = Omit<ObjetSalle, 'dosPour'> & { dos: DosSalle[] }
+
+/**
+ * One category of My collection: its color, its name and its shelves.
+ *
+ * <h2>Shelves, computed from the real width</h2>
+ * A shelf holds what fits and spreads over the width, so that a simple
+ * collection (a game is one cover, no spines) fills it as well as a long
+ * series does. The width of an object is known in advance, not measured: all
+ * the shelves of a room are decided before the first paint.
+ *
+ * <h2>Why no limit of tiles</h2>
+ * The old rail stopped at 48 tiles behind a "Tout voir". Here everything is
+ * readable at once, and the grouping by console and publisher would be cut by
+ * a limit. The cost is paid another way: a shelf far from the screen is not
+ * rendered (`content-visibility`, see index.css).
+ */
+export function SalleCollection({
+  entityType,
+  objets,
+  affichage,
+  nommee,
+  onOuvrir,
+}: {
+  entityType: EntityTypeDto
+  objets: ObjetSalle[]
+  affichage: AffichageCollection
+  /** With a single category owned, the name of the room would only repeat the page. */
+  nommee: boolean
+  onOuvrir: (entityId: string, jaquette: HTMLElement | null) => void
+}) {
+  const visual = getEntityTypeVisual(entityType)
+  const contenu = useRef<HTMLDivElement>(null)
+  const [largeur, setLargeur] = useState(0)
+
+  useLayoutEffect(() => {
+    const element = contenu.current
+    if (!element) return
+    setLargeur(element.clientWidth)
+    if (typeof ResizeObserver === 'undefined') return
+    const observateur = new ResizeObserver((entrees) => {
+      for (const entree of entrees) setLargeur(entree.contentRect.width)
+    })
+    observateur.observe(element)
+    return () => observateur.disconnect()
+  }, [])
+
+  const ratio = ratioDeLAspect(visual.aspectClassName)
+  const mesures = useMemo(() => mesuresDeLaSalle(affichage, largeur), [affichage, largeur])
+  const rangees = useMemo(
+    () =>
+      couperEnRangees(
+        objets.map((objet): ObjetPlace => ({ ...objet, dos: objet.dosPour(mesures.dosMax) })),
+        (objet) => largeurObjet(ratio, objet.dos.length, mesures),
+        largeur,
+        mesures.ecart,
+      ),
+    [objets, ratio, mesures, largeur],
+  )
+
+  return (
+    <section
+      id={`salle-${entityType.id}`}
+      aria-label={entityType.label}
+      className="salle"
+      style={{ '--u': visual.color } as React.CSSProperties}
+    >
+      <div className="salle-tete">
+        {nommee && <h2 className="salle-titre font-display font-semibold text-textPrimary">{entityType.label}</h2>}
+        {/* The room shows every work; the shelf page keeps the tools of the category. */}
+        <Link
+          to={`/collection/${entityType.id}`}
+          className="ml-auto flex min-h-11 items-center gap-1 text-sm font-semibold whitespace-nowrap text-textDim hover:text-textPrimary"
+        >
+          Voir le rayon
+          <ChevronRight size={15} />
+        </Link>
+      </div>
+      <div ref={contenu}>
+        {rangees.map((rangee, index) => (
+          <div
+            key={index}
+            data-rangee=""
+            className="salle-rangee"
+            style={
+              {
+                '--h': `${mesures.hauteur}px`,
+                '--w': `${mesures.dos}px`,
+                columnGap: mesures.ecart,
+                justifyContent: rangee.etalee ? 'space-between' : 'flex-start',
+              } as React.CSSProperties
+            }
+          >
+            <span data-planche="" aria-hidden="true" className="salle-planche" />
+            {rangee.objets.map((objet) => (
+              <Objet
+                key={objet.tuile.key}
+                objet={objet}
+                ratio={ratio}
+                mesures={mesures}
+                affichage={affichage}
+                onOuvrir={onOuvrir}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function Objet({
+  objet,
+  ratio,
+  mesures,
+  affichage,
+  onOuvrir,
+}: {
+  objet: ObjetPlace
+  ratio: number
+  mesures: MesuresSalle
+  affichage: AffichageCollection
+  onOuvrir: (entityId: string, jaquette: HTMLElement | null) => void
+}) {
+  const { tuile, envie, dos, piste, aDesTomes } = objet
+  const face = useRef<HTMLSpanElement>(null)
+  const compact = affichage === 'compact'
+  return (
+    <button
+      type="button"
+      data-oeuvre={tuile.entityId}
+      onClick={() => onOuvrir(tuile.entityId, face.current)}
+      title={tuile.title}
+      aria-label={[tuile.title, tuile.subtitle, tuile.signal].filter(Boolean).join(', ')}
+      className={`salle-objet ${envie ? 'salle-objet-envie' : ''}`}
+      style={{ width: largeurObjet(ratio, dos.length, mesures) }}
+    >
+      <span className="salle-objets">
+        <span
+          ref={face}
+          data-face=""
+          className="salle-face"
+          style={{ aspectRatio: ratio, background: gradientFor(tuile.gradientKey ?? tuile.title) }}
+        >
+          <Jaquette
+            src={tuile.imageUrl}
+            className="absolute inset-0 h-full w-full object-cover"
+            // Compact has no title under the cover: without a cover, the work would be a flat color.
+            repli={compact ? <span className="salle-repli">{tuile.title}</span> : null}
+          />
+        </span>
+        {dos.map((volume) => (
+          <Dos key={volume.numero} volume={volume} jaquetteSerie={tuile.imageUrl} />
+        ))}
+      </span>
+      {compact && aDesTomes && (
+        <span data-piste="" className={`salle-piste ${piste ? '' : 'salle-piste-nue'}`}>
+          {piste?.map((segment) => (
+            <i key={segment.debut} style={{ left: `${segment.debut}%`, width: `max(3px, ${segment.largeur}%)` }} />
+          ))}
+        </span>
+      )}
+      {!compact && (
+        <span className="mt-[18px] block min-w-0">
+          <b className="block truncate text-[13.5px] font-semibold text-textPrimary">{tuile.title}</b>
+          {tuile.signal && <small className="block truncate text-xs font-semibold text-accentText">{tuile.signal}</small>}
+        </span>
+      )}
+      {envie && (
+        <span aria-hidden="true" className="salle-coeur">
+          <Heart size={14} className="fill-current" />
+        </span>
+      )}
+    </button>
+  )
+}
+
+/** A slice of the real cover when the volume is here, an empty slot when it is not. */
+function Dos({ volume, jaquetteSerie }: { volume: DosSalle; jaquetteSerie: string | null }) {
+  const tranche = volume.etat === 'possede' ? (volume.jaquetteUrl ?? jaquetteSerie) : null
+  return (
+    <span data-dos="" className={`salle-dos salle-dos-${volume.etat}`}>
+      {tranche && (
+        <img
+          src={tranche}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+          style={{ objectPosition: `${positionDeLaTranche(volume.numero, Boolean(volume.jaquetteUrl))}% 50%` }}
+        />
+      )}
+    </span>
+  )
+}

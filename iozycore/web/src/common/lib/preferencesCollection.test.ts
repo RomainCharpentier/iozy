@@ -44,11 +44,11 @@ describe('the reading', () => {
   it('does not let a corrupted field carry the others away', () => {
     // The case of a setting renamed between two versions: "grille" no longer
     // exists, but the chosen filter and sort are still valid.
-    localStorage.setItem(CLE, JSON.stringify({ filtre: 'possedes', vue: 'grille', tri: 'titre' }))
+    localStorage.setItem(CLE, JSON.stringify({ filtre: 'completer', vue: 'grille', tri: 'titre' }))
 
     const { result } = renderHook(() => usePreferencesCollection())
 
-    expect(result.current).toMatchObject({ filtre: 'possedes', vue: 'groupee', tri: 'titre' })
+    expect(result.current).toMatchObject({ filtre: 'completer', vue: 'groupee', tri: 'titre' })
   })
 
   it('survives a content that is not even JSON', () => {
@@ -73,7 +73,7 @@ describe('the writing', () => {
     definirPreferencesCollection({ filtre: 'envies' })
     definirPreferencesCollection({ tri: 'titre' })
 
-    expect(lireBrut()).toEqual({ filtre: 'envies', vue: 'groupee', tri: 'titre' })
+    expect(lireBrut()).toEqual({ filtre: 'envies', vue: 'groupee', tri: 'titre', affichage: 'etageres' })
   })
 
   it('updates the screens that are already open, without a reload', () => {

@@ -15,25 +15,29 @@ import { useEffect, useState } from 'react'
  * this device, like the theme and the composition of titles (see lib/theme and
  * lib/titleLanguage, whose pattern this module follows).
  */
-export type FiltreCollection = 'tout' | 'possedes' | 'suivies' | 'envies'
+export type FiltreCollection = 'tout' | 'completer' | 'suivies' | 'envies'
 export type VueCollection = 'groupee' | 'plate'
 export type TriCollection = 'recent' | 'titre'
+/** How the rooms of Ma collection are drawn: shelves with spines, or small covers. */
+export type AffichageCollection = 'etageres' | 'compact'
 
 interface PreferencesCollection {
   filtre: FiltreCollection
   vue: VueCollection
   tri: TriCollection
+  affichage: AffichageCollection
 }
 
 const CLE = 'iozycore.preferencesCollection'
 
 /** "Grouped" by default: one card per series is the reading that fits on a
  *  screen, and the one the page has always had. */
-const DEFAUT: PreferencesCollection = { filtre: 'tout', vue: 'groupee', tri: 'recent' }
+const DEFAUT: PreferencesCollection = { filtre: 'tout', vue: 'groupee', tri: 'recent', affichage: 'etageres' }
 
-const FILTRES: FiltreCollection[] = ['tout', 'possedes', 'suivies', 'envies']
+const FILTRES: FiltreCollection[] = ['tout', 'completer', 'suivies', 'envies']
 const VUES: VueCollection[] = ['groupee', 'plate']
 const TRIS: TriCollection[] = ['recent', 'titre']
+const AFFICHAGES: AffichageCollection[] = ['etageres', 'compact']
 
 /** Validates field by field rather than as a block: a setting added later
  *  must not make the others fall back to their default. */
@@ -45,6 +49,9 @@ function lire(): PreferencesCollection {
       filtre: FILTRES.includes(brut.filtre as FiltreCollection) ? (brut.filtre as FiltreCollection) : DEFAUT.filtre,
       vue: VUES.includes(brut.vue as VueCollection) ? (brut.vue as VueCollection) : DEFAUT.vue,
       tri: TRIS.includes(brut.tri as TriCollection) ? (brut.tri as TriCollection) : DEFAUT.tri,
+      affichage: AFFICHAGES.includes(brut.affichage as AffichageCollection)
+        ? (brut.affichage as AffichageCollection)
+        : DEFAUT.affichage,
     }
   } catch {
     return DEFAUT

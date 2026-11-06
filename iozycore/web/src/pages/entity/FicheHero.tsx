@@ -117,12 +117,13 @@ export function FicheHero({
             type="button"
             onClick={onCouverture}
             aria-label="Modifier la couverture de la série"
+            data-cible-vol=""
             className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated"
           >
             <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
           </button>
         ) : (
-          <div className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated">
+          <div data-cible-vol="" className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated">
             <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
           </div>
         )}

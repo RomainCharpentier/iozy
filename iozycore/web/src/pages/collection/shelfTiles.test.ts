@@ -18,7 +18,6 @@ import {
   buildShelfTile,
   correspondAuFiltre,
   etatDeLOeuvre,
-  groupByEntityType,
   matchesCompletionFilter,
   ordonnerLesTypes,
 } from './shelfTiles'
@@ -108,7 +107,7 @@ describe('matchesCompletionFilter', () => {
   })
 })
 
-describe('ordonnerLesTypes and groupByEntityType', () => {
+describe('ordonnerLesTypes', () => {
   const manga = typeDeCollection('MANGA')
   const jeuVideo = typeDeCollection('VIDEO_GAME')
   const vinyle = typeDeCollection('VINYL')
@@ -134,21 +133,6 @@ describe('ordonnerLesTypes and groupByEntityType', () => {
     expect(ordonnerLesTypes([manga, vinyle], titres).map((t) => t.label)).toEqual(attendu)
   })
 
-  it('a type created later is placed like the others, never hidden', () => {
-    const serie = oeuvre({ titre: 'Berserk', typeId: manga.id, tomes: [tome(1)] })
-    const disque = oeuvre({ titre: 'Abbey Road', typeId: vinyle.id, tomes: [] })
-    const autre = oeuvre({ titre: 'Rumours', typeId: vinyle.id, tomes: [] })
-    const sections = groupByEntityType([serie, disque, autre], [manga, vinyle], AUCUNE_PROGRESSION)
-
-    expect(sections.map((s) => s.entityType.code)).toEqual(['VINYL', 'MANGA'])
-  })
-
-  it('does not open a rail for a type without any title', () => {
-    const serie = oeuvre({ titre: 'Berserk', typeId: manga.id, tomes: [tome(1)] })
-    const sections = groupByEntityType([serie], [manga, jeuVideo], AUCUNE_PROGRESSION)
-
-    expect(sections.map((s) => s.entityType.code)).toEqual(['MANGA'])
-  })
 })
 
 describe('etatDeLOeuvre and correspondAuFiltre', () => {
@@ -159,7 +143,7 @@ describe('etatDeLOeuvre and correspondAuFiltre', () => {
 
     expect(etat).toEqual({ possede: false, voulu: true, suivi: false })
     expect(correspondAuFiltre(etat, 'envies')).toBe(true)
-    expect(correspondAuFiltre(etat, 'possedes')).toBe(false)
+    expect(correspondAuFiltre(etat, 'completer', true)).toBe(false)
     expect(correspondAuFiltre(etat, 'tout')).toBe(true)
   })
 
@@ -168,7 +152,8 @@ describe('etatDeLOeuvre and correspondAuFiltre', () => {
     const etat = etatDeLOeuvre(serie, possessions, ownedVariantIds(possessions), new Set(['tome-2']), new Set())
 
     expect(etat).toEqual({ possede: true, voulu: true, suivi: false })
-    expect(correspondAuFiltre(etat, 'possedes')).toBe(true)
+    expect(correspondAuFiltre(etat, 'completer', true)).toBe(true)
+    expect(correspondAuFiltre(etat, 'completer', false)).toBe(false)
     expect(correspondAuFiltre(etat, 'envies')).toBe(true)
   })
 
@@ -187,7 +172,7 @@ describe('etatDeLOeuvre and correspondAuFiltre', () => {
     expect(correspondAuFiltre(etat, 'suivies')).toBe(true)
     expect(correspondAuFiltre(etat, 'tout')).toBe(true)
     expect(correspondAuFiltre(etat, 'envies')).toBe(false)
-    expect(correspondAuFiltre(etat, 'possedes')).toBe(false)
+    expect(correspondAuFiltre(etat, 'completer', true)).toBe(false)
   })
 })
 
@@ -219,7 +204,7 @@ describe('aplatirEnElements', () => {
   })
 
   it('follows the current filter', () => {
-    expect(aplatirEnElements([serie], 'possedes', contexte).map((t) => t.key)).toEqual(['tome-1'])
+    expect(aplatirEnElements([serie], 'completer', contexte).map((t) => t.key)).toEqual(['tome-1'])
     expect(aplatirEnElements([serie], 'envies', contexte).map((t) => t.key)).toEqual(['tome-3'])
   })
 

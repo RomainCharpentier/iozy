@@ -44,7 +44,7 @@ export function indexerProgression(progressions: CollectionProgressDto[]): Map<s
 
 /** The edition that represents a work in a list - the one the server
  *  kept. `null` for a work without volumes (video game, board game). */
-function editionRepresentative(
+export function editionRepresentative(
   entity: EntityResponse,
   progression: Map<string, CollectionProgressDto>,
 ): EditionProgressDto | null {
@@ -178,31 +178,6 @@ export function ordonnerLesTypes(entityTypes: EntityTypeDto[], titresParType: Ma
   )
 }
 
-/** Groups the kept works by type, WITHOUT the types with 0 titles (never an
- *  empty rail that would have nothing to scroll), in the order of
- *  `ordonnerLesTypes` - counted on `titresParType` when the caller gives it
- *  (the whole collection, before the filter), on the received works otherwise. */
-export function groupByEntityType(
-  entities: EntityResponse[],
-  entityTypes: EntityTypeDto[],
-  progression: Map<string, CollectionProgressDto>,
-  envieDe: (entity: EntityResponse) => { possede: boolean; tomesVoulus: number; prioritaire: boolean } = () => ({
-    possede: true,
-    tomesVoulus: 0,
-    prioritaire: false,
-  }),
-  titresParType: Map<string, number> = compterLesTitresParType(entities),
-): { entityType: EntityTypeDto; tiles: ShelfTile[] }[] {
-  return ordonnerLesTypes(entityTypes, titresParType)
-    .map((entityType) => ({
-      entityType,
-      tiles: entities
-        .filter((e) => e.entityTypeId === entityType.id)
-        .map((e) => buildShelfTile(e, progression, envieDe(e))),
-    }))
-    .filter((section) => section.tiles.length > 0)
-}
-
 // ---------------------------------------------------------------------------
 // Three filters, two views (product study of 2026-08-27, sections 5 and 6)
 // ---------------------------------------------------------------------------
@@ -244,8 +219,9 @@ export function etatDeLOeuvre(
   }
 }
 
-export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection): boolean {
-  if (filtre === 'possedes') return etat.possede
+/** `aCompleter`: an owned work that lacks volumes - computed by the caller, who has the progress. */
+export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection, aCompleter = false): boolean {
+  if (filtre === 'completer') return etat.possede && aCompleter
   if (filtre === 'envies') return etat.voulu
   if (filtre === 'suivies') return etat.suivi
   return etat.possede || etat.voulu || etat.suivi
@@ -353,7 +329,7 @@ export function aplatirEnElements(
 }
 
 function retenu(etat: 'possede' | 'voulu' | 'suivi', filtre: FiltreCollection): boolean {
-  if (filtre === 'possedes') return etat === 'possede'
+  if (filtre === 'completer') return etat === 'possede'
   if (filtre === 'envies') return etat === 'voulu'
   if (filtre === 'suivies') return etat === 'suivi'
   return true

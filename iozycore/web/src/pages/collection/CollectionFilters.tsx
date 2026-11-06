@@ -44,6 +44,7 @@ const TRI_OPTIONS: { value: TriCollection; label: string }[] = [
 export function CollectionFilters({
   open,
   onClose,
+  titre = 'Affichage',
   vue,
   onVue,
   tri,
@@ -57,12 +58,14 @@ export function CollectionFilters({
 }: {
   open: boolean
   onClose: () => void
-  vue: VueCollection
-  onVue: (vue: VueCollection) => void
-  tri: TriCollection
-  onTri: (tri: TriCollection) => void
+  titre?: string
+  /** Absent on My collection, whose order is decided: only the shelf page still offers them. */
+  vue?: VueCollection
+  onVue?: (vue: VueCollection) => void
+  tri?: TriCollection
+  onTri?: (tri: TriCollection) => void
   status: CompletionFilter
-  onStatusChange: (status: CompletionFilter) => void
+  onStatusChange?: (status: CompletionFilter) => void
   tags: TagDto[]
   tagId: string | null
   onTagChange: (tagId: string | null) => void
@@ -90,7 +93,7 @@ export function CollectionFilters({
       >
         <div className="flex items-center justify-between gap-2 p-4 pb-2">
           <h2 id="collection-filters-title" className="font-display text-base font-semibold text-textPrimary">
-            Affichage
+            {titre}
           </h2>
           <button
             type="button"
@@ -102,9 +105,11 @@ export function CollectionFilters({
           </button>
         </div>
         <div className="flex flex-col gap-4 overflow-y-auto p-4 pt-2">
-          <GroupeRadio titre="Regrouper" options={VUE_OPTIONS} valeur={vue} onChoisir={onVue} />
-          <GroupeRadio titre="Trier" options={TRI_OPTIONS} valeur={tri} onChoisir={onTri} />
-          <GroupeRadio titre="État de la collection" options={STATUS_OPTIONS} valeur={status} onChoisir={onStatusChange} />
+          {vue && onVue && <GroupeRadio titre="Regrouper" options={VUE_OPTIONS} valeur={vue} onChoisir={onVue} />}
+          {tri && onTri && <GroupeRadio titre="Trier" options={TRI_OPTIONS} valeur={tri} onChoisir={onTri} />}
+          {onStatusChange && (
+            <GroupeRadio titre="État de la collection" options={STATUS_OPTIONS} valeur={status} onChoisir={onStatusChange} />
+          )}
           {/* No tag set anywhere: no section. A filter that
               cannot keep anything mostly tells the user that something is missing,
               without saying what. */}
