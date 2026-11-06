@@ -1793,3 +1793,22 @@ d'avant la règle existe, pour pouvoir la retirer.
 Vérifié : 1 315 tests backend après `test-compile` (le nouveau test
 `refuses_a_whole_work_that_is_already_owned`, la migration jouée par les
 tests d'intégration), 516 tests web, typecheck, lint.
+
+### Lot 203 — Le rangement par console et par éditeur
+
+Les salles se rangent comme demandé : jeux vidéo par console puis éditeur, jeux de
+société par éditeur, le reste par titre. La console vit sur l'exemplaire (V39) : le
+catalogue est partagé, et un jeu possédé sur deux consoles se range sous chacune.
+Elle est demandée à l'ajout quand la source en connaît plusieurs, sans bloquer,
+prise d'office s'il n'y en a qu'une, et se corrige sur la fiche. Sans réponse, le jeu
+attend sous « Console à préciser » ; sans éditeur, sous « Éditeur inconnu ».
+
+IGDB garde toutes les plateformes et lit les sociétés par leur rôle : Celeste n'est
+plus sur Stadia, Zelda n'est plus de Monolith Soft. BGG donne son premier éditeur, celui
+d'origine, pas l'éditeur français. « Compléter les éditeurs », sur le rayon, remplit les
+œuvres déjà là sans toucher à ce qui a été saisi.
+
+Vérifié : 1 322 tests backend, 571 tests web, typecheck, lint, contraste, frontières, 20 parcours
+e2e ; captures à 390, 1 280 et 1 920 px, en sombre et en clair. Réponses réelles relues le 2026-11-06 sur quatre jeux BGG et trois
+jeux IGDB. Le choix de console à l'ajout et le bouton de rattrapage n'ont pas tourné
+contre les vrais fournisseurs dans l'app : testés avec des réponses simulées.

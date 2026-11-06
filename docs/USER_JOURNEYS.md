@@ -94,7 +94,9 @@ lien de partage ne voit jamais la navigation privée.
 **Étapes** : 1. Ouvrir l'app. 2. Lire l'en-tête et parcourir les salles.
 **Résultat** : une salle colorée par catégorie possédée, la plus fournie en
 titres d'abord, puis par libellé, dans un ordre que les filtres ne changent pas.
-Les œuvres y sont sur des étagères, rangées par titre, sans réglage : une série
+Les œuvres y sont sur des étagères, rangées sans réglage : jeux vidéo par console
+puis éditeur, jeux de société par éditeur, le reste par titre (« Console à préciser »
+et « Éditeur inconnu » attendent à la fin). Un jeu sur deux consoles est sous chacune : une série
 montre sa jaquette et ses dos, jusqu'à 12 tomes possédés et 3 emplacements vides,
 les tomes voulus d'abord. En-tête « N titres · N ajouts ce mois ». Le signal
 « Plus que N tomes » reste quand il manque au plus 3 tomes.
@@ -131,7 +133,9 @@ reste sur le rayon d'une catégorie.
 **Résultat** : `/collection/:entityTypeId`, toutes les œuvres de ce type en grille,
 avec le regroupement, le tri, le filtre de complétude, les outils du type et un
 retour « Ma collection ».
-**Écrans** : `CategoryPage`
+« Compléter les éditeurs » y remplit, pour les jeux, ce que la source sait de l'éditeur
+et des consoles, sans toucher à ce qui a été saisi.
+**Écrans** : `CategoryPage`, `RattrapageEditeurs`
 **Statut** : `COMPLET`
 
 ### 04. Retrouver les jaquettes manquantes
@@ -508,6 +512,10 @@ résultat, sans passer par la saisie des tomes — voir le parcours 52.
 **Backend** : `GET /metadata/volumes`, `/metadata/french-title`,
 `POST /entities/quick-add`
 **Statut** : `COMPLET`
+
+**Console d'un jeu vidéo** (lot 203) : l'ajout demande « Sur quelle console ? » si la
+source en connaît plusieurs, sans bloquer ; une seule est prise d'office. La fiche la
+corrige, en texte libre (`AjoutDirect`, `ConsoleExemplaire`).
 
 ### 31. Ajouter un titre à la main (type sans fournisseur)
 **Étapes** : saisir un titre → « Ajouter « X » » → écran de brouillon en saisie
