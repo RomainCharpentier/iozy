@@ -87,12 +87,12 @@ services:
     ports:
       - "8081:80"
 
-  # IozyPlay (the blindtest), served by the same nginx under /play: one
-  # address for every Iozy app. Built from iozyplay/ of this repository.
-  iozyplay:
+  # IozyTest (the blindtest), served by the same nginx under /test: one
+  # address for every Iozy app. Built from iozytest/ of this repository.
+  iozytest:
     build:
       context: ../..
-      dockerfile: iozyplay/Dockerfile
+      dockerfile: iozytest/Dockerfile
     restart: unless-stopped
     volumes:
       - iozyplay_data:/app/data
@@ -117,4 +117,6 @@ services:
 volumes:
   postgres_data:
   media_data:
+  # Named before the app became IozyTest. Docker stores this name: a new one
+  # would start empty and leave the added questions behind.
   iozyplay_data:

@@ -165,7 +165,7 @@ try {
   verifier(type.includes('text/html'), '/ returns HTML', `content-type: ${type || 'absent'}`)
   if (accueil.status === 200 && type.includes('text/html')) {
     const corps = await accueil.text()
-    verifier(corps.includes('Iozy<span>Play'), '/ is the home page, not the app shell', 'IozyPlay not named in the page')
+    verifier(corps.includes('Iozy<span>Test'), '/ is the home page, not the app shell', 'IozyTest not named in the page')
   }
   // An address of the app from before it moved (a bookmark, a share link,
   // the installed PWA) must still arrive, with the same path.
@@ -175,6 +175,15 @@ try {
     `an old address of the app (/tier-lists) is redirected to ${app}/tier-lists`,
     `received ${ancienne.status} ${ancienne.headers.get('location') ?? ''}`,
   )
+  // An invitation sent before IozyTest changed its address must still arrive.
+  const invitation = await demander('/play/room/join?room=AB12')
+  verifier(
+    invitation.status === 302 && invitation.headers.get('location') === '/test/room/join?room=AB12',
+    'an old invitation (/play/room/join?room=AB12) is redirected to /test/ with its room',
+    `received ${invitation.status} ${invitation.headers.get('location') ?? ''}`,
+  )
+  const blindtest = await demander('/test/api/health')
+  verifier(blindtest.status === 200, '/test/api/health answers 200', `received ${blindtest.status}`)
 } catch (cause) {
   problemes.push(`/ unreachable — ${cause.message}`)
 }

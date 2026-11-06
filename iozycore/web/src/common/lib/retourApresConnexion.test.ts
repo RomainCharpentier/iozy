@@ -3,8 +3,8 @@ import { destinationApresConnexion } from './retourApresConnexion'
 
 describe('destinationApresConnexion', () => {
   it('accepts a path of the site, with its query string', () => {
-    expect(destinationApresConnexion('?next=%2Fplay%2F')).toBe('/play/')
-    expect(destinationApresConnexion('?next=%2Fplay%2Froom%2Fjoin%3Froom%3DAB12')).toBe('/play/room/join?room=AB12')
+    expect(destinationApresConnexion('?next=%2Ftest%2F')).toBe('/test/')
+    expect(destinationApresConnexion('?next=%2Ftest%2Froom%2Fjoin%3Froom%3DAB12')).toBe('/test/room/join?room=AB12')
   })
 
   it('refuses anything that could leave the site', () => {
