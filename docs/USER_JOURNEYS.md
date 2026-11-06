@@ -91,43 +91,51 @@ lien de partage ne voit jamais la navigation privée.
 ### 01. Consulter sa collection
 **Point de départ** : Ma collection (`/`)
 **Préconditions** : au moins une possession active.
-**Étapes** : 1. Ouvrir l'app. 2. Lire l'en-tête et parcourir les rails.
-**Résultat** : un rail par type de collection possédé — le plus fourni en
-titres d'abord, puis par libellé (lot 136 : l'ordre vient des données, plus
-d'une liste de codes qui plaçait le manga en premier) —, une tuile par œuvre avec
-sa jaquette, son édition dominante et sa progression « X/Y tomes » (48 tuiles
-au plus par rail, le compte dit le total, « Tout voir » montre le reste —
-lot 141) ; en-tête
-« N titres possédés · N ajouts ce mois ». Un signal « Plus que N tomes »
-apparaît quand il reste ≤ 3 tomes.
+**Étapes** : 1. Ouvrir l'app. 2. Lire l'en-tête et parcourir les salles.
+**Résultat** : une salle colorée par catégorie possédée, la plus fournie en
+titres d'abord, puis par libellé, dans un ordre que les filtres ne changent pas.
+Les œuvres y sont sur des étagères, rangées par titre, sans réglage : une série
+montre sa jaquette et ses dos, jusqu'à 12 tomes possédés et 3 emplacements vides,
+les tomes voulus d'abord. En-tête « N titres · N ajouts ce mois ». Le signal
+« Plus que N tomes » reste quand il manque au plus 3 tomes.
+Avec plusieurs catégories, une barre collante mène à chaque salle et allume celle
+qu'on lit. Avec une seule, ni barre ni nom de salle.
+**Vues** : Étagères ou Compact, retenu sur l'appareil. En compact, de petites
+jaquettes sans dos ni titre (le titre au survol, ou sur la jaquette si elle
+manque) et un filet par série : plein pour les tomes possédés, troué pour ceux
+qui manquent.
 **Branches** : collection vide → « Rien ici pour l'instant » + renvoi vers
-Rechercher ; un type sans possession active n'affiche aucun rail ; une œuvre
+Rechercher ; un type sans possession active n'a pas de salle ; une œuvre
 entièrement revendue disparaît de l'écran (le catalogue, lui, la conserve).
-**Écrans** : `ShelfPage`, `CategorySection`, `shelfTiles.ts`, `ownership.ts`
+**Écrans** : `ShelfPage`, `SalleCollection`, `BarreCategories`, `salles.ts`,
+`mouvement.ts`, `shelfTiles.ts`, `ownership.ts`
 **Backend** : `GET /entities/search`, `GET /ownerships`, `GET /entity-types`,
-`GET /purchase-analysis/editions/all`
+`GET /insights/progress`
 **Statut** : `COMPLET`
 
-### 02. Filtrer sa collection par complétude
-**Point de départ** : Ma collection ▸ Filtres
-**Étapes** : 1. Ouvrir Filtres. 2. Choisir Toutes / Incomplètes / Complètes.
-**Résultat** : la grille se réduit, le bouton Filtres porte un badge, les
-compteurs d'en-tête suivent le filtre.
-**Branches** : aucun résultat → message + « Réinitialiser les filtres ».
-Une œuvre dont le total d'édition est inconnu n'est ni complète ni incomplète et
-sort des deux filtres.
-**Écrans** : `CollectionFilters`, `ShelfPage`
+### 02. Filtrer sa collection
+**Point de départ** : Ma collection, barre Tout / À compléter / Suivies / Envies.
+**Étapes** : 1. Choisir un filtre. 2. Avec des tags, « Filtres » en choisit un.
+**Résultat** : les œuvres retenues glissent à leur place, les autres s'effacent,
+les compteurs d'en-tête suivent. « À compléter » garde les séries possédées à qui
+il manque un tome, celles à qui il en manque le moins d'abord.
+**Branches** : aucun résultat → message, et « Réinitialiser les filtres » s'il y a
+un tag. « À compléter » n'existe pas sans série possédée. Un total inconnu ne
+compte que les trous entre les tomes possédés. Le filtre Complètes / Incomplètes
+reste sur le rayon d'une catégorie.
+**Écrans** : `BarreVues`, `CollectionFilters`, `ShelfPage`
 **Statut** : `COMPLET` — **Desktop** popover / **Mobile** bottom-sheet.
 
 ### 03. Ouvrir le rayon d'un type
-**Point de départ** : Ma collection ▸ « Tout voir » d'un rail
-**Résultat** : `/collection/:entityTypeId`, toutes les œuvres possédées de ce
-type, avec le même filtre de complétude et un retour « Ma collection ».
-**Écrans** : `CategoryPage`, `CategorySection`
+**Point de départ** : une salle de Ma collection ▸ « Voir le rayon »
+**Résultat** : `/collection/:entityTypeId`, toutes les œuvres de ce type en grille,
+avec le regroupement, le tri, le filtre de complétude, les outils du type et un
+retour « Ma collection ».
+**Écrans** : `CategoryPage`
 **Statut** : `COMPLET`
 
 ### 04. Retrouver les jaquettes manquantes
-**Point de départ** : le rayon Manga (Ma collection ▸ « Tout voir » du rail
+**Point de départ** : le rayon Manga (Ma collection ▸ « Voir le rayon » de la salle
 Manga), à côté de Filtres. C'est l'outil de l'univers manga : il vit sur son
 rayon, et plus dans les outils de Ma collection, qui valent pour toute
 collection (lot 136).
@@ -1584,7 +1592,7 @@ Les seuls écrans sans action sont des **vides honnêtes** :
 6. **Classement rapide** — n'apparaît que s'il existe au moins une œuvre non
    classée. **Délibéré, pas un défaut** : proposer « classer ce qui n'est pas
    classé » quand tout l'est ouvrirait un écran vide. C'est la même règle que
-   les rails vides de Ma collection.
+   les salles vides de Ma collection.
 7. **Ordre des langues de titre** — ~~rangé dans Paramètres sans lien depuis
    les écrans concernés~~ — **RÉSOLU (2026-08-29)**. On voyait un titre en
    romaji sans savoir que c'était un choix, encore moins où le changer. La

@@ -1751,3 +1751,28 @@ Vérifié : 533 tests web, typecheck, lint, contraste, 20 parcours e2e ; capture
 à 1 280 px en sombre et clair et à 390 px en sombre, survol mesuré avec une
 vraie souris, sur la pile jetable. Les données de Frieren (tomes 13 à 15, total,
 jaquette française) restent à compléter.
+
+### Lot 202 — Ma collection en salles
+
+Accueil refait d'après le prototype validé par le propriétaire le 2026-11-06.
+Une salle colorée par catégorie, une barre collante, des étagères à hauteur
+unique ; une série montre ses dos, un jeu sa seule jaquette. Une vue Compact,
+retenue sur l'appareil, ne garde que de petites jaquettes et un filet par série.
+L'ordre est imposé (par titre pour l'instant) : le regroupement et le tri restent
+sur le rayon, qui garde sa grille et ses outils.
+
+Sont retirés de cet écran : la vue « Un par un », le tri, le filtre Complètes
+et le filtre Possédés, remplacé par « À compléter », aussi sur le rayon. Le lien
+de salle se nomme « Voir le rayon » : « Tout voir » mentirait, tout est déjà là.
+Les œuvres glissent au changement de filtre ou de vue, la jaquette vole vers la
+fiche (View Transitions) ; le retour arrière n'a pas de vol.
+
+Écarts au prototype : l'ombre prend la couleur de la salle plutôt que celle de
+chaque jaquette, qui demanderait de lire 300 images ; pas de lueur « le tome sort »,
+la sortie du prototype était inventée.
+
+Vérifié : 557 tests web, typecheck, lint, frontières, 19 parcours e2e ; dans
+Chromium sur la pile jetable, à 390, 1 280 et 1 920 px, en sombre et en clair, avec
+un compte mixte, manga seul et jeux seuls : aucun débordement, aucune erreur, retour
+à la même position, aucune animation sous « réduire les animations ». Sur 300 séries
+générées, sans image réseau : plus longue tâche 133 ms en étagères, 75 ms en compact.
