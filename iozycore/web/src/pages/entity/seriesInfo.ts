@@ -46,6 +46,19 @@ const LIBELLES_STATUT: Record<string, string> = {
 }
 
 /**
+ * The status as the pages show it, with its color. A status that is neither
+ * ongoing nor finished ("En pause", "Arrêtée") stays neutral: it is known, so
+ * it is said, but it is neither a progress nor an end.
+ */
+export function statutAffiche(attributes: Record<string, unknown> | undefined): { libelle: string; couleur: string } | null {
+  const libelle = libelleStatutSerie(attributes?.[SERIES_STATUS_ATTRIBUTE_KEY])
+  if (!libelle) return null
+  const ongoing = isSeriesOngoing(attributes)
+  const couleur = ongoing === null ? 'var(--color-textDim)' : ongoing ? 'var(--color-warning)' : 'var(--color-ok)'
+  return { libelle, couleur }
+}
+
+/**
  * The publication status as a reader says it, in French. The stored value
  * stays the provider's own ("FINISHED", "Publishing", "on_hiatus"): only its
  * display is translated. A value no provider is known to write is shown as

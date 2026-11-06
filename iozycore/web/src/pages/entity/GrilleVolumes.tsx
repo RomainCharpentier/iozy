@@ -76,6 +76,7 @@ export function GrilleVolumes({
   vue = 'grille',
   onVue,
   teinte,
+  jaquetteSerie,
   edition,
 }: {
   volumes: VolumeAffiche[]
@@ -116,6 +117,8 @@ export function GrilleVolumes({
   onVue?: (vue: VueTomes) => void
   /** The tint of the series, for the spine of an owned volume without a cover. */
   teinte?: [number, number, number]
+  /** The cover of the series, for the spine of an owned volume without a cover. */
+  jaquetteSerie?: string | null
   /** Named under the volume picked on the shelf. */
   edition?: string
 }) {
@@ -171,7 +174,7 @@ export function GrilleVolumes({
             return (
               <span key={cle} className="flex items-center">
                 {index > 0 && (
-                  <span aria-hidden="true" className="px-1 text-[12px] text-line select-none">
+                  <span aria-hidden="true" className="px-1 text-[13px] text-lineStrong select-none">
                     ·
                   </span>
                 )}
@@ -181,12 +184,12 @@ export function GrilleVolumes({
                   aria-checked={actif}
                   aria-label={`${libelle} : ${compte} tome${compte > 1 ? 's' : ''}`}
                   onClick={() => onFiltre(cle)}
-                  className={`flex min-h-11 items-center gap-1.5 rounded-lg px-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
-                    actif ? 'font-semibold text-textPrimary' : 'text-faint hover:text-textPrimary'
+                  className={`flex min-h-11 items-center gap-1.5 rounded-lg px-1.5 text-[13.5px] whitespace-nowrap transition-colors ${
+                    actif ? 'font-semibold text-textPrimary' : 'text-textDim hover:text-textPrimary'
                   }`}
                 >
                   {libelle}
-                  <span className={`text-[11.5px] tabular-nums ${actif ? 'text-accentText' : 'text-faint'}`}>
+                  <span className={`text-[12.5px] tabular-nums ${actif ? 'text-accentText' : 'text-textDim'}`}>
                     {compte}
                   </span>
                 </button>
@@ -231,6 +234,7 @@ export function GrilleVolumes({
           volumes={visibles}
           mode={consultation ? 'consultation' : 'navigation'}
           teinte={teinte}
+          jaquetteSerie={jaquetteSerie}
           edition={edition}
           onJeLAi={consultation ? undefined : onJeLAi}
           onJeLesAi={consultation ? undefined : onJeLesAi}

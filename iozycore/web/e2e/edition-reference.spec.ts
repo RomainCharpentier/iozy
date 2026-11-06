@@ -8,7 +8,7 @@ import { serieSansReference } from './amorcage'
  * <p>Eighth of the ten structuring journeys, and the only one whose effect is
  * seen <b>elsewhere</b> than where we act: we fill in two fields on a detail
  * page, and the progress of the whole application becomes computable. As long
- * as the number of volumes is unknown, the app counts what it has ("2 tomes")
+ * as the number of volumes is unknown, the app counts what it has ("2 tomes possédés")
  * without ever inventing a denominator — no "2/?", which would read as
  * missing data while the numerator is perfectly known.
  *
@@ -31,8 +31,7 @@ test('fill in the number of volumes of an edition, and see "X/Y" appear', async 
   await expect(page.getByRole('heading', { name: titre })).toBeVisible()
 
   // --- Before: what we own, and the admission that the rest is unknown
-  await expect(page.getByText('2 tomes', { exact: true })).toBeVisible()
-  await expect(page.getByText('Détails à renseigner')).toBeVisible()
+  await expect(page.getByText('2 tomes possédés', { exact: true })).toBeVisible()
 
   // --- Fill in the reference record
   //

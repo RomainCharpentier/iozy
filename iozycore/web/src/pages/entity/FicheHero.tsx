@@ -24,6 +24,7 @@ import { tonDe } from './useTeinteJaquette'
  */
 export function FicheHero({
   teinte,
+  teinteSeconde = teinte,
   kicker,
   titre,
   auteur,
@@ -42,6 +43,8 @@ export function FicheHero({
   colleEnHaut = true,
 }: {
   teinte: [number, number, number]
+  /** A second color of the cover, for the other side of the band. */
+  teinteSeconde?: [number, number, number]
   /** The collection type in small caps above the title. */
   kicker: string | null
   titre: string
@@ -92,51 +95,20 @@ export function FicheHero({
 }) {
   return (
     // `isolate`: the band is its own stacking context, so its `-z-10` layers
-    // paint just under its content - and not under the background of the
-    // page, where a negative z-index lands without it.
-    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative isolate ${colleEnHaut ? '-mt-6' : ''}`}>
-      {/* The cover itself, blurred into the top of the page (batch 195):
-          the tinted gradients below gave a mood, the owner found the page
-          "trop sobre" - the blurred artwork gives each series its own
-          light, like a record sleeve behind a player. An <img>, never a
-          canvas: the host does not need to allow CORS for a blur. Its
-          opacity keeps the text at the contrast the gradients had. */}
-      {couvertureUrl && (
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <img
-            src={couvertureUrl}
-            alt=""
-            loading="eager"
-            decoding="async"
-            className="absolute -top-[30%] -left-[10%] h-[160%] w-[120%] max-w-none object-cover opacity-40 blur-[70px] saturate-[1.4]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/55 to-background" />
-        </div>
-      )}
-      {/* The two layers of the mockup, in order: the vertical gradient
-          that sets the mood, then the radial wash that breaks it so that it
-          does not look like a flat color. `-z-10`: behind the content of
-          the band. All three layers stop at the band's edge (`inset-0`):
-          taller, they covered the filters and the first shelf below, which
-          are not positioned and so paint under a positioned band. */}
+    // paint just under its content, not under the background of the page.
+    // `[&~*]:relative`: the background runs on under the next blocks, which
+    // must paint above it. A block that is not positioned paints under a
+    // positioned band. `.fixed` keeps its own position.
+    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative isolate [&~*:not(.fixed)]:relative ${colleEnHaut ? '-mt-6' : ''}`}>
+      {/* The colors of the series, side to side, fading down into the color of
+          the page in both themes (the mask ends on the page itself, so no edge
+          shows). A blurred cover was tried here: its dark areas left gray
+          patches, on a white page above all. The dark theme takes less of the
+          color, for the text above it to stay readable. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
-          background:
-            `linear-gradient(178deg, ${tonDe(teinte, 34, 0.2)} 0%, ${tonDe(teinte, 20, 0.3)} 26%,` +
-            ` ${tonDe(teinte, 9, 0.45)} 58%, ${tonDe(teinte, 0)} 100%),` +
-            ' linear-gradient(180deg, var(--color-surface2) 0%, var(--color-background) 100%)',
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
-          background:
-            `radial-gradient(72% 62% at 8% -4%, ${tonDe(teinte, 30, 0.12)} 0%, ${tonDe(teinte, 0, 0.12)} 62%),` +
-            ` radial-gradient(56% 54% at 96% 2%, ${tonDe(teinte, 16, 0.4)} 0%, ${tonDe(teinte, 0, 0.4)} 58%)`,
-        }}
+        className="pointer-events-none absolute inset-x-0 top-0 -bottom-[300px] -z-10 opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)] [[data-theme=dark]_&]:opacity-40"
+        style={{ background: `linear-gradient(90deg, ${tonDe(teinte, 100, 0.05)}, ${tonDe(teinteSeconde, 100, 0.05)})` }}
       />
 
       <div className={`${CLASSE_CONTENU_BANDE} flex flex-wrap items-start gap-5 pt-6 md:gap-9`}>
@@ -159,12 +131,12 @@ export function FicheHero({
           <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
             <div className="flex min-w-0 flex-col gap-[7px]">
               {kicker && (
-                <span className="text-[11px] font-semibold tracking-[0.14em] text-faint uppercase">{kicker}</span>
+                <span className="text-[11px] font-semibold tracking-[0.14em] text-textPrimary uppercase">{kicker}</span>
               )}
               <h1 className="font-display text-[clamp(1.9rem,4.4vw,3.125rem)] leading-[1.06] font-semibold tracking-[-0.045em] break-words text-textPrimary">
                 {titre}
               </h1>
-              {auteur && <span className="text-[15px] text-textDim">{auteur}</span>}
+              {auteur && <span className="text-[15px] text-textPrimary">{auteur}</span>}
               {(etat || statut || annees) && (
                 <div className="flex flex-wrap items-center gap-4 text-[13.5px]">
                   {etat && (
@@ -185,7 +157,7 @@ export function FicheHero({
                       {statut.libelle}
                     </span>
                   )}
-                  {annees && <span className="text-faint">{annees}</span>}
+                  {annees && <span className="text-textPrimary">{annees}</span>}
                 </div>
               )}
             </div>
@@ -198,7 +170,7 @@ export function FicheHero({
                   onClick={onBasculerMode}
                   aria-pressed={modeEdition}
                   className={`flex h-11 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold whitespace-nowrap transition-colors ${
-                    modeEdition ? 'bg-accent text-accentInk' : 'bg-softBtn text-textDim hover:text-textPrimary'
+                    modeEdition ? 'bg-accent text-accentInk' : 'bg-surface text-textPrimary shadow-token-sm hover:text-accentText'
                   }`}
                 >
                   <Pencil size={14} />
@@ -214,7 +186,7 @@ export function FicheHero({
                 <button
                   type="button"
                   onClick={onEvaluer}
-                  className="flex h-11 items-center gap-1.5 rounded-xl bg-softBtn px-3.5 text-[13px] font-semibold whitespace-nowrap text-textDim transition-colors hover:text-textPrimary"
+                  className="flex h-11 items-center gap-1.5 rounded-xl bg-surface px-3.5 text-[13px] font-semibold whitespace-nowrap text-textPrimary shadow-token-sm transition-colors hover:text-accentText"
                 >
                   <Scale size={14} />
                   Évaluer une annonce

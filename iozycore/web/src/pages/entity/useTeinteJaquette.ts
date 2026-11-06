@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { couleursDominantes, type CouleursJaquette } from './couleursJaquette'
 
 /** Brand terracotta: the fallback tint when the cover is missing, does not
  *  load, or refuses to be read (see below). */
-const REPLI: [number, number, number] = [188, 88, 59]
+const REPLI: CouleursJaquette = { principale: [188, 88, 59], seconde: [188, 88, 59] }
 
 /**
- * The average color of a cover, to tint the top of its detail page.
+ * The colors of a cover (see couleursDominantes), to tint the top of its detail page.
  *
  * <h2>Why sampling and not a stored color</h2>
  * The mockup "Fiche série - multi-éditions" derives the whole top band
@@ -47,10 +48,10 @@ function hoteDe(url: string): string | null {
   }
 }
 
-export function useTeinteJaquette(url: string | null | undefined): [number, number, number] {
+export function useTeinteJaquette(url: string | null | undefined): CouleursJaquette {
   // The tint, kept with the cover it was read from: another cover reads the
   // fallback until its own tint arrives, with no reset in an effect.
-  const [reading, setReading] = useState<{ url: string; teinte: [number, number, number] } | null>(null)
+  const [reading, setReading] = useState<{ url: string; couleurs: CouleursJaquette } | null>(null)
 
   useEffect(() => {
     if (!url) return
@@ -71,30 +72,16 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
     image.onload = () => {
       if (annule) return
       try {
-        // 24x24 is more than enough for an average, and avoids decoding
-        // a full-resolution cover just to get three numbers out of it.
+        // 32x32 is enough to tell the colors apart, and avoids decoding a
+        // full-resolution cover just to get a few numbers out of it.
         const canvas = document.createElement('canvas')
-        canvas.width = 24
-        canvas.height = 24
+        canvas.width = 32
+        canvas.height = 32
         const contexte = canvas.getContext('2d')
         if (!contexte) return
-        contexte.drawImage(image, 0, 0, 24, 24)
-        const pixels = contexte.getImageData(0, 0, 24, 24).data
-        let r = 0
-        let v = 0
-        let b = 0
-        let n = 0
-        for (let i = 0; i < pixels.length; i += 4) {
-          // Nearly transparent pixels say nothing about the color of the
-          // cover and would pull the average toward black.
-          if (pixels[i + 3] < 32) continue
-          r += pixels[i]
-          v += pixels[i + 1]
-          b += pixels[i + 2]
-          n += 1
-        }
-        if (n === 0) return
-        setReading({ url, teinte: [Math.round(r / n), Math.round(v / n), Math.round(b / n)] })
+        contexte.drawImage(image, 0, 0, 32, 32)
+        const couleurs = couleursDominantes(contexte.getImageData(0, 0, 32, 32).data)
+        if (couleurs) setReading({ url, couleurs })
       } catch {
         // Canvas tainted by an image without CORS: we keep the fallback.
       }
@@ -105,7 +92,7 @@ export function useTeinteJaquette(url: string | null | undefined): [number, numb
     }
   }, [url])
 
-  return url && reading?.url === url ? reading.teinte : REPLI
+  return url && reading?.url === url ? reading.couleurs : REPLI
 }
 
 /**
