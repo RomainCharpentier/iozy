@@ -94,7 +94,8 @@ lien de partage ne voit jamais la navigation privée.
 **Étapes** : 1. Ouvrir l'app. 2. Lire l'en-tête et parcourir les salles.
 **Résultat** : une salle colorée par catégorie possédée, la plus fournie en
 titres d'abord, puis par libellé, dans un ordre que les filtres ne changent pas.
-Les œuvres y sont sur des étagères, rangées sans réglage : jeux vidéo par console
+Chaque salle montre les 10 œuvres les plus récemment arrivées (un tome ou une envie), le reste
+est sur le rayon. Les œuvres y sont sur des étagères, rangées sans réglage : jeux vidéo par console
 puis éditeur, jeux de société par éditeur, le reste par titre (« Console à préciser »
 et « Éditeur inconnu » attendent à la fin). Un jeu sur deux consoles est sous chacune : une série
 montre sa jaquette et ses dos, jusqu'à 12 tomes possédés et 3 emplacements vides,
@@ -129,17 +130,17 @@ reste sur le rayon d'une catégorie.
 **Statut** : `COMPLET` — **Desktop** popover / **Mobile** bottom-sheet.
 
 ### 03. Ouvrir le rayon d'un type
-**Point de départ** : une salle de Ma collection ▸ « Voir le rayon »
-**Résultat** : `/collection/:entityTypeId`, toutes les œuvres de ce type en grille,
-avec le regroupement, le tri, le filtre de complétude, les outils du type et un
-retour « Ma collection ».
+**Point de départ** : une salle de Ma collection ▸ « Tout voir »
+**Résultat** : `/collection/:entityTypeId`, la même salle avec toutes les œuvres de ce type,
+par titre (ou par console et éditeur), avec Étagères / Compact, les filtres, l'état de la
+collection, les tags, les outils du type et un retour « Ma collection ».
 « Compléter les éditeurs » y remplit, pour les jeux, ce que la source sait de l'éditeur
 et des consoles, sans toucher à ce qui a été saisi.
-**Écrans** : `CategoryPage`, `RattrapageEditeurs`
+**Écrans** : `CategoryPage`, `SalleCollection`, `RattrapageEditeurs`
 **Statut** : `COMPLET`
 
 ### 04. Retrouver les jaquettes manquantes
-**Point de départ** : le rayon Manga (Ma collection ▸ « Voir le rayon » de la salle
+**Point de départ** : le rayon Manga (Ma collection ▸ « Tout voir » de la salle
 Manga), à côté de Filtres. C'est l'outil de l'univers manga : il vit sur son
 rayon, et plus dans les outils de Ma collection, qui valent pour toute
 collection (lot 136).

@@ -1850,3 +1850,16 @@ en mode Éditer ; le bouton de bascule étagère ou grille, gardé dans la barre
 
 Vérifié : 571 tests web, typecheck, lint, contraste, 20 parcours e2e ; gestes rejoués à 390 et
 1 280 px, en sombre et en clair, à côté du prototype : choisir décale l'étagère de 0 px.
+
+### Lot 206 — Le fond de la fiche, et des salles courtes
+
+Le fond de la fiche prend vraiment les couleurs de la jaquette : deux halos issus de ses
+couleurs dominantes, comme sur le prototype. 15 jaquettes sur 35 retombaient sur le terracotta,
+car BGG interdit de lire ses images et AniList était écarté d'office. Le serveur les relaie
+désormais, pour les seuls hébergeurs de jaquettes connus (`CoverImageReader`) : une adresse
+saisie à la main ne lui fait appeler aucun autre site.
+
+Une salle ne montre plus que les 10 œuvres les plus récentes. « Tout voir » ouvre le rayon, qui
+devient la même salle avec tout, ses filtres et ses outils. La vue « Un par un » et le tri du
+rayon disparaissent. « Récent » veut dire le dernier tome ou la dernière envie, à la date près :
+une correction de fiche ne compte pas, et les œuvres d'un même jour restent par titre.
