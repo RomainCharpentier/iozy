@@ -7,7 +7,7 @@ import styles from '@/components/layout/AppShell.module.scss'
 
 /**
  * La marque de l'en-tête ouvre les autres apps Iozy : cette app, IozyCore, et un dernier
- * lien vers la page d'accueil du site, qui montre toutes les apps. Seulement quand l'app vit sous son préfixe (/play, à côté des
+ * lien vers la page d'accueil du site, qui montre toutes les apps. Seulement quand l'app vit sous son préfixe (/test, à côté des
  * autres) ; seule à la racine (dev, Vercel), la marque reste un simple lien
  * vers l'accueil et rien de tout ceci n'existe.
  *

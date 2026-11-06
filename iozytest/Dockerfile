@@ -1,5 +1,5 @@
 # IozyTest en un seul conteneur : le serveur Node sert le front construit,
-# l'API et Socket.IO sous un même préfixe (/play par défaut), pour vivre à
+# l'API et Socket.IO sous un même préfixe (/test par défaut), pour vivre à
 # côté d'IozyCore derrière son nginx (voir backend/docker-compose.nas.yml).
 # Le préfixe se change à la construction (--build-arg IOZYTEST_BASE_PATH=...) :
 # le front est compilé avec, le serveur le lit à l'exécution, les deux
@@ -12,7 +12,7 @@
 # --- Construction du front ---
 FROM node:22-alpine AS build
 WORKDIR /build/iozytest
-ARG IOZYTEST_BASE_PATH=/play
+ARG IOZYTEST_BASE_PATH=/test
 ENV IOZYTEST_BASE_PATH=$IOZYTEST_BASE_PATH
 COPY iozykit /build/iozykit
 COPY iozytest/package.json iozytest/package-lock.json ./
@@ -31,7 +31,7 @@ COPY iozytest/server ./server
 # reprend au premier démarrage puis garde les questions ajoutées.
 COPY iozytest/data ./data
 COPY --from=build /build/iozytest/dist ./dist
-ARG IOZYTEST_BASE_PATH=/play
+ARG IOZYTEST_BASE_PATH=/test
 ENV IOZYTEST_BASE_PATH=$IOZYTEST_BASE_PATH \
     IOZYTEST_STATIC_DIR=/app/dist \
     PORT=3001

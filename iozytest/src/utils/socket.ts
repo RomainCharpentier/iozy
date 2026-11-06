@@ -6,7 +6,7 @@ import { getSessionToken } from '@/utils/sessionToken'
  * Où joindre le serveur Socket.IO. Trois cas : une URL explicite (Vercel +
  * serveur hébergé ailleurs), le serveur de dev sur :3001, ou la même origine
  * que la page quand le serveur Node sert aussi le front, sous le même
- * préfixe (ex. /play/socket.io, voir server/index.js).
+ * préfixe (ex. /test/socket.io, voir server/index.js).
  */
 const getSocketTarget = (): { url: string; path: string } => {
   if (import.meta.env.VITE_SOCKET_URL) {

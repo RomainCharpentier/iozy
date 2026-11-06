@@ -105,13 +105,15 @@ export function registerServiceWorker() {
       // Sous un préfixe, l'ancien worker d'IozyCore resté inscrit à la racine
       // du site intercepte encore cette page et ne peut plus se mettre à jour
       // (son script a déménagé) : on le désinscrit. À la racine, cette portée
-      // est la nôtre.
+      // est la nôtre. Même chose pour notre ancien worker sous /play/ : son
+      // script redirige désormais, il ne peut plus se mettre à jour non plus.
       if (import.meta.env.BASE_URL !== '/') {
+        const stale = [`${window.location.origin}/`, `${window.location.origin}/play/`]
         navigator.serviceWorker
           .getRegistrations()
           .then((registrations) => {
             for (const registration of registrations) {
-              if (registration.scope === `${window.location.origin}/`) registration.unregister()
+              if (stale.includes(registration.scope)) registration.unregister()
             }
           })
           .catch(() => {})

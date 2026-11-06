@@ -9,7 +9,7 @@ const getApiBaseUrl = () => {
     return 'http://localhost:3001'
   }
   // Même origine que la page : le serveur Node sert aussi le front, sous le
-  // même préfixe (ex. /play, voir server/index.js). Vide à la racine.
+  // même préfixe (ex. /test, voir server/index.js). Vide à la racine.
   return import.meta.env.BASE_URL.replace(/\/$/, '')
 }
 

@@ -260,7 +260,7 @@ export function useRoomSocketCreate(
           const defaultName = playerName || 'Hôte'
           setCurrentPlayerName(defaultName)
         }
-        // L'app peut vivre sous un préfixe (/play, à côté d'IozyCore) : le lien
+        // L'app peut vivre sous un préfixe (/test, à côté d'IozyCore) : le lien
         // le porte, sinon l'invité tombe sur la page d'accueil du site.
         setShareLink(`${window.location.origin}${import.meta.env.BASE_URL}?room=${code}`)
         setIsConnecting(false)

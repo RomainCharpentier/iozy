@@ -12,7 +12,7 @@ import { getProfileHandler, createOrUpdateProfileHandler, deleteProfileHandler }
 
 /**
  * @param basePath  le préfixe sous lequel tout est servi : '' à la racine,
- *                  '/play' quand IozyTest vit à côté d'IozyCore (voir index.js)
+ *                  '/test' quand IozyTest vit à côté d'IozyCore (voir index.js)
  * @param staticDir le front construit à servir par ce serveur (image Docker) ;
  *                  null en dev, où Vite sert le front
  */

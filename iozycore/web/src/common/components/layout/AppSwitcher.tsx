@@ -69,7 +69,7 @@ export function AppSwitcher({ compact = false }: { compact?: boolean }) {
             <small>Ta collection</small>
           </span>
         </a>
-        <a className="iozy-apps__app" href="/play/">
+        <a className="iozy-apps__app" href="/test/">
           <img src={iozytestMark} alt="" />
           <span>
             <b>

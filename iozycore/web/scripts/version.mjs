@@ -97,8 +97,8 @@ export function versionDuDepot() {
   //
   // Only the commits that touch IozyCore count: IozyTest lives in the same
   // repository (iozytest/, iozyplay/ before its rename: older commits still carry
-  // that path) with its own version, and its commits must not move this number. The charter (iozykit/) does count: a colour change is
-  // a change of this app. `:/` reads the paths from the repository root,
+  // that path) with its own version, and its commits must not move this number.
+  // The charter (iozykit/) does count: a colour change is a change of this app. `:/` reads the paths from the repository root,
   // whatever the working directory.
   const messages = git('log', '--format=%B%x00', `${etiquette}..HEAD`, '--', ':/', ':(exclude,top)iozytest', ':(exclude,top)iozyplay')
     .split('\0')

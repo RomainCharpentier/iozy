@@ -254,7 +254,7 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
-      # One container for IozyTest: front, API and Socket.IO under /play (see
+      # One container for IozyTest: front, API and Socket.IO under /test (see
       # iozytest/Dockerfile). The NAS compose follows `latest` like the others.
       - name: IozyTest
         uses: docker/build-push-action@v6

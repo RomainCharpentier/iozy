@@ -9,7 +9,7 @@ const CACHE_VERSION = 'iozytest-v1'
 const CACHE_NAME = CACHE_VERSION
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime'
 
-// Le chemin sous lequel l'app est servie ('/' ou '/play/') : celui du script
+// Le chemin sous lequel l'app est servie ('/' ou '/test/') : celui du script
 // lui-même. Tout ce qui suit s'exprime par rapport à lui.
 const BASE = new URL('./', self.location.href).pathname
 

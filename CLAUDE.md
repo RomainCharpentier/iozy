@@ -8,7 +8,7 @@ Un seul dépôt pour trois dossiers de même rang, réunis le 2026-10-17 en gard
 - `docs/` : les documents communs (déploiement, exploitation, conception, journal des lots).
 - `tools/` : outillage personnel, hors produit (lab Claude, Nomik). Aucune app n'en dépend.
 
-Le site est une seule adresse : `/` la page d'accueil, `/core/` IozyCore, `/play/` IozyTest, `/api/` l'API. Le nginx d'IozyCore (`iozycore/web/nginx.conf`) route tout ; `iozycore/backend/docker-compose.yml` lance la pile complète en local.
+Le site est une seule adresse : `/` la page d'accueil, `/core/` IozyCore, `/test/` IozyTest, `/api/` l'API. Le nginx d'IozyCore (`iozycore/web/nginx.conf`) route tout ; `iozycore/backend/docker-compose.yml` lance la pile complète en local.
 
 ## Règles qui valent partout
 

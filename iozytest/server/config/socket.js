@@ -4,7 +4,7 @@
 
 import { Server } from 'socket.io';
 
-/** @param basePath le préfixe du serveur ('' ou '/play') : le socket écoute sous `<préfixe>/socket.io` */
+/** @param basePath le préfixe du serveur ('' ou '/test') : le socket écoute sous `<préfixe>/socket.io` */
 export function createSocketServer(httpServer, { basePath = '' } = {}) {
   // Configuration CORS pour production et développement
   const allowedOrigins = process.env.NODE_ENV === 'production'

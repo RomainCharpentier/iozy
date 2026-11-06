@@ -85,7 +85,7 @@ automatiquement (migrations Flyway), avec les 3 types historiques (manga,
 jeu vidéo, jeu de société) déjà en place.
 Cette même commande lance aussi un build de l'app web sur
 `http://localhost:8081/core/` (voir Partie 3, Option B ; la racine `/` est la
-page d'accueil, `/play/` IozyTest) — si tu veux juste tester
+page d'accueil, `/test/` IozyTest) — si tu veux juste tester
 l'API seule, ignore ce port.
 
 **Vérifier que ça tourne :**

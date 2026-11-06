@@ -7,7 +7,7 @@ FROM node:24-alpine AS build
 WORKDIR /build/iozycore/web
 
 # Where the app lives on the site: /core/, because the root is the home
-# home page of the site and /play is IozyTest (see nginx.conf). Dev and the e2e stack stay at
+# home page of the site and /test is IozyTest (see nginx.conf). Dev and the e2e stack stay at
 # the root; an empty ARG would serve the app alone at the root.
 ARG IOZYCORE_BASE_PATH=/core
 ENV IOZYCORE_BASE_PATH=$IOZYCORE_BASE_PATH

@@ -124,7 +124,7 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
-  # IozyTest (the blindtest), under /play behind the same nginx: one address,
+  # IozyTest (the blindtest), under /test behind the same nginx: one address,
   # one certificate, one reverse proxy entry. Its image is built from
   # iozytest/ of this repository by the deploy workflow, like the two others;
   # watchtower follows it the same way. The questions added from the app live

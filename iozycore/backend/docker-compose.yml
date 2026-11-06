@@ -87,7 +87,7 @@ services:
     ports:
       - "8081:80"
 
-  # IozyTest (the blindtest), served by the same nginx under /play: one
+  # IozyTest (the blindtest), served by the same nginx under /test: one
   # address for every Iozy app. Built from iozytest/ of this repository.
   iozytest:
     build:

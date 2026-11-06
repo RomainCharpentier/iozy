@@ -74,4 +74,4 @@ Voir `brand/README.md` : une tuile à l'accent, un objet en encre, posé sur l'*
 
 ## Naviguer entre les apps
 
-Chaque app porte les autres dans son en-tête : la marque en haut à gauche ouvre un menu avec les apps (`.iozy-apps`, un `details`), l'app courante marquée, et un dernier lien « Voir toutes les apps » vers la page d'accueil du site, à sa racine. Le menu n'existe que lorsque l'app vit sous son préfixe (`/core`, `/play`) à côté des autres ; seule à la racine, la marque reste un simple lien vers son accueil.
+Chaque app porte les autres dans son en-tête : la marque en haut à gauche ouvre un menu avec les apps (`.iozy-apps`, un `details`), l'app courante marquée, et un dernier lien « Voir toutes les apps » vers la page d'accueil du site, à sa racine. Le menu n'existe que lorsque l'app vit sous son préfixe (`/core`, `/test`) à côté des autres ; seule à la racine, la marque reste un simple lien vers son accueil.

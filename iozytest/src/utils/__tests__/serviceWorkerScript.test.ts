@@ -33,7 +33,7 @@ function fakeCaches(existing: string[]) {
   return { api, opened, precached, deleted }
 }
 
-function loadWorker(caches: ReturnType<typeof fakeCaches>['api'], scriptUrl = 'http://localhost:8081/play/sw.js') {
+function loadWorker(caches: ReturnType<typeof fakeCaches>['api'], scriptUrl = 'http://localhost:8081/test/sw.js') {
   const handlers: Record<string, Handler> = {}
   const self = {
     location: { href: scriptUrl, origin: new URL(scriptUrl).origin },
@@ -63,13 +63,13 @@ describe('public/sw.js', () => {
   it('précache la coquille sous le préfixe où le script est servi', async () => {
     const caches = fakeCaches([])
     await fire(loadWorker(caches.api).install)
-    expect(caches.precached).toEqual([['/play/', '/play/index.html', '/play/offline.html']])
+    expect(caches.precached).toEqual([['/test/', '/test/index.html', '/test/offline.html']])
   })
 
   it("purge à l'activation tout cache qui n'est pas le sien, et garde les siens", async () => {
-    const caches = fakeCaches(['blindtest-20261017', 'blindtest-20261018-runtime', 'iozytest-v1', 'iozytest-v1-runtime'])
+    const caches = fakeCaches(['blindtest-20261017', 'iozyplay-v1', 'iozytest-v1', 'iozytest-v1-runtime'])
     await fire(loadWorker(caches.api).activate)
-    expect(caches.deleted).toEqual(['blindtest-20261017', 'blindtest-20261018-runtime'])
+    expect(caches.deleted).toEqual(['blindtest-20261017', 'iozyplay-v1'])
   })
 
   it("laisse passer l'API commune du site et ne sert que sous son préfixe", () => {
@@ -81,9 +81,9 @@ describe('public/sw.js', () => {
     }
     expect(handled('http://localhost:8081/api/auth/me')).toBe(false)
     expect(handled('http://localhost:8081/core/')).toBe(false)
-    expect(handled('http://localhost:8081/play/socket.io/?EIO=4')).toBe(false)
-    expect(handled('http://localhost:8081/play/api/health')).toBe(true)
-    expect(handled('http://localhost:8081/play/assets/index-abc.js')).toBe(true)
+    expect(handled('http://localhost:8081/test/socket.io/?EIO=4')).toBe(false)
+    expect(handled('http://localhost:8081/test/api/health')).toBe(true)
+    expect(handled('http://localhost:8081/test/assets/index-abc.js')).toBe(true)
   })
 
   it("ouvre le même cache d'un jour à l'autre : rien ne s'accumule", async () => {

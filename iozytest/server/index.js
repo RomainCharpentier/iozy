@@ -8,14 +8,14 @@ import { createSocketServer } from './config/socket.js';
 import { setupRoomHandlers } from './handlers/roomHandlers.js';
 import { setupGameHandlers } from './handlers/gameHandlers.js';
 
-/** '' pour la racine ; sinon un seul `/` devant, aucun derrière : `play`, `/play/` et `/play` valent `/play`. */
+/** '' pour la racine ; sinon un seul `/` devant, aucun derrière : `test`, `/test/` et `/test` valent `/test`. */
 function normaliserPrefixe(valeur) {
     const sans = (valeur || '').trim().replace(/^\/+|\/+$/g, '');
     return sans ? `/${sans}` : '';
 }
 
 // Le préfixe sous lequel tout est servi : vide à la racine (dev, Vercel avec
-// un serveur à part), `/play` quand IozyTest vit à côté d'IozyCore derrière le
+// un serveur à part), `/test` quand IozyTest vit à côté d'IozyCore derrière le
 // même nginx. Le front est construit avec la même valeur (vite.config.ts).
 const basePath = normaliserPrefixe(process.env.IOZYTEST_BASE_PATH);
 // Le dossier du front construit, servi par ce serveur (image Docker) ; absent

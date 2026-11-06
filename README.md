@@ -5,7 +5,7 @@ Les apps Iozy, dans un seul dépôt : des apps personnelles, auto-hébergées, s
 | Dossier | Ce que c'est | Où ça vit sur le site |
 |---|---|---|
 | `iozycore/` | **IozyCore**, le catalogue de collection : mangas, jeux vidéo, jeux de société, ce qu'il te manque et ce que vaut une annonce. Backend Spring Boot, client web React, app iOS (hors service). | `/core/` (et `/api/`) |
-| `iozytest/` | **IozyTest**, le blindtest entre amis : serveur Node + Socket.IO, front React. | `/play/` |
+| `iozytest/` | **IozyTest**, le blindtest entre amis : serveur Node + Socket.IO, front React. | `/test/` |
 | `iozykit/` | **IozyKit**, la charte graphique commune : couleurs des deux thèmes, polices, formes, composants de base, marques. Dépendance locale des deux apps. | — |
 | `docs/` | Déploiement, exploitation, conception, journal des lots. | — |
 | `tools/` | Outillage personnel, hors produit : lab d'entraînement à l'API Claude, graphe de code Nomik. | — |
@@ -22,7 +22,7 @@ cd iozycore/backend && docker compose up --build
 
 - http://localhost:8081/ : la page d'accueil
 - http://localhost:8081/core/ : IozyCore (API sur :8080)
-- http://localhost:8081/play/ : IozyTest
+- http://localhost:8081/test/ : IozyTest
 
 Depuis la racine, `npm run up` lance la même pile en arrière-plan et `npm run check` enchaîne les contrôles du kit, d'IozyCore et d'IozyTest (après un `npm ci` dans chacun de leurs dossiers ; pas de workspaces, chaque dossier garde son `package.json`).
 

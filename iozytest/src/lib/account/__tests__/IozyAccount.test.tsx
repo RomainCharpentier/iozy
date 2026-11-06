@@ -13,7 +13,7 @@ function Nom() {
 }
 
 beforeEach(() => {
-  vi.stubEnv('BASE_URL', '/play/')
+  vi.stubEnv('BASE_URL', '/test/')
   settingsService.saveSettings({ username: '', usernameFromAccount: false })
 })
 afterEach(() => {
@@ -90,6 +90,6 @@ describe('adoptAccountName et loginUrl', () => {
   })
 
   it('ramène à la page de départ une fois connecté', () => {
-    expect(loginUrl('/play/room/join?room=AB12')).toBe('/core/?next=%2Fplay%2Froom%2Fjoin%3Froom%3DAB12')
+    expect(loginUrl('/test/room/join?room=AB12')).toBe('/core/?next=%2Ftest%2Froom%2Fjoin%3Froom%3DAB12')
   })
 })
