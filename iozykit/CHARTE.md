@@ -1,10 +1,10 @@
 # Charte graphique Iozy
 
-Deux apps, une identité : **IozyCore** (le catalogue de collection) et **IozyPlay** (le blindtest multijoueur). Même palette, mêmes polices, même construction de logo, mêmes gestes. Cette page dit ce qu'on fait et pourquoi ; les valeurs sont dans `tokens.json`, vérifiées par `npm run check:contrast`.
+Deux apps, une identité : **IozyCore** (le catalogue de collection) et **IozyTest** (le blindtest multijoueur). Même palette, mêmes polices, même construction de logo, mêmes gestes. Cette page dit ce qu'on fait et pourquoi ; les valeurs sont dans `tokens.json`, vérifiées par `npm run check:contrast`.
 
 ## Le nom
 
-« Iozy » + un rôle, en un mot, deux majuscules : Iozy**Core**, Iozy**Play**. Le mot-marque s'écrit en Space Grotesk 600/700, « Iozy » en encre du thème et le suffixe en accent, jamais en dégradé, jamais dans un bloc coloré.
+« Iozy » + un rôle, en un mot, deux majuscules : Iozy**Core**, Iozy**Test**. Le mot-marque s'écrit en Space Grotesk 600/700, « Iozy » en encre du thème et le suffixe en accent, jamais en dégradé, jamais dans un bloc coloré.
 
 ## Palette : terracotta, un seul accent
 

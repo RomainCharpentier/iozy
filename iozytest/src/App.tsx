@@ -27,7 +27,7 @@ function GameOverlay() {
   return (
     // Bandeau décoratif : la marque, pas « musique » (le jeu couvre aussi séries, films, jeux…)
     <div className={styles.appOverlay} aria-hidden="true">
-      <div className={styles.appOverlayContent}>IozyPlay</div>
+      <div className={styles.appOverlayContent}>IozyTest</div>
     </div>
   )
 }

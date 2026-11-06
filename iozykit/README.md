@@ -1,6 +1,6 @@
 # IozyKit
 
-La charte graphique Iozy — **IozyCore** (le catalogue de collection) et **IozyPlay** (le blindtest) — en un seul endroit : les couleurs des deux thèmes, les polices, les rayons, les règles d'interaction, les composants de base, la construction du logo, et le contrôle de contraste qui garantit que tout reste lisible.
+La charte graphique Iozy — **IozyCore** (le catalogue de collection) et **IozyTest** (le blindtest) — en un seul endroit : les couleurs des deux thèmes, les polices, les rayons, les règles d'interaction, les composants de base, la construction du logo, et le contrôle de contraste qui garantit que tout reste lisible.
 
 Ce dépôt est la **source de vérité**. Les apps n'y pointent pas à l'exécution : chacune l'installe comme **dépendance git épinglée sur un commit** (voir « Consommer »). Le dépôt est public, leurs déploiements (Vercel, Docker sur NAS) le téléchargent comme n'importe quel paquet.
 
@@ -31,7 +31,7 @@ Toute modification de `tokens.json` passe par `npm test` avant le commit : une c
 
 ## Consommer
 
-Le kit vit dans le même dépôt que les deux apps (`iozykit/`, à côté de `iozycore/` et `iozyplay/`). Chacune le déclare en dépendance locale :
+Le kit vit dans le même dépôt que les deux apps (`iozykit/`, à côté de `iozycore/` et `iozytest/`). Chacune le déclare en dépendance locale :
 
 ```json
 "iozykit": "file:../iozykit"
@@ -39,7 +39,7 @@ Le kit vit dans le même dépôt que les deux apps (`iozykit/`, à côté de `io
 
 `npm install` (et `npm ci` au déploiement) pose un lien `node_modules/iozykit` vers ce dossier : une modification de la charte est visible dans l'app aussitôt, en dev comme au build, sans numéro à avancer. Les images Docker des deux apps se construisent depuis la racine du dépôt pour voir ce dossier. Un changement de `tokens.json` passe par `npm test` ici avant le commit.
 
-### Depuis IozyPlay (React + Vite + SCSS modules)
+### Depuis IozyTest (React + Vite + SCSS modules)
 
 `src/main.tsx` importe `iozykit/css/tokens.css`, `base.css` et `components.css` (Vite les résout dans `node_modules`) ; `src/styles/design-tokens.scss` fait correspondre les noms historiques de l'app (`--accent-primary`, `--bg-secondary`…) aux `--iozy-*` ; `DesignSystem.module.scss` compose les classes du kit (`composes: iozy-btn from global`). Le thème se bascule par les classes `.dark-theme` / `.light-theme` sur `<html>`, que le CSS généré reconnaît.
 

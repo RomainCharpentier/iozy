@@ -1,4 +1,4 @@
-# IozyPlay
+# IozyTest
 
 A modern web application for blindtest games where you can guess TV series, anime, songs, movies, and video games! One of the Iozy apps (see IozyCore); the visual identity is documented in [docs/CHARTE.md](docs/CHARTE.md).
 
@@ -61,18 +61,18 @@ Files will be generated in the `dist/` folder.
 
 ### Next to IozyCore, under `/play`
 
-The `Dockerfile` builds one container: the Node server serves the built front, the API and Socket.IO under `IOZYPLAY_BASE_PATH` (`/play` by default, empty for the root). The CI publishes `ghcr.io/<owner>/iozyplay-app` on every push to `main`; the IozyCore Docker stack pulls it and its nginx routes `/play/` to it. To try it alone:
+The `Dockerfile` builds one container: the Node server serves the built front, the API and Socket.IO under `IOZYTEST_BASE_PATH` (`/play` by default, empty for the root). The CI publishes `ghcr.io/<owner>/iozytest-app` on every push to `main`; the IozyCore Docker stack pulls it and its nginx routes `/play/` to it. To try it alone:
 
 ```bash
-docker build -t iozyplay .
-docker run --rm -p 3001:3001 iozyplay
+docker build -t iozytest .
+docker run --rm -p 3001:3001 iozytest
 # http://localhost:3001/play/
 ```
 
 ## Project Structure
 
 ```
-iozyplay/
+iozytest/
 ├── src/
 │   ├── components/       # React components
 │   ├── pages/           # Application pages

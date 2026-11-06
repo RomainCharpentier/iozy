@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { ChevronDown } from 'lucide-react'
 import iozycoreMark from 'iozykit/brand/iozycore.svg'
-import iozyplayMark from 'iozykit/brand/iozyplay.svg'
+import iozytestMark from 'iozykit/brand/iozytest.svg'
 import Wordmark from '@/components/layout/Wordmark'
 import styles from '@/components/layout/AppShell.module.scss'
 
@@ -41,7 +41,7 @@ export default function AppSwitcher() {
   return (
     <details ref={details} className="iozy-apps">
       <summary className={styles.wordmark}>
-        Iozy<span className={styles.wordmarkAccent}>Play</span>
+        Iozy<span className={styles.wordmarkAccent}>Test</span>
         <ChevronDown className="iozy-apps__chevron" aria-hidden />
       </summary>
       <nav className="iozy-apps__menu" aria-label="Les apps Iozy">
@@ -55,10 +55,10 @@ export default function AppSwitcher() {
           </span>
         </a>
         <a className="iozy-apps__app" href={import.meta.env.BASE_URL} aria-current="page">
-          <img src={iozyplayMark} alt="" />
+          <img src={iozytestMark} alt="" />
           <span>
             <b>
-              Iozy<span className={styles.wordmarkAccent}>Play</span>
+              Iozy<span className={styles.wordmarkAccent}>Test</span>
             </b>
             <small>Le blindtest</small>
           </span>

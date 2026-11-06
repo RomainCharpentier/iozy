@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
  * apps), le thème sombre sur les sélecteurs sombres des deux apps.
  *
  * Pourquoi deux conventions de sélecteur : IozyCore pose `data-theme="dark"`
- * sur <html>, IozyPlay pose les classes `.dark-theme` / `.light-theme`. Le CSS
+ * sur <html>, IozyTest pose les classes `.dark-theme` / `.light-theme`. Le CSS
  * généré sert les deux sans qu'aucune ne change sa mécanique de bascule.
  */
 const racine = join(dirname(fileURLToPath(import.meta.url)), '..')

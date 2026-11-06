@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512" role="img" aria-label="IozyPlay">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512" role="img" aria-label="IozyTest">
   <!-- Icône d'installation et image de partage (manifest.json, og:image) :
        même dessin que public/favicon.svg et que LogoMark (Logo.tsx), en
        couleurs du thème sombre (défaut de l'app), figées car ces usages ne

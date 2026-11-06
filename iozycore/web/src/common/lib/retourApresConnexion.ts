@@ -1,7 +1,7 @@
 /**
  * Back to where the gate was opened from.
  *
- * Another app of the site (IozyPlay) sends here to sign in with
+ * Another app of the site (IozyTest) sends here to sign in with
  * `/core/?next=/play/...`: once signed in, the person goes back there. The
  * parameter comes from the address bar, so only a path of THIS site is
  * accepted - never another origin, never a scheme: a sign-in page that

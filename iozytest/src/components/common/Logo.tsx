@@ -15,7 +15,7 @@ const SIZE_CLASSES = {
 const SVG_SIZES = { small: 40, medium: 64, large: 96 } as const
 
 /**
- * La marque IozyPlay : un triangle « lecture » posé sur une étagère, dans une
+ * La marque IozyTest : un triangle « lecture » posé sur une étagère, dans une
  * tuile à l'accent. L'étagère est le trait commun partagé avec IozyCore
  * (trois tranches sur la même étagère) ; le triangle dit ce que fait l'app.
  *
@@ -31,7 +31,7 @@ function LogoMark({ size }: { size: number }) {
       width={size}
       height={size}
       role="img"
-      aria-label="IozyPlay"
+      aria-label="IozyTest"
       className={styles.logoImg}
     >
       <rect width="32" height="32" rx="7.5" fill="var(--accent-primary)" />
@@ -53,7 +53,7 @@ export default function Logo({ size = 'medium', showText = true, className = '' 
       <div className={styles.logoIconWrapper}>
         <LogoMark size={SVG_SIZES[size]} />
       </div>
-      {showText && <h1 className={styles.logoText}>IozyPlay</h1>}
+      {showText && <h1 className={styles.logoText}>IozyTest</h1>}
     </div>
   )
 }

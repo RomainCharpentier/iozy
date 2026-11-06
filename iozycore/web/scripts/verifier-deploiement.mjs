@@ -165,7 +165,7 @@ try {
   verifier(type.includes('text/html'), '/ returns HTML', `content-type: ${type || 'absent'}`)
   if (accueil.status === 200 && type.includes('text/html')) {
     const corps = await accueil.text()
-    verifier(corps.includes('Iozy<span>Play'), '/ is the home page, not the app shell', 'IozyPlay not named in the page')
+    verifier(corps.includes('Iozy<span>Play'), '/ is the home page, not the app shell', 'IozyTest not named in the page')
   }
   // An address of the app from before it moved (a bookmark, a share link,
   // the installed PWA) must still arrive, with the same path.

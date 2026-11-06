@@ -1,9 +1,9 @@
 ---
 paths:
-  - "iozyplay/**"
+  - "iozytest/**"
 ---
 
-# IozyPlay
+# IozyTest
 
 - Les commentaires du dossier sont en français (usage du dossier). Les textes affichés aussi.
 - Sous `/play/`, toute adresse absolue passe par `import.meta.env.BASE_URL`. Le nom de joueur vient du compte Iozy quand quelqu'un est connecté (`src/lib/account`).

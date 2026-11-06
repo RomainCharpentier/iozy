@@ -15,12 +15,12 @@ function normaliserPrefixe(valeur) {
 }
 
 // Le préfixe sous lequel tout est servi : vide à la racine (dev, Vercel avec
-// un serveur à part), `/play` quand IozyPlay vit à côté d'IozyCore derrière le
+// un serveur à part), `/play` quand IozyTest vit à côté d'IozyCore derrière le
 // même nginx. Le front est construit avec la même valeur (vite.config.ts).
-const basePath = normaliserPrefixe(process.env.IOZYPLAY_BASE_PATH);
+const basePath = normaliserPrefixe(process.env.IOZYTEST_BASE_PATH);
 // Le dossier du front construit, servi par ce serveur (image Docker) ; absent
 // en dev, où Vite sert le front.
-const staticDir = process.env.IOZYPLAY_STATIC_DIR || null;
+const staticDir = process.env.IOZYTEST_STATIC_DIR || null;
 
 // Créer l'application Express
 const app = createExpressApp({ basePath, staticDir });

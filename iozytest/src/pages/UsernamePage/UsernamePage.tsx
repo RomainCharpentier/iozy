@@ -66,7 +66,7 @@ export default function UsernamePage() {
       <div className={styles.brand}>
         <Logo size="small" showText={false} />
         <h1 className={styles.wordmark}>
-          Iozy<span className={styles.wordmarkAccent}>Play</span>
+          Iozy<span className={styles.wordmarkAccent}>Test</span>
         </h1>
         <p className={styles.lead}>
           Le blindtest entre amis : écoute, devine, marque des points. Il ne manque que ton nom.

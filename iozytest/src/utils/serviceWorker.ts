@@ -4,7 +4,7 @@
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development'
 
 // Au plus un rechargement automatique par onglet et par minute (voir plus bas).
-const RELOAD_KEY = 'iozyplay.sw-reload'
+const RELOAD_KEY = 'iozytest.sw-reload'
 const RELOAD_MIN_INTERVAL_MS = 60_000
 
 function lastAutomaticReload(): number {

@@ -231,7 +231,7 @@ describe('the visit without an account', () => {
 })
 
 /**
- * Another app of the site (IozyPlay) sends here to sign in and expects the
+ * Another app of the site (IozyTest) sends here to sign in and expects the
  * person back once it is done: the gate hands over as soon as a session is
  * open - and never before, a refusal keeps the person here.
  */

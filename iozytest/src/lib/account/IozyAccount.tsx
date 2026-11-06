@@ -9,7 +9,7 @@ import { settingsService } from '@/services/settingsService'
  * Sans compte, les invités gardent le nom libre, enregistré sur l'appareil.
  *
  * Seule à la racine (dev, Vercel), l'app n'a pas d'IozyCore à côté : personne.
- * Et IozyCore injoignable ne bloque jamais IozyPlay : au pire, pas de compte.
+ * Et IozyCore injoignable ne bloque jamais IozyTest : au pire, pas de compte.
  */
 export interface IozyAccount {
   pseudo: string

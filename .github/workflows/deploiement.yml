@@ -124,19 +124,19 @@ jobs:
       # charter change that breaks a contrast stops the release here.
       - run: npm test
 
-  iozyplay:
-    name: Contrôles IozyPlay
+  iozytest:
+    name: Contrôles IozyTest
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: iozyplay
+        working-directory: iozytest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: iozyplay/package-lock.json
+          cache-dependency-path: iozytest/package-lock.json
       - run: npm ci
       - name: Build (typecheck, then vite)
         run: npm run build
@@ -147,7 +147,7 @@ jobs:
 
   publier:
     name: Publier les images
-    needs: [backend, web, kit, iozyplay]
+    needs: [backend, web, kit, iozytest]
     runs-on: ubuntu-latest
     permissions:
       # Put the `vX.Y.Z` tag on the released commit: it is what links
@@ -207,23 +207,21 @@ jobs:
       #
       # The owner name is put in lower case: GHCR requires it, and
       # `RomainCharpentier` is not. The image names are written out
-      # (iozycore-api, iozycore-web, iozyplay-app): the repository holds every app,
+      # (iozycore-api, iozycore-web, iozytest-app): the repository holds every app,
       # the images are the apps, and the NAS follows them by these names.
-      # `iozyplay-app` and not `iozyplay`: that package was created by the
-      # former blindtest-webapp repository and stays attached to it, so this
-      # repository's token cannot write to it (GitHub offers no API to move
-      # that right). A new name belongs to this repository from its first push.
+      # A new package name belongs to this repository from its first push: that
+      # is how the blindtest image got its `-app` suffix, and how it changes name.
       - name: Owner name in lower case
         id: depot
         run: echo "proprietaire=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
-      # IozyPlay has its own number, the one of its package.json: its commits
+      # IozyTest has its own number, the one of its package.json: its commits
       # do not move the IozyCore release (see iozycore/web/scripts/version.mjs).
-      - name: IozyPlay version
-        id: iozyplay
+      - name: IozyTest version
+        id: iozytest
         run: |
-          numero=$(node -p "require('./iozyplay/package.json').version")
-          [ -n "$numero" ] || { echo "Empty IozyPlay version" >&2; exit 1; }
+          numero=$(node -p "require('./iozytest/package.json').version")
+          [ -n "$numero" ] || { echo "Empty IozyTest version" >&2; exit 1; }
           echo "numero=$numero" >> "$GITHUB_OUTPUT"
 
       - name: API
@@ -241,7 +239,7 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
-      # Context = the repository root: the web and IozyPlay images need the
+      # Context = the repository root: the web and IozyTest images need the
       # sibling iozykit/ (see their Dockerfile).
       - name: Web
         uses: docker/build-push-action@v6
@@ -256,19 +254,19 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
-      # One container for IozyPlay: front, API and Socket.IO under /play (see
-      # iozyplay/Dockerfile). The NAS compose follows `latest` like the others.
-      - name: IozyPlay
+      # One container for IozyTest: front, API and Socket.IO under /play (see
+      # iozytest/Dockerfile). The NAS compose follows `latest` like the others.
+      - name: IozyTest
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: iozyplay/Dockerfile
+          file: iozytest/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozyplay-app:latest
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozyplay-app:v${{ steps.iozyplay.outputs.numero }}
-          cache-from: type=gha,scope=iozyplay
-          cache-to: type=gha,mode=max,scope=iozyplay
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozytest-app:latest
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.proprietaire }}/iozytest-app:v${{ steps.iozytest.outputs.numero }}
+          cache-from: type=gha,scope=iozytest
+          cache-to: type=gha,mode=max,scope=iozytest
 
       # ─── What links the number to the code ────────────────────────
       #
@@ -317,7 +315,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        paquet: [iozycore-api, iozycore-web, iozyplay-app]
+        paquet: [iozycore-api, iozycore-web, iozytest-app]
     steps:
       - name: Keep only the last 5
         uses: actions/delete-package-versions@v5

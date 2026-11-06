@@ -106,7 +106,7 @@ Quinze contrôles, tous en GET, aucun compte requis.
 ## Une seule adresse pour toutes les apps
 
 `https://ton-nom.synology.me` est la page d'accueil : elle présente les
-deux apps et mène à chacune. IozyCore vit sous `/core`, IozyPlay sous `/play`.
+deux apps et mène à chacune. IozyCore vit sous `/core`, IozyTest sous `/play`.
 Une ancienne adresse d'IozyCore (un favori, un lien de partage, l'app
 installée sur le téléphone) est redirigée sous `/core` avec le même chemin ;
 l'app installée avant ce changement s'ouvre donc sur la page d'accueil,
@@ -114,8 +114,8 @@ la réinstaller depuis `/core/` la ramène à son écran.
 
 Le blindtest vit sous `https://ton-nom.synology.me/play`. Rien à
 ajouter côté DSM : l'entrée de reverse proxy ci-dessus suffit, nginx (conteneur
-`web`) achemine `/play/` vers le conteneur `iozyplay`, WebSocket compris. Son
-image `ghcr.io/romaincharpentier/iozyplay-app` est construite depuis `iozyplay/` de
+`web`) achemine `/play/` vers le conteneur `iozytest`, WebSocket compris. Son
+image `ghcr.io/romaincharpentier/iozytest-app` est construite depuis `iozytest/` de
 ce dépôt par le workflow de déploiement, et Watchtower la suit comme les deux
 autres (`docker-compose.nas.yml`). Ses questions vivent dans le volume
 `iozyplay_data`.
@@ -125,10 +125,10 @@ En local, le même montage vient avec `docker compose up --build`, puis
 
 La page d'accueil est construite avec le web (`iozycore/web/home/`) et servie
 par le même nginx à la racine. Dans chaque app, la marque en haut à gauche
-ouvre le menu des apps (IozyCore, IozyPlay) ; les pieds de page
+ouvre le menu des apps (IozyCore, IozyTest) ; les pieds de page
 renvoient à la page d'accueil.
 
-**Vérifier** : `/play/` affiche IozyPlay et `/play/api/health` répond
+**Vérifier** : `/play/` affiche IozyTest et `/play/api/health` répond
 `{"status":"ok"}`. Sans le conteneur, `/play` répond 502 et le reste du site ne
 change pas.
 

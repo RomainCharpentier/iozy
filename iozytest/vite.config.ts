@@ -14,7 +14,7 @@ export default defineConfig({
   // Le chemin sous lequel l'app est servie : '/' seul (Vercel, dev), ou
   // '/play/' quand le serveur Node la sert à côté d'IozyCore (voir
   // server/index.js et le Dockerfile). La même variable pilote le serveur.
-  base: `${(process.env.IOZYPLAY_BASE_PATH ?? '').replace(/\/+$/, '')}/`,
+  base: `${(process.env.IOZYTEST_BASE_PATH ?? '').replace(/\/+$/, '')}/`,
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },

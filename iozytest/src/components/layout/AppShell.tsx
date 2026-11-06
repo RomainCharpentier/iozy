@@ -57,7 +57,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <a href="/">Toutes les apps</a> ·{' '}
           </>
         )}
-        IozyPlay · version {VERSION}
+        IozyTest · version {VERSION}
       </footer>
       <TabBar />
     </div>

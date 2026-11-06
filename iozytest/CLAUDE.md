@@ -1,6 +1,6 @@
-# IozyPlay
+# IozyTest
 
-Jeu de blindtest multijoueur (deviner séries, animes, chansons, films, jeux à partir d'un média audio/vidéo/image/YouTube). Une des apps Iozy (IozyCore = le catalogue de collection, IozyPlay = le jeu). La charte graphique partagée vit dans le dépôt **IozyKit**, installé comme paquet `iozykit` épinglé sur un commit dans `package.json` (rien n'est copié dans ce dépôt) ; ce qui est propre à l'app : [docs/CHARTE.md](docs/CHARTE.md).
+Jeu de blindtest multijoueur (deviner séries, animes, chansons, films, jeux à partir d'un média audio/vidéo/image/YouTube). Une des apps Iozy (IozyCore = le catalogue de collection, IozyTest = le jeu). La charte graphique partagée vit dans le dépôt **IozyKit**, installé comme paquet `iozykit` épinglé sur un commit dans `package.json` (rien n'est copié dans ce dépôt) ; ce qui est propre à l'app : [docs/CHARTE.md](docs/CHARTE.md).
 Front React 19 + Vite 7 + TypeScript (`src/`) ; back Node ≥22 Express + Socket.IO en JS ESM (`server/`).
 Détails par zone : [src/CLAUDE.md](src/CLAUDE.md) et [server/CLAUDE.md](server/CLAUDE.md). Dette connue : [docs/REVIEW.md](docs/REVIEW.md).
 
@@ -44,7 +44,7 @@ Avant de considérer une tâche finie : `npm run typecheck && npm run lint && np
 
 - Front : Vercel (`vercel.json`) — Netlify/Render configs présentes mais secondaires. `VITE_SOCKET_URL` (et `VITE_API_URL`) désignent un serveur hébergé ailleurs ; sans elles, le front parle à **sa propre origine**, sous son préfixe.
 - Back : Railway (`railway.json`, `node server/index.js`). Env : `PORT` (3001), `NODE_ENV`, `FRONTEND_URL` (CORS). Système de fichiers éphémère → les écritures dans `data/` sont perdues au redéploiement.
-- **À côté d'IozyCore, sous `/play`** : le `Dockerfile` construit un seul conteneur où le serveur Node sert le front, l'API et Socket.IO sous `IOZYPLAY_BASE_PATH` (`/play` par défaut ; vide = racine). Le front est compilé avec le même préfixe (`base` dans `vite.config.ts`), le service worker et le manifeste sont relatifs. Le workflow `Deploiement` à la racine du dépôt publie l'image `ghcr.io/<owner>/iozyplay-app` à chaque push sur `main` (contexte de build : la racine, pour voir `iozykit/`) ; la pile Docker du NAS (`iozycore/backend/docker-compose.nas.yml`) la tire et son nginx route `/play/` vers elle, WebSocket compris. La charte est le dossier voisin `../iozykit`, lié par `file:` dans `package.json`. Les données vivent dans le volume monté sur `/app/data`.
+- **À côté d'IozyCore, sous `/play`** : le `Dockerfile` construit un seul conteneur où le serveur Node sert le front, l'API et Socket.IO sous `IOZYTEST_BASE_PATH` (`/play` par défaut ; vide = racine). Le front est compilé avec le même préfixe (`base` dans `vite.config.ts`), le service worker et le manifeste sont relatifs. Le workflow `Deploiement` à la racine du dépôt publie l'image `ghcr.io/<owner>/iozytest-app` à chaque push sur `main` (contexte de build : la racine, pour voir `iozykit/`) ; la pile Docker du NAS (`iozycore/backend/docker-compose.nas.yml`) la tire et son nginx route `/play/` vers elle, WebSocket compris. La charte est le dossier voisin `../iozykit`, lié par `file:` dans `package.json`. Les données vivent dans le volume monté sur `/app/data`.
 
 ## Fichiers à ignorer
 

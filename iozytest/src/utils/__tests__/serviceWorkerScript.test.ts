@@ -67,7 +67,7 @@ describe('public/sw.js', () => {
   })
 
   it("purge à l'activation tout cache qui n'est pas le sien, et garde les siens", async () => {
-    const caches = fakeCaches(['blindtest-20261017', 'blindtest-20261018-runtime', 'iozyplay-v1', 'iozyplay-v1-runtime'])
+    const caches = fakeCaches(['blindtest-20261017', 'blindtest-20261018-runtime', 'iozytest-v1', 'iozytest-v1-runtime'])
     await fire(loadWorker(caches.api).activate)
     expect(caches.deleted).toEqual(['blindtest-20261017', 'blindtest-20261018-runtime'])
   })

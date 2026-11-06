@@ -44,7 +44,7 @@ export default defineConfig({
   // The same alias as tsconfig.app.json: `@/` = src (Batch 134).
   // The path the app is served under: '/' alone in dev and in the e2e stack,
   // '/core/' in the Docker image (ARG in the Dockerfile), where the root of
-  // the site is the home page and /play is IozyPlay. The router, the
+  // the site is the home page and /play is IozyTest. The router, the
   // service worker, the manifest and the share links all read BASE_URL.
   base: `${(process.env.IOZYCORE_BASE_PATH ?? '').replace(/\/+$/, '')}/`,
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },

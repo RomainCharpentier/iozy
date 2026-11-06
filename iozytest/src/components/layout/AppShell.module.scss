@@ -1,4 +1,4 @@
-/* La coquille IozyPlay, calquée sur l'AppShell d'IozyCore : barres « verre »
+/* La coquille IozyTest, calquée sur l'AppShell d'IozyCore : barres « verre »
    (translucides, floutées, une ligne), mot-marque en texte, pastilles de
    navigation, grille de page à trois colonnes, pied de page, barre d'onglets
    au pouce sous 768 px. Jamais les deux navigations en même temps : le point
@@ -48,7 +48,7 @@
   border-bottom: 1px solid var(--border);
 }
 
-/* « Iozy » en encre, « Play » en accent : la marque porte l'accent dans son
+/* « Iozy » en encre, « Test » en accent : la marque porte l'accent dans son
    propre nom, elle n'a pas besoin d'un bloc coloré autour. */
 .wordmark {
   display: flex;
