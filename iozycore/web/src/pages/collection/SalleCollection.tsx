@@ -8,12 +8,16 @@ import type { AffichageCollection } from '@/common/lib/preferencesCollection'
 import type { EntityTypeDto } from '@/common/types/api'
 import {
   couperEnRangees,
+  couperLeLot,
+  ECART_LOT,
   largeurObjet,
   mesuresDeLaSalle,
   positionDeLaTranche,
+  rangerLaSalle,
   ratioDeLAspect,
   type DosSalle,
   type MesuresSalle,
+  type SectionSalle,
   type SegmentPiste,
 } from './salles'
 import type { ShelfTile } from './shelfTiles'
@@ -28,6 +32,10 @@ export interface ObjetSalle {
   /** The spines, at the cap of the room that draws them. */
   dosPour: (dosMax: number) => DosSalle[]
   piste: SegmentPiste[] | null
+  /** The consoles it stands under; empty: "Console à préciser". */
+  consoles: string[]
+  /** Null: "Éditeur inconnu". */
+  editeur: string | null
 }
 
 type ObjetPlace = Omit<ObjetSalle, 'dosPour'> & { dos: DosSalle[] }
@@ -79,15 +87,13 @@ export function SalleCollection({
 
   const ratio = ratioDeLAspect(visual.aspectClassName)
   const mesures = useMemo(() => mesuresDeLaSalle(affichage, largeur), [affichage, largeur])
-  const rangees = useMemo(
+  const sections = useMemo(
     () =>
-      couperEnRangees(
+      rangerLaSalle(
+        entityType.code,
         objets.map((objet): ObjetPlace => ({ ...objet, dos: objet.dosPour(mesures.dosMax) })),
-        (objet) => largeurObjet(ratio, objet.dos.length, mesures),
-        largeur,
-        mesures.ecart,
       ),
-    [objets, ratio, mesures, largeur],
+    [entityType.code, objets, mesures.dosMax],
   )
 
   return (
@@ -108,8 +114,85 @@ export function SalleCollection({
           <ChevronRight size={15} />
         </Link>
       </div>
-      <div ref={contenu}>
-        {rangees.map((rangee, index) => (
+      <div ref={contenu} className="salle-consoles">
+        {sections.map((section) => (
+          <SectionEtageres
+            key={section.console ?? ''}
+            section={section}
+            largeur={largeur}
+            ratio={ratio}
+            mesures={mesures}
+            affichage={affichage}
+            onOuvrir={onOuvrir}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/** What stands on a shelf: one object, or the run of a publisher under its label. */
+interface ElementRangee {
+  cle: string
+  largeur: number
+  /** Null: an object alone. Empty: a publisher going on from the previous shelf. */
+  editeur: string | null
+  objets: ObjetPlace[]
+}
+
+/** The height of the label of a publisher, above its covers. */
+function hauteurEtiquette(affichage: AffichageCollection): number {
+  return affichage === 'compact' ? 22 : 28
+}
+
+function SectionEtageres({
+  section,
+  largeur,
+  ratio,
+  mesures,
+  affichage,
+  onOuvrir,
+}: {
+  section: SectionSalle<ObjetPlace>
+  largeur: number
+  ratio: number
+  mesures: MesuresSalle
+  affichage: AffichageCollection
+  onOuvrir: (entityId: string, jaquette: HTMLElement | null) => void
+}) {
+  const largeurDe = (objet: ObjetPlace) => largeurObjet(ratio, objet.dos.length, mesures)
+  const largeurDuLot = (lot: ObjetPlace[]) =>
+    lot.reduce((total, objet) => total + largeurDe(objet), 0) + ECART_LOT * (lot.length - 1)
+
+  // In compact, a console takes the room it needs, so that several share a line.
+  const naturelle =
+    section.lots.reduce((total, lot) => total + largeurDuLot(lot.objets), 0) + mesures.ecart * (section.lots.length - 1)
+  const large =
+    affichage === 'compact' && section.console !== null && largeur > 0 ? Math.min(naturelle, largeur) : largeur
+
+  const elements: ElementRangee[] = section.lots.flatMap((lot) =>
+    lot.editeur === null
+      ? lot.objets.map((objet) => ({ cle: objet.tuile.key, largeur: largeurDe(objet), editeur: null, objets: [objet] }))
+      : couperLeLot(lot.objets, largeurDe, large).map((morceau, index) => ({
+          cle: `${lot.editeur}-${index}`,
+          largeur: largeurDuLot(morceau),
+          editeur: index === 0 ? lot.editeur : '',
+          objets: morceau,
+        })),
+  )
+  const rangees = couperEnRangees(elements, (element) => element.largeur, large, mesures.ecart)
+  const Etiquette = section.console === null ? 'h3' : 'h4'
+
+  return (
+    <section
+      className="salle-console"
+      // A minimum: a console with one cover keeps its name on one line.
+      style={affichage === 'compact' && section.console !== null && large > 0 ? { minWidth: large } : undefined}
+    >
+      {section.console !== null && <h3 className="salle-nom-console font-display font-semibold">{section.console}</h3>}
+      {rangees.map((rangee, index) => {
+        const tete = rangee.objets.some((element) => element.editeur !== null) ? hauteurEtiquette(affichage) : 0
+        return (
           <div
             key={index}
             data-rangee=""
@@ -118,25 +201,50 @@ export function SalleCollection({
               {
                 '--h': `${mesures.hauteur}px`,
                 '--w': `${mesures.dos}px`,
+                '--tete': `${tete}px`,
                 columnGap: mesures.ecart,
                 justifyContent: rangee.etalee ? 'space-between' : 'flex-start',
               } as React.CSSProperties
             }
           >
             <span data-planche="" aria-hidden="true" className="salle-planche" />
-            {rangee.objets.map((objet) => (
-              <Objet
-                key={objet.tuile.key}
-                objet={objet}
-                ratio={ratio}
-                mesures={mesures}
-                affichage={affichage}
-                onOuvrir={onOuvrir}
-              />
-            ))}
+            {rangee.objets.map((element) =>
+              element.editeur === null ? (
+                <Objet
+                  key={element.cle}
+                  objet={element.objets[0]}
+                  ratio={ratio}
+                  mesures={mesures}
+                  affichage={affichage}
+                  onOuvrir={onOuvrir}
+                />
+              ) : (
+                <div key={element.cle} className="salle-lot" style={{ width: element.largeur }}>
+                  {element.editeur === '' ? (
+                    <span aria-hidden="true" className="salle-editeur" />
+                  ) : (
+                    <Etiquette className="salle-editeur" title={element.editeur}>
+                      {element.editeur}
+                    </Etiquette>
+                  )}
+                  <div className="flex" style={{ columnGap: ECART_LOT }}>
+                    {element.objets.map((objet) => (
+                      <Objet
+                        key={objet.tuile.key}
+                        objet={objet}
+                        ratio={ratio}
+                        mesures={mesures}
+                        affichage={affichage}
+                        onOuvrir={onOuvrir}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ),
+            )}
           </div>
-        ))}
-      </div>
+        )
+      })}
     </section>
   )
 }

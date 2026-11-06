@@ -52,6 +52,8 @@ import { useToast } from '@/common/lib/toast'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { invaliderApresPossession } from '@/common/lib/invalidations'
 import { SqueletteFiche } from '@/common/components/Squelette'
+import { consolesDeLOeuvre } from '@/common/lib/consoles'
+import { ConsoleExemplaire } from './ConsoleExemplaire'
 
 /**
  * The detail page of a work, after the mockup "Fiche série - multi-éditions".
@@ -498,7 +500,11 @@ export function EntityDetailPage() {
   // While reading, the PERSONAL column only shows what exists: five stacked
   // "Aucune" / "Pas encore" lines said five times that nothing was there
   // (UI review of 2026-10-13). Edit mode still shows every readout.
+  // The console of a copy decides its place on the shelves.
+  const exemplairesDeJeu =
+    entityType?.code === 'VIDEO_GAME' ? ownerships.filter((o) => o.status === 'OWNED' && !o.variantId) : []
   const persoVide =
+    exemplairesDeJeu.length === 0 &&
     generalRank === null && meilleureNote === null && !remarques && experiences.length === 0 && entity.tagIds.length === 0
 
   /**
@@ -787,6 +793,11 @@ export function EntityDetailPage() {
                 </button>
               </div>
             ) : <>
+              {exemplairesDeJeu.map((exemplaire) => (
+                <ReleveInspecteur key={exemplaire.id} libelle="Console">
+                  <ConsoleExemplaire exemplaire={exemplaire} consoles={consolesDeLOeuvre(entity.attributes)} />
+                </ReleveInspecteur>
+              ))}
               {(modeEdition || generalRank) && (
               <ReleveInspecteur
                 libelle="Tier list">

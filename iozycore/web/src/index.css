@@ -568,14 +568,14 @@ html:active-view-transition * {
   margin: -12px calc(var(--marge-salle) * -1) 14px;
   padding: 12px var(--marge-salle) 0;
   content-visibility: auto;
-  contain-intrinsic-size: auto calc(var(--h) + 60px);
+  contain-intrinsic-size: auto calc(var(--h) + var(--tete, 0px) + 60px);
 }
 .salles-en-mouvement .salle-rangee {
   content-visibility: visible;
 }
 .salle-planche {
   position: absolute;
-  top: calc(var(--h) + 12px);
+  top: calc(var(--h) + var(--tete, 0px) + 12px);
   left: var(--marge-salle);
   right: var(--marge-salle);
   height: 10px;
@@ -590,6 +590,26 @@ html:active-view-transition * {
   flex: none;
   min-width: 0;
   text-align: left;
+}
+.salle-nom-console {
+  margin: 6px 0 12px;
+  color: var(--color-textPrimary);
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+.salle-lot {
+  flex: none;
+  min-width: 0;
+}
+.salle-editeur {
+  display: block;
+  height: var(--tete);
+  overflow: hidden;
+  color: var(--color-textDim);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .salle-objets {
   display: flex;
@@ -698,8 +718,28 @@ html:active-view-transition * {
   margin-right: 0;
   border-radius: 3px 3px 1px 1px;
 }
+/* The plank stands under the covers: without a title, the shelf must make room
+   for it, or its containment would clip it. */
 [data-affichage='compact'] .salle-rangee {
-  margin-bottom: 24px;
+  margin-bottom: 8px;
+  padding-bottom: 16px;
+}
+[data-affichage='compact'] .salle-consoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+}
+[data-affichage='compact'] .salle-console {
+  flex: none;
+  max-width: 100%;
+}
+[data-affichage='compact'] .salle-nom-console {
+  margin: 0 0 6px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+[data-affichage='compact'] .salle-editeur {
+  font-size: 11.5px;
 }
 [data-affichage='compact'] .salle-titre {
   font-size: 22px;

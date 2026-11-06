@@ -58,7 +58,7 @@ public record ExportDocument(
 
     public record OwnershipExport(UUID id, UUID entityId, String entityTitle, UUID variantId, String variantLabel,
                                    String condition, String status, LocalDate acquiredAt, String note,
-                                   BigDecimal purchasePrice) {
+                                   BigDecimal purchasePrice, String platform) {
     }
 
     public record ExperienceExport(UUID id, UUID entityId, String entityTitle, UUID variantId, String variantLabel,

@@ -45,11 +45,11 @@ public class ExportCsvWriter {
 
         files.put("ownerships.csv", writeCsv(
                 List.of("id", "entityId", "entityTitle", "variantId", "variantLabel", "condition", "status",
-                        "acquiredAt", "note", "purchasePrice"),
+                        "acquiredAt", "note", "purchasePrice", "platform"),
                 document.ownerships(),
                 o -> List.of(str(o.id()), str(o.entityId()), str(o.entityTitle()), str(o.variantId()),
                         str(o.variantLabel()), str(o.condition()), str(o.status()), str(o.acquiredAt()),
-                        str(o.note()), str(o.purchasePrice()))));
+                        str(o.note()), str(o.purchasePrice()), str(o.platform()))));
 
         files.put("experiences.csv", writeCsv(
                 List.of("id", "entityId", "entityTitle", "variantId", "variantLabel", "experienceType", "occurredAt", "rating", "comment"),

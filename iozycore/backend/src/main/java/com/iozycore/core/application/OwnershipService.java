@@ -41,6 +41,12 @@ public class OwnershipService {
         return change(id, Ownership::restore);
     }
 
+    /** The console of this copy, said or corrected by its owner. */
+    @Transactional
+    public Ownership updatePlatform(UUID id, String platform) {
+        return change(id, ownership -> ownership.updatePlatform(platform));
+    }
+
     private Ownership change(UUID id, Consumer<Ownership> transition) {
         Ownership ownership = ownershipRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Ownership introuvable : " + id));

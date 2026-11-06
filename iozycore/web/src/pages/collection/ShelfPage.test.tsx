@@ -151,6 +151,39 @@ describe('the rooms', () => {
   })
 })
 
+describe('the arrangement of the video games', () => {
+  it('names the console of the copy and the publisher of the work', () => {
+    const zelda = { ...oeuvre({ titre: 'Zelda', typeId: JEU.id }), attributes: { publisher: 'Nintendo', platforms: 'PC, Nintendo Switch' } }
+    donnees.useDonneesCollection.mockReturnValue({
+      ...donnees.useDonneesCollection(),
+      entities: [zelda, HADES],
+      entityTypes: [JEU],
+      ownerships: [possession({ entityId: zelda.id, console: 'Nintendo Switch' }), possession({ entityId: HADES.id })],
+      owned: new Set<string>(),
+    })
+    render(<ShelfPage />, { wrapper: enrobage })
+
+    expect(screen.getByRole('heading', { name: 'Nintendo Switch' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Nintendo' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Console à préciser' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Éditeur inconnu' })).toBeInTheDocument()
+  })
+
+  it('needs no answer for a game that only exists on one console', () => {
+    const celeste = { ...oeuvre({ titre: 'Seule', typeId: JEU.id }), attributes: { platforms: 'PC (Microsoft Windows)' } }
+    donnees.useDonneesCollection.mockReturnValue({
+      ...donnees.useDonneesCollection(),
+      entities: [celeste],
+      entityTypes: [JEU],
+      ownerships: [possession({ entityId: celeste.id })],
+      owned: new Set<string>(),
+    })
+    render(<ShelfPage />, { wrapper: enrobage })
+
+    expect(screen.getByRole('heading', { name: 'PC' })).toBeInTheDocument()
+  })
+})
+
 describe('the view', () => {
   it('remembers the compact view from one visit to the next', async () => {
     const { unmount } = render(<ShelfPage />, { wrapper: enrobage })

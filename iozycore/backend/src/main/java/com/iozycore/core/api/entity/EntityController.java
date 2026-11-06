@@ -40,7 +40,7 @@ public class EntityController {
         QuickAddResult result = entityService.quickAdd(new EntityService.QuickAdd(
                 request.entityTypeId(), request.title(), request.condition(), request.attributesOrEmpty(),
                 request.volumeNumber(), request.edition(), request.volumeImageUrl(), request.purchasePrice(),
-                request.acquiredAt()));
+                request.acquiredAt(), request.platform()));
         return new QuickAddResponse(
                 result.entityId(), result.matchedExistingEntity(), result.variantId(), result.matchedExistingVariant());
     }

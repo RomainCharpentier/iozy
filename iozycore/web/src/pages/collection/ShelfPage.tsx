@@ -9,6 +9,7 @@ import { BarreVues } from './BarreVues'
 import { deplacer, installerLesObjets, ouvrirAvecVol, sortirLesDos } from './mouvement'
 import { SalleCollection, type ObjetSalle } from './SalleCollection'
 import { dosDeLOeuvre, pisteDeLOeuvre, tomesManquants } from './salles'
+import { consolesDeLOeuvre, nomDeConsole } from '@/common/lib/consoles'
 import {
   buildShelfTile,
   compterLesTitresParType,
@@ -51,6 +52,13 @@ const AFFICHAGES: { cle: AffichageCollection; libelle: string }[] = [
   { cle: 'etageres', libelle: 'Étagères' },
   { cle: 'compact', libelle: 'Compact' },
 ]
+
+/** What the copies say; without any, a work that only exists on one console has no doubt left. */
+function consolesPour(entity: EntityResponse, desExemplaires: Set<string> | undefined): string[] {
+  if (desExemplaires && desExemplaires.size > 0) return [...desExemplaires]
+  const connues = consolesDeLOeuvre(entity.attributes)
+  return connues.length === 1 ? [nomDeConsole(connues[0])] : []
+}
 
 /** An empty screen must say WHY it is empty, and how to get out of it. */
 function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre: string; detail: string } {
@@ -180,6 +188,18 @@ export function ShelfPage() {
   )
   const unSeulType = titresParType.size <= 1
 
+  /** The consoles said on the copies of each work. */
+  const consolesDesExemplaires = useMemo(() => {
+    const parOeuvre = new Map<string, Set<string>>()
+    for (const o of ownerships) {
+      if (o.status !== 'OWNED' || !o.platform) continue
+      const consoles = parOeuvre.get(o.entityId) ?? new Set<string>()
+      consoles.add(nomDeConsole(o.platform))
+      parOeuvre.set(o.entityId, consoles)
+    }
+    return parOeuvre
+  }, [ownerships])
+
   const objetDe = useCallback(
     (entity: EntityResponse): ObjetSalle => {
       const etat = etats.get(entity.id)
@@ -197,9 +217,14 @@ export function ShelfPage() {
         aDesTomes: entity.variants.length > 0,
         dosPour: (dosMax) => dosDeLOeuvre(entity, edition, tomesVoulus, dosMax),
         piste: pisteDeLOeuvre(edition),
+        consoles: consolesPour(entity, consolesDesExemplaires.get(entity.id)),
+        editeur:
+          typeof entity.attributes.publisher === 'string' && entity.attributes.publisher.trim() !== ''
+            ? entity.attributes.publisher.trim()
+            : null,
       }
     },
-    [etats, progression, tomesVoulus, oeuvresVoulues, filtre],
+    [etats, progression, tomesVoulus, oeuvresVoulues, filtre, consolesDesExemplaires],
   )
 
   const salles = useMemo(

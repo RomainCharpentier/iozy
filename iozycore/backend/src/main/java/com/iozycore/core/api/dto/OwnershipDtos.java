@@ -13,14 +13,18 @@ public final class OwnershipDtos {
     private OwnershipDtos() {
     }
 
+    /** The console of a copy; null or blank clears it. */
+    public record UpdatePlatformRequest(String platform) {
+    }
+
     public record OwnershipResponse(UUID id, UUID entityId, UUID variantId, OwnershipCondition condition,
                                      OwnershipStatus status, LocalDate acquiredAt, String note,
-                                     BigDecimal purchasePrice) {
+                                     BigDecimal purchasePrice, String platform) {
         public static OwnershipResponse from(Ownership ownership) {
             return new OwnershipResponse(
                     ownership.id(), ownership.entityId(), ownership.variantId().orElse(null),
                     ownership.condition(), ownership.status(), ownership.acquiredAt(), ownership.note(),
-                    ownership.purchasePrice().orElse(null));
+                    ownership.purchasePrice().orElse(null), ownership.platform().orElse(null));
         }
     }
 }

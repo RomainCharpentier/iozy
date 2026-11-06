@@ -10,7 +10,10 @@ import {
   dosDeLOeuvre,
   largeurObjet,
   mesuresDeLaSalle,
+  CONSOLE_A_PRECISER,
+  EDITEUR_INCONNU,
   pisteDeLOeuvre,
+  rangerLaSalle,
   ratioDeLAspect,
   tomesManquants,
 } from './salles'
@@ -116,6 +119,59 @@ describe('couperEnRangees', () => {
   it('makes one shelf before the width is known, and none for nothing', () => {
     expect(couperEnRangees([100, 100], largeurDe, 0, 10)).toHaveLength(1)
     expect(couperEnRangees([], largeurDe, 320, 10)).toEqual([])
+  })
+})
+
+describe('rangerLaSalle', () => {
+  const jeu = (titre: string, consoles: string[], editeur: string | null) => ({ titre, consoles, editeur })
+
+  it('puts the video games by console then publisher, the largest first', () => {
+    const sections = rangerLaSalle('VIDEO_GAME', [
+      jeu('Elden Ring', ['PS5'], 'Bandai Namco'),
+      jeu('Celeste', ['Switch'], 'Maddy Makes Games'),
+      jeu('Zelda', ['Switch'], 'Nintendo'),
+      jeu('Mario', ['Switch'], 'Nintendo'),
+    ])
+
+    expect(sections.map((s) => s.console)).toEqual(['Switch', 'PS5'])
+    expect(sections[0].lots.map((l) => [l.editeur, l.objets.map((o) => o.titre)])).toEqual([
+      ['Nintendo', ['Zelda', 'Mario']],
+      ['Maddy Makes Games', ['Celeste']],
+    ])
+  })
+
+  it('shows a game owned on two consoles under each', () => {
+    const sections = rangerLaSalle('VIDEO_GAME', [jeu('Hades', ['PC', 'Switch'], 'Supergiant')])
+
+    expect(sections.map((s) => s.console).sort()).toEqual(['PC', 'Switch'])
+  })
+
+  it('never guesses: what is not said waits at the end, even when it is the largest', () => {
+    const sections = rangerLaSalle('VIDEO_GAME', [
+      jeu('A', [], null),
+      jeu('B', [], null),
+      jeu('C', ['PC'], 'Valve'),
+      jeu('D', ['PC'], null),
+      jeu('E', ['PC'], null),
+    ])
+
+    expect(sections.map((s) => s.console)).toEqual(['PC', CONSOLE_A_PRECISER])
+    expect(sections[0].lots.map((l) => l.editeur)).toEqual(['Valve', EDITEUR_INCONNU])
+  })
+
+  it('puts the board games by publisher, without a console', () => {
+    const sections = rangerLaSalle('BOARD_GAME', [jeu('Catan', [], 'KOSMOS'), jeu('Azul', [], null)])
+
+    expect(sections).toHaveLength(1)
+    expect(sections[0].console).toBeNull()
+    expect(sections[0].lots.map((l) => l.editeur)).toEqual(['KOSMOS', EDITEUR_INCONNU])
+  })
+
+  it('leaves the mangas and the custom types as they come, without a label', () => {
+    for (const code of ['MANGA', 'VINYL']) {
+      const objets = [jeu('Berserk', [], 'Glénat'), jeu('Monster', [], 'Kana')]
+      expect(rangerLaSalle(code, objets)).toEqual([{ console: null, lots: [{ editeur: null, objets }] }])
+    }
   })
 })
 

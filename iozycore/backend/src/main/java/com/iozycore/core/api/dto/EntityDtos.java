@@ -28,7 +28,8 @@ public final class EntityDtos {
      * guessed, stays editable afterwards via PATCH /api/ownerships/{id}/purchase-price. */
     public record QuickAddRequest(UUID entityTypeId, String title, OwnershipCondition condition,
                                    Map<String, Object> attributes, Integer volumeNumber, String edition,
-                                   String volumeImageUrl, BigDecimal purchasePrice, LocalDate acquiredAt) {
+                                   String volumeImageUrl, BigDecimal purchasePrice, LocalDate acquiredAt,
+                                   String platform) {
         public Map<String, Object> attributesOrEmpty() {
             return attributes == null ? Map.of() : attributes;
         }

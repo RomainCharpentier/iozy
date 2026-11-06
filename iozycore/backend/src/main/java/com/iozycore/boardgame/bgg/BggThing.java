@@ -14,7 +14,9 @@ import java.util.Set;
  * @param playingTimeMinutes     or {@code null}
  * @param designers              in BGG order, never {@code null}
  * @param categoriesAndMechanics both kinds of link mixed, never {@code null}
+ * @param publishers             in BGG order, the original publisher first, never {@code null}
  */
 public record BggThing(String imageUrl, String yearPublished, Integer minPlayers, Integer maxPlayers,
-                       Integer playingTimeMinutes, List<String> designers, Set<String> categoriesAndMechanics) {
+                       Integer playingTimeMinutes, List<String> designers, Set<String> categoriesAndMechanics,
+                       List<String> publishers) {
 }

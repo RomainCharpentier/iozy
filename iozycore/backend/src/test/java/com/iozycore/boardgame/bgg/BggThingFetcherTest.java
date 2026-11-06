@@ -68,6 +68,19 @@ class BggThingFetcherTest {
     }
 
     @Test
+    void keeps_the_publishers_in_bgg_order_without_the_ones_that_are_not_a_publisher() {
+        BggThing thing = new BggThingFetcher().parseThing("""
+                <items><item type="boardgame" id="1">
+                  <link type="boardgamepublisher" id="1" value="(Self-Published)"/>
+                  <link type="boardgamepublisher" id="2" value="KOSMOS"/>
+                  <link type="boardgamepublisher" id="3" value="999 Games"/>
+                </item></items>
+                """);
+
+        assertThat(thing.publishers()).containsExactly("KOSMOS", "999 Games");
+    }
+
+    @Test
     void a_field_bgg_leaves_at_zero_or_uncredited_is_no_answer() {
         BggThing thing = new BggThingFetcher().parseThing("""
                 <items><item type="boardgame" id="1">

@@ -22,6 +22,7 @@ import { CollectionFilters } from '@/pages/collection/CollectionFilters'
 import { EtatVide } from '@/common/components/EtatVide'
 import { useDonneesCollection } from '@/pages/collection/useDonneesCollection'
 import { useFiltresCollection } from '@/pages/collection/useFiltresCollection'
+import { RattrapageEditeurs } from './RattrapageEditeurs'
 import { RattrapageJaquettes } from './RattrapageJaquettes'
 import { SqueletteGrille } from '@/common/components/Squelette'
 
@@ -147,6 +148,15 @@ export function CategoryPage() {
     [entityType, duType, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies],
   )
 
+  // The publishers that the works added earlier never kept, on the shelf of the types arranged by them.
+  const oeuvresPossedees = useMemo(
+    () =>
+      entityType?.code === 'VIDEO_GAME' || entityType?.code === 'BOARD_GAME'
+        ? duType.filter((e) => etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies).possede)
+        : [],
+    [entityType, duType, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies],
+  )
+
   // No number until everything has arrived, otherwise the page announces an
   // empty category that is not empty - the rule lives in useDonneesCollection.
   const isLoading = donnees.chargement
@@ -195,6 +205,9 @@ export function CategoryPage() {
         </button>
         {entityType && entityType.code === 'MANGA' && !isLoading && (
           <RattrapageJaquettes oeuvresPossedees={mangasPossedes} mangaTypeId={entityType.id} />
+        )}
+        {entityType && !isLoading && oeuvresPossedees.length > 0 && (
+          <RattrapageEditeurs oeuvresPossedees={oeuvresPossedees} entityTypeId={entityType.id} />
         )}
       </div>
 

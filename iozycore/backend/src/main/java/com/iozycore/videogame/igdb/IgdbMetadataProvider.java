@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,8 +39,12 @@ import java.util.Map;
 public class IgdbMetadataProvider implements MetadataProvider {
 
     private static final String GAMES_URL = "https://api.igdb.com/v4/games";
+    private static final String COMPANY_AND_PLATFORM_FIELDS =
+            "platforms.name,involved_companies.publisher,involved_companies.developer,involved_companies.company.name";
     private static final String SEARCH_BODY =
-            "search \"%s\"; fields name,cover.url,platforms.name,involved_companies.company.name; limit 10;";
+            "search \"%s\"; fields name,cover.url," + COMPANY_AND_PLATFORM_FIELDS + "; limit 10;";
+    private static final String DETAILS_BODY =
+            "where id = %s; fields " + COMPANY_AND_PLATFORM_FIELDS + "; limit 1;";
 
     @Value("${igdb.client-id:}")
     private String clientId;
@@ -85,6 +90,51 @@ public class IgdbMetadataProvider implements MetadataProvider {
         }
     }
 
+    /**
+     * Every console and the real publisher of a game already in the catalog.
+     * The works added before batch 203 only kept the first of each.
+     */
+    @Override
+    public Map<String, Object> details(Map<String, Object> attributes) {
+        Object igdbId = attributes.get("igdbId");
+        if (igdbId == null || !igdbId.toString().trim().matches("\\d+")) {
+            return Map.of();
+        }
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(GAMES_URL))
+                    .timeout(Duration.ofSeconds(8))
+                    .header("Client-ID", clientId)
+                    .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
+                    .POST(HttpRequest.BodyPublishers.ofString(DETAILS_BODY.formatted(igdbId.toString().trim())))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new SourceUnavailableException("IGDB answered " + response.statusCode());
+            }
+            return parseDetails(response.body());
+        } catch (SourceUnavailableException e) {
+            throw e;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SourceUnavailableException("IGDB call interrupted");
+        } catch (Exception e) {
+            throw new SourceUnavailableException("IGDB call failed: " + e.getMessage());
+        }
+    }
+
+    Map<String, Object> parseDetails(String body) throws Exception {
+        JsonNode root = objectMapper.readTree(body);
+        if (!root.isArray() || root.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> details = new HashMap<>();
+        putPlatformsAndCompanies(root.get(0), details);
+        details.remove("platform");
+        details.remove("studio");
+        return details;
+    }
+
     List<MetadataCandidate> parse(String body) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         List<MetadataCandidate> candidates = new ArrayList<>();
@@ -96,18 +146,55 @@ public class IgdbMetadataProvider implements MetadataProvider {
 
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("igdbId", igdbId);
-            JsonNode platforms = item.path("platforms");
-            if (platforms.isArray() && !platforms.isEmpty()) {
-                attributes.put("platform", platforms.get(0).path("name").asText(null));
-            }
-            JsonNode involvedCompanies = item.path("involved_companies");
-            if (involvedCompanies.isArray() && !involvedCompanies.isEmpty()) {
-                attributes.put("studio", involvedCompanies.get(0).path("company").path("name").asText(null));
-            }
+            putPlatformsAndCompanies(item, attributes);
 
             candidates.add(new MetadataCandidate("IGDB", igdbId, title, imageUrl, attributes));
         }
         return candidates;
+    }
+
+    /**
+     * The first entry of each IGDB list says nothing: Celeste came first on
+     * Stadia, and Monolith Soft first on a Zelda. The console depends on the
+     * copy, so all of them are kept for the owner to choose; the companies are
+     * read by their role. {@code platforms} is joined like the designers of a
+     * board game, an attribute is a value the detail page can show and edit.
+     */
+    private void putPlatformsAndCompanies(JsonNode item, Map<String, Object> attributes) {
+        List<String> platforms = new ArrayList<>();
+        for (JsonNode platform : item.path("platforms")) {
+            String name = platform.path("name").asText("").trim();
+            if (!name.isEmpty()) {
+                platforms.add(name);
+            }
+        }
+        if (!platforms.isEmpty()) {
+            attributes.put("platform", platforms.get(0));
+            attributes.put("platforms", String.join(", ", platforms));
+        }
+        JsonNode companies = item.path("involved_companies");
+        String developer = companyWithRole(companies, "developer");
+        String anyCompany = companies.isEmpty() ? null : companies.get(0).path("company").path("name").asText(null);
+        String studio = developer != null ? developer : anyCompany;
+        if (studio != null) {
+            attributes.put("studio", studio);
+        }
+        String publisher = companyWithRole(companies, "publisher");
+        if (publisher != null) {
+            attributes.put("publisher", publisher);
+        }
+    }
+
+    private static String companyWithRole(JsonNode companies, String role) {
+        for (JsonNode company : companies) {
+            if (company.path(role).asBoolean(false)) {
+                String name = company.path("company").path("name").asText("").trim();
+                if (!name.isEmpty()) {
+                    return name;
+                }
+            }
+        }
+        return null;
     }
 
     /** IGDB returns protocol-relative URLs in "thumb" size (//images.igdb.com/.../t_thumb/xxx.jpg) -

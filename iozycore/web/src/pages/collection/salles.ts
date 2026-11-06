@@ -163,3 +163,68 @@ export function couperEnRangees<T>(
 export function positionDeLaTranche(numero: number, aSaJaquette: boolean): number {
   return aSaJaquette ? 15 : 22 + (numero * 17) % 56
 }
+
+export const CONSOLE_A_PRECISER = 'Console à préciser'
+export const EDITEUR_INCONNU = 'Éditeur inconnu'
+
+/** A run of objects under one publisher; `editeur` null: no label, each object stands alone. */
+export interface LotSalle<T> {
+  editeur: string | null
+  objets: T[]
+}
+
+/** Everything under one console; `console` null: a room that does not arrange by console. */
+export interface SectionSalle<T> {
+  console: string | null
+  lots: LotSalle<T>[]
+}
+
+/** The largest groups first, then by name, what is not known always last. */
+function grouper<T>(objets: T[], clesDe: (objet: T) => string[], inconnu: string): [string, T[]][] {
+  const groupes = new Map<string, T[]>()
+  for (const objet of objets) {
+    for (const cle of clesDe(objet)) {
+      const groupe = groupes.get(cle)
+      if (groupe) groupe.push(objet)
+      else groupes.set(cle, [objet])
+    }
+  }
+  return [...groupes.entries()].sort(
+    ([a, x], [b, y]) =>
+      Number(a === inconnu) - Number(b === inconnu) || y.length - x.length || a.localeCompare(b, 'fr'),
+  )
+}
+
+/**
+ * The order of a room, decided rather than chosen (owner, 2026-11-06): video
+ * games by console then publisher, board games by publisher, anything else as it
+ * comes (by title). A game owned on two consoles stands under each.
+ */
+export function rangerLaSalle<T extends { consoles: string[]; editeur: string | null }>(
+  code: string,
+  objets: T[],
+): SectionSalle<T>[] {
+  if (objets.length === 0) return []
+  const parEditeur = (liste: T[]): LotSalle<T>[] =>
+    grouper(liste, (objet) => [objet.editeur ?? EDITEUR_INCONNU], EDITEUR_INCONNU).map(([editeur, lot]) => ({
+      editeur,
+      objets: lot,
+    }))
+  if (code === 'VIDEO_GAME') {
+    return grouper(
+      objets,
+      (objet) => (objet.consoles.length > 0 ? objet.consoles : [CONSOLE_A_PRECISER]),
+      CONSOLE_A_PRECISER,
+    ).map(([console, liste]) => ({ console, lots: parEditeur(liste) }))
+  }
+  if (code === 'BOARD_GAME') return [{ console: null, lots: parEditeur(objets) }]
+  return [{ console: null, lots: [{ editeur: null, objets }] }]
+}
+
+/** The room between two objects of one publisher. */
+export const ECART_LOT = 12
+
+/** Cuts a publisher too wide for one shelf: it goes on over the next ones. */
+export function couperLeLot<T>(objets: T[], largeurDe: (objet: T) => number, largeur: number): T[][] {
+  return couperEnRangees(objets, largeurDe, largeur, ECART_LOT).map((rangee) => rangee.objets)
+}
