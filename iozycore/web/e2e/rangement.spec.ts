@@ -45,4 +45,15 @@ test('say the console of a game on its detail page, then find it on its shelf', 
   await expect(salle.getByRole('heading', { name: 'Console B' })).toBeVisible()
   await expect(salle.getByRole('heading', { name: 'Éditeur de test' })).toBeVisible()
   await expect(salle.getByRole('button', { name: new RegExp(titre) })).toBeVisible()
+
+  // --- The detail page always has its way back: an installed app has no Back button
+  await salle.getByRole('button', { name: new RegExp(titre) }).click()
+  await expect(page.getByRole('heading', { name: titre })).toBeVisible()
+  await page.getByRole('button', { name: 'Ma collection' }).click()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(salle.getByRole('button', { name: new RegExp(titre) })).toBeVisible()
+
+  // --- Even without an origin: a received link, a reload
+  await page.goto(`/entity/${entityId}`)
+  await expect(page.getByRole('button', { name: 'Ma collection' })).toBeVisible()
 })

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
+import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, mergeVariantAttributes, quickAdd, renameEntity } from '@/common/api/entities'
 import { deleteOwnership, listOwnerships } from '@/common/api/ownerships'
 import { detailsOeuvre, rechercherOeuvrePossedee, searchVolumes } from '@/common/api/metadata'
@@ -29,7 +29,6 @@ import type { OwnershipResponse } from '@/common/types/api'
 import { attributsARecharger, avecDetails, candidatCorrespondant, identifiantsSource } from './rechargerSource'
 import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from './useTeinteJaquette'
-import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '@/common/components/layout/AppShell'
 import { TierBadge } from '@/common/components/TierBadge'
 import { BoutonEnviesHero, BoutonSuivreHero, FicheHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
@@ -53,6 +52,10 @@ import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { invaliderApresPossession } from '@/common/lib/invalidations'
 import { SqueletteFiche } from '@/common/components/Squelette'
 import { consolesDeLOeuvre } from '@/common/lib/consoles'
+import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
+import { naviguerAvecVol } from '@/common/lib/volJaquette'
+import { CompteTomes, FaitsFiche } from './FaitsFiche'
+import { faitsDeLOeuvre, type Fait } from './faitsDeLOeuvre'
 import { ConsoleExemplaire } from './ConsoleExemplaire'
 
 /**
@@ -96,6 +99,7 @@ export function EntityDetailPage() {
   // retourFiche). Absent on a reloaded detail page or one received by link: the
   // shortcut then disappears, the page stays whole.
   const retour = retourDepuis(useLocation().state)
+  const refJaquette = useRef<HTMLElement>(null)
   const wishlist = useWishlist()
   const suivis = useOeuvresSuivies()
 
@@ -500,11 +504,20 @@ export function EntityDetailPage() {
   // While reading, the PERSONAL column only shows what exists: five stacked
   // "Aucune" / "Pas encore" lines said five times that nothing was there
   // (UI review of 2026-10-13). Edit mode still shows every readout.
-  // The console of a copy decides its place on the shelves.
+  // The console of a copy decides its place on the shelves: a fact of this page.
   const exemplairesDeJeu =
-    entityType?.code === 'VIDEO_GAME' ? ownerships.filter((o) => o.status === 'OWNED' && !o.variantId) : []
+    entityType?.code === 'VIDEO_GAME' && !estInvite ? ownerships.filter((o) => o.status === 'OWNED' && !o.variantId) : []
+  const avecTomes = entity.variants.length > 0 || groupes.length > 0 || isManga
+  const visuelDuType = getEntityTypeVisual(entityType)
+  const faitsAffiches: Fait[] = [
+    ...exemplairesDeJeu.map((exemplaire) => ({
+      libelle: 'Console',
+      large: true,
+      valeur: <ConsoleExemplaire exemplaire={exemplaire} consoles={consolesDeLOeuvre(entity.attributes)} />,
+    })),
+    ...faitsDeLOeuvre(entityType?.code, entity.attributes),
+  ]
   const persoVide =
-    exemplairesDeJeu.length === 0 &&
     generalRank === null && meilleureNote === null && !remarques && experiences.length === 0 && entity.tagIds.length === 0
 
   /**
@@ -564,6 +577,14 @@ export function EntityDetailPage() {
     possedes: groupe.ownedVolumeNumbers.length,
   }))
 
+  // One edition is a line under the title: its name and its publisher, which its card used to say.
+  const editionUnique =
+    groupes.length === 1 && !modeEdition && !estInvite
+      ? [editionsAffichees[0].nom, editionsAffichees[0].editeur].filter(Boolean).join(' · ')
+      : ''
+  const editionDuCompte =
+    groupeActif && !estInvite ? editionsAffichees.find((edition) => edition.nom === groupeActif.editionName) : undefined
+
   async function basculerEnvies() {
     const entree = wishlist.entryFor(entityId)
     if (entree) wishlist.remove(entree.id, { entityId })
@@ -588,27 +609,42 @@ export function EntityDetailPage() {
 
   return (
     <>
-      {/* Before the hero, so the band no longer sticks to the top: without it, it
-          would go up over this link (see FicheHero.colleEnHaut). */}
-      {retour && (
-        <Link
-          to={retour.to}
-          className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary"
-        >
-          <ArrowLeft size={15} />
-          {retour.libelle}
-        </Link>
-      )}
+      {/* Always there: an app installed in full screen has no Back button. A
+          received link or a reload has no origin: the natural parent, then. */}
+      <button
+        type="button"
+        onClick={() => {
+          const vers = retour ?? (estInvite ? { to: '/add', libelle: 'Catalogue' } : { to: '/', libelle: 'Ma collection' })
+          naviguerAvecVol(
+            vers.depuisOeuvre ? refJaquette.current : null,
+            () => navigate(vers.to, { state: { position: vers.position } }),
+            `[data-oeuvre="${vers.depuisOeuvre}"] [data-face]`,
+          )
+        }}
+        className="relative z-[1] flex min-h-11 w-fit items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary"
+      >
+        <ArrowLeft size={15} />
+        {retour?.libelle ?? (estInvite ? 'Catalogue' : 'Ma collection')}
+      </button>
 
       <FicheHero
-        colleEnHaut={!retour}
+        aspectClassName={visuelDuType.aspectClassName}
+        grandeJaquette={!avecTomes}
+        refJaquette={refJaquette}
+        faits={
+          editionDuCompte ? (
+            <CompteTomes possedes={editionDuCompte.possedes} total={editionDuCompte.total} />
+          ) : !avecTomes && !modeEdition ? (
+            <FaitsFiche faits={faitsAffiches} />
+          ) : null
+        }
         teinte={teinte}
         teinteSeconde={teinteSeconde}
         kicker={entityType?.label ?? null}
         titre={entity.title}
-        auteur={auteur}
+        auteur={avecTomes || modeEdition ? auteur : null}
         statut={statut}
-        annees={annees}
+        annees={[annees, editionUnique].filter(Boolean).join(' · ') || null}
         couvertureUrl={couvertureUrl}
         repliCouverture={
           <div className="absolute inset-0" style={{ background: gradientFor(entity.title) }} aria-hidden="true" />
@@ -648,12 +684,14 @@ export function EntityDetailPage() {
             <BoutonSuivreHero suivie={suivie} onBasculer={() => suivis.basculer(entityId)} disabled={suivis.isPending} />
           )
         }
-        etat={estInvite ? null : etatCollection}
+        // Owning is said by the object (lot 198): only what is not owned gets a word.
+        etat={estInvite || (possedee && !suivie) ? null : etatCollection}
         modeEdition={modeEdition}
         onBasculerMode={estInvite ? undefined : basculerModeEdition}
         editions={
           groupes.length > 0 ? (
-            <CartesEditions
+            // One edition is a word under the title; its card only serves to edit.
+            groupes.length === 1 && !modeEdition && !estInvite ? null : <CartesEditions
               editions={editionsAffichees}
               editionAffichee={groupeActif?.editionName ?? ''}
               editionSuivie={editionSuivie}
@@ -671,13 +709,13 @@ export function EntityDetailPage() {
             proposition.cartesEditions
           )
         }
-      />
+      >
 
       {/* Renaming and cover: two rare corrections, on the band, right
           under what they change. They do not deserve a permanent field. */}
       {(editingTitle || editingCover) && (
-        <div className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative`}>
-          <div className={`${CLASSE_CONTENU_BANDE} flex flex-col gap-2 pt-4`}>
+        <div className="relative">
+          <div className="flex flex-col gap-2">
             {editingTitle && (
               <ChampCorrection
                 valeur={titleInput}
@@ -793,11 +831,6 @@ export function EntityDetailPage() {
                 </button>
               </div>
             ) : <>
-              {exemplairesDeJeu.map((exemplaire) => (
-                <ReleveInspecteur key={exemplaire.id} libelle="Console">
-                  <ConsoleExemplaire exemplaire={exemplaire} consoles={consolesDeLOeuvre(entity.attributes)} />
-                </ReleveInspecteur>
-              ))}
               {(modeEdition || generalRank) && (
               <ReleveInspecteur
                 libelle="Tier list">
@@ -891,7 +924,7 @@ export function EntityDetailPage() {
             </>
           }
           oeuvre={
-            modeEdition ? (
+            !avecTomes && !modeEdition ? undefined : modeEdition ? (
               // The SAME rows as in reading, as input fields - all of them,
               // even empty, this is where one completes what the source did not
               // give (user request of 2026-09-05). The status is entered
@@ -1157,6 +1190,8 @@ export function EntityDetailPage() {
           the end of the inspector. On a wide screen too - at 1280 px the
           content reaches the edge, and the button sat on the panel's corner
           (UI review of 2026-10-13). */}
+      </FicheHero>
+
       <div aria-hidden="true" className="h-14" />
 
       <AideFlottante

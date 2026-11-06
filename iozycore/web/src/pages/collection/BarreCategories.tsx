@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import type { EntityTypeDto } from '@/common/types/api'
-import { mouvementReduit } from './mouvement'
+import { mouvementReduit } from '@/common/lib/volJaquette'
 
 /**
  * The categories of My collection, always in reach: the bar stays under the

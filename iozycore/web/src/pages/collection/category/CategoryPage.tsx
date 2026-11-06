@@ -246,7 +246,11 @@ export function CategoryPage() {
             gradientKey={tile.gradientKey}
             aspectClassName={visual.aspectClassName}
             signal={tile.signal}
-            onClick={() => navigate(`/entity/${tile.entityId}`)}
+            onClick={() =>
+              navigate(`/entity/${tile.entityId}`, {
+                state: { retour: { to: `/collection/${entityTypeId}`, libelle: entityType?.label ?? 'Ma collection' } },
+              })
+            }
           />
         ))}
       </div>

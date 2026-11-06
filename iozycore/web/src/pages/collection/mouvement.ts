@@ -1,4 +1,5 @@
 import { flushSync } from 'react-dom'
+import { mouvementReduit } from '@/common/lib/volJaquette'
 
 /** The easing of the whole shelf, the one of the validated prototype. */
 const COURBE = 'cubic-bezier(.2,.8,.2,1)'
@@ -6,10 +7,6 @@ const SELECTEUR_OBJET = '[data-oeuvre]'
 const SELECTEUR_RANGEE = '[data-rangee]'
 /** While objects travel, a shelf must not clip them nor skip its rendering. */
 const CLASSE_EN_MOUVEMENT = 'salles-en-mouvement'
-
-export function mouvementReduit(): boolean {
-  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
 
 function animer(element: Element, images: Keyframe[], options: KeyframeAnimationOptions): void {
   if (typeof element.animate !== 'function') return
@@ -179,46 +176,4 @@ export function installerLesObjets(zone: HTMLElement | null): void {
     rang++
   }
   window.setTimeout(() => zone.classList.remove(CLASSE_EN_MOUVEMENT), 1400)
-}
-
-const NOM_DU_VOL = 'vol-jaquette'
-export const ATTRIBUT_CIBLE_DU_VOL = 'data-cible-vol'
-
-function attendreLaCible(delaiMax: number): Promise<HTMLElement | null> {
-  return new Promise((resolve) => {
-    const depart = Date.now()
-    const chercher = () => {
-      const cible = document.querySelector<HTMLElement>(`[${ATTRIBUT_CIBLE_DU_VOL}]`)
-      if (cible || Date.now() - depart >= delaiMax) resolve(cible)
-      else window.setTimeout(chercher, 16)
-    }
-    chercher()
-  })
-}
-
-/**
- * Opens a work: its cover flies to its place on the detail page.
- *
- * Without the API, or with reduced motion, it is a plain navigation. When the
- * page takes too long to come, the screen only crossfades: a frozen screen is
- * worse than a missing flight, so the wait stays short.
- */
-export function ouvrirAvecVol(source: HTMLElement | null, naviguer: () => void): void {
-  const documentVol = document as Document & {
-    startViewTransition?: (mise: () => Promise<void>) => { finished: Promise<void> }
-  }
-  if (!source || typeof documentVol.startViewTransition !== 'function' || mouvementReduit()) {
-    naviguer()
-    return
-  }
-  source.style.setProperty('view-transition-name', NOM_DU_VOL)
-  let cible: HTMLElement | null = null
-  const transition = documentVol.startViewTransition(async () => {
-    source.style.removeProperty('view-transition-name')
-    flushSync(naviguer)
-    cible = await attendreLaCible(450)
-    cible?.style.setProperty('view-transition-name', NOM_DU_VOL)
-  })
-  const nettoyer = () => cible?.style.removeProperty('view-transition-name')
-  transition.finished.then(nettoyer, nettoyer)
 }

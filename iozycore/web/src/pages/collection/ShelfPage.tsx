@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BarChart3, CalendarCheck, Heart, Layers, Library, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useNavigationType } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { BarreCategories } from './BarreCategories'
 import { CollectionFilters } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
-import { deplacer, installerLesObjets, ouvrirAvecVol, sortirLesDos } from './mouvement'
+import { deplacer, installerLesObjets, sortirLesDos } from './mouvement'
+import { naviguerAvecVol } from '@/common/lib/volJaquette'
 import { SalleCollection, type ObjetSalle } from './SalleCollection'
 import { dosDeLOeuvre, pisteDeLOeuvre, tomesManquants } from './salles'
 import { consolesDeLOeuvre, nomDeConsole } from '@/common/lib/consoles'
@@ -105,6 +106,8 @@ export function ShelfPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const typeDeNavigation = useNavigationType()
+  // Set by the back link of a detail page: the scroll to find again.
+  const positionDeRetour = (useLocation().state as { position?: unknown } | null)?.position
   const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
   const [hubMenuOpen, setHubMenuOpen] = useState(false)
@@ -262,9 +265,10 @@ export function ShelfPage() {
   useEffect(() => {
     if (isLoading || dejaInstalle.current || salles.length === 0) return
     dejaInstalle.current = true
-    if (typeDeNavigation !== 'POP' || !pageDejaVue) installerLesObjets(zone.current)
+    if (typeof positionDeRetour === 'number') window.scrollTo(0, positionDeRetour)
+    else if (typeDeNavigation !== 'POP' || !pageDejaVue) installerLesObjets(zone.current)
     pageDejaVue = true
-  }, [isLoading, salles.length, typeDeNavigation])
+  }, [isLoading, salles.length, typeDeNavigation, positionDeRetour])
 
   /** The page already holds the work: the detail page can draw its cover at once, so that the
    *  flight has somewhere to land. It still asks the server, and corrects itself if needed. */
@@ -273,7 +277,8 @@ export function ShelfPage() {
     if (entity) {
       queryClient.setQueryData<EntityResponse>(queryKeys.entities.detail(entityId), (connue) => connue ?? entity)
     }
-    ouvrirAvecVol(jaquette, () => navigate(`/entity/${entityId}`))
+    const retour = { to: '/', libelle: 'Ma collection', position: window.scrollY, depuisOeuvre: entityId }
+    naviguerAvecVol(jaquette, () => navigate(`/entity/${entityId}`, { state: { retour } }))
   }
 
   const choisirFiltre = (suivant: FiltreCollection) =>

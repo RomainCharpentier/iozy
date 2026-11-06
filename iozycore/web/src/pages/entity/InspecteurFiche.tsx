@@ -41,7 +41,8 @@ export function InspecteurFiche({
   /** Absent for a visitor: they have no rating, no readings, no ranking, and
    *  the column told them "Pas encore notée" - nothing to rate, nobody. */
   personnel?: ReactNode
-  oeuvre: ReactNode
+  /** Absent when the facts above the page already say what the work is. */
+  oeuvre?: ReactNode
   source: ReactNode
   /** True outside edit mode: SOURCE becomes a closed disclosure row. */
   sourceRepliee?: boolean
@@ -67,9 +68,11 @@ export function InspecteurFiche({
             {personnel}
           </ColonneInspecteur>
         )}
-        <ColonneInspecteur titre="Œuvre" icone={<AlignLeft size={16} className="text-textDim" />} souligne="bg-line">
+        {oeuvre !== undefined && (
+          <ColonneInspecteur titre="Œuvre" icone={<AlignLeft size={16} className="text-textDim" />} souligne="bg-line">
           {oeuvre}
         </ColonneInspecteur>
+        )}
         {!sourceRepliee && (
           <ColonneInspecteur
             titre="Source"
