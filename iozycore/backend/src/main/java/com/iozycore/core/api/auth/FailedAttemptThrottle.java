@@ -12,12 +12,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Counts failed attempts per key, and says when a key must wait.
+ * Counts attempts per key, and says when a key must wait.
  *
- * <p>Used for wrong passwords at sign-in (key: address and IP) and for wrong
- * invitation codes at account creation (key: IP). After {@code maxFailures}
- * failures inside {@code window}, the key is blocked until the window of its
- * first failure ends. A success clears the key.
+ * <p>Used for passwords at sign-in (key: address and IP) and for invitation
+ * codes at account creation (key: IP). The caller asks {@link #tryAcquire}
+ * before it checks anything: the attempt is counted at once, in one atomic
+ * step, so parallel requests cannot all pass before the first failure is
+ * recorded. A success clears the key; an outcome that is not a guess gives
+ * the attempt back with {@link #release}.
+ *
+ * <p>After {@code maxFailures} attempts inside {@code window}, the key is
+ * blocked until the window of its first attempt ends.
  *
  * <p>In memory on purpose: one instance, no new dependency. A restart clears
  * every count, which is acceptable for a brake. The map is bounded: when it is
@@ -26,14 +31,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class FailedAttemptThrottle {
 
-    private record Failures(Instant firstFailure, int count) {
+    private record Attempts(Instant first, int count) {
     }
 
     private final int maxFailures;
     private final Duration window;
     private final int maxKeys;
     private final Clock clock;
-    private final Map<String, Failures> failures = new ConcurrentHashMap<>();
+    private final Map<String, Attempts> attempts = new ConcurrentHashMap<>();
 
     @Autowired
     public FailedAttemptThrottle(@Value("${auth.throttle.max-failures:5}") int maxFailures,
@@ -49,58 +54,72 @@ public class FailedAttemptThrottle {
         this.clock = clock;
     }
 
-    /** True if this key has failed too often and must wait. */
-    public boolean isBlocked(String key) {
-        Failures current = failures.get(key);
-        if (current == null) {
-            return false;
-        }
-        if (isExpired(current, clock.instant())) {
-            failures.remove(key, current);
-            return false;
-        }
-        return current.count() >= maxFailures;
-    }
-
-    public void recordFailure(String key) {
+    /**
+     * Counts one attempt for this key. Returns false, and counts nothing, when
+     * the key has already used all its attempts in the current window.
+     */
+    public boolean tryAcquire(String key) {
         Instant now = clock.instant();
-        if (!failures.containsKey(key) && failures.size() >= maxKeys) {
+        if (!attempts.containsKey(key) && attempts.size() >= maxKeys) {
             makeRoom(now);
         }
-        failures.compute(key, (k, current) -> current == null || isExpired(current, now)
-                ? new Failures(now, 1)
-                : new Failures(current.firstFailure(), current.count() + 1));
+        boolean[] acquired = {false};
+        attempts.compute(key, (k, current) -> {
+            if (current == null || isExpired(current, now)) {
+                acquired[0] = true;
+                return new Attempts(now, 1);
+            }
+            if (current.count() >= maxFailures) {
+                return current;
+            }
+            acquired[0] = true;
+            return new Attempts(current.first(), current.count() + 1);
+        });
+        return acquired[0];
     }
 
+    /** Gives back one attempt, for an outcome that was not a guess. */
+    public void release(String key) {
+        attempts.computeIfPresent(key, (k, current) ->
+                current.count() <= 1 ? null : new Attempts(current.first(), current.count() - 1));
+    }
+
+    /** A success: the key starts again from zero. */
     public void recordSuccess(String key) {
-        failures.remove(key);
+        attempts.remove(key);
+    }
+
+    /** True if this key has used all its attempts and must wait. */
+    boolean isBlocked(String key) {
+        Attempts current = attempts.get(key);
+        return current != null && !isExpired(current, clock.instant()) && current.count() >= maxFailures;
     }
 
     int size() {
-        return failures.size();
+        return attempts.size();
     }
 
-    private boolean isExpired(Failures current, Instant now) {
-        return !now.isBefore(current.firstFailure().plus(window));
+    private boolean isExpired(Attempts current, Instant now) {
+        return !now.isBefore(current.first().plus(window));
     }
 
     private void makeRoom(Instant now) {
-        failures.entrySet().removeIf(entry -> isExpired(entry.getValue(), now));
-        if (failures.size() < maxKeys) {
+        attempts.entrySet().removeIf(entry -> isExpired(entry.getValue(), now));
+        if (attempts.size() < maxKeys) {
             return;
         }
         // Still full: drop the oldest key. Linear, but only reached under a flood.
         String oldest = null;
         Instant oldestTime = null;
-        for (Iterator<Map.Entry<String, Failures>> it = failures.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<String, Failures> entry = it.next();
-            if (oldestTime == null || entry.getValue().firstFailure().isBefore(oldestTime)) {
+        for (Iterator<Map.Entry<String, Attempts>> it = attempts.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<String, Attempts> entry = it.next();
+            if (oldestTime == null || entry.getValue().first().isBefore(oldestTime)) {
                 oldest = entry.getKey();
-                oldestTime = entry.getValue().firstFailure();
+                oldestTime = entry.getValue().first();
             }
         }
         if (oldest != null) {
-            failures.remove(oldest);
+            attempts.remove(oldest);
         }
     }
 }

@@ -122,20 +122,26 @@ public class AuthController {
     public CompteReponse register(@RequestBody CreationRequete requete, HttpServletRequest requeteHttp,
                                    HttpServletResponse reponseHttp) {
         String inviteKey = "invite|" + requeteHttp.getRemoteAddr();
-        if (throttle.isBlocked(inviteKey)) {
+        if (!throttle.tryAcquire(inviteKey)) {
             throw tooManyAttempts();
         }
         AppUser compte;
+        boolean wrongCodeGiven = false;
         try {
             compte = comptes.creer(requete.email(), requete.motDePasse(), requete.pseudo(),
                     requete.codeInvitation());
         } catch (AuthService.InvalidInviteCode wrongCode) {
-            throttle.recordFailure(inviteKey);
+            wrongCodeGiven = true;
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, wrongCode.getMessage());
         } catch (AuthService.CreationInterdite interdite) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, interdite.getMessage());
         } catch (AuthService.CreationRefusee refusee) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, refusee.getMessage());
+        } finally {
+            // Only a wrong code is a guess; any other outcome gives the attempt back.
+            if (!wrongCodeGiven) {
+                throttle.release(inviteKey);
+            }
         }
         // Creating one's account signs in: asking to type again what one
         // just typed twice would teach nothing to anyone.
@@ -147,19 +153,31 @@ public class AuthController {
     @PostMapping("/login")
     public CompteReponse login(@RequestBody ConnexionRequete requete, HttpServletRequest requeteHttp,
                                 HttpServletResponse reponseHttp) {
-        String loginKey = "login|" + AppUser.normaliserEmail(requete.email()) + "|" + requeteHttp.getRemoteAddr();
-        if (throttle.isBlocked(loginKey)) {
+        String loginKey = "login|" + emailForKey(requete.email()) + "|" + requeteHttp.getRemoteAddr();
+        if (!throttle.tryAcquire(loginKey)) {
             throw tooManyAttempts();
         }
         AppUserDetailsService.Principal principal;
         try {
             principal = ouvrirSession(requete.email(), requete.motDePasse(), requeteHttp, reponseHttp);
         } catch (ResponseStatusException refused) {
-            throttle.recordFailure(loginKey);
+            // A refused password: the attempt stays counted.
             throw refused;
+        } catch (RuntimeException notAGuess) {
+            throttle.release(loginKey);
+            throw notAGuess;
         }
         throttle.recordSuccess(loginKey);
         return CompteReponse.de(principal);
+    }
+
+    /**
+     * The address as it goes into a throttle key. Capped, so that a flood of
+     * huge addresses cannot fill memory: no real address is longer (RFC 5321).
+     */
+    private static String emailForKey(String email) {
+        String normalized = AppUser.normaliserEmail(email);
+        return normalized.length() > 254 ? normalized.substring(0, 254) : normalized;
     }
 
     private static ResponseStatusException tooManyAttempts() {
