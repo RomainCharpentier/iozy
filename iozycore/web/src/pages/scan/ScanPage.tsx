@@ -15,12 +15,15 @@ import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { ApiError } from '@/common/api/client'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { invaliderApresPossession } from '@/common/lib/invalidations'
 
 interface ScanEntry {
   code: string
-  status: 'added' | 'skipped' | 'not-found' | 'unavailable' | 'error'
+  status: 'added' | 'skipped' | 'not-found' | 'unavailable' | 'error' | 'add-failed'
   title?: string
+  /** Why the add failed (status 'add-failed'): the message of the API error. */
+  errorMessage?: string
   volumeNumber?: number
   edition?: string
   // An active Ownership already references this same Variant (see QuickAddResponse
@@ -50,6 +53,8 @@ function libelleEntree(entry: ScanEntry): string {
       return `Une source n'a pas répondu pour ${entry.code} - réessaie`
     case 'error':
       return `Échec de la recherche pour ${entry.code}`
+    case 'add-failed':
+      return `${nom} n'a pas été ajouté${entry.errorMessage ? ` : ${entry.errorMessage}` : ''} - rescanne pour réessayer`
   }
 }
 
@@ -167,6 +172,23 @@ export function ScanPage() {
         ...prev,
       ])
       setPending(null)
+    } catch (error) {
+      // The add is called from a click: a rejection here would be unhandled,
+      // the menu would stay open and nothing would tell the user that the
+      // volume was not added. Report it in the list, like a failed lookup.
+      const { code, candidate, volumeNumber, edition } = pending
+      setEntries((prev) => [
+        {
+          code,
+          status: 'add-failed',
+          title: candidate.title,
+          volumeNumber,
+          edition,
+          errorMessage: error instanceof Error ? error.message : undefined,
+        },
+        ...prev,
+      ])
+      setPending(null)
     } finally {
       setAdding(false)
     }
@@ -185,6 +207,17 @@ export function ScanPage() {
   // ALL its content with a line of text loses its h1 - so the title of its
   // tab, which useDocumentTitle reads from it, and its only structure marker
   // for a screen reader.
+  // A failed load is not an absence: saying "no Manga type" would send the
+  // user to look for a setting that is fine.
+  if (entityTypesQuery.isError) {
+    return (
+      <div className="flex flex-col gap-4">
+        <TitreScan />
+        <ErrorBanner message={entityTypesQuery.error.message} />
+      </div>
+    )
+  }
+
   if (entityTypesQuery.isLoading || !mangaType) {
     return (
       <div className="flex flex-col gap-4">
@@ -275,7 +308,9 @@ export function ScanPage() {
               {entry.status === 'skipped' && <SkipForward size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'not-found' && <HelpCircle size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'unavailable' && <HelpCircle size={16} className="shrink-0 text-warning" />}
-              {entry.status === 'error' && <XCircle size={16} className="shrink-0 text-danger" />}
+              {(entry.status === 'error' || entry.status === 'add-failed') && (
+                <XCircle size={16} className="shrink-0 text-danger" />
+              )}
               {/* Two lines rather than one cut off: "Une source n'a pas répondu…"
                       lost its end behind "Chercher par titre" on 390 px. */}
               <TexteCoupe texte={libelleEntree(entry)} className="line-clamp-2 min-w-0 flex-1 text-textPrimary" />
