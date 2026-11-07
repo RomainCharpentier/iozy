@@ -3,7 +3,7 @@
  * reconnexion pendant le chargement renvoie game:ready (sinon la salle attend sans fin).
  */
 import { vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import type { Player } from '@/lib/game/types'
 import type { Question } from '@/types'
 
@@ -118,14 +118,6 @@ const players: Player[] = [
   { id: 'other', name: 'Autre', score: 0, connected: true },
 ]
 
-const input = () => screen.getByRole('combobox', { name: 'Votre réponse' }) as HTMLInputElement
-const skipButton = () => screen.getByTestId('skip-button') as HTMLButtonElement
-const answersSent = () =>
-  fakeSocket.emitted.filter((e) => e.event === 'game:answer').map((e) => e.payload.answer)
-const emittedEvents = () => fakeSocket.emitted.map((e) => e.event)
-
-const type = (value: string) => fireEvent.change(input(), { target: { value } })
-const pressEnter = () => fireEvent.keyDown(input(), { key: 'Enter' })
 const advance = (ms: number) =>
   act(() => {
     vi.advanceTimersByTime(ms)
@@ -134,16 +126,6 @@ const server = (event: string, payload?: any) =>
   act(() => {
     fakeSocket.serverEmit(event, payload)
   })
-
-/** Aucun retour juste/faux visible ni annoncé */
-const expectNoCorrectnessFeedback = () => {
-  const text = document.body.textContent ?? ''
-  expect(text).not.toMatch(
-    /Correct !|Incorrect|incorrecte|est correcte|Bonne réponse|bonne réponse|Bien joué|Raté/
-  )
-  expect(screen.queryByTestId('reveal-result')).toBeNull()
-  expect(input().getAttribute('placeholder')).not.toBe('Pas de réponse')
-}
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -211,17 +193,21 @@ describe('Chargement en ligne : qui la salle attend', () => {
     expect(screen.queryByTestId('waiting-for')).toBeNull()
   })
 
-  it('ignore les joueurs prêts d’une autre question', () => {
+  it('n’affiche pas la liste de la question précédente', () => {
     startLoading()
-    mediaReady()
     server('room:state', {
       phase: 'playing',
       players,
       questions: publicQuestions,
-      game: { questionIndex: 1, step: 'loading', readyPlayers: ['other'] },
+      game: { questionIndex: 0, step: 'loading', readyPlayers: ['other'] },
     })
     server('game:next', { questions: publicQuestions, questionIndex: 1 })
-    expect(screen.getByTestId('question-intro').textContent).not.toContain('prêts')
+    // Média de la question 2 prêt avant le prochain room:state : liste de la question 1 périmée
+    mediaReady()
+    const intro = screen.getByTestId('question-intro')
+    expect(intro.textContent).toContain('En attente des autres joueurs…')
+    expect(intro.textContent).not.toContain('prêts')
+    expect(screen.queryByTestId('waiting-for')).toBeNull()
   })
 })
 
