@@ -39,6 +39,8 @@ jobs:
           cache: npm
           cache-dependency-path: iozytest/package-lock.json
       - run: npm ci
+      - name: Lint
+        run: npm run lint
       - name: Build (typecheck, then vite)
         run: npm run build
       - name: Tests serveur

@@ -1,0 +1,46 @@
+name: Dependency audit
+
+# Fails when a PRODUCTION dependency has a known high or critical
+# vulnerability. Dev tools (test runners, linters) are left out with
+# --omit=dev: they never run in the images.
+# It runs when a manifest or a lockfile changes, and once a week, because new
+# advisories appear for packages that did not change.
+on:
+  pull_request:
+    paths:
+      - "iozycore/web/package.json"
+      - "iozycore/web/package-lock.json"
+      - "iozytest/package.json"
+      - "iozytest/package-lock.json"
+      - ".github/workflows/dependency-audit.yml"
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: npm audit (${{ matrix.folder }})
+    runs-on: ubuntu-latest
+    strategy:
+      # One folder with an advisory must not hide the result of the other.
+      fail-fast: false
+      matrix:
+        folder:
+          - iozycore/web
+          - iozytest
+    defaults:
+      run:
+        working-directory: ${{ matrix.folder }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # npm audit reads the lockfile only: no install needed.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
