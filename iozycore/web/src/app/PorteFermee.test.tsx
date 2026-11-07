@@ -4,10 +4,11 @@
  * offers to ask again, instead of a sign-in form.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/common/api/client'
+import { queryKeys } from '@/common/lib/queryKeys'
 import { PorteFermee } from './App'
 
 const api = vi.hoisted(() => ({ lireCompte: vi.fn(), lireEtatAuth: vi.fn() }))
@@ -29,6 +30,7 @@ function rendre() {
       </PorteFermee>
     </QueryClientProvider>,
   )
+  return client
 }
 
 beforeEach(() => {
@@ -48,6 +50,23 @@ describe('the gate', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }))
 
     expect(await screen.findByText('La collection')).toBeInTheDocument()
+  })
+
+  it('keeps the account already read when a later check fails', async () => {
+    api.lireCompte.mockResolvedValueOnce(compte)
+    const client = rendre()
+    expect(await screen.findByText('La collection')).toBeInTheDocument()
+
+    api.lireCompte.mockRejectedValueOnce(new ApiError(502, 'Le serveur ne répond pas.'))
+    await act(async () => {
+      await client.refetchQueries({ queryKey: queryKeys.auth.compte })
+      // TanStack Query tells its observers on the next macrotask.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(client.getQueryState(queryKeys.auth.compte)?.status).toBe('error')
+
+    expect(screen.getByText('La collection')).toBeInTheDocument()
+    expect(screen.queryByText('Le serveur ne répond pas.')).not.toBeInTheDocument()
   })
 
   it('still shows the sign-in form when nobody is signed in (401)', async () => {
