@@ -2,6 +2,7 @@ import { get, post, patch, del } from './client'
 import { buildQuery } from './client'
 import type {
   AnalyzeListingRequest,
+  CollectorPreferencesDto,
   CollectionStatusDto,
   CreateMangaEditionRequest,
   EditionSuggestionDto,
@@ -17,6 +18,17 @@ import type {
 
 export function analyzeListing(body: AnalyzeListingRequest): Promise<PurchaseAnalysisDto> {
   return post<PurchaseAnalysisDto>('/purchase-analysis/analyze', body)
+}
+
+/** The profile that weights each verdict (defaults until edited). */
+export function getPreferences(): Promise<CollectorPreferencesDto> {
+  return get<CollectorPreferencesDto>('/purchase-analysis/preferences')
+}
+
+/** REPLACES the whole profile: send the fetched object back with only the
+ * changed fields, never a partial body. */
+export function updatePreferences(body: CollectorPreferencesDto): Promise<CollectorPreferencesDto> {
+  return patch<CollectorPreferencesDto>('/purchase-analysis/preferences', body)
 }
 
 export function listAnalysisHistory(): Promise<PurchaseAnalysisSummaryDto[]> {

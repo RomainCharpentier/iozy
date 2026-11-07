@@ -71,6 +71,7 @@ export const queryKeys = {
     completeness: (seriesTitle: string, editionName: string, volumes: number[]) =>
       ['purchaseAnalysis', 'completeness', seriesTitle, editionName, volumes] as const,
     nearCompleteSuggestions: ['purchaseAnalysis', 'nearCompleteSuggestions'] as const,
+    preferences: ['purchaseAnalysis', 'preferences'] as const,
     /** The observed prices of an edition (Éditions de référence screen). */
     marketObservations: (mangaEditionId: string) =>
       ['purchaseAnalysis', 'marketObservations', mangaEditionId] as const,

@@ -23,6 +23,7 @@ import { EditionStatusRow } from './EditionStatusRow'
 import { ListingSummaryCard } from './ListingSummaryCard'
 import { LotContentList } from './LotContentList'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
+import { PreferencesSection } from './PreferencesSection'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { formaterEuros } from '@/common/lib/formats'
@@ -848,6 +849,8 @@ export function PurchaseAnalysisPage() {
           </p>
         )}
       </div>
+
+      <PreferencesSection />
     </div>
   )
 }
