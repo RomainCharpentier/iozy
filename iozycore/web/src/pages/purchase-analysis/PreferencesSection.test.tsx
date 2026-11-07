@@ -74,6 +74,19 @@ describe('PreferencesSection', () => {
     expect(api.updatePreferences).not.toHaveBeenCalled()
   })
 
+  it('says so when the save fails, and shows no success message', async () => {
+    api.updatePreferences.mockReset().mockRejectedValue(new Error('down'))
+    const user = userEvent.setup()
+    render(<PreferencesSection />, { wrapper })
+
+    await user.click(screen.getByText('Ce qui compte pour toi'))
+    await user.click(await screen.findByLabelText(/Éviter une édition dépassée/))
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(await screen.findByText(/L'enregistrement a échoué/)).toBeTruthy()
+    expect(screen.queryByText('Réglages enregistrés.')).toBeNull()
+  })
+
   it('says the defaults are used when the settings cannot be read', async () => {
     api.getPreferences.mockReset().mockRejectedValue(new Error('down'))
     render(<PreferencesSection />, { wrapper })
