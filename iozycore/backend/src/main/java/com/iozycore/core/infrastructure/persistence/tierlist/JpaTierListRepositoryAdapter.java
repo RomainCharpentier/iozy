@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,10 @@ interface TierListJpaRepository extends JpaRepository<TierListJpaEntity, UUID> {
      * query, so it is filtered like the others.
      */
     Optional<TierListJpaEntity> findOneById(UUID id);
+
+    /** Same reason as findOneById: a derived query, so the owner filter applies. */
+    List<TierListJpaEntity> findByIdIn(Collection<UUID> ids);
+
     List<TierListJpaEntity> findByEntityTypeId(UUID entityTypeId);
 
     List<TierListJpaEntity> findByEntityTypeIdIsNull();
@@ -49,6 +54,16 @@ class JpaTierListRepositoryAdapter implements TierListRepository {
     @Override
     public Optional<TierList> findById(UUID id) {
         return jpaRepository.findOneById(id).map(JpaTierListRepositoryAdapter::toDomain);
+    }
+
+    @Override
+    public List<TierList> findAllById(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findByIdIn(Set.copyOf(ids)).stream()
+                .map(JpaTierListRepositoryAdapter::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

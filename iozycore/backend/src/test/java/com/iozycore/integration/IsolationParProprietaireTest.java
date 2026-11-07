@@ -215,6 +215,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
 
         connecte(BOB);
         assertThat(tierLists.findById(liste.id())).isEmpty();
+        assertThat(tierLists.findAllById(List.of(liste.id()))).isEmpty();
         assertThat(tierLists.findAllUniversesLists()).noneMatch(l -> l.id().equals(liste.id()));
     }
 

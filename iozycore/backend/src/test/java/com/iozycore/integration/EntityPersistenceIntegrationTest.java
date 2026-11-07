@@ -89,6 +89,27 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void several_entities_load_at_once_with_their_own_variants_and_unknown_ids_are_left_out() {
+        Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        deathNote.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        deathNote.addVariant("Tome 2", Map.of("volumeNumber", 2));
+        Entity monster = Entity.create(EntityTypeFixtures.MANGA.id(), "Monster");
+        entityRepository.save(deathNote);
+        entityRepository.save(monster);
+
+        Map<UUID, Entity> loaded = entityRepository
+                .findAllById(java.util.List.of(deathNote.id(), monster.id(), UUID.randomUUID()))
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(Entity::id, e -> e));
+
+        assertThat(loaded).containsOnlyKeys(deathNote.id(), monster.id());
+        assertThat(loaded.get(deathNote.id()).variants()).extracting(Variant::label)
+                .containsExactlyInAnyOrder("Tome 1", "Tome 2");
+        assertThat(loaded.get(monster.id()).variants()).isEmpty();
+        assertThat(entityRepository.findAllById(java.util.List.of())).isEmpty();
+    }
+
+    @Test
     void an_ownership_can_be_acquired_then_marked_sold_and_reloaded() {
         Entity entity = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
         entityRepository.save(entity);

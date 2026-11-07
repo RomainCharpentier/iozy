@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,15 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
                     List<VariantJpaEntity> variants = variantJpaRepository.findByEntityId(id);
                     return EntityMapper.toDomain(jpaEntity, variants);
                 });
+    }
+
+    /** One query for the works and one for all their volumes, whatever the number of ids. */
+    @Override
+    public List<Entity> findAllById(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return withVariants(entityJpaRepository.findAllById(Set.copyOf(ids)));
     }
 
     @Override
