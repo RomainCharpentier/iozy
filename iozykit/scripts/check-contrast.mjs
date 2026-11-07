@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Vérifie WCAG AA (4,5:1) sur toutes les paires qui comptent, dans les deux
+ * Vérifie WCAG AA (4,5:1, et 3:1 hors texte) sur les paires qui comptent, dans les deux
  * thèmes, depuis tokens.json. Échoue (code 1) à la première paire en dessous.
  *
  * Trois familles de paires, parce que ce sont les trois erreurs qu'on fait :
@@ -29,6 +29,14 @@ const TEINTES = [
   ['warn', 'warn-tint'],
   ['danger-text', 'danger-tint'],
 ]
+
+/**
+ * Hors texte, WCAG 1.4.11 demande 3:1 : le bord d'un champ et l'anneau de
+ * focus doivent se voir sur chaque fond. Un rôle translucide est d'abord
+ * posé sur le fond, puis comparé à ce même fond.
+ */
+const SEUIL_NON_TEXTE = 3
+const NON_TEXTES = ['accent', 'field-border']
 
 function parse(couleur) {
   const hex = couleur.match(/^#([0-9a-f]{6})$/i)
@@ -68,12 +76,12 @@ function contraste(a, b) {
 let echecs = 0
 let paires = 0
 
-function verifier(theme, libelle, texte, fond) {
+function verifier(theme, libelle, texte, fond, seuil = SEUIL) {
   paires++
   const ratio = contraste(texte, fond)
-  if (ratio < SEUIL) {
+  if (ratio < seuil) {
     echecs++
-    console.log(`  ✗ ${theme} · ${libelle} : ${ratio.toFixed(2)}:1`)
+    console.log(`  ✗ ${theme} · ${libelle} : ${ratio.toFixed(2)}:1 (attendu ${seuil}:1)`)
   }
 }
 
@@ -88,10 +96,17 @@ for (const [nom, t] of Object.entries(themes)) {
       verifier(nom, `${texte} sur ${teinte} posée sur ${fond}`, c(texte), poser(c(teinte), c(fond)))
     }
   }
+  for (const role of NON_TEXTES) {
+    for (const fond of FONDS) {
+      verifier(nom, `${role} sur ${fond}`, poser(c(role), c(fond)), c(fond), SEUIL_NON_TEXTE)
+    }
+  }
 }
 
 if (echecs > 0) {
-  console.log(`\n${echecs} paire(s) sous ${SEUIL}:1 sur ${paires}.`)
+  console.log(`\n${echecs} paire(s) sous leur seuil sur ${paires}.`)
   process.exit(1)
 }
-console.log(`${paires} paires ≥ ${SEUIL}:1 dans les deux thèmes.`)
+console.log(
+  `${paires} paires conformes dans les deux thèmes (texte ≥ ${SEUIL}:1, bord et focus ≥ ${SEUIL_NON_TEXTE}:1).`,
+)

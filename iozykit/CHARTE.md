@@ -8,7 +8,7 @@ Deux apps, une identité : **IozyCore** (le catalogue de collection) et **IozyTe
 
 ## Palette : terracotta, un seul accent
 
-Un accent chaud, des fonds bruns (jamais de gris froid), deux thèmes de plein droit. Toutes les paires texte/fond tiennent AA (4,5:1), encres comprises.
+Un accent chaud, des fonds bruns (jamais de gris froid), deux thèmes de plein droit. Toutes les paires texte/fond tiennent AA (4,5:1), encres comprises ; le bord des champs et l'anneau de focus tiennent 3:1 sur les trois fonds.
 
 | Rôle | Token | Sombre | Clair |
 |---|---|---|---|
