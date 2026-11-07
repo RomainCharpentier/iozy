@@ -136,9 +136,12 @@ class AiPriceEstimateCacheIntegrationTest extends PostgresIntegrationTest {
     void the_ai_advice_is_asked_outside_any_transaction_and_the_analysis_is_still_saved() {
         MangaEdition edition = uneEdition();
         PurchaseAnalysis analyse = null;
+        int avant = ConseillerQuiCompte.APPELS.get();
         try {
             analyse = analyser(edition);
 
+            // Without a call, the flag below would keep its default and prove nothing.
+            assertThat(ConseillerQuiCompte.APPELS.get() - avant).isEqualTo(1);
             assertThat(ConseillerQuiCompte.TRANSACTION_DURING_LAST_CALL.get()).isFalse();
             assertThat(service.findAnalysisById(analyse.id())).isPresent();
         } finally {

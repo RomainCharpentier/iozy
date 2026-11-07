@@ -35,9 +35,13 @@ class ShelfImportOutsideTransactionIntegrationTest extends PostgresIntegrationTe
         RecognitionImage photo = new RecognitionImage(0, null,
                 FakeRecognitionProvider.DECLENCHE_RIEN.getBytes(StandardCharsets.ISO_8859_1), "image/jpeg");
 
+        int callsBefore = FakeRecognitionProvider.appelsAuMoteur();
+
         ShelfAnalysis analysis = service.analyze(List.of(photo), 1);
 
         assertThat(analysis.items()).isEmpty();
+        // Without a call, the flag below would keep its default and prove nothing.
+        assertThat(FakeRecognitionProvider.appelsAuMoteur() - callsBefore).isEqualTo(1);
         assertThat(FakeRecognitionProvider.transactionDuringLastCall()).isFalse();
     }
 }
