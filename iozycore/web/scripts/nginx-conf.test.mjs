@@ -39,3 +39,17 @@ describe('the API location', () => {
     expect(directives(location('/api/'))).toMatch(/^client_max_body_size 13m;$/m)
   })
 })
+
+describe('the proxies to the API and to IozyTest', () => {
+  // Behind the TLS proxy of the NAS, $scheme is "http": sending it would drop
+  // the `Secure` flag of the XSRF-TOKEN cookie.
+  it('keep the X-Forwarded-Proto of the proxy in front', () => {
+    expect(directives(conf)).toMatch(/^map \$http_x_forwarded_proto \$forwarded_proto \{$/m)
+    expect(directives(conf)).toMatch(/^default \$http_x_forwarded_proto;$/m)
+    for (const signature of ['/api/', '/test/']) {
+      const block = directives(location(signature))
+      expect(block).toMatch(/^proxy_set_header X-Forwarded-Proto \$forwarded_proto;$/m)
+      expect(block).not.toMatch(/X-Forwarded-Proto \$scheme/)
+    }
+  })
+})
