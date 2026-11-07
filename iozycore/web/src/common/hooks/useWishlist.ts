@@ -143,10 +143,17 @@ export function useWishlist() {
       toast(failed > 0 ? `${ajoutes}, ${nonAjoutes} : ${lastError}` : ajoutes, {
         label: 'Annuler',
         onAction: async () => {
-          for (const entree of crees) {
-            await removeFromWishlist(entree.id)
+          // A failed removal must not stay silent, nor leave a rejected promise:
+          // the entries removed before it are gone, the others are still wanted.
+          try {
+            for (const entree of crees) {
+              await removeFromWishlist(entree.id)
+            }
+          } catch (error) {
+            toast(`Impossible d'annuler l'ajout : ${error instanceof Error ? error.message : String(error)}`)
+          } finally {
+            invalidate()
           }
-          invalidate()
         },
       })
     },

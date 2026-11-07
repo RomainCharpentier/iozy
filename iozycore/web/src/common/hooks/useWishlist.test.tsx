@@ -238,6 +238,22 @@ describe('adding a whole batch', () => {
     expect(api.removeFromWishlist.mock.calls.map(([id]) => id)).toEqual(['n1', 'n2', 'n3'])
   })
 
+  it('reports a failed cancel of the batch', async () => {
+    const hook = await envies()
+    api.addToWishlist
+      .mockResolvedValueOnce(entree('n1', 'berserk', 'tome-1'))
+      .mockResolvedValueOnce(entree('n2', 'berserk', 'tome-2'))
+      .mockResolvedValueOnce(entree('n3', 'berserk', 'tome-3'))
+    api.removeFromWishlist.mockRejectedValue(new ApiError(502, 'Le serveur ne répond pas'))
+
+    await act(async () => hook.current.addMany(lot))
+    await waitFor(() => expect(messages).toHaveLength(1))
+    await act(async () => await messages[0].action?.onAction())
+
+    await waitFor(() => expect(messages).toHaveLength(2))
+    expect(messages[1].texte).toBe("Impossible d'annuler l'ajout : Le serveur ne répond pas")
+  })
+
   it('does not use the plural for a single volume', async () => {
     const hook = await envies()
     api.addToWishlist.mockResolvedValue(entree('n1', 'berserk', 'tome-1'))
