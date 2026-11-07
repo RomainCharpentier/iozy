@@ -97,6 +97,8 @@ export function ShareSection() {
       </p>
 
       {shareQuery.isError && <ErrorBanner message={shareQuery.error.message} />}
+      {generateMutation.isError && <ErrorBanner message={generateMutation.error.message} />}
+      {removeMutation.isError && <ErrorBanner message={removeMutation.error.message} />}
 
       {!token ? (
         <>

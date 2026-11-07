@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Loader2, ScanBarcode } from 'lucide-react'
 import { lookupBarcode } from '@/common/api/metadata'
+import { ApiError } from '@/common/api/client'
 import type { MetadataCandidateDto } from '@/common/types/api'
 
 interface BarcodeLookupFieldProps {
@@ -41,6 +42,7 @@ export function BarcodeLookupField({ entityTypeId, onFound }: BarcodeLookupField
           onChange={(e) => {
             setBarcode(e.target.value)
             setNotFound(false)
+            mutation.reset()
           }}
           placeholder="ex: 9782723492607"
           className="champ flex-1"
@@ -56,6 +58,14 @@ export function BarcodeLookupField({ entityTypeId, onFound }: BarcodeLookupField
         </button>
       </div>
       {notFound && <p className="text-xs text-textDim">Aucune correspondance trouvée pour ce code.</p>}
+      {mutation.isError && (
+        <p role="alert" className="text-xs text-dangerText">
+          {/* 503: a metadata source did not answer - retrying makes sense. */}
+          {mutation.error instanceof ApiError && mutation.error.status === 503
+            ? 'Source indisponible pour le moment, réessaie dans un instant.'
+            : 'La recherche a échoué, réessaie.'}
+        </p>
+      )}
     </div>
   )
 }

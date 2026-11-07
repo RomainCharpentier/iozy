@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { attachTag, createTag, detachTag } from '@/common/api/tags'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { Chip } from '@/common/components/Chip'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { useAuth } from '@/common/hooks/useAuth'
 import type { TagDto } from '@/common/types/api'
 
@@ -53,6 +54,9 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
     },
   })
 
+  // A failed write must be said: otherwise the chip simply does not move.
+  const failedMutation = [attachMutation, detachMutation, createMutation].find((m) => m.isError)
+
   const attachedSet = new Set(attachedTagIds)
   const attached = allTags.filter((t) => attachedSet.has(t.id))
   const available = allTags.filter((t) => !attachedSet.has(t.id))
@@ -63,6 +67,8 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
         <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">Tags</h3>
         {attached.length === 0 && <span className="text-[13px] text-faint">Aucun tag pour l'instant</span>}
       </div>
+
+      {failedMutation?.error && <ErrorBanner message={failedMutation.error.message} />}
 
       {/* The tags that are set, always visible: they describe the work, and they
           are used to filter its collection. Clickable only for those who can
