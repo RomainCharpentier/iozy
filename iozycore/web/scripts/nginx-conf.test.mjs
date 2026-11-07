@@ -40,6 +40,24 @@ describe('the API location', () => {
   })
 })
 
+describe('the security headers', () => {
+  const server = directives(conf.slice(conf.indexOf('server {'), conf.indexOf('    location')))
+
+  it('are set for the whole server, errors included, and hide the version', () => {
+    expect(server).toMatch(/^server_tokens off;$/m)
+    expect(server).toMatch(/^add_header X-Content-Type-Options "nosniff" always;$/m)
+    expect(server).toMatch(/^add_header Content-Security-Policy "frame-ancestors 'self'" always;$/m)
+    expect(server).toMatch(/^add_header Referrer-Policy "strict-origin-when-cross-origin" always;$/m)
+  })
+
+  // nginx drops the add_header of the server in a location that has its own:
+  // one Cache-Control written with add_header would remove the three headers.
+  it('are not dropped by an add_header in a location', () => {
+    const locations = directives(conf.slice(conf.indexOf('    location')))
+    expect(locations).not.toMatch(/^add_header /m)
+  })
+})
+
 describe('the proxies to the API and to IozyTest', () => {
   // Behind the TLS proxy of the NAS, $scheme is "http": sending it would drop
   // the `Secure` flag of the XSRF-TOKEN cookie.

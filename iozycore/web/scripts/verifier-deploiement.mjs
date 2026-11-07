@@ -207,6 +207,26 @@ try {
   problemes.push(`/ unreachable — ${cause.message}`)
 }
 
+// --- 6 ter. The security headers, on the app shell AND on the API
+//
+//     nginx drops them in a location that sets its own add_header: checking
+//     one page is not enough, the shell (no-cache rule) and the API (proxy)
+//     are the two places where they get lost.
+try {
+  for (const chemin of [`${app}/`, `${app}/sw.js`, '/api/auth/etat']) {
+    const reponse = await demander(chemin)
+    const entetes = reponse.headers
+    verifier(entetes.get('x-content-type-options') === 'nosniff', `${chemin} sends nosniff (once)`,
+      `x-content-type-options: ${entetes.get('x-content-type-options') ?? 'absent'}`)
+    verifier(/frame-ancestors 'self'/.test(entetes.get('content-security-policy') ?? ''), `${chemin} cannot be framed by another site`,
+      `content-security-policy: ${entetes.get('content-security-policy') ?? 'absent'}`)
+    verifier(Boolean(entetes.get('referrer-policy')), `${chemin} sends a Referrer-Policy`, 'referrer-policy absent')
+    verifier(!/\d/.test(entetes.get('server') ?? ''), `${chemin} hides the server version`, `server: ${entetes.get('server')}`)
+  }
+} catch (cause) {
+  problemes.push(`security headers not checked — ${cause.message}`)
+}
+
 // --- 7. The anti-CSRF cookie, when there is TLS
 //
 //     Checked only over HTTPS: locally, `Secure` would prevent the cookie
