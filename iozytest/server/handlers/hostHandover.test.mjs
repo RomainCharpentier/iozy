@@ -102,6 +102,19 @@ describe('Départ de l\'hôte, attente du chargement et votes avant le « go »'
     assert.strictEqual(room.players[0].isHost, true)
   })
 
+  test('déconnexion de l\'hôte : l\'invité devient hôte à la fin des 20 s de grâce', (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] })
+    host._trigger('disconnect', 'transport close')
+    assert.strictEqual(roomRepository.get(CODE).hostPlayerId, 'host-id')
+
+    t.mock.timers.tick(20000)
+
+    const room = roomRepository.get(CODE)
+    assert.strictEqual(room.hostPlayerId, 'guest-id')
+    assert.strictEqual(room.players[0].isHost, true)
+    assert.strictEqual(lastState().hostPlayerId, 'guest-id')
+  })
+
   test('un joueur se déconnecte avant d\'être prêt : les autres reçoivent game:go', () => {
     host._trigger('game:start', { roomCode: CODE, questions: QUESTIONS, defaultTimeLimit: 20 })
     host._trigger('game:ready', { roomCode: CODE })
