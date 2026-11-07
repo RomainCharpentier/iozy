@@ -4,12 +4,13 @@ import { fileURLToPath } from 'node:url'
 
 /**
  * Vérifie WCAG AA (4,5:1, et 3:1 hors texte) sur les paires qui comptent, dans les deux
- * thèmes, depuis tokens.json. Échoue (code 1) à la première paire en dessous.
+ * thèmes, depuis tokens.json. Liste chaque paire sous son seuil et échoue (code 1).
  *
- * Trois familles de paires, parce que ce sont les trois erreurs qu'on fait :
+ * Quatre groupes de paires, parce que ce sont les erreurs qu'on fait :
  * - un texte sur les TROIS fonds du thème (pas seulement le plus contrasté) ;
  * - une encre SUR son aplat (bouton primaire, badge plein) ;
- * - un texte d'état sur sa teinte, elle-même posée sur chaque fond.
+ * - un texte d'état sur sa teinte, elle-même posée sur chaque fond ;
+ * - le bord d'un champ et l'anneau de focus sur chaque fond (3:1).
  */
 const racine = join(dirname(fileURLToPath(import.meta.url)), '..')
 const { themes } = JSON.parse(readFileSync(join(racine, 'tokens.json'), 'utf8'))
