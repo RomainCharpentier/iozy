@@ -65,7 +65,10 @@ describe('ListeAVenir', () => {
     expect(to).toBe(isoLocal(new Date(aujourdHui.getFullYear() + 1, aujourdHui.getMonth(), aujourdHui.getDate() - 1)))
 
     expect((await screen.findAllByRole('heading', { level: 3 })).map((h) => h.textContent)).toEqual(['Février 2000', 'Mars 2000'])
-    const lignes = screen.getAllByRole('button').map((b) => b.textContent)
+    const lignes = screen
+      .getAllByRole('button')
+      .map((b) => b.textContent)
+      .filter((t) => t !== 'Ajouter à mon agenda (.ics)')
     expect(lignes[0]).toMatch(/3 févr\..*Naruto.*Tome 73 · Kana.*À acheter/)
     expect(lignes[1]).toMatch(/à préciser.*Spy x Family/)
     expect(lignes[2]).toMatch(/19 mars.*GTA VI.*Jeu vidéo.*Envie/)

@@ -205,7 +205,10 @@ describe('ReleasesPage', () => {
 
     const aVenir = await screen.findByRole('complementary', { name: 'À venir' })
     expect((await within(aVenir).findAllByRole('heading', { level: 3 })).map((h) => h.textContent)).toEqual(['Février 2000', 'Mars 2000'])
-    const lignes = within(aVenir).getAllByRole('button').map((b) => b.textContent)
+    const lignes = within(aVenir)
+      .getAllByRole('button')
+      .map((b) => b.textContent)
+      .filter((t) => t !== 'Ajouter à mon agenda (.ics)')
     expect(lignes[0]).toMatch(/3 févr\..*Naruto.*Tome 73/)
     expect(lignes[1]).toMatch(/à préciser.*Spy x Family/)
     expect(lignes[2]).toMatch(/19 mars.*GTA VI.*Jeu de société.*Envie/)
@@ -216,6 +219,49 @@ describe('ReleasesPage', () => {
     expect(await screen.findByRole('button', { name: 'dimanche 19 mars, 1 sortie' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toContain('Dimanche 19 mars')
     expect(screen.getByRole('button', { name: 'Tout le mois' })).toBeInTheDocument()
+  })
+
+  it('exports what is coming to buy or wanted as a calendar file, and says what it leaves out', async () => {
+    servir(JANVIER_2000, [
+      sortie({ date: '2000-03-19', entityId: 'gta', entityTitle: 'GTA VI', label: '', relation: 'WANTED' }),
+      sortie({ date: '2000-02', precision: 'MONTH', entityId: 'spy-16', entityTitle: 'Spy x Family', label: 'Tome 16 · Kurokawa' }),
+      sortie({ date: '2000-02-03', entityId: 'naruto-73', label: 'Tome 73 · Kana' }),
+      sortie({ date: '2000-02-04', entityId: 'owned', entityTitle: 'Déjà là', relation: 'OWNED' }),
+    ])
+    const fichiers: Blob[] = []
+    const createObjectURL = vi.fn((blob: Blob) => {
+      fichiers.push(blob)
+      return 'blob:agenda'
+    })
+    const avant = { createObjectURL: URL.createObjectURL, revokeObjectURL: URL.revokeObjectURL }
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() })
+    const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    rendre('/releases?mois=2000-01')
+    const utilisateur = userEvent.setup()
+
+    const aVenir = await screen.findByRole('complementary', { name: 'À venir' })
+    await utilisateur.click(await within(aVenir).findByRole('button', { name: 'Ajouter à mon agenda (.ics)' }))
+
+    expect(within(aVenir).getByRole('status')).toHaveTextContent(
+      "2 sorties à acheter ou en envie ajoutées au fichier. 1 sortie connue seulement au mois n'y est pas.",
+    )
+    expect(clic).toHaveBeenCalledTimes(1)
+    const ics = await fichiers[0].text()
+    expect(ics).toContain('SUMMARY:GTA VI')
+    expect(ics).toContain('SUMMARY:Naruto · Tome 73 · Kana')
+    expect(ics).not.toContain('Spy x Family')
+    expect(ics).not.toContain('Déjà là')
+    clic.mockRestore()
+    Object.assign(URL, avant)
+  })
+
+  it('offers no calendar file when nothing is coming to buy or wanted', async () => {
+    servir(JANVIER_2000, [sortie({ date: '2000-02-04', entityId: 'owned', entityTitle: 'Déjà là', relation: 'OWNED' })])
+    rendre('/releases?mois=2000-01')
+
+    const aVenir = await screen.findByRole('complementary', { name: 'À venir' })
+    expect(await within(aVenir).findByText('Déjà là')).toBeInTheDocument()
+    expect(within(aVenir).queryByRole('button', { name: 'Ajouter à mon agenda (.ics)' })).not.toBeInTheDocument()
   })
 
   it('keeps its grid when the month is empty, and says how to follow a work', async () => {
