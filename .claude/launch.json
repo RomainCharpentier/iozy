@@ -50,21 +50,21 @@
       "port": 5174
     },
     {
-      "name": "iozyplay-server",
+      "name": "iozytest-server",
       "runtimeExecutable": "node",
       "runtimeArgs": [
-        "iozyplay/server/index.js"
+        "iozytest/server/index.js"
       ],
       "port": 3001
     },
     {
-      "name": "iozyplay",
+      "name": "iozytest",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
         "dev",
         "--prefix",
-        "iozyplay",
+        "iozytest",
         "--",
         "--port",
         "5175",

@@ -51,7 +51,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     // The worker registered when the app lived at the root of the site (scope
     // `/`) can no longer update itself - its script moved under /core/ and
     // the old address redirects - yet it still intercepts the home page and
-    // IozyPlay. Let it go. Only under a prefix: at the root, that scope is ours.
+    // IozyTest. Let it go. Only under a prefix: at the root, that scope is ours.
     if (import.meta.env.BASE_URL !== '/') {
       navigator.serviceWorker
         .getRegistrations()

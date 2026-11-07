@@ -5,7 +5,7 @@ IozyCore : le backend (API + base de données), l'app Web et, pour mémoire,
 l'app iOS (hors service). Les dossiers `backend/`, `ios/` et `web/` ont chacun leur propre README
 plus détaillé sur leur partie ; celui-ci sert de point d'entrée et de
 check-list. Ce dossier est IozyCore, une app du monorepo Iozy : la vue
-d'ensemble, IozyPlay et la charte sont dans `../README.md`.
+d'ensemble, IozyTest et la charte sont dans `../README.md`.
 
 Pour reprendre le projet en profondeur (architecture, conventions de code,
 comment ajouter une fonctionnalité) — humain ou IA — chaque README a une
@@ -85,7 +85,7 @@ automatiquement (migrations Flyway), avec les 3 types historiques (manga,
 jeu vidéo, jeu de société) déjà en place.
 Cette même commande lance aussi un build de l'app web sur
 `http://localhost:8081/core/` (voir Partie 3, Option B ; la racine `/` est la
-page d'accueil, `/play/` IozyPlay) — si tu veux juste tester
+page d'accueil, `/test/` IozyTest) — si tu veux juste tester
 l'API seule, ignore ce port.
 
 **Vérifier que ça tourne :**

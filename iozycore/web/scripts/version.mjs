@@ -95,12 +95,12 @@ export function versionDuDepot() {
   // A null character separates the messages: a commit body contains empty
   // lines, dashes and colons, but never a null byte.
   //
-  // Only the commits that touch IozyCore count: IozyPlay lives in the same
-  // repository (iozyplay/) with its own version, and its commits must not
-  // move this number. The charter (iozykit/) does count: a colour change is
-  // a change of this app. `:/` reads the paths from the repository root,
+  // Only the commits that touch IozyCore count: IozyTest lives in the same
+  // repository (iozytest/, iozyplay/ before its rename: older commits still carry
+  // that path) with its own version, and its commits must not move this number.
+  // The charter (iozykit/) does count: a colour change is a change of this app. `:/` reads the paths from the repository root,
   // whatever the working directory.
-  const messages = git('log', '--format=%B%x00', `${etiquette}..HEAD`, '--', ':/', ':(exclude,top)iozyplay')
+  const messages = git('log', '--format=%B%x00', `${etiquette}..HEAD`, '--', ':/', ':(exclude,top)iozytest', ':(exclude,top)iozyplay')
     .split('\0')
     .map((message) => message.trim())
     .filter(Boolean)

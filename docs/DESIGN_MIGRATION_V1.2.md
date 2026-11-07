@@ -1730,6 +1730,24 @@ Playwright sur douze écrans à 390 px, plus aucune cible sous 44 px hors les
 dos de l'étagère (22 px, voulus) ; captures mobile et bureau de Ma
 collection et d'une fiche après coup.
 
+### Renommage d'IozyPlay en IozyTest
+
+Le nom IozyPlay évoquait plutôt un serveur de médias. Dossier, paquet, image,
+service compose, variables de construction et mot-marque disent IozyTest ;
+l'app passe de `/play/` à `/test/`. Rien de stocké ne dépend du chemin : les
+clés du navigateur vont par origine, les salons vivent en mémoire. Restent les
+liens partagés et l'ancien worker : `/play/` redirige (302) avec chemin et
+paramètres, et la nouvelle app désinscrit le worker de `/play/`.
+
+Gardés exprès : le volume `iozyplay_data`, dont Docker stocke le nom, et
+l'ancien chemin dans `version.mjs`, que portent encore les anciens commits. Ce
+journal garde lui aussi l'ancien nom pour les lots passés.
+
+Vérifié : `npm run check`, puis une pile jetable sur d'autres ports et
+`check:deploiement` (17 contrôles). Avec un navigateur passé par l'ancienne
+image, l'ancienne invitation arrive sur `/test/room/join?room=AB12`, un seul
+chargement, le worker et les caches d'avant ont disparu.
+
 ### Lot 200 — Une œuvre possédée ne peut pas être voulue
 
 Dernière incohérence de la passe bureau : un jeu de société possédé et

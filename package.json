@@ -6,10 +6,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "check": "npm run check:kit && npm run check:web && npm run check:play",
+    "check": "npm run check:kit && npm run check:web && npm run check:test",
     "check:kit": "npm --prefix iozykit test",
     "check:web": "npm --prefix iozycore/web test && npm --prefix iozycore/web run typecheck && npm --prefix iozycore/web run lint",
-    "check:play": "npm --prefix iozyplay run typecheck && npm --prefix iozyplay run lint && npm --prefix iozyplay test && npm --prefix iozyplay run test:unit",
+    "check:test": "npm --prefix iozytest run typecheck && npm --prefix iozytest run lint && npm --prefix iozytest test && npm --prefix iozytest run test:unit",
     "up": "docker compose -f iozycore/backend/docker-compose.yml up --build -d"
   }
 }

@@ -6,21 +6,21 @@
 // dev, inlined or hashed in the build).
 import './home.css'
 import iozycore from 'iozykit/brand/iozycore.svg'
-import iozyplay from 'iozykit/brand/iozyplay.svg'
+import iozytest from 'iozykit/brand/iozytest.svg'
 
 // IozyCore lives under the base of this build (/core/ in the Docker image, /
 // in dev): its links follow it instead of a path written by hand.
 const core = import.meta.env.BASE_URL
 for (const link of document.querySelectorAll('a[data-app="core"]')) link.href = core
 
-const marques = { iozycore, iozyplay }
+const marques = { iozycore, iozytest }
 for (const image of document.querySelectorAll('img[data-marque]')) {
   image.src = marques[image.dataset.marque]
 }
 
 // A service worker left at the root of the site by IozyCore before it moved
 // under /core/ can no longer update itself (its script moved, the old address
-// redirects) and still intercepts this page and IozyPlay: let it go.
+// redirects) and still intercepts this page and IozyTest: let it go.
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker
     .getRegistrations()
