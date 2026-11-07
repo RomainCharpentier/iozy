@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { getTimeline } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
+import { Squelette } from '@/common/components/Squelette'
 
 const MONTH_LABELS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
 
@@ -18,7 +20,20 @@ function formatMonth(month: string): string {
 export function CollectionTimelineSection() {
   const timelineQuery = useQuery({ queryKey: queryKeys.insights.timeline, queryFn: getTimeline })
 
-  if (!timelineQuery.data || timelineQuery.data.length === 0) return null
+  // A failed or slow load says so; only a truly empty timeline hides the section.
+  if (timelineQuery.isError || timelineQuery.isPending) {
+    return (
+      <section className="flex flex-col gap-2">
+        <h2 className="font-display text-lg font-semibold text-textPrimary">Évolution de ma collection</h2>
+        {timelineQuery.isError ? (
+          <ErrorBanner message={`Évolution indisponible : ${timelineQuery.error.message}`} />
+        ) : (
+          <Squelette lignes={2} />
+        )}
+      </section>
+    )
+  }
+  if (timelineQuery.data.length === 0) return null
 
   const points = timelineQuery.data
   const maxCount = Math.max(...points.map((p) => p.tomesAdded))

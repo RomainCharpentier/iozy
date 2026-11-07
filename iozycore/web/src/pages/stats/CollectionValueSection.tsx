@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { getCollectionValue } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { formaterEuros } from '@/common/lib/formats'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * What the collection is worth, at the NEW price.
@@ -22,7 +24,21 @@ import { formaterEuros } from '@/common/lib/formats'
 export function CollectionValueSection() {
   const valueQuery = useQuery({ queryKey: queryKeys.insights.value, queryFn: getCollectionValue })
 
-  if (!valueQuery.data || valueQuery.data.totalActiveOwnershipCount === 0) return null
+  // "Valeur de la collection" buttons land here: a failed or slow load must
+  // say so, not leave the section out as if there were nothing to show.
+  if (valueQuery.isError || valueQuery.isPending) {
+    return (
+      <section className="flex flex-col gap-2">
+        <h2 className="font-display text-lg font-semibold text-textPrimary">Valeur de la collection</h2>
+        {valueQuery.isError ? (
+          <ErrorBanner message={`Valeur indisponible : ${valueQuery.error.message}`} />
+        ) : (
+          <Squelette lignes={2} />
+        )}
+      </section>
+    )
+  }
+  if (valueQuery.data.totalActiveOwnershipCount === 0) return null
 
   const { totalKnownValue, pricedOwnershipCount, totalActiveOwnershipCount, byType } = valueQuery.data
   const fullyCovered = pricedOwnershipCount === totalActiveOwnershipCount
