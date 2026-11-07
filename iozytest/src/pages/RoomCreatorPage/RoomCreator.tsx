@@ -159,13 +159,29 @@ export default function RoomCreator({
 
   const handleCopyLink = async () => {
     try {
+      // Hors contexte sécurisé (http sur le réseau local), navigator.clipboard n'existe pas
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Presse-papiers indisponible')
+      }
       await navigator.clipboard.writeText(shareLink)
       setCopied(true)
       soundManager.playClick()
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Erreur lors de la copie:', err)
+      // Le lien reste accessible : affiché dans le toast et sélectionné dans le champ d'invitation
+      toast.error("Copie impossible : sélectionne le lien d'invitation", {
+        description: shareLink,
+        duration: 15000,
+      })
+      document.getElementById('room-share-link')?.focus()
     }
+  }
+
+  // Le bouton repasse à « Démarrer la partie » et le démontage quitte à nouveau le salon
+  const resetStarting = () => {
+    setIsStartingGame(false)
+    isStartingGameRef.current = false
   }
 
   const handleStartGame = async () => {
@@ -182,8 +198,7 @@ export default function RoomCreator({
           toast.error('Erreur : Aucune question disponible.', {
             icon: '❌',
           })
-          setIsStartingGame(false)
-          isStartingGameRef.current = false
+          resetStarting()
           return
         }
 
@@ -198,13 +213,13 @@ export default function RoomCreator({
           toast.error('Erreur : Aucune question disponible après traitement.', {
             icon: '❌',
           })
+          resetStarting()
           return
         }
 
         soundManager.playStart()
         onRoomCreated('SOLO', questionsWithTimer)
-        setIsStartingGame(false)
-        isStartingGameRef.current = false
+        resetStarting()
         return
       }
 
@@ -214,6 +229,7 @@ export default function RoomCreator({
         toast.error('Erreur : Socket non disponible. Veuillez rafraîchir la page.', {
           icon: '⚠️',
         })
+        resetStarting()
         return
       }
 
@@ -221,6 +237,7 @@ export default function RoomCreator({
         toast.error('Erreur : Code de salon manquant.', {
           icon: '⚠️',
         })
+        resetStarting()
         return
       }
 
@@ -229,6 +246,7 @@ export default function RoomCreator({
         toast.error('Erreur : Aucune question disponible.', {
           icon: '❌',
         })
+        resetStarting()
         return
       }
 
@@ -244,8 +262,7 @@ export default function RoomCreator({
         toast.error('Erreur : Socket non connecté. Veuillez rafraîchir la page.', {
           icon: '⚠️',
         })
-        setIsStartingGame(false)
-        isStartingGameRef.current = false
+        resetStarting()
         return
       }
 
@@ -274,7 +291,7 @@ export default function RoomCreator({
         toast.error(`Erreur : ${message}`, {
           icon: '⚠️',
         })
-        isStartingGameRef.current = false
+        resetStarting()
       }
 
       timeoutId = window.setTimeout(() => {
@@ -284,8 +301,7 @@ export default function RoomCreator({
         toast.error('Le serveur ne répond pas. Veuillez réessayer.', {
           icon: '⏱️',
         })
-        setIsStartingGame(false)
-        isStartingGameRef.current = false
+        resetStarting()
       }, 5000)
 
       socket.on('game:start', handleGameStarted)
@@ -300,8 +316,7 @@ export default function RoomCreator({
         toast.error('Erreur : Aucune question disponible après traitement.', {
           icon: '❌',
         })
-        setIsStartingGame(false)
-        isStartingGameRef.current = false
+        resetStarting()
         return
       }
 
@@ -312,8 +327,9 @@ export default function RoomCreator({
         questionCount: questionCount,
       })
     } catch (error) {
-      setIsStartingGame(false)
-      isStartingGameRef.current = false
+      console.error('Erreur au démarrage de la partie :', error)
+      toast.error('Erreur : impossible de démarrer la partie. Réessaie.', { icon: '⚠️' })
+      resetStarting()
     }
   }
 
