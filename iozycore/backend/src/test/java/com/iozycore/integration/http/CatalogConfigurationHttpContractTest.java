@@ -162,12 +162,10 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
     @Test
     void returns_a_deterministic_error_when_updating_or_reading_a_type_that_does_not_exist() throws Exception {
         mockMvc.perform(get("/api/entity-types/{id}", ABSENT)).andExpect(status().isNotFound());
-        // The PATCH goes through the service, whose IllegalArgumentException becomes
-        // 400 - existing convention, different from the 404 of the GET. Frozen as
-        // it is rather than made uniform on the way.
+        // The PATCH answers 404 like the GET: an unknown type is not a bad request.
         mockMvc.perform(patch("/api/entity-types/{id}", ABSENT).contentType("application/json")
                         .content("{\"label\":\"x\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/entity-types/{id}", MALFORME))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").isNotEmpty());
@@ -194,6 +192,21 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
         assertThat(entityTypeRepository.findById(UUID.fromString(MANGA))).isPresent();
         assertThat(entityTypeRepository.findAll()).hasSize((int) typesAvant);
         assertThat(entityRepository.findAllByType(UUID.fromString(MANGA))).hasSize((int) oeuvresAvant);
+    }
+
+    @Test
+    void refuses_to_delete_a_built_in_type_even_when_no_work_uses_it() throws Exception {
+        // The universes find VIDEO_GAME by its code: without it, they stop working
+        // for every account. Without a video game in the shared database, the
+        // refusal can only come from the built-in guard.
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+                entityRepository.findAllByType(EntityTypeFixtures.VIDEO_GAME.id()).isEmpty());
+
+        mockMvc.perform(delete("/api/entity-types/{id}", EntityTypeFixtures.VIDEO_GAME.id()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").isNotEmpty());
+
+        assertThat(entityTypeRepository.findById(EntityTypeFixtures.VIDEO_GAME.id())).isPresent();
     }
 
     @Test
