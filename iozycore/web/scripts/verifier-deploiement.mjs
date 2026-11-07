@@ -23,7 +23,8 @@
  * address exists.
  *
  * ## It creates nothing, and needs no account
- * Only GETs on open routes or routes that are supposed to refuse. It can
+ * Only GETs on open routes or routes that are supposed to refuse, and one POST
+ * that the API refuses (check 2 bis). It can
  * therefore be run on a real deployment, at any time, leaving nothing there.
  */
 
@@ -85,6 +86,24 @@ try {
   verifier(protegee.status === 401, '/api/entities/search refuses with 401 without a session', `received ${protegee.status}`)
 } catch (cause) {
   problemes.push(`/api/entities/search unreachable — ${cause.message}`)
+}
+
+// --- 2 bis. A photo is not refused by the proxy
+//
+//     nginx refuses any body over 1 MB by default (413), and one phone photo
+//     is bigger. A 2 MB body sent to an open route must reach Spring: it can
+//     refuse it (no CSRF token, wrong method), but never with 413. The request
+//     changes nothing on the server.
+try {
+  const gros = await fetch(`${base}/api/auth/etat`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: new Uint8Array(2 * 1024 * 1024),
+  })
+  verifier(gros.status !== 413, 'a 2 MB body reaches the API (no 413)', `received ${gros.status}`)
+} catch (cause) {
+  problemes.push(`POST of 2 MB to /api/auth/etat failed — ${cause.message}`)
 }
 
 // --- 3. The share link stays open, and tells the truth
