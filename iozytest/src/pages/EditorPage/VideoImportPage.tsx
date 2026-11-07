@@ -453,8 +453,14 @@ export default function VideoImportPage() {
 
         {videos.length > 0 && (
           <>
-            <div className={styles.categoriesSelection}>
-              <label>Catégories :</label>
+            <div
+              className={styles.categoriesSelection}
+              role="group"
+              aria-labelledby="video-import-categories-title"
+            >
+              <span id="video-import-categories-title" className={styles.categoriesTitle}>
+                Catégories :
+              </span>
               <div className={styles.categoriesCheckboxes}>
                 {categories.map((cat) => (
                   <label key={cat.id} className={styles.categoryCheckbox}>
@@ -514,6 +520,7 @@ export default function VideoImportPage() {
                             type="checkbox"
                             checked={video.selected}
                             onChange={() => handleToggleVideo(index)}
+                            aria-label={`Importer « ${video.title} »`}
                           />
                         </label>
                         <img

@@ -1,6 +1,6 @@
 import styles from '@/pages/EditorPage/QuestionEditor.module.scss'
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useId, useMemo, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -40,6 +40,7 @@ interface QuestionEditorProps {
 export default function QuestionEditor({ questions, onSave, onClose }: QuestionEditorProps) {
   const navigate = useNavigate()
   const location = useLocation()
+  const categoryTitleId = useId()
 
   const [localQuestions, setLocalQuestions] = useState<Question[]>(questions)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -730,8 +731,14 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     }
                   }}
                 >
-                  <div className={styles.formGroup}>
-                    <label>Catégorie *</label>
+                  <div
+                    className={styles.formGroup}
+                    role="group"
+                    aria-labelledby={categoryTitleId}
+                  >
+                    <span id={categoryTitleId} className={styles.groupTitle}>
+                      Catégorie *
+                    </span>
                     <CategorySelector
                       categories={categories}
                       selectedCategories={selectedCategories}
