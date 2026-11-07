@@ -345,6 +345,10 @@ public class PurchaseAnalysisController {
         // escaped it. conditionImportance, for its part, was already covered by parseEnum.
         requireField(request.editionTierRanking(), "editionTierRanking");
         requireField(request.factorWeights(), "factorWeights");
+        // The engine reads these as percentages and weights: a negative or huge
+        // value would silently skew every verdict, so refuse it here.
+        requirePercent(request.minimumDiscountVsRetailPercent(), "minimumDiscountVsRetailPercent");
+        request.factorWeights().values().forEach(weight -> requirePercent(weight, "factorWeights"));
 
         List<EditionTier> ranking = request.editionTierRanking().stream()
                 .map(name -> parseEnum(EditionTier.class, name, "editionTierRanking")).toList();
@@ -363,6 +367,14 @@ public class PurchaseAnalysisController {
     private static void requireField(Object value, String fieldName) {
         if (value == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le champ '" + fieldName + "' est obligatoire");
+        }
+    }
+
+    /** A value the engine reads as 0..100: anything outside is a 400 that names the field. */
+    private static void requirePercent(Integer value, String fieldName) {
+        if (value == null || value < 0 || value > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Le champ '" + fieldName + "' doit être compris entre 0 et 100");
         }
     }
 

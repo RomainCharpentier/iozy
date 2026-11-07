@@ -93,6 +93,34 @@ class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest
     }
 
     @Test
+    void a_discount_outside_0_to_100_is_a_400() {
+        for (int discount : new int[] {-1, 101}) {
+            assertThatThrownBy(() -> controller.updatePreferences(new UpdateCollectorPreferencesRequest(
+                    List.of("PERFECT"), true, "HIGH", discount, Map.of())))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                            .isEqualTo(HttpStatus.BAD_REQUEST))
+                    .hasMessageContaining("minimumDiscountVsRetailPercent");
+        }
+    }
+
+    @Test
+    void a_factor_weight_outside_0_to_100_is_a_400() {
+        assertThatThrownBy(() -> controller.updatePreferences(new UpdateCollectorPreferencesRequest(
+                List.of("PERFECT"), true, "HIGH", 20, Map.of("CONDITION", 1000))))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("factorWeights");
+    }
+
+    @Test
+    void bounds_0_and_100_are_accepted() {
+        CollectorPreferences preferences = controller.updatePreferences(new UpdateCollectorPreferencesRequest(
+                List.of("PERFECT"), false, "HIGH", 100, Map.of("CONDITION", 0)));
+
+        assertThat(preferences.minimumDiscountVsRetailPercent()).isEqualTo(100);
+    }
+
+    @Test
     void un_corps_refuse_ne_modifie_pas_les_preferences_enregistrees() {
         controller.updatePreferences(complete());
         int avant = controller.preferences().minimumDiscountVsRetailPercent();
