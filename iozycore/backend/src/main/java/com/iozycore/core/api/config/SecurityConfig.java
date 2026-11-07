@@ -32,6 +32,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 import java.io.IOException;
 import java.util.List;
@@ -181,7 +182,9 @@ public class SecurityConfig {
                         + "Il faut un compte pour enregistrer quoi que ce soit.");
                 return;
             }
-            if (callsAProvider(requete.getRequestURI())) {
+            // The decoded path, as the router sees it: the raw URI keeps
+            // "%6D" for "m" and would let "/api/%6Detadata/search" through.
+            if (callsAProvider(UrlPathHelper.defaultInstance.getPathWithinApplication(requete))) {
                 refuser(reponse, "Tu consultes le catalogue en lecture seule. "
                         + "Il faut un compte pour chercher chez les fournisseurs externes.");
                 return;

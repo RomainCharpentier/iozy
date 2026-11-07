@@ -10,6 +10,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.net.URI;
 import java.util.Map;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -136,6 +137,12 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.error").value(Matchers.containsString("fournisseurs externes")));
         }
+
+        // The router decodes the path before it picks a controller: a
+        // percent-encoded letter must not walk around the refusal.
+        mockMvc.perform(get(URI.create("/api/%6Detadata/search?query=naruto")).session(visite))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value(Matchers.containsString("fournisseurs externes")));
 
         // The shared catalog, read from our own database, stays open.
         mockMvc.perform(get("/api/entity-types").session(visite)).andExpect(status().isOk());
