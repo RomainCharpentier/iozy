@@ -178,6 +178,33 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void too_many_wrong_passwords_answer_429_even_with_the_right_one() throws Exception {
+        connecter();
+        // Its own IP, so that the count does not leak into other tests.
+        String ip = "203.0.113.45";
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/login").with(csrf()).with(r -> { r.setRemoteAddr(ip); return r; })
+                            .contentType("application/json")
+                            .content(json(Map.of("email", "connecte@example.com", "motDePasse", "pas-le-bon"))))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        var refus = mockMvc.perform(post("/api/auth/login").with(csrf()).with(r -> { r.setRemoteAddr(ip); return r; })
+                        .contentType("application/json")
+                        .content(json(Map.of("email", "connecte@example.com", "motDePasse", "un-mot-de-passe"))))
+                .andExpect(status().isTooManyRequests())
+                .andReturn();
+        assertThat(refus.getResponse().getErrorMessage()).contains("Trop de tentatives");
+
+        // Another IP is not blocked: the brake does not lock the owner out of the account.
+        mockMvc.perform(post("/api/auth/login").with(csrf()).with(r -> { r.setRemoteAddr("203.0.113.46"); return r; })
+                        .contentType("application/json")
+                        .content(json(Map.of("email", "connecte@example.com", "motDePasse", "un-mot-de-passe"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void la_creation_est_fermee_apres_le_premier_compte_faute_de_code_configure() throws Exception {
         connecter();
 

@@ -72,6 +72,7 @@ public class AuthController {
     private final AuthService comptes;
     private final AuthenticationManager authentification;
     private final SecurityContextRepository contextes;
+    private final FailedAttemptThrottle throttle;
 
     /** The state of an instance, for a client that does not yet know what to show. */
     public record EtatReponse(boolean aucunCompte, boolean creationOuverte) {
@@ -120,10 +121,17 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public CompteReponse register(@RequestBody CreationRequete requete, HttpServletRequest requeteHttp,
                                    HttpServletResponse reponseHttp) {
+        String inviteKey = "invite|" + requeteHttp.getRemoteAddr();
+        if (throttle.isBlocked(inviteKey)) {
+            throw tooManyAttempts();
+        }
         AppUser compte;
         try {
             compte = comptes.creer(requete.email(), requete.motDePasse(), requete.pseudo(),
                     requete.codeInvitation());
+        } catch (AuthService.InvalidInviteCode wrongCode) {
+            throttle.recordFailure(inviteKey);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, wrongCode.getMessage());
         } catch (AuthService.CreationInterdite interdite) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, interdite.getMessage());
         } catch (AuthService.CreationRefusee refusee) {
@@ -139,7 +147,24 @@ public class AuthController {
     @PostMapping("/login")
     public CompteReponse login(@RequestBody ConnexionRequete requete, HttpServletRequest requeteHttp,
                                 HttpServletResponse reponseHttp) {
-        return CompteReponse.de(ouvrirSession(requete.email(), requete.motDePasse(), requeteHttp, reponseHttp));
+        String loginKey = "login|" + AppUser.normaliserEmail(requete.email()) + "|" + requeteHttp.getRemoteAddr();
+        if (throttle.isBlocked(loginKey)) {
+            throw tooManyAttempts();
+        }
+        AppUserDetailsService.Principal principal;
+        try {
+            principal = ouvrirSession(requete.email(), requete.motDePasse(), requeteHttp, reponseHttp);
+        } catch (ResponseStatusException refused) {
+            throttle.recordFailure(loginKey);
+            throw refused;
+        }
+        throttle.recordSuccess(loginKey);
+        return CompteReponse.de(principal);
+    }
+
+    private static ResponseStatusException tooManyAttempts() {
+        return new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                "Trop de tentatives. Réessayez dans quelques minutes.");
     }
 
     @Operation(summary = "Browse the catalog without an account. Always possible, and the session obtained can "

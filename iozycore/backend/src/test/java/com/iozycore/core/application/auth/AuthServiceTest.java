@@ -109,7 +109,19 @@ class AuthServiceTest {
 
         assertThat(service.creationOuverte()).isFalse();
         assertThatThrownBy(() -> service.creer("second@example.com", "un-mot-de-passe", "Second", null))
-                .isInstanceOf(AuthService.CreationInterdite.class);
+                .isInstanceOf(AuthService.CreationInterdite.class)
+                // A closed door is not a guess: the caller must not count it as one.
+                .isNotInstanceOf(AuthService.InvalidInviteCode.class);
+    }
+
+    @Test
+    void a_wrong_invite_code_is_reported_as_such_so_that_guessing_can_be_counted() {
+        AuthService service = service("SESAME");
+        service.creer("premier@example.com", "un-mot-de-passe", "Premier", null);
+
+        assertThatThrownBy(() -> service.creer("second@example.com", "un-mot-de-passe", "Second", "WRONG"))
+                .isInstanceOf(AuthService.InvalidInviteCode.class)
+                .hasMessage("Code d'invitation invalide.");
     }
 
     @Test

@@ -93,7 +93,7 @@ public class AuthService {
                 throw new CreationInterdite("La création de compte est fermée sur cette instance.");
             }
             if (!codeInvitation.equals(codeFourni == null ? "" : codeFourni.trim())) {
-                throw new CreationInterdite("Code d'invitation invalide.");
+                throw new InvalidInviteCode();
             }
         }
 
@@ -122,6 +122,13 @@ public class AuthService {
     public static class CreationInterdite extends RuntimeException {
         public CreationInterdite(String message) {
             super(message);
+        }
+    }
+
+    /** A wrong invitation code: the only refusal that can be guessed, so the caller counts it. */
+    public static class InvalidInviteCode extends CreationInterdite {
+        public InvalidInviteCode() {
+            super("Code d'invitation invalide.");
         }
     }
 }
