@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,6 +47,16 @@ class TierListPersistenceIntegrationTest extends PostgresIntegrationTest {
 
         tierListRepository.deleteById(list.id());
         assertThat(tierListRepository.findById(list.id())).isEmpty();
+    }
+
+    @Test
+    void several_tier_lists_load_at_once_and_unknown_ids_are_left_out() {
+        TierList first = tierListRepository.save(TierList.create("Top", EntityTypeFixtures.MANGA.id(), null, null));
+        TierList second = tierListRepository.save(TierList.create("Flop", EntityTypeFixtures.MANGA.id(), null, null));
+
+        assertThat(tierListRepository.findAllById(List.of(first.id(), second.id(), UUID.randomUUID())))
+                .extracting(TierList::name).containsExactlyInAnyOrder("Top", "Flop");
+        assertThat(tierListRepository.findAllById(List.of())).isEmpty();
     }
 
     @Test
