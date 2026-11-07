@@ -266,6 +266,26 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void an_account_following_the_work_and_an_edition_counts_once_and_links_are_counted() {
+        // Real SQL of SqlEntityReferenceCounter: followed_edition (V20) and
+        // relationship (V1) also have no ON DELETE.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "20th Century Boys " + UUID.randomUUID());
+        Entity other = Entity.create(EntityTypeFixtures.MANGA.id(), "21st Century Boys " + UUID.randomUUID());
+        entityRepository.save(entity);
+        entityRepository.save(other);
+        UUID follower = UUID.randomUUID();
+        followByAnotherAccount(entity.id(), follower);
+        jdbc.update("INSERT INTO followed_edition (id, entity_id, owner_id, edition_name, followed_at) VALUES (?, ?, ?, ?, ?)",
+                UUID.randomUUID(), entity.id(), follower, "Deluxe", LocalDate.now());
+        jdbc.update("INSERT INTO relationship (id, source_entity_id, target_entity_id, relationship_type) VALUES (?, ?, ?, ?)",
+                UUID.randomUUID(), other.id(), entity.id(), "SEQUEL");
+
+        assertThatThrownBy(() -> entityDeletionService.delete(entity.id()))
+                .isInstanceOf(EntityDeletionNotAllowedException.class)
+                .hasMessage("Impossible de supprimer cette fiche : elle a encore 1 suivi et 1 lien avec une autre fiche.");
+    }
+
+    @Test
     void deleting_the_last_tome_of_a_followed_work_keeps_the_work_and_removes_the_tome() {
         // Before, the cascade reached the FK error after the tome was already
         // saved as removed: the user saw an error for a half-done delete.
@@ -282,9 +302,13 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
     }
 
     private void followByAnotherAccount(UUID entityId) {
+        followByAnotherAccount(entityId, UUID.randomUUID());
+    }
+
+    private void followByAnotherAccount(UUID entityId, UUID ownerId) {
         entityManager.flush(); // the work must be in the table before the FK row
         jdbc.update("INSERT INTO followed_work (id, entity_id, owner_id, followed_at) VALUES (?, ?, ?, ?)",
-                UUID.randomUUID(), entityId, UUID.randomUUID(), LocalDate.now());
+                UUID.randomUUID(), entityId, ownerId, LocalDate.now());
     }
 
     @Test
