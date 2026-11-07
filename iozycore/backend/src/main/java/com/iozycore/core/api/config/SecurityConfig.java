@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -287,12 +288,32 @@ public class SecurityConfig {
         return new org.springframework.security.authentication.ProviderManager(fournisseur);
     }
 
+    /**
+     * The CSRF cookie follows the same {@code Secure} setting as the session
+     * cookie ({@code SESSION_COOKIE_SECURE}).
+     *
+     * <p>Without this, the repository marks the cookie {@code Secure} only when
+     * {@code request.isSecure()}. Behind a TLS proxy that talks plain HTTP to
+     * nginx, that depends on a forwarded header that may say "http": the
+     * session cookie was {@code Secure} and the token cookie was not. When the
+     * setting is off, the request still decides, as before.
+     */
+    static CookieCsrfTokenRepository csrfTokenRepository(boolean secureCookies) {
+        CookieCsrfTokenRepository depot = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        if (secureCookies) {
+            depot.setCookieCustomizer(cookie -> cookie.secure(true));
+        }
+        return depot;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository contextes,
-                                           AppUserRepository comptes) throws Exception {
+                                           AppUserRepository comptes,
+                                           @Value("${server.servlet.session.cookie.secure:false}") boolean secureCookies)
+            throws Exception {
         http
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRepository(csrfTokenRepository(secureCookies))
                         // The DEFAULT handler masks the token (BREACH
                         // protection): it expects back the masked value that it
                         // exposed in the page, not the one of the cookie. A client that
