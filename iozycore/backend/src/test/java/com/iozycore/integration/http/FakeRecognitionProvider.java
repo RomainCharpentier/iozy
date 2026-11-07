@@ -59,6 +59,17 @@ public class FakeRecognitionProvider {
         return APPELS.get();
     }
 
+    /**
+     * Whether a database transaction was open during the last engine call.
+     * A real engine call is slow HTTP: it must never hold a connection.
+     */
+    private static final java.util.concurrent.atomic.AtomicBoolean TRANSACTION_DURING_LAST_CALL =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
+    public static boolean transactionDuringLastCall() {
+        return TRANSACTION_DURING_LAST_CALL.get();
+    }
+
     public static String photo(String declencheur, int index) {
         return "https://" + HOTE_PHOTOS + "/" + declencheur + "/" + index + ".jpg";
     }
@@ -120,6 +131,8 @@ public class FakeRecognitionProvider {
             @Override
             public RecognitionResult recognize(List<RecognitionImage> images, RecognitionContext context) {
                 APPELS.incrementAndGet();
+                TRANSACTION_DURING_LAST_CALL.set(org.springframework.transaction.support
+                        .TransactionSynchronizationManager.isActualTransactionActive());
                 String declencheur = images.isEmpty() ? "" : declencheurDe(images.get(0));
 
                 if (declencheur.contains(DECLENCHE_PANNE)) {

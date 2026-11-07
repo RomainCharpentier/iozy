@@ -26,7 +26,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,12 +54,14 @@ class AiPriceEstimateCacheIntegrationTest extends PostgresIntegrationTest {
 
         static final AtomicInteger APPELS = new AtomicInteger();
         static final AtomicInteger REPONSES_SANS_PRIX = new AtomicInteger();
+        static final AtomicBoolean TRANSACTION_DURING_LAST_CALL = new AtomicBoolean();
 
         @Bean
         @Primary
         AiMarketPriceAdvisor conseillerQuiCompte() {
             return (seriesTitle, editionName, condition) -> {
                 APPELS.incrementAndGet();
+                TRANSACTION_DURING_LAST_CALL.set(TransactionSynchronizationManager.isActualTransactionActive());
                 if (REPONSES_SANS_PRIX.get() > 0) {
                     REPONSES_SANS_PRIX.decrementAndGet();
                     // "I do not know": an answer, not a failure.
@@ -119,6 +125,28 @@ class AiPriceEstimateCacheIntegrationTest extends PostgresIntegrationTest {
         assertThat(premiere.itemBreakdown().get(0).marketPrice().basis()).isEqualTo(PriceBasis.THEORETICAL_ONLY);
         assertThat(cacheRepository.find(normalise(edition.seriesTitle()), "standard", Condition.VERY_GOOD))
                 .hasValueSatisfying(memorise -> assertThat(memorise.pricePerVolume()).isNull());
+    }
+
+    /**
+     * The AI advice is slow HTTP: it must not hold a database connection.
+     * The test transaction is suspended, so this test cleans up what it writes.
+     */
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void the_ai_advice_is_asked_outside_any_transaction_and_the_analysis_is_still_saved() {
+        MangaEdition edition = uneEdition();
+        PurchaseAnalysis analyse = null;
+        try {
+            analyse = analyser(edition);
+
+            assertThat(ConseillerQuiCompte.TRANSACTION_DURING_LAST_CALL.get()).isFalse();
+            assertThat(service.findAnalysisById(analyse.id())).isPresent();
+        } finally {
+            if (analyse != null) {
+                service.deleteAnalysis(analyse.id());
+            }
+            service.deleteEdition(edition.id());
+        }
     }
 
     private static String normalise(String valeur) {

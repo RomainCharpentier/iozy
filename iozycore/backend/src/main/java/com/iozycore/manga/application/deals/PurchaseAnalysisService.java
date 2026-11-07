@@ -11,7 +11,8 @@ import com.iozycore.core.domain.catalog.Variant;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -81,6 +82,8 @@ public class PurchaseAnalysisService {
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
+    /** Wraps only the writes of {@link #analyze}: the AI calls stay outside any transaction. */
+    private final TransactionTemplate writeTransaction;
 
     public PurchaseAnalysisService(MangaEditionRepository mangaEditionRepository,
                                     MarketPriceObservationRepository marketPriceObservationRepository,
@@ -93,7 +96,9 @@ public class PurchaseAnalysisService {
                                     AiMarketPriceAdvisor aiMarketPriceAdvisor,
                                     AiPriceEstimateCacheRepository aiPriceEstimateCacheRepository,
                                     CollectionProgressService progressService,
-                                    com.iozycore.core.domain.wishlist.WishlistEntryRepository wishlistEntryRepository) {
+                                    com.iozycore.core.domain.wishlist.WishlistEntryRepository wishlistEntryRepository,
+                                    PlatformTransactionManager transactionManager) {
+        this.writeTransaction = new TransactionTemplate(transactionManager);
         this.mangaEditionRepository = mangaEditionRepository;
         this.marketPriceObservationRepository = marketPriceObservationRepository;
         this.purchaseAnalysisRepository = purchaseAnalysisRepository;
@@ -138,7 +143,11 @@ public class PurchaseAnalysisService {
         }
     }
 
-    @Transactional
+    /**
+     * No method-level transaction: the AI price advice is an HTTP call that can
+     * take seconds, and must not hold a database connection meanwhile. Reads
+     * open their own short transaction; the final writes share one, below.
+     */
     public PurchaseAnalysis analyze(AnalyzeListingCommand command) {
         List<ListingItem> listingItems = new ArrayList<>();
         List<PurchaseAnalysisEngine.ItemContext> itemContexts = new ArrayList<>();
@@ -193,14 +202,16 @@ public class PurchaseAnalysisService {
 
         PurchaseAnalysis analysis = engine.analyze(listing, itemContexts, preferences,
                 comptePresentDansLesEnvies(itemContexts), identiteAnnonce);
-        PurchaseAnalysis enregistree = purchaseAnalysisRepository.save(analysis);
+        return writeTransaction.execute(status -> {
+            PurchaseAnalysis enregistree = purchaseAnalysisRepository.save(analysis);
 
-        // Only AFTER: the asking price joins the market observations. The
-        // moment matters - at this stage the user has corrected the series, chosen
-        // the edition and validated the composition, so the observation is about a
-        // product that is really identified rather than a draft.
-        releverLePrixDemande(enregistree, identiteAnnonce);
-        return enregistree;
+            // Only AFTER: the asking price joins the market observations. The
+            // moment matters - at this stage the user has corrected the series, chosen
+            // the edition and validated the composition, so the observation is about a
+            // product that is really identified rather than a draft.
+            releverLePrixDemande(enregistree, identiteAnnonce);
+            return enregistree;
+        });
     }
 
     /**
