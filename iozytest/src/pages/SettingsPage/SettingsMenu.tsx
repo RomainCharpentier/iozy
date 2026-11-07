@@ -1,6 +1,6 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
 import styles from '@/pages/SettingsPage/SettingsMenu.module.scss'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Moon, RotateCcw, Sun, Volume2 } from 'lucide-react'
 import { settingsService, UserSettings } from '@/services/settingsService'
@@ -22,23 +22,17 @@ export default function SettingsMenu() {
   const [settings, setSettings] = useState<UserSettings>(settingsService.getSettings())
   const [showResetDialog, setShowResetDialog] = useState(false)
 
-  useEffect(() => {
-    soundManager.setEnabled(settings.soundEnabled)
-    soundManager.setVolume(settings.soundVolume)
-  }, [])
-
   const handleSettingChange = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     const newSettings = { ...settings, [key]: value }
     setSettings(newSettings)
     settingsService.updateSetting(key, value)
 
+    // settingsService applique déjà le son ; on ne fait qu'entendre le changement.
     if (key === 'soundEnabled') {
-      soundManager.setEnabled(value as boolean)
       if (value) {
         soundManager.playClick()
       }
     } else if (key === 'soundVolume') {
-      soundManager.setVolume(value as number)
       if (settings.soundEnabled) {
         soundManager.playClick()
       }
@@ -49,7 +43,6 @@ export default function SettingsMenu() {
     settingsService.resetSettings()
     const defaultSettings = settingsService.getSettings()
     setSettings(defaultSettings)
-    soundManager.setEnabled(defaultSettings.soundEnabled)
     soundManager.playClick()
     setShowResetDialog(false)
   }
