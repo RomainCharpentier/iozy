@@ -329,18 +329,20 @@ describe('Sécurité - écritures de la banque de questions', () => {
     }
   })
 
-  test('hors production sans jeton : ouvert, avec un seul avertissement', async () => {
+  test('hors production sans jeton : ouvert, avec un seul avertissement, sans interroger IozyCore', async () => {
     const logs = []
-    const guard = createWriteGuard({ env: { NODE_ENV: 'development' }, fetchImpl: noFetch, log: m => logs.push(m) })
+    meStub.calls = []
+    const guard = createWriteGuard({ env: { NODE_ENV: 'development' }, fetchImpl: meStub(401, {}), log: m => logs.push(m) })
     const { url, close } = await listen(guardedApp(guard))
     try {
       for (let i = 0; i < 2; i++) {
         const response = await fetch(url + '/api/questions', {
-          method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{}',
+          method: 'PUT', headers: { 'content-type': 'application/json', cookie: 'JSESSIONID=abc' }, body: '{}',
         })
         assert.strictEqual(response.status, 200)
       }
       assert.strictEqual(logs.length, 1)
+      assert.strictEqual(meStub.calls.length, 0)
     } finally {
       await close()
     }

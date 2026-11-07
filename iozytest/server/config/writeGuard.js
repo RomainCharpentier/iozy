@@ -4,10 +4,10 @@
  * Une écriture passe dans l'un de ces cas, dans cet ordre :
  *  1. l'en-tête `X-Iozytest-Admin-Token` vaut `IOZYTEST_ADMIN_TOKEN` (scripts,
  *     IozyTest seul sans IozyCore) ;
- *  2. le cookie de la requête ouvre un compte Iozy non invité : on le relaie à
- *     `${IOZYCORE_API_URL}/api/auth/me` (même site, le cookie suit sous /test) ;
- *  3. hors production, si aucun jeton n'est réglé : tout passe, avec un
- *     avertissement dans le journal (dev local).
+ *  2. hors production, si aucun jeton n'est réglé : tout passe, avec un
+ *     avertissement dans le journal (dev local) ;
+ *  3. le cookie de la requête ouvre un compte Iozy non invité : on le relaie à
+ *     `${IOZYCORE_API_URL}/api/auth/me` (même site, le cookie suit sous /test).
  * Sinon : 401 avec un message en français. Les lectures (GET) ne sont pas
  * gardées ici.
  */
@@ -62,7 +62,9 @@ export function createWriteGuard({ env = process.env, fetchImpl = globalThis.fet
       return res.status(415).json({ error: 'Le corps de la requête doit être du JSON.' });
     }
     if (token && sameToken(req.get(TOKEN_HEADER), token)) return next();
-    if (await hasIozyAccount(req.get('cookie'), apiUrl, fetchImpl)) return next();
+    // Le mode ouvert avant IozyCore : en dev, IozyCore est souvent injoignable
+    // et l'interroger retarderait chaque écriture (un cookie de localhost part
+    // vers tous les ports).
     if (openInDev) {
       if (!warned) {
         warned = true;
@@ -70,6 +72,7 @@ export function createWriteGuard({ env = process.env, fetchImpl = globalThis.fet
       }
       return next();
     }
+    if (await hasIozyAccount(req.get('cookie'), apiUrl, fetchImpl)) return next();
     return res.status(401).json({ error: UNAUTHORIZED_MESSAGE });
   };
 }
