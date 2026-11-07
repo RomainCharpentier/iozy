@@ -62,7 +62,7 @@ export function CollectionRecapPage() {
     ctx.fillRect(0, 0, width, height)
 
     ctx.textBaseline = 'top'
-    ctx.fillStyle = 'rgba(255,255,255,0.85)'
+    ctx.fillStyle = '#ffffff'
     ctx.font = '600 44px Inter, sans-serif'
     ctx.fillText('Bilan de collection', 72, 100)
     ctx.fillStyle = '#ffffff'
@@ -74,7 +74,7 @@ export function CollectionRecapPage() {
       ctx.fillStyle = '#ffffff'
       ctx.font = '700 88px Inter, sans-serif'
       ctx.fillText(big, 72, y)
-      ctx.fillStyle = 'rgba(255,255,255,0.85)'
+      ctx.fillStyle = '#ffffff'
       ctx.font = '400 34px Inter, sans-serif'
       ctx.fillText(small, 72, y + 96)
       y += 190
@@ -91,12 +91,12 @@ export function CollectionRecapPage() {
       ctx.fillStyle = '#ffffff'
       ctx.font = '700 52px Inter, sans-serif'
       ctx.fillText(recap.mostFeaturedCreator, 72, y)
-      ctx.fillStyle = 'rgba(255,255,255,0.85)'
+      ctx.fillStyle = '#ffffff'
       ctx.font = '400 34px Inter, sans-serif'
       ctx.fillText('auteur/studio le plus présent', 72, y + 68)
     }
 
-    ctx.fillStyle = 'rgba(255,255,255,0.6)'
+    ctx.fillStyle = '#ffffff'
     ctx.font = '400 28px Inter, sans-serif'
     ctx.fillText('IozyCore', 72, height - 80)
 
@@ -133,23 +133,23 @@ export function CollectionRecapPage() {
             className="flex flex-col gap-4 rounded-2xl p-6 text-white"
             style={{ background: `linear-gradient(135deg, ${gradientColorsFor(`recap-${year}`).join(', ')})` }}
           >
-            <p className="text-sm font-medium text-white/85">Bilan de collection {recapQuery.data.year}</p>
+            <p className="text-sm font-medium text-white">Bilan de collection {recapQuery.data.year}</p>
 
             {recapQuery.data.acquisitionsCount === 0 ? (
-              <p className="text-white/85">
+              <p className="text-white">
                 Rien à raconter pour {year} - pas d'ajout enregistré cette année-là.
               </p>
             ) : (
               <>
                 <div>
                   <p className="font-display text-5xl font-bold">{recapQuery.data.acquisitionsCount}</p>
-                  <p className="text-sm text-white/85">
+                  <p className="text-sm text-white">
                     {recapQuery.data.acquisitionsCount > 1 ? 'ajouts à la collection' : 'ajout à la collection'}
                   </p>
                 </div>
                 <div>
                   <p className="font-display text-5xl font-bold">{recapQuery.data.seriesStartedCount}</p>
-                  <p className="text-sm text-white/85">
+                  <p className="text-sm text-white">
                     {recapQuery.data.seriesStartedCount > 1 ? 'titres commencés' : 'titre commencé'}
                   </p>
                 </div>
@@ -157,25 +157,25 @@ export function CollectionRecapPage() {
                   <p className="font-display text-5xl font-bold">
                     {recapQuery.data.experiencesCount}
                     {recapQuery.data.averageRating !== null && (
-                      <span className="ml-2 text-2xl font-normal text-white/85">
+                      <span className="ml-2 text-2xl font-normal text-white">
                         ({formaterDecimal(recapQuery.data.averageRating)}/10)
                       </span>
                     )}
                   </p>
-                  <p className="text-sm text-white/85">
+                  <p className="text-sm text-white">
                     {recapQuery.data.experiencesCount > 1 ? 'expériences enregistrées' : 'expérience enregistrée'}
                   </p>
                 </div>
                 {recapQuery.data.mostFeaturedCreator && (
                   <div>
                     <p className="font-display text-2xl font-bold">{recapQuery.data.mostFeaturedCreator}</p>
-                    <p className="text-sm text-white/85">
+                    <p className="text-sm text-white">
                       auteur/studio le plus présent ({recapQuery.data.mostFeaturedCreatorCount}x)
                     </p>
                   </div>
                 )}
                 {recapQuery.data.acquisitionsByType.length > 1 && (
-                  <p className="text-sm text-white/85">
+                  <p className="text-sm text-white">
                     {recapQuery.data.acquisitionsByType.map((t) => `${t.entityTypeLabel} ${t.count}`).join(' · ')}
                   </p>
                 )}

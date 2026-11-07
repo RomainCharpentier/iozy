@@ -11,11 +11,10 @@ import { gradientPalettes } from './tokens'
  * application that already has one - and two ranges always end up clashing.
  *
  * <h2>The ink is CHOSEN, not decided in advance</h2>
- * White passes 4.5:1 on five of the six shades; on the sixth
- * ({@code 6B7D5A}, the green one) it falls to 4.46 - just below, invisible
- * to the eye and very real for someone who reads poorly. So for each shade
- * we take the one of white or black that contrasts best: the guaranteed
- * minimum goes up to <b>4.71</b>, whatever the username.
+ * White now passes 4.5:1 on all six shades (the green one was darkened from
+ * {@code 6B7D5A}, where white fell to 4.46, so that the yearly recap card can
+ * use plain white text). We still take, for each shade, the one of white or
+ * black that contrasts best: a shade added tomorrow stays safe for the dot.
  *
  * <p>This is also why this color does not come from a theme token: it does
  * not adapt to light/dark, it is the same everywhere - as an identity color
