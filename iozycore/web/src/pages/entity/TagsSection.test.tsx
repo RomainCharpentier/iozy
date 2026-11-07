@@ -10,11 +10,11 @@
  * (a capability that disappears).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { TagsSection } from './TagsSection'
-import { attachTag } from '@/common/api/tags'
+import { attachTag, detachTag } from '@/common/api/tags'
 
 vi.mock('@/common/api/tags', () => ({ attachTag: vi.fn(), createTag: vi.fn(), detachTag: vi.fn() }))
 
@@ -72,5 +72,17 @@ describe('a failed write', () => {
     fireEvent.click(screen.getByRole('button', { name: '+ shonen' }))
 
     expect(await screen.findByText('Serveur injoignable')).toBeInTheDocument()
+  })
+
+  it('leaves the screen once a later write succeeds', async () => {
+    vi.mocked(attachTag).mockRejectedValue(new Error('Serveur injoignable'))
+    vi.mocked(detachTag).mockResolvedValue(undefined)
+    ecranPour(true)
+
+    fireEvent.click(screen.getByRole('button', { name: '+ shonen' }))
+    await screen.findByText('Serveur injoignable')
+    fireEvent.click(screen.getByRole('button', { name: 'seinen' }))
+
+    await waitFor(() => expect(screen.queryByText('Serveur injoignable')).not.toBeInTheDocument())
   })
 })

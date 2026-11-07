@@ -55,4 +55,29 @@ describe('ShareSection', () => {
 
     expect(await screen.findByText('Désactivation impossible')).toBeInTheDocument()
   })
+
+  it('drops an old error once the other action is started', async () => {
+    vi.mocked(getShare).mockResolvedValue({
+      token: 'abc',
+      shareCollection: true,
+      shareWishlist: true,
+      includeTierLists: false,
+    })
+    vi.mocked(removeShare).mockRejectedValue(new Error('Désactivation impossible'))
+    vi.mocked(generateShare).mockResolvedValue({
+      token: 'def',
+      shareCollection: true,
+      shareWishlist: true,
+      includeTierLists: false,
+    })
+    render(<ShareSection />, { wrapper })
+
+    await screen.findByText(/public\/share\/abc/)
+    fireEvent.click(screen.getByRole('button', { name: 'Désactiver le partage' }))
+    await screen.findByText('Désactivation impossible')
+    fireEvent.click(screen.getByRole('button', { name: /Régénérer/ }))
+
+    await screen.findByText(/public\/share\/def/)
+    expect(screen.queryByText('Désactivation impossible')).not.toBeInTheDocument()
+  })
 })

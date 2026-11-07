@@ -55,7 +55,12 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
   })
 
   // A failed write must be said: otherwise the chip simply does not move.
-  const failedMutation = [attachMutation, detachMutation, createMutation].find((m) => m.isError)
+  // Only the latest write counts: an old failure must not stay on screen after
+  // a later write succeeded.
+  const latestMutation = [attachMutation, detachMutation, createMutation].reduce((latest, m) =>
+    m.submittedAt > latest.submittedAt ? m : latest,
+  )
+  const failedMutation = latestMutation.isError ? latestMutation : undefined
 
   const attachedSet = new Set(attachedTagIds)
   const attached = allTags.filter((t) => attachedSet.has(t.id))
