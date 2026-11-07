@@ -28,6 +28,17 @@ import com.iozycore.core.domain.tierlist.TierListRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.infrastructure.multitenance.AuNomDe;
+import com.iozycore.core.listing.ListingPlatform;
+import com.iozycore.core.listing.ShippingEstimateKind;
+import com.iozycore.manga.application.deals.PurchaseAnalysisService;
+import com.iozycore.manga.application.deals.PurchaseAnalysisService.AnalyzeListingCommand;
+import com.iozycore.manga.application.deals.PurchaseAnalysisService.AnalyzeListingItemCommand;
+import com.iozycore.manga.domain.EditionTier;
+import com.iozycore.manga.domain.MangaEdition;
+import com.iozycore.manga.domain.MangaEditionRepository;
+import com.iozycore.manga.domain.deals.Condition;
+import com.iozycore.manga.domain.deals.MarketPriceObservation;
+import com.iozycore.manga.domain.deals.PurchaseAnalysis;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +49,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,9 +106,13 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ShareSettingsRepository partages;
     @Autowired private PublicShareController partagePublic;
+    @Autowired private PurchaseAnalysisService purchaseAnalysis;
+    @Autowired private MangaEditionRepository mangaEditions;
 
     /** What this test created, to be erased: nothing will be rolled back for it. */
     private final List<UUID> oeuvresCreees = new ArrayList<>();
+    private final List<UUID> createdAnalyses = new ArrayList<>();
+    private final List<UUID> createdEditions = new ArrayList<>();
 
     @AfterEach
     void nettoyerEtRefermerLaSession() {
@@ -110,6 +126,15 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         jdbc.update("DELETE FROM tier_list WHERE owner_id IN (?, ?)", ALICE, BOB);
         jdbc.update("DELETE FROM share_settings WHERE owner_id IN (?, ?)", ALICE, BOB);
         oeuvresCreees.clear();
+        for (UUID analysis : createdAnalyses) {
+            jdbc.update("DELETE FROM purchase_analysis WHERE id = ?", analysis);
+        }
+        createdAnalyses.clear();
+        for (UUID edition : createdEditions) {
+            jdbc.update("DELETE FROM market_price_observation WHERE manga_edition_id = ?", edition);
+            jdbc.update("DELETE FROM manga_edition WHERE id = ?", edition);
+        }
+        createdEditions.clear();
         SecurityContextHolder.clearContext();
     }
 
@@ -388,5 +413,42 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
 
         connecte(ALICE);
         assertThat(oeuvresSuivies.findByEntityId(serie.id())).isPresent();
+    }
+
+    @Test
+    void personne_ne_supprime_l_analyse_d_achat_d_un_autre() {
+        connecte(ALICE);
+        PurchaseAnalysis analysis = purchaseAnalysis.analyze(new AnalyzeListingCommand(
+                ListingPlatform.VINTED, null, "Lot Dorohedoro", null, new BigDecimal("20"), BigDecimal.ZERO,
+                ShippingEstimateKind.FREE, BigDecimal.ZERO, Condition.VERY_GOOD, false,
+                List.of(new AnalyzeListingItemCommand("Dorohedoro " + UUID.randomUUID(), "Standard",
+                        Set.of(1, 2), null)),
+                List.of()));
+        createdAnalyses.add(analysis.id());
+
+        connecte(BOB);
+        purchaseAnalysis.deleteAnalysis(analysis.id());
+
+        connecte(ALICE);
+        assertThat(purchaseAnalysis.findAnalysisById(analysis.id())).isPresent();
+    }
+
+    @Test
+    void personne_ne_supprime_le_prix_releve_d_un_autre() {
+        // The edition is shared reference data; the observed price is not.
+        MangaEdition edition = mangaEditions.save(MangaEdition.create("Ajin " + UUID.randomUUID(), "Standard",
+                EditionTier.STANDARD, "Glenat", 17, new BigDecimal("6.90"), false, false, null));
+        createdEditions.add(edition.id());
+
+        connecte(ALICE);
+        MarketPriceObservation observation = purchaseAnalysis.recordMarketObservation(edition.id(), null,
+                new BigDecimal("30"), ListingPlatform.VINTED, Condition.GOOD, LocalDate.now(), null);
+
+        connecte(BOB);
+        purchaseAnalysis.deleteMarketObservation(observation.id());
+
+        connecte(ALICE);
+        assertThat(purchaseAnalysis.observationsOfEdition(edition.id()))
+                .anyMatch(o -> o.id().equals(observation.id()));
     }
 }

@@ -29,7 +29,11 @@ public class JpaPurchaseAnalysisRepositoryAdapter implements PurchaseAnalysisRep
 
     @Override
     public void deleteById(UUID id) {
-        jpaRepository.deleteById(id);
+        // Go through a filtered READ, never through JPA deleteById: it loads
+        // by primary key without a query, so without the owner isolation,
+        // and it deleted the row of another account. Nothing to delete is
+        // the normal case too: the port contract is idempotent.
+        jpaRepository.findOneById(id).ifPresent(jpaRepository::delete);
     }
 
     @Override

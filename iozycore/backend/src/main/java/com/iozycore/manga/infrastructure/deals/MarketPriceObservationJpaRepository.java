@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface MarketPriceObservationJpaRepository extends JpaRepository<MarketPriceObservationJpaEntity, UUID> {
@@ -17,4 +18,11 @@ public interface MarketPriceObservationJpaRepository extends JpaRepository<Marke
     @Query(value = "SELECT count(*) FROM market_price_observation WHERE manga_edition_id = ?1", nativeQuery = true)
     int countByEditionIdAllOwners(UUID mangaEditionId);
     List<MarketPriceObservationJpaEntity> findByMangaEditionId(UUID mangaEditionId);
+
+    /**
+     * Load by identifier THROUGH A QUERY, so filtered by owner like the
+     * other reads. JPA findById loads by primary key and skips the
+     * owner filter (see PurchaseAnalysisJpaRepository#findOneById).
+     */
+    Optional<MarketPriceObservationJpaEntity> findOneById(UUID id);
 }
