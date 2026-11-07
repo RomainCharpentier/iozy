@@ -119,6 +119,29 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void a_visitor_cannot_spend_the_provider_quotas_through_a_get() throws Exception {
+        MockHttpSession visite = entrerEnVisite();
+
+        // These are GETs, so the method rule alone let them through, and each
+        // one goes out to a provider on the owner's keys. A visit costs
+        // nothing to open: a script could loop on it.
+        for (String route : new String[] {
+                "/api/metadata/search?query=naruto",
+                "/api/metadata/details?externalId=1",
+                "/api/metadata/lookup-barcode?barcode=9782723442275",
+                "/api/metadata/volumes?query=naruto",
+                "/api/wishlist/lookup?query=naruto",
+                "/api/purchase-analysis/editions/search?query=naruto"}) {
+            mockMvc.perform(get(route).session(visite))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.error").value(Matchers.containsString("fournisseurs externes")));
+        }
+
+        // The shared catalog, read from our own database, stays open.
+        mockMvc.perform(get("/api/entity-types").session(visite)).andExpect(status().isOk());
+    }
+
+    @Test
     void un_visiteur_n_atteint_pas_l_administration_de_l_instance() throws Exception {
         MockHttpSession visite = entrerEnVisite();
 

@@ -8,7 +8,7 @@
  *       sent a manga ISBN with the wrong type and answered "no match";</li>
  *   <li>an empty list was an empty page: no word to tell "nothing" from
  *       "still loading";</li>
- *   <li>an ISBN found by a visitor led to a screen the visitor could not
+ *   <li>an ISBN found from the catalog led to a screen a visitor could not
  *       reach, and the result disappeared.</li>
  * </ul>
  */
@@ -83,6 +83,7 @@ beforeEach(() => {
 
 describe('the barcode scan', () => {
   it('is offered under Manga, and only there', async () => {
+    auth.estInvite = false
     rendre()
     await userEvent.click(await screen.findByRole('button', { name: 'Manga' }))
     expect(screen.getByRole('button', { name: 'Scanner un code-barres / ISBN' })).toBeInTheDocument()
@@ -94,7 +95,16 @@ describe('the barcode scan', () => {
     expect(screen.queryByRole('button', { name: 'Scanner un code-barres / ISBN' })).not.toBeInTheDocument()
   })
 
-  it('leads a visitor to the preview of the work found, with the manga type', async () => {
+  it('is not offered to a visitor, since it goes out to a provider', async () => {
+    // The server refuses a visit any lookup at a provider: they cost the
+    // owner's quotas, and a visit costs nothing to open.
+    rendre()
+    await userEvent.click(await screen.findByRole('button', { name: 'Manga' }))
+    expect(screen.queryByRole('button', { name: 'Scanner un code-barres / ISBN' })).not.toBeInTheDocument()
+  })
+
+  it('leads to the preview of the work found, with the manga type', async () => {
+    auth.estInvite = false
     metadata.lookupBarcode.mockResolvedValue({
       externalId: 'ol-1',
       source: 'OPEN_LIBRARY',

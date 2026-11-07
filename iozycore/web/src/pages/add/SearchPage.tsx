@@ -382,8 +382,9 @@ export function SearchPage() {
   // The barcode lookup only knows books (Open Library and Google Books answer
   // by ISBN, see MetadataSearchService.lookupByBarcode): offered under "Jeu
   // vidéo", it sent a manga ISBN with the wrong type and answered "Aucune
-  // correspondance" to a code that exists.
-  const scanPossible = requiresMatch && selectedType?.code === 'MANGA'
+  // correspondance" to a code that exists. Not offered to a visitor: the
+  // lookup goes out to a provider, which the server refuses to a visit.
+  const scanPossible = !estInvite && requiresMatch && selectedType?.code === 'MANGA'
 
   /**
    * The catalog list came back EMPTY, and nothing else will fill the screen.
