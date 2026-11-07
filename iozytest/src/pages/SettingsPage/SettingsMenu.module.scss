@@ -151,3 +151,20 @@
   opacity: var(--opacity-disabled);
   cursor: not-allowed;
 }
+
+/* Le choix de l'avatar : une grille de chips carrées, une seule cochée. */
+.avatarGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.avatarChoice {
+  justify-content: center;
+  width: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0;
+  font-size: var(--font-size-xl);
+  line-height: 1;
+  cursor: pointer;
+}

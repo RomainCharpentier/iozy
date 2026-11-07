@@ -5,6 +5,8 @@ export interface UserSettings {
   username: string
   // Le nom vient du compte Iozy (voir lib/account) : il part avec la session.
   usernameFromAccount: boolean
+  // Avatar choisi (voir utils/playerAvatar) ; vide = avatar par défaut
+  avatar: string
 
   // Son
   soundEnabled: boolean
@@ -18,6 +20,7 @@ export interface UserSettings {
 const DEFAULT_SETTINGS: UserSettings = {
   username: '',
   usernameFromAccount: false,
+  avatar: '',
   soundEnabled: true,
   soundVolume: 70,
   mediaMuted: false,

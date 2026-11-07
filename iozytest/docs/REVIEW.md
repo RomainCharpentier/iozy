@@ -4,7 +4,7 @@
 
 > Lot de corrections P0/P1 fusionné sur `fix/review-batch` (items cochés). Restent : PUT/profils REST sans auth, `profileRepository` (JSON corrompu), `GET /api/questions` expose `answer`+`mediaUrl` (triche possible côté REST).
 
-> Second lot (tests réels) : écran de jeu sans scroll, `startTime` des extraits, vidéo continue au reveal, titre YouTube masqué, avatars transmis, tirage aléatoire + « Rejouer » qui re-tire, timer 20 s par défaut, formulaire éditeur stylé. Reste : choix d'avatar (pas d'UI), libellé « Média » pour les catégories perso en jeu, `mediaUrl`/ID vidéo visibles côté client (limite YouTube).
+> Second lot (tests réels) : écran de jeu sans scroll, `startTime` des extraits, vidéo continue au reveal, titre YouTube masqué, avatars transmis, tirage aléatoire + « Rejouer » qui re-tire, timer 20 s par défaut, formulaire éditeur stylé. Reste : libellé « Média » pour les catégories perso en jeu, `mediaUrl`/ID vidéo visibles côté client (limite YouTube).
 
 ## Résultats des checks
 
