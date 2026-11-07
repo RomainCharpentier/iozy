@@ -15,6 +15,9 @@ const getApiBaseUrl = () => {
 
 export const API_BASE_URL = getApiBaseUrl()
 
+export const UNAUTHORIZED_MESSAGE =
+  'Connecte-toi à ton compte Iozy pour modifier les questions et les catégories.'
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -48,6 +51,12 @@ export async function apiRequest<T>(endpoint: string, options?: RequestInit): Pr
         errorMessage = errorData.error || errorMessage
       } catch {
         errorMessage = response.statusText || errorMessage
+      }
+      // Les écritures de la banque de questions demandent un compte Iozy
+      // (server/config/writeGuard.js) : un message lisible si le serveur n'en
+      // donne pas.
+      if (response.status === 401 && !errorData?.error) {
+        errorMessage = UNAUTHORIZED_MESSAGE
       }
 
       throw new ApiError(errorMessage, response.status, errorData)

@@ -9,20 +9,26 @@ import { getAllQuestions, createQuestion, removeQuestion, updateAllQuestions } f
 import { getAllCategories, createCategory, updateCategoryHandler, removeCategory } from '../handlers/categoryHandlers.js';
 import { getPlaylistVideos, getVideoDuration } from '../handlers/youtubeHandlers.js';
 import { getProfileHandler, createOrUpdateProfileHandler, deleteProfileHandler } from '../handlers/profileHandlers.js';
+import { createWriteGuard } from './writeGuard.js';
 
 /**
  * @param basePath  le préfixe sous lequel tout est servi : '' à la racine,
  *                  '/test' quand IozyTest vit à côté d'IozyCore (voir index.js)
  * @param staticDir le front construit à servir par ce serveur (image Docker) ;
  *                  null en dev, où Vite sert le front
+ * @param writeGuard le middleware qui garde les écritures de la banque de
+ *                  questions (injectable en test)
  */
-export function createExpressApp({ basePath = '', staticDir = null } = {}) {
+export function createExpressApp({ basePath = '', staticDir = null, writeGuard = createWriteGuard() } = {}) {
   const app = express();
 
   // Configuration CORS pour production et développement
   const corsOptions = process.env.NODE_ENV === 'production'
     ? {
-        origin: process.env.FRONTEND_URL || true, // Accepter l'URL du frontend ou toutes si non définie
+        // L'URL du frontend si elle est donnée ; sinon même origine seulement :
+        // avec les cookies, accepter toute origine laisserait un autre site
+        // écrire dans la banque de questions au nom d'un compte connecté.
+        origin: process.env.FRONTEND_URL || false,
         credentials: true
       }
     : {
@@ -39,17 +45,17 @@ export function createExpressApp({ basePath = '', staticDir = null } = {}) {
     res.json({ status: 'ok' });
   });
 
-  // Questions
+  // Questions (écritures gardées, voir writeGuard.js)
   api.get('/questions', getAllQuestions);
-  api.post('/questions', createQuestion);
-  api.delete('/questions/:id', removeQuestion);
-  api.put('/questions', updateAllQuestions);
+  api.post('/questions', writeGuard, createQuestion);
+  api.delete('/questions/:id', writeGuard, removeQuestion);
+  api.put('/questions', writeGuard, updateAllQuestions);
 
   // Catégories
   api.get('/categories', getAllCategories);
-  api.post('/categories', createCategory);
-  api.put('/categories/:id', updateCategoryHandler);
-  api.delete('/categories/:id', removeCategory);
+  api.post('/categories', writeGuard, createCategory);
+  api.put('/categories/:id', writeGuard, updateCategoryHandler);
+  api.delete('/categories/:id', writeGuard, removeCategory);
 
   // YouTube
   api.get('/youtube/playlist/:playlistId', getPlaylistVideos);

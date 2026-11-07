@@ -237,6 +237,12 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         savedChangeCountRef.current = changeCount
       } catch (error) {
         console.error('Erreur lors de la sauvegarde automatique:', error)
+        // Sans ce message, une sauvegarde refusée (compte non connecté) passait inaperçue
+        toast.error(
+          error instanceof Error && (error as { status?: number }).status === 401
+            ? error.message
+            : 'Les modifications ne sont pas enregistrées.'
+        )
       }
     }, 1000) // Debounce de 1 seconde
 

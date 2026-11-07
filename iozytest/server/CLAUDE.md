@@ -36,7 +36,7 @@ Score : +1 par bonne réponse, validation en lot à la fin du timer. `compareAns
 - `broadcastRoomState`, `syncPlayerToGame`, `sendError` sont dupliqués dans les deux fichiers de handlers.
 - Anti-triche : les questions envoyées aux clients n'ont **jamais** de champ `answer` ; la bonne réponse part seulement dans `game:reveal` / `game:answers-validated` (`correctAnswer`). `room:state` expose `answeredPlayers`, pas les réponses. Les joueurs sortent via `toPublicPlayer` (pas de `socketId`).
 - Identité : `sessionToken` secret émis dans `room:created` / `room:joined` (stocké dans `room.sessionTokens`, jamais diffusé), exigé par `room:rejoin` / `room:join` pour un playerId existant (sinon `INVALID_SESSION`).
-- REST toujours sans authentification, et `GET /api/questions` renvoie les réponses.
+- Écritures REST de la banque (`POST|PUT|DELETE` sur `/api/questions` et `/api/categories`) gardées par `config/writeGuard.js` : passent avec l'en-tête `X-Iozytest-Admin-Token` égal à `IOZYTEST_ADMIN_TOKEN`, ou avec un cookie de compte Iozy non invité (relayé à `${IOZYCORE_API_URL}/api/auth/me`, `http://iozycore-api:8080` par défaut). Hors production et sans jeton : ouvertes, avec un avertissement dans le journal. Sinon 401 en français. Corps non JSON → 415 (pas de formulaire d'un autre site). En production, CORS = `FRONTEND_URL` ou même origine seulement. Les lectures, les profils et YouTube restent ouverts, et `GET /api/questions` renvoie les réponses.
 
 ## Tests
 
