@@ -33,7 +33,8 @@ class EntityDeletionServiceTest {
     private final InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
     private final InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
     private final EntityDeletionService service =
-            new EntityDeletionService(entityRepository, ownershipRepository, experienceRepository, List.of(new MangaEditionDeletionGuard(mangaEditionRepository)));
+            new EntityDeletionService(entityRepository, id -> new EntityReferenceCounter.EntityReferences(
+                    ownershipRepository.findByEntityId(id).size(), experienceRepository.findByEntityId(id).size(), 0, 0, 0), List.of(new MangaEditionDeletionGuard(mangaEditionRepository)));
 
     @Test
     void an_entity_with_no_reference_at_all_is_deleted() {
@@ -43,6 +44,19 @@ class EntityDeletionServiceTest {
         service.delete(entity.id());
 
         assertThat(entityRepository.findById(entity.id())).isEmpty();
+    }
+
+    @Test
+    void wishes_follows_and_links_of_any_account_block_the_delete_with_a_clear_reason() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        entityRepository.save(entity);
+        EntityDeletionService guarded = new EntityDeletionService(entityRepository,
+                id -> new EntityReferenceCounter.EntityReferences(0, 0, 1, 2, 1), List.of());
+
+        assertThatThrownBy(() -> guarded.delete(entity.id()))
+                .isInstanceOf(EntityDeletionNotAllowedException.class)
+                .hasMessage("Impossible de supprimer cette fiche : elle a encore 1 envie, 2 suivis et 1 lien avec une autre fiche.");
+        assertThat(entityRepository.findById(entity.id())).isPresent();
     }
 
     @Test

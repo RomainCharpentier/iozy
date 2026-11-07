@@ -42,7 +42,8 @@ class VariantDeletionServiceTest {
     private final InMemoryMarketPriceObservationRepository marketPriceObservationRepository =
             new InMemoryMarketPriceObservationRepository();
     private final EntityDeletionService entityDeletionService =
-            new EntityDeletionService(entityRepository, ownershipRepository, experienceRepository, List.of(new MangaEditionDeletionGuard(mangaEditionRepository)));
+            new EntityDeletionService(entityRepository, id -> new EntityReferenceCounter.EntityReferences(
+                    ownershipRepository.findByEntityId(id).size(), experienceRepository.findByEntityId(id).size(), 0, 0, 0), List.of(new MangaEditionDeletionGuard(mangaEditionRepository)));
     private final VariantDeletionService service = new VariantDeletionService(entityRepository, ownershipRepository, experienceRepository, List.of(new MangaOrphanEditionCleanup(mangaEditionRepository, marketPriceObservationRepository)), entityDeletionService);
 
     @Test

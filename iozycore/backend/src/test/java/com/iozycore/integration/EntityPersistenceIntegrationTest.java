@@ -21,6 +21,7 @@ import com.iozycore.manga.domain.deals.MarketPriceObservation;
 import com.iozycore.manga.domain.deals.MarketPriceObservationRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -69,6 +70,12 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private EntityDeletionService entityDeletionService;
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
 
     @Test
     void an_entity_can_be_saved_reloaded_with_its_variant_and_tag() {
@@ -242,6 +249,42 @@ class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
         assertThatThrownBy(() -> entityDeletionService.delete(entity.id()))
                 .isInstanceOf(EntityDeletionNotAllowedException.class)
                 .hasMessageContaining("1 édition");
+    }
+
+    @Test
+    void a_work_followed_by_another_account_is_refused_with_a_clear_reason() {
+        // Real FK followed_work.entity_id (V35, no ON DELETE): without the
+        // all-accounts count, the delete failed with a generic SQL conflict.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Pluto " + UUID.randomUUID());
+        entityRepository.save(entity);
+        followByAnotherAccount(entity.id());
+
+        assertThatThrownBy(() -> entityDeletionService.delete(entity.id()))
+                .isInstanceOf(EntityDeletionNotAllowedException.class)
+                .hasMessage("Impossible de supprimer cette fiche : elle a encore 1 suivi.");
+        assertThat(entityRepository.findById(entity.id())).isPresent();
+    }
+
+    @Test
+    void deleting_the_last_tome_of_a_followed_work_keeps_the_work_and_removes_the_tome() {
+        // Before, the cascade reached the FK error after the tome was already
+        // saved as removed: the user saw an error for a half-done delete.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Monster " + UUID.randomUUID());
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entityRepository.save(entity);
+        followByAnotherAccount(entity.id());
+
+        variantDeletionService.delete(entity.id(), variant.id()); // throws nothing
+
+        entityManager.flush();
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
+        assertThat(reloaded.variants()).isEmpty();
+    }
+
+    private void followByAnotherAccount(UUID entityId) {
+        entityManager.flush(); // the work must be in the table before the FK row
+        jdbc.update("INSERT INTO followed_work (id, entity_id, owner_id, followed_at) VALUES (?, ?, ?, ?)",
+                UUID.randomUUID(), entityId, UUID.randomUUID(), LocalDate.now());
     }
 
     @Test

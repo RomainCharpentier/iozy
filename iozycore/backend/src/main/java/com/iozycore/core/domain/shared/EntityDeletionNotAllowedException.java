@@ -6,18 +6,27 @@ import java.util.UUID;
 
 /**
  * Thrown when someone tries to delete an Entity while Ownerships,
- * Experiences, or a catalog Edition (see {@code MangaEdition.entityId},
+ * Experiences, wishes, follows, relationships, or a catalog Edition (see {@code MangaEdition.entityId},
  * Series -> Edition -> Volume model) still reference it. Expresses the invariant
  * validated in design: data never disappears silently.
  */
 public class EntityDeletionNotAllowedException extends RuntimeException {
 
     public EntityDeletionNotAllowedException(UUID entityId, long ownershipCount, long experienceCount, long editionCount) {
+        this(ownershipCount, experienceCount, editionCount, 0, 0, 0);
+    }
+
+    /** Counts for all accounts: a row of another account blocks the delete too. */
+    public EntityDeletionNotAllowedException(long ownershipCount, long experienceCount, long editionCount,
+                                             long wishCount, long followCount, long linkCount) {
         // The web shows this message as is: French words only, no id.
         super("Impossible de supprimer cette fiche : elle a encore " + list(
                 count(ownershipCount, "exemplaire", "exemplaires"),
                 count(experienceCount, "expérience", "expériences"),
-                count(editionCount, "édition", "éditions")) + ".");
+                count(editionCount, "édition", "éditions"),
+                count(wishCount, "envie", "envies"),
+                count(followCount, "suivi", "suivis"),
+                count(linkCount, "lien avec une autre fiche", "liens avec d'autres fiches")) + ".");
     }
 
     static String count(long n, String singular, String plural) {
