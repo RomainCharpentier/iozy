@@ -49,6 +49,21 @@ export function invaliderApresEnvie(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
 }
 
+/**
+ * After a purchase analysis: the server saves it in the history and records
+ * the market prices it read. Without this, the history list stays on the old
+ * state for the whole staleTime (see queryClient.ts).
+ */
+export function invalidateAfterPurchaseAnalysis(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.history })
+  queryClient.invalidateQueries({ queryKey: ['purchaseAnalysis', 'marketObservations'] })
+}
+
+/** After recording a market price by hand: the observations of that edition. */
+export function invalidateAfterMarketObservation(queryClient: QueryClient, mangaEditionId: string) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.marketObservations(mangaEditionId) })
+}
+
 /** After following or unfollowing a work: the state, the wish it may have removed, and the calendar. */
 export function invaliderApresSuivi(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.followedWorks.all })

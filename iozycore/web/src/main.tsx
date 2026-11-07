@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 
 // The fonts of the charter, self-hosted. The weights to load are listed in
 // tokens.json of the iozykit package (fonts.packages); the families reach the CSS
@@ -14,6 +14,7 @@ import '@fontsource/inter/600.css'
 import '@fontsource/inter/700.css'
 import './index.css'
 import { applyStoredTheme } from '@/common/lib/theme'
+import { createQueryClient } from '@/common/lib/queryClient'
 
 import App from '@/app/App'
 import { ToastProvider } from '@/common/components/Toast'
@@ -22,19 +23,8 @@ import { ToastProvider } from '@/common/components/Toast'
 // stored theme (see lib/theme.ts).
 applyStoredTheme()
 
-// networkMode 'always': by default, TanStack Query PAUSES any request
-// as soon as navigator.onLine becomes false - the request then stays `pending` with
-// a `paused` fetchStatus, so `isLoading` is false (isLoading = isPending &&
-// isFetching) while no data will ever arrive. The screens fell into
-// their "no data" guard and displayed NOTHING anymore: neither loading nor
-// error (seen on the work detail page, an entirely white screen).
-// This signal is unreliable anyway (navigator.onLine lies as soon as a network
-// interface exists) and of no interest here: the API is reached locally, not
-// at the other end of the Internet. Without a pause, a request fails openly,
-// goes up as `isError`, and the ErrorBanners already in place do their job.
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { networkMode: 'always' }, mutations: { networkMode: 'always' } },
-})
+// Fresh for 30 s and never paused offline: see lib/queryClient.ts.
+const queryClient = createQueryClient()
 
 // The service worker is NOT used to work offline (it only caches the shell
 // of the app, never /api - see public/sw.js): it is used so that the browser

@@ -13,7 +13,13 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { QueryClient } from '@tanstack/react-query'
-import { invaliderApresEnvie, invaliderApresPossession, invaliderApresSuivi } from './invalidations'
+import {
+  invalidateAfterMarketObservation,
+  invalidateAfterPurchaseAnalysis,
+  invaliderApresEnvie,
+  invaliderApresPossession,
+  invaliderApresSuivi,
+} from './invalidations'
 import { queryKeys } from './queryKeys'
 
 /** A client reduced to what these functions ask of it. */
@@ -69,5 +75,23 @@ describe('after a follow', () => {
     const { client, prefixes } = clientEspion()
     invaliderApresSuivi(client)
     expect(prefixes()).toEqual(['followedWorks', 'wishlist', 'entities', 'insights/releases'])
+  })
+})
+
+describe('after a purchase analysis', () => {
+  it('invalidates the history and every market observation', () => {
+    const { client, prefixes } = clientEspion()
+    invalidateAfterPurchaseAnalysis(client)
+    // The server saves the analysis AND the prices it read from the listing.
+    expect(prefixes()).toEqual(['purchaseAnalysis/history', 'purchaseAnalysis/marketObservations'])
+    expect(queryKeys.purchaseAnalysis.marketObservations('ed-1').slice(0, 2)).toEqual(['purchaseAnalysis', 'marketObservations'])
+  })
+})
+
+describe('after a market observation', () => {
+  it('invalidates the observations of that edition', () => {
+    const { client, prefixes } = clientEspion()
+    invalidateAfterMarketObservation(client, 'ed-1')
+    expect(prefixes()).toEqual(['purchaseAnalysis/marketObservations/ed-1'])
   })
 })

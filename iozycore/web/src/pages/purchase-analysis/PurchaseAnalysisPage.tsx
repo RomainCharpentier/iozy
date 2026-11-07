@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, History } from 'lucide-react'
 import { analyzeListing } from '@/common/api/purchaseAnalysis'
 import { ListingUrlField, ListingPhotos } from './ListingUrlField'
@@ -26,6 +26,7 @@ import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { formaterEuros } from '@/common/lib/formats'
+import { invalidateAfterPurchaseAnalysis } from '@/common/lib/invalidations'
 
 /**
  * Where we come back from: Découvrir, which carries the door to this screen since
@@ -197,6 +198,7 @@ export function PurchaseAnalysisPage() {
 
   const parsedVolumes = parseVolumes(volumesText)
 
+  const queryClient = useQueryClient()
   const analyzeMutation = useMutation({
     mutationFn: () =>
       analyzeListing({
@@ -223,6 +225,8 @@ export function PurchaseAnalysisPage() {
         photoUrls,
         externalListingId: externalListingId.trim() || undefined,
       }),
+    // The server saved the analysis and the prices it read.
+    onSuccess: () => invalidateAfterPurchaseAnalysis(queryClient),
   })
 
   function queueItem() {
