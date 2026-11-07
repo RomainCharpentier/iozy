@@ -29,7 +29,7 @@ export function releasesToIcs(entries: ReleaseEntryDto[], now: Date): ReleaseIcs
     const description = LIBELLES_RELATION[entry.relation] ?? entry.relation
     lines.push(
       'BEGIN:VEVENT',
-      `UID:${entry.entityId}-${entry.date}-${entry.volumeNumber ?? 'work'}@iozycore`,
+      `UID:${escapeText(uid(entry))}`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${compactDate(entry.date)}`,
       `DTEND;VALUE=DATE:${compactDate(nextDay(entry.date))}`,
@@ -73,6 +73,12 @@ export function foldLine(line: string): string {
   }
   parts.push(current)
   return parts.join('\r\n ')
+}
+
+/** One per release: two editions of the same volume out the same day are two events. */
+function uid(entry: ReleaseEntryDto): string {
+  const edition = entry.editionName ? `-${entry.editionName.replace(/\s+/g, '_')}` : ''
+  return `${entry.entityId}-${entry.date}-${entry.volumeNumber ?? 'work'}${edition}@iozycore`
 }
 
 function compactDate(iso: string): string {

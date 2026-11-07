@@ -39,6 +39,12 @@ describe('releasesToIcs', () => {
     expect(ics).toContain('SUMMARY:One Piece\r\nDESCRIPTION:Envie\r\n')
   })
 
+  it('gives two editions of the same volume out the same day their own event', () => {
+    const { ics } = releasesToIcs([entry({ editionName: 'Kana' }), entry({ editionName: 'Pika Edition' })], NOW)
+    expect(ics).toContain('UID:e1-2026-12-31-110-Kana@iozycore\r\n')
+    expect(ics).toContain('UID:e1-2026-12-31-110-Pika_Edition@iozycore\r\n')
+  })
+
   it('ends every line with CRLF, never a bare LF', () => {
     const { ics } = releasesToIcs([entry({ entityTitle: 'Line\nbreak' })], NOW)
     expect(ics.replace(/\r\n/g, '')).not.toMatch(/[\r\n]/)
