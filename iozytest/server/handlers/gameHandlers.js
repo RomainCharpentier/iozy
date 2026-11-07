@@ -209,6 +209,58 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
   roomRepository.setGameTimer(roomCode, timer);
 }
 
+/**
+ * Planifie le « go » de la question courante quand tous les joueurs connectés sont prêts.
+ * Appelé sur game:ready, et quand un joueur part ou se déconnecte (sinon les autres
+ * attendraient pour toujours un joueur qui ne répondra plus).
+ * Renvoie true si le « go » vient d'être planifié.
+ */
+export function maybeStartQuestion(io, roomCode, room) {
+  if (!room?.game || room.gameState !== 'playing' || room.game.goAt) return false;
+  if (!(room.game.readyPlayers instanceof Set)) return false;
+
+  const connectedPlayers = room.players.filter(p => p.connected);
+  const allReady = connectedPlayers.length > 0 &&
+                   connectedPlayers.every(p => room.game.readyPlayers.has(p.id));
+  if (!allReady) return false;
+
+  // Départ 1 s après le « go », et jamais avant la fin de la transition entre questions
+  // (les clients chargent l'extrait pendant ce temps)
+  const now = Date.now();
+  const goAt = Math.max(now + GO_LEAD_MS, room.game.transitionUntil || 0);
+  room.game.goAt = goAt;
+  roomRepository.update(roomCode, room);
+
+  const emitGo = () => {
+    const current = roomRepository.get(roomCode);
+    // Question changée, partie finie ou relancée entre-temps : ce « go » est périmé
+    if (!current?.game || current.gameState !== 'playing' || current.game.goAt !== goAt) return;
+    // Réponses déjà validées pour cette question : ne pas relancer un chrono qui les validerait à nouveau
+    if (current.game.validatedAnswers?._validated) return;
+    // Le chrono serveur part maintenant (startedAt), pas pendant la transition
+    current.game.startedAt = goAt;
+    console.log('[game:ready] ✅ Tous les joueurs sont prêts, envoi de game:go', { roomCode, goAt });
+    roomRepository.update(roomCode, current);
+    scheduleNextQuestionTimer(io, roomCode, current);
+    broadcastRoomState(io, roomCode, current);
+    io.to(roomCode).emit('game:go', {
+      goAt: goAt,
+      startedAt: goAt,
+      durationMs: current.game.durationMs,
+      serverTime: Date.now()
+    });
+  };
+
+  const delay = goAt - GO_LEAD_MS - now;
+  if (delay > 0) {
+    broadcastRoomState(io, roomCode, room);
+    setTimeout(safeTimerCallback('game:ready:go', emitGo), delay);
+  } else {
+    emitGo();
+  }
+  return true;
+}
+
 export function setupGameHandlers(socket, io) {
   socket.on('game:start', withPayload(socket, 'game:start', async ({ roomCode, questions, defaultTimeLimit, questionCount }) => {
     if (!isValidRoomCode(roomCode) || (questions != null && !isValidQuestionList(questions))) {
@@ -413,57 +465,7 @@ export function setupGameHandlers(socket, io) {
     
     roomRepository.update(roomCode, room);
     
-    const connectedPlayers = room.players.filter(p => p.connected);
-    const readyPlayers = Array.from(room.game.readyPlayers || []);
-    const allReady = connectedPlayers.length > 0 && 
-                     connectedPlayers.every(p => room.game.readyPlayers.has(p.id));
-    
-    console.log('[game:ready] État de synchronisation', {
-      roomCode,
-      connectedPlayers: connectedPlayers.length,
-      connectedPlayerIds: connectedPlayers.map(p => p.id),
-      readyPlayers: readyPlayers.length,
-      readyPlayerIds: readyPlayers,
-      allReady,
-      hasGoAt: !!room.game.goAt,
-      check: connectedPlayers.map(p => ({ id: p.id, isReady: room.game.readyPlayers.has(p.id) }))
-    });
-    
-    if (allReady && !room.game.goAt) {
-      // Départ 1 s après le « go », et jamais avant la fin de la transition entre questions
-      // (les clients chargent l'extrait pendant ce temps)
-      const now = Date.now();
-      const goAt = Math.max(now + GO_LEAD_MS, room.game.transitionUntil || 0);
-      room.game.goAt = goAt;
-      roomRepository.update(roomCode, room);
-
-      const emitGo = () => {
-        const current = roomRepository.get(roomCode);
-        // Question changée, partie finie ou relancée entre-temps : ce « go » est périmé
-        if (!current?.game || current.gameState !== 'playing' || current.game.goAt !== goAt) return;
-        // Le chrono serveur part maintenant (startedAt), pas pendant la transition
-        current.game.startedAt = goAt;
-        console.log('[game:ready] ✅ Tous les joueurs sont prêts, envoi de game:go', { roomCode, goAt });
-        roomRepository.update(roomCode, current);
-        scheduleNextQuestionTimer(io, roomCode, current);
-        broadcastRoomState(io, roomCode, current);
-        io.to(roomCode).emit('game:go', {
-          goAt: goAt,
-          startedAt: goAt,
-          durationMs: current.game.durationMs,
-          serverTime: Date.now()
-        });
-      };
-
-      const delay = goAt - GO_LEAD_MS - now;
-      if (delay > 0) {
-        broadcastRoomState(io, roomCode, room);
-        setTimeout(safeTimerCallback('game:ready:go', emitGo), delay);
-      } else {
-        emitGo();
-      }
-    } else {
-      console.log('[game:ready] ⏳ Pas encore tous prêts ou goAt déjà défini', { allReady, hasGoAt: !!room.game.goAt });
+    if (!maybeStartQuestion(io, roomCode, room)) {
       broadcastRoomState(io, roomCode, room);
     }
   }));

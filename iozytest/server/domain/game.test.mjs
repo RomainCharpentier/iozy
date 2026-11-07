@@ -110,6 +110,7 @@ describe('Game Domain', () => {
 
   test('voteSkip : il faut le vote de tous les joueurs connectés', () => {
     startGame(room, questions, 5)
+    room.game.startedAt = Date.now() // « go » donné
     const first = voteSkip(room, 'socket1')
     assert.strictEqual(first.voted, true)
     assert.strictEqual(first.allPlayersVoted, false)
@@ -121,6 +122,7 @@ describe('Game Domain', () => {
 
   test('voteSkip : un joueur déconnecté ne bloque pas le vote', () => {
     startGame(room, questions, 5)
+    room.game.startedAt = Date.now() // « go » donné
     room.players.find(p => p.id === 'player2').connected = false
     const result = voteSkip(room, 'socket1')
     assert.strictEqual(result.voted, true)

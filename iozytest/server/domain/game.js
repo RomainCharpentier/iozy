@@ -152,6 +152,9 @@ export function storeAnswer(room, socketId, answer) {
     const currentQuestion = room.questions[room.currentQuestionIndex];
     if (!currentQuestion) return { isValid: false };
 
+    // Pas de réponse avant le « go » (chrono non parti) ni après la validation (reveal)
+    if (!room.game?.startedAt || room.game.validatedAnswers?._validated) return { isValid: false };
+
     // Enregistrer la réponse sans la valider
     if (room.game) {
         room.game.answers[player.id] = answer;
@@ -170,6 +173,8 @@ export function storeAnswer(room, socketId, answer) {
  */
 export function validateAnswers(room) {
     if (!room || room.gameState !== 'playing' || !room.game) return { validated: false };
+    // Déjà validée : ne pas compter les points une seconde fois
+    if (room.game.validatedAnswers?._validated) return { validated: false };
 
     const currentQuestion = room.questions[room.currentQuestionIndex];
     if (!currentQuestion) return { validated: false };
@@ -267,6 +272,10 @@ export function checkAnswer(room, socketId, answer) {
  */
 export function voteSkip(room, socketId) {
     if (!room || room.gameState !== 'playing' || !room.game) {
+        return { voted: false };
+    }
+    // Pas de vote avant le « go » : la question n'a pas encore commencé
+    if (!room.game.startedAt) {
         return { voted: false };
     }
 
