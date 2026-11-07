@@ -8,6 +8,7 @@ import { TierBadge } from '@/common/components/TierBadge'
 import { TierPicker } from '@/common/components/TierPicker'
 import { RANKS, type Rank } from '@/common/types/tierList'
 import { Squelette } from '@/common/components/Squelette'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
 
 /**
  * "Mes classements" (see DS v1.1 section 52): general rank visually dominant
@@ -57,6 +58,10 @@ export function TierSummarySection({
 
       {summaryQuery.isLoading ? (
         <Squelette lignes={3} />
+      ) : summaryQuery.isError ? (
+        // A failed load is not "ranked nowhere": saying so would invite the
+        // user to rank again a work that may already be ranked.
+        <ErrorBanner message={`Classements indisponibles : ${summaryQuery.error.message}`} />
       ) : generalRank ? (
         // The general rank is visually DOMINANT (see DS v1.1 section 52): it is
         // the judgment made on the work, not one list line among others.
@@ -112,12 +117,16 @@ export function TierSummarySection({
       {picking && (
         <TierPicker
           open
-          onClose={() => setPicking(false)}
+          onClose={() => {
+            rankMutation.reset()
+            setPicking(false)
+          }}
           title={entityTitle}
           coverImageUrl={coverImageUrl}
           activeRanks={RANKS}
           currentRank={generalRank}
           onSelect={(rank) => rankMutation.mutate(rank)}
+          error={rankMutation.error?.message}
         />
       )}
     </section>

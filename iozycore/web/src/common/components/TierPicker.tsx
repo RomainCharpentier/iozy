@@ -5,6 +5,7 @@ import { useModalA11y } from '@/common/hooks/useModalA11y'
 import { RANKS, type Rank } from '@/common/types/tierList'
 import { TexteCoupe } from './TexteCoupe'
 import { Jaquette } from './Jaquette'
+import { ErrorBanner } from './ErrorBanner'
 
 /**
  * Desktop popover / mobile bottom sheet - same responsive pattern already
@@ -34,6 +35,7 @@ export function TierPicker({
   progress = null,
   onSkip,
   onRemoveFromList,
+  error = null,
 }: {
   open: boolean
   onClose: () => void
@@ -55,6 +57,9 @@ export function TierPicker({
    * membership is implicit (every owned work is a candidate, see
    * TierListService): there is nothing to remove it from. */
   onRemoveFromList?: () => void
+  /** Message of the last failed choice. The picker stays open on a failure,
+   * so the error must show inside it, not behind it. */
+  error?: string | null
 }) {
   // Escape + focus trap + focus returned to the trigger - see
   // useModalA11y (Batch 9, generic, shared by all the dialogs of the app).
@@ -114,6 +119,11 @@ export function TierPicker({
             <X size={16} />
           </button>
         </div>
+        {error && (
+          <div role="alert" className="px-4 pt-4">
+            <ErrorBanner message={error} />
+          </div>
+        )}
         <div className="grid grid-cols-4 gap-2 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {RANKS.filter((r) => activeRanks.includes(r)).map((rank) => (
             <button
