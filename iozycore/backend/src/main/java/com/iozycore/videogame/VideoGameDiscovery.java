@@ -1,13 +1,13 @@
 package com.iozycore.videogame;
 
 import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.shared.TexteRecherche;
 import com.iozycore.core.domain.insights.Discovery;
 import com.iozycore.core.domain.insights.Discovery.EmptyReason;
 import com.iozycore.core.domain.insights.DiscoveryCandidate;
 import com.iozycore.core.application.insights.DiscoverySource;
+import com.iozycore.core.application.insights.OwnedWorks;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.videogame.igdb.IgdbSimilarGamesFetcher;
@@ -43,7 +43,7 @@ public class VideoGameDiscovery implements DiscoverySource {
     private static final int MAX_OWNED_GAMES_EXAMINED = 5;
     private static final int MAX_SUGGESTIONS = 8;
 
-    private final EntityRepository entityRepository;
+    private final OwnedWorks ownedWorks;
     private final IgdbSimilarGamesFetcher igdbSimilarGamesFetcher;
 
     @Override
@@ -53,7 +53,7 @@ public class VideoGameDiscovery implements DiscoverySource {
 
     @Override
     public Discovery discover(EntityType entityType) {
-        List<Entity> ownedGames = entityRepository.findAllByType(entityType.id());
+        List<Entity> ownedGames = ownedWorks.ofType(entityType.id());
         if (ownedGames.isEmpty()) {
             return Discovery.nothingToAsk(EmptyReason.NOTHING_OWNED);
         }

@@ -60,4 +60,9 @@ public class InMemoryEntityRepository implements EntityRepository {
     public int count() {
         return store.size();
     }
+
+    /** Every saved entity, in save order. */
+    public List<Entity> all() {
+        return List.copyOf(store.values());
+    }
 }
