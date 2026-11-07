@@ -11,6 +11,7 @@ import type { PlayerResult } from '@/pages/GamePage/ui/GameAnnouncer'
 import { useRoomCategories } from '@/pages/GamePage/settings/useRoomCategories'
 import { useMediaMuted } from '@/hooks/useMediaMuted'
 import { useAnswerSuggestions } from '@/pages/GamePage/question/useAnswerSuggestions'
+import type { ReadyPlayers } from '@/pages/GamePage/question/readyStatus'
 import type { Category, Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
 import { isSolo, isOnline } from '@/lib/game/gameMode'
@@ -130,6 +131,11 @@ export default function Game({
   const lastSkipVoteTimeRef = useRef<number>(0) // Pour le debounce
   const [waitingForGo, setWaitingForGo] = useState<boolean>(strategy.getInitialWaitingForGo())
   const mediaReadyRef = useRef<boolean>(false) // Indique si le média est préchargé
+  // Index de la question dont le média est chargé ici, même si game:ready n'a pas pu partir
+  // (coupure) ; survit à resetQuestionState pour la même question
+  const mediaLoadedIndexRef = useRef<number | null>(null)
+  // Joueurs prêts pour une question (room:state) : l'écran de chargement dit qui on attend
+  const [readyPlayers, setReadyPlayers] = useState<ReadyPlayers | null>(null)
   const [gameStep, setGameStep] = useState<string>('loading') // Étape actuelle: loading, ready, starting, playing
   const gameStepRef = useRef('loading')
   gameStepRef.current = gameStep
@@ -195,6 +201,8 @@ export default function Game({
     successSoundPlayedRef.current = false
     isTransitioningRef.current = false
     mediaReadyRef.current = false
+    mediaLoadedIndexRef.current = null
+    setReadyPlayers(null)
     revealTimerStartedRef.current = false
     mediaStartTimeRef.current = null
     countdownWarningPlayedRef.current = false
@@ -300,6 +308,9 @@ export default function Game({
     if (!gameMode || !isOnline(gameMode) || !roomCode) {
       return
     }
+
+    // Retenu même hors connexion : room:rejoin renverra game:ready (resendReadyIfLoaded)
+    mediaLoadedIndexRef.current = currentQuestionIndexRef.current
 
     // Éviter d'envoyer plusieurs fois game:ready pour le même média
     if (mediaReadyRef.current) {
@@ -674,6 +685,19 @@ export default function Game({
       lastSkipVoteTimeRef.current = 0
     }
 
+    // Reconnexion pendant le chargement : le média de cette question est déjà prêt et ne le
+    // signalera plus (QuestionCard ne réémet pas), et un game:ready parti pendant la coupure a
+    // été ignoré par le serveur. Le renvoyer, sinon la salle attend ce joueur sans fin.
+    const resendReadyIfLoaded = () => {
+      if (gameEndedRef.current) return
+      if (mediaLoadedIndexRef.current !== currentQuestionIndexRef.current) return
+      // Extrait déjà lancé : le « go » est passé
+      if (mediaStartTimeRef.current !== null || phaseStartTimeRef.current !== null) return
+      if (!socket.connected) return
+      mediaReadyRef.current = true
+      socket.emit('game:ready', { roomCode })
+    }
+
     // Une question a été validée par le serveur : phase reveal définitive pour elle
     const markQuestionValidated = (questionIndex: number) => {
       validatedQuestionIndexRef.current = questionIndex
@@ -705,6 +729,9 @@ export default function Game({
 
         const newGameStep = state.game.step || 'loading'
         const questionIndex: number | undefined = state.game.questionIndex
+        if (Array.isArray(state.game.readyPlayers) && questionIndex !== undefined) {
+          setReadyPlayers({ questionIndex, playerIds: state.game.readyPlayers })
+        }
         // room:state est diffusé à chaque arrivée/départ/reconnexion d'un joueur : s'il
         // décrit la question déjà en cours de lecture ici, ne rien réinitialiser (sinon le
         // chrono repassait à 0 et le champ redevenait modifiable pendant le reveal).
@@ -818,6 +845,8 @@ export default function Game({
       setGameStarted(true)
       // Nouvelle partie, arrivée en cours de partie ou question manquée pendant une coupure
       resetQuestionState()
+      // Même question encore en chargement (reconnexion avant le « go ») : média déjà prêt
+      resendReadyIfLoaded()
     }
 
     const handleGameGo = ({ durationMs }: { durationMs: number }) => {
@@ -1179,6 +1208,7 @@ export default function Game({
     // tant que la question n'est pas validée.
     const handleRejoined = () => {
       setConnectionLost(false)
+      resendReadyIfLoaded()
       if (phaseRef.current !== 'guess') return
       if (validatedQuestionIndexRef.current === currentQuestionIndexRef.current) return
       if (lastAnswerRef.current === null) return
@@ -1643,6 +1673,12 @@ export default function Game({
                   isOnline(gameMode) ? revealStartTimeRef.current || undefined : undefined
                 }
                 answerAckPending={answerAckPending}
+                readyPlayerIds={
+                  readyPlayers?.questionIndex === currentQuestionIndex
+                    ? readyPlayers.playerIds
+                    : undefined
+                }
+                selfId={isOnline(gameMode) ? getPlayerId() : undefined}
                 onAnswer={handleAnswer}
                 onSkipVote={handleSkipVote}
                 onMediaReady={isOnline(gameMode) ? handleMediaReady : undefined}

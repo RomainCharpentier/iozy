@@ -28,6 +28,8 @@ interface RoundScreenProps {
   isMediaReady: boolean
   revealStartTime: number | undefined
   answerAckPending: boolean
+  readyPlayerIds?: string[]
+  selfId?: string
   onAnswer: (answer: string, timeRemaining: number, playerId?: string) => void
   onSkipVote: () => void
   onMediaReady?: () => void
@@ -58,6 +60,8 @@ export default function RoundScreen({
   isMediaReady,
   revealStartTime,
   answerAckPending,
+  readyPlayerIds,
+  selfId,
   onAnswer,
   onSkipVote,
   onMediaReady,
@@ -92,6 +96,8 @@ export default function RoundScreen({
         answerAckPending={answerAckPending}
         questionNumber={currentQuestionIndex + 1}
         totalQuestions={totalQuestions}
+        readyPlayerIds={readyPlayerIds}
+        selfId={selfId}
       />
 
       {isOnline(gameMode) && (

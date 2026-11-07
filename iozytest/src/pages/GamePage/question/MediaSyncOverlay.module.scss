@@ -45,3 +45,9 @@
   font-weight: 600;
   color: var(--text-primary);
 }
+
+.waitingFor {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}

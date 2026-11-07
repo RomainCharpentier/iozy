@@ -1,6 +1,7 @@
 import gameStyles from '@/pages/GamePage/Game.module.scss'
 import styles from '@/pages/GamePage/question/MediaSyncOverlay.module.scss'
 import { motion } from 'motion/react'
+import type { ReadyStatus } from '@/pages/GamePage/question/readyStatus'
 
 interface MediaSyncOverlayProps {
   gameStep: string
@@ -9,6 +10,7 @@ interface MediaSyncOverlayProps {
   totalQuestions?: number
   categoryLabel?: string
   solo?: boolean
+  readyStatus?: ReadyStatus // En ligne : qui la salle attend pendant le chargement
 }
 
 /**
@@ -22,15 +24,26 @@ export default function MediaSyncOverlay({
   totalQuestions,
   categoryLabel,
   solo = false,
+  readyStatus,
 }: MediaSyncOverlayProps) {
   const getMessage = () => {
     if (solo) return 'Préparez-vous…'
     if (gameStep === 'loading' && !mediaReady) return 'Chargement de l’extrait…'
-    if (gameStep === 'loading' && mediaReady) return 'En attente des autres joueurs…'
+    if (gameStep === 'loading' && mediaReady) {
+      if (!readyStatus || readyStatus.totalPlayers === 0) return 'En attente des autres joueurs…'
+      return `En attente des autres joueurs… (${readyStatus.readyCount}/${readyStatus.totalPlayers} prêts)`
+    }
     if (gameStep === 'ready') return 'Tous les joueurs sont prêts !'
     if (gameStep === 'starting') return 'Préparez-vous…'
     return 'Synchronisation…'
   }
+
+  const showWaitingFor =
+    !solo &&
+    gameStep === 'loading' &&
+    mediaReady &&
+    !!readyStatus &&
+    readyStatus.waitingFor.length > 0
 
   return (
     <div className={styles.overlay} data-testid="question-intro">
@@ -51,6 +64,11 @@ export default function MediaSyncOverlay({
         <p className={styles.message} role="status">
           {getMessage()}
         </p>
+        {showWaitingFor && (
+          <p className={styles.waitingFor} data-testid="waiting-for">
+            En attente de : {readyStatus.waitingFor.join(', ')}
+          </p>
+        )}
       </motion.div>
     </div>
   )
