@@ -58,6 +58,27 @@ describe('the security headers', () => {
   })
 })
 
+describe('compression and cache', () => {
+  it('compresses the static files and the proxied answers', () => {
+    const all = directives(conf)
+    expect(all).toMatch(/^gzip on;$/m)
+    expect(all).toMatch(/^gzip_proxied any;$/m)
+    const types = all.slice(all.indexOf('gzip_types'), all.indexOf(';', all.indexOf('gzip_types')))
+    for (const type of ['text/css', 'application/javascript', 'text/javascript', 'application/json']) {
+      expect(types).toContain(type)
+    }
+  })
+
+  it('keeps the hashed files for long, and the shell never', () => {
+    const assets = directives(location('/core/assets/'))
+    expect(assets).toMatch(/^expires max;$/m)
+    expect(assets).toMatch(/^try_files \$uri =404;$/m)
+    for (const signature of ['= /core/sw.js', '= /', '= /core/index.html']) {
+      expect(directives(location(signature))).toMatch(/^expires epoch;$/m)
+    }
+  })
+})
+
 describe('the proxies to the API and to IozyTest', () => {
   // Behind the TLS proxy of the NAS, $scheme is "http": sending it would drop
   // the `Secure` flag of the XSRF-TOKEN cookie.

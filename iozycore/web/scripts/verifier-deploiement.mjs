@@ -227,6 +227,27 @@ try {
   problemes.push(`security headers not checked — ${cause.message}`)
 }
 
+// --- 6 quater. The scripts of the app go out compressed, and stay in cache
+//
+//     The stock nginx image does not compress, and gives no cache rule to
+//     the hashed files: every visit downloads the whole bundle, raw.
+try {
+  const coquille = await (await demander(`${app}/`)).text()
+  const script = coquille.match(/\/assets\/[^"']+\.js/)?.[0]
+  verifier(Boolean(script), 'the shell names a hashed script', 'no /assets/*.js in the shell')
+  if (script) {
+    const chemin = `${app}${script}`
+    const fichier = await fetch(`${base}${chemin}`, { redirect: 'manual', headers: { 'Accept-Encoding': 'gzip' } })
+    verifier(fichier.status === 200, `${chemin} is served`, `received ${fichier.status}`)
+    verifier(fichier.headers.get('content-encoding') === 'gzip', `${chemin} is compressed`,
+      `content-encoding: ${fichier.headers.get('content-encoding') ?? 'absent'}`)
+    const cache = fichier.headers.get('cache-control') ?? ''
+    verifier(/max-age=\d{7,}/.test(cache), `${chemin} is kept in cache for long`, `cache-control: ${cache || 'absent'}`)
+  }
+} catch (cause) {
+  problemes.push(`hashed script not checked — ${cause.message}`)
+}
+
 // --- 7. The anti-CSRF cookie, when there is TLS
 //
 //     Checked only over HTTPS: locally, `Secure` would prevent the cookie
