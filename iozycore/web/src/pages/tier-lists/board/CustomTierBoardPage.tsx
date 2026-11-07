@@ -324,7 +324,14 @@ export function CustomTierBoardPage() {
           currentRank={selectedEntry.rank}
           onSelect={(rank) => rankMutation.mutate({ entityId: selectedEntry.entityId, rank })}
           progress={quickRank.progress}
-          onSkip={quickRank.isActive ? quickRank.next : undefined}
+          onSkip={
+            quickRank.isActive
+              ? () => {
+                  clearItemErrors()
+                  quickRank.next()
+                }
+              : undefined
+          }
           onRemoveFromList={() => removeItemMutation.mutate(selectedEntry)}
           error={(rankMutation.error ?? removeItemMutation.error)?.message}
         />

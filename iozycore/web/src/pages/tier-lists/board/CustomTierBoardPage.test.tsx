@@ -99,6 +99,26 @@ describe('the custom Tier List board', () => {
     expect(screen.queryByText('Classement refusé')).not.toBeInTheDocument()
   })
 
+  it('forgets the error of a skipped work in quick ranking', async () => {
+    tierLists.getTierListDetail.mockResolvedValue({
+      ...DETAIL,
+      unranked: [...DETAIL.unranked, { entityId: 'e2', title: 'Vagabond', coverImageUrl: null, rank: null }],
+    })
+    tierLists.setTierListItemRank.mockRejectedValue(new Error('Classement refusé'))
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Classer rapidement/ }))
+    const dialog = screen.getByRole('dialog')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'S' }))
+    await within(dialog).findByText('Classement refusé')
+    await userEvent.click(within(dialog).getByRole('button', { name: /Passer cette œuvre/ }))
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('Vagabond')
+    expect(screen.queryByText('Classement refusé')).not.toBeInTheDocument()
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Passer cette œuvre/ }))
+    expect(screen.queryByText('Classement refusé')).not.toBeInTheDocument()
+  })
+
   it('shows a failed delete inside the confirmation', async () => {
     tierLists.deleteTierList.mockRejectedValue(new Error('Suppression refusée'))
     renderPage()
