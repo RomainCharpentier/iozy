@@ -28,9 +28,13 @@ export function invaliderApresPossession(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
   // Owning the work of a piece removes the follow (one state at a time).
   queryClient.invalidateQueries({ queryKey: queryKeys.followedWorks.all })
-  queryClient.invalidateQueries({ queryKey: ['insights', 'releases'] })
   queryClient.invalidateQueries({ queryKey: ['ownerships'] })
-  queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
+  // The whole `insights` prefix: progress and calendar, but also stats, value,
+  // timeline, recap and discover. They all count what we own, and with a
+  // staleTime they would no longer refresh on the next mount.
+  queryClient.invalidateQueries({ queryKey: ['insights'] })
+  // What is missing to complete a series changes with what we own.
+  queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.nearCompleteSuggestions })
 }
 
 /**
@@ -57,11 +61,19 @@ export function invaliderApresEnvie(queryClient: QueryClient) {
 export function invalidateAfterPurchaseAnalysis(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.history })
   queryClient.invalidateQueries({ queryKey: ['purchaseAnalysis', 'marketObservations'] })
+  invalidateCostToComplete(queryClient)
 }
 
 /** After recording a market price by hand: the observations of that edition. */
 export function invalidateAfterMarketObservation(queryClient: QueryClient, mangaEditionId: string) {
   queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.marketObservations(mangaEditionId) })
+  invalidateCostToComplete(queryClient)
+}
+
+/** The cost to complete a series is estimated from the observed prices. */
+function invalidateCostToComplete(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: ['purchaseAnalysis', 'completeness'] })
+  queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.nearCompleteSuggestions })
 }
 
 /** After following or unfollowing a work: the state, the wish it may have removed, and the calendar. */

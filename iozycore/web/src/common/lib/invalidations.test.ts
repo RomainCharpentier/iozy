@@ -39,8 +39,18 @@ describe('after an ownership', () => {
     invaliderApresPossession(client)
 
     // Owning the work of a piece removes the follow (one state at a time), and
-    // the calendar only shows the follow: both become wrong too.
-    expect(prefixes()).toEqual(['entities', 'followedWorks', 'insights/releases', 'ownerships', 'insights/progress'])
+    // the calendar only shows the follow: both become wrong too. Every insight
+    // (stats, value, timeline...) counts what we own, and so do the series
+    // that are near complete.
+    expect(prefixes()).toEqual([
+      'entities',
+      'followedWorks',
+      'ownerships',
+      'insights',
+      'purchaseAnalysis/nearCompleteSuggestions',
+    ])
+    expect(queryKeys.insights.value.slice(0, 1)).toEqual(['insights'])
+    expect(queryKeys.insights.stats.slice(0, 1)).toEqual(['insights'])
   })
 })
 
@@ -83,15 +93,29 @@ describe('after a purchase analysis', () => {
     const { client, prefixes } = clientEspion()
     invalidateAfterPurchaseAnalysis(client)
     // The server saves the analysis AND the prices it read from the listing.
-    expect(prefixes()).toEqual(['purchaseAnalysis/history', 'purchaseAnalysis/marketObservations'])
+    // The cost to complete a series is estimated from those prices.
+    expect(prefixes()).toEqual([
+      'purchaseAnalysis/history',
+      'purchaseAnalysis/marketObservations',
+      'purchaseAnalysis/completeness',
+      'purchaseAnalysis/nearCompleteSuggestions',
+    ])
     expect(queryKeys.purchaseAnalysis.marketObservations('ed-1').slice(0, 2)).toEqual(['purchaseAnalysis', 'marketObservations'])
+    expect(queryKeys.purchaseAnalysis.completeness('Berserk', 'Deluxe', [1]).slice(0, 2)).toEqual([
+      'purchaseAnalysis',
+      'completeness',
+    ])
   })
 })
 
 describe('after a market observation', () => {
-  it('invalidates the observations of that edition', () => {
+  it('invalidates the observations of that edition and the cost to complete', () => {
     const { client, prefixes } = clientEspion()
     invalidateAfterMarketObservation(client, 'ed-1')
-    expect(prefixes()).toEqual(['purchaseAnalysis/marketObservations/ed-1'])
+    expect(prefixes()).toEqual([
+      'purchaseAnalysis/marketObservations/ed-1',
+      'purchaseAnalysis/completeness',
+      'purchaseAnalysis/nearCompleteSuggestions',
+    ])
   })
 })
