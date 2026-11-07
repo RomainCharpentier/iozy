@@ -93,8 +93,15 @@ export function useDonneesCollection() {
     /** The list has really answered - "no work" is then not an admission
      *  of ignorance, and the empty message can be shown. */
     listeChargee: entitiesQuery.isSuccess,
-    erreurs: [entitiesQuery, ownershipsQuery]
-      .filter((q) => q.isError)
-      .map((q) => (q.error as Error).message),
+    /** Every query the screen reads. A failed type list, for one, left a
+     *  header with N titles and no shelf at all, with no word of why. Same
+     *  messages are shown once. */
+    erreurs: [
+      ...new Set(
+        [entitiesQuery, ownershipsQuery, entityTypesQuery, progressQuery, wishlist, suivis]
+          .filter((q) => q.isError)
+          .map((q) => (q.error as Error).message),
+      ),
+    ],
   }
 }

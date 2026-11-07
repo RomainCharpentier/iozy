@@ -68,4 +68,26 @@ describe('useOeuvresSuivies', () => {
     // The removal that cancels a follow does not offer to cancel the cancellation.
     expect(messages.filter((m) => m.texte === 'Œuvre plus suivie')).toHaveLength(0)
   })
+
+  it('says when following or unfollowing failed', async () => {
+    const hook = await suivies([{ entityId: 'one-piece', followedAt: '2026-09-01' }])
+    api.followWork.mockRejectedValue(new Error('Le serveur ne répond pas'))
+    api.unfollowWork.mockRejectedValue(new Error('Le serveur ne répond pas'))
+
+    await act(async () => hook.current.basculer('naruto'))
+    await waitFor(() => expect(messages.at(-1)?.texte).toBe('Impossible de suivre cette œuvre : Le serveur ne répond pas'))
+
+    await act(async () => hook.current.basculer('one-piece'))
+    await waitFor(() =>
+      expect(messages.at(-1)?.texte).toBe('Impossible de ne plus suivre cette œuvre : Le serveur ne répond pas'),
+    )
+  })
+
+  it('exposes a failed list of followed works', async () => {
+    api.listFollowedWorks.mockRejectedValue(new Error('Erreur du serveur.'))
+    const rendu = renderHook(() => useOeuvresSuivies(), { wrapper: enrobage })
+
+    await waitFor(() => expect(rendu.result.current.isError).toBe(true))
+    expect(rendu.result.current.error?.message).toBe('Erreur du serveur.')
+  })
 })

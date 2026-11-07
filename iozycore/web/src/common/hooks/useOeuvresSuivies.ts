@@ -29,6 +29,7 @@ export function useOeuvresSuivies() {
         onAction: () => nePlusSuivre.mutate({ entityId, silencieux: true }),
       })
     },
+    onError: (error) => toast(`Impossible de suivre cette œuvre : ${error.message}`),
   })
 
   const nePlusSuivre = useMutation({
@@ -40,11 +41,14 @@ export function useOeuvresSuivies() {
       if (variables.silencieux) return
       toast('Œuvre plus suivie', { label: 'Annuler', onAction: () => suivre.mutate(variables.entityId) })
     },
+    onError: (error) => toast(`Impossible de ne plus suivre cette œuvre : ${error.message}`),
   })
 
   return {
     suivies,
     isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
     isPending: suivre.isPending || nePlusSuivre.isPending,
     estSuivie: (entityId: string) => suivies.some((s) => s.entityId === entityId),
     suivre: (entityId: string) => suivre.mutate(entityId),
