@@ -12,7 +12,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // hook would see "changes" for ever. Backend tests need Docker and are too slow here.
 const apps = [
   { dir: 'iozycore/web', scripts: ['typecheck', 'lint'] },
-  { dir: 'iozyplay', scripts: ['typecheck', 'test:unit'] },
+  { dir: 'iozytest', scripts: ['typecheck', 'test:unit'] },
 ]
 
 function changedCode(dir) {

@@ -1863,3 +1863,21 @@ Une salle ne montre plus que les 10 œuvres les plus récentes. « Tout voir » 
 devient la même salle avec tout, ses filtres et ses outils. La vue « Un par un » et le tri du
 rayon disparaissent. « Récent » veut dire le dernier tome ou la dernière envie, à la date près :
 une correction de fiche ne compte pas, et les œuvres d'un même jour restent par titre.
+
+### Renommage d'IozyPlay en IozyTest
+
+Le nom IozyPlay évoquait plutôt un serveur de médias. Dossier, paquet, image,
+service compose, variables de construction et mot-marque disent IozyTest ;
+l'app passe de `/play/` à `/test/`. Rien de stocké ne dépend du chemin : les
+clés du navigateur vont par origine, les salons vivent en mémoire. Restent les
+liens partagés et l'ancien worker : `/play/` redirige (302) avec chemin et
+paramètres, et la nouvelle app désinscrit le worker de `/play/`.
+
+Gardés exprès : le volume `iozyplay_data`, dont Docker stocke le nom, et
+l'ancien chemin dans `version.mjs`, que portent encore les anciens commits. Ce
+journal garde lui aussi l'ancien nom pour les lots passés.
+
+Vérifié : `npm run check`, puis une pile jetable sur d'autres ports et
+`check:deploiement` (17 contrôles). Avec un navigateur passé par l'ancienne
+image, l'ancienne invitation arrive sur `/test/room/join?room=AB12`, un seul
+chargement, le worker et les caches d'avant ont disparu.

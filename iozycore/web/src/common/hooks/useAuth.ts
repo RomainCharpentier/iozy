@@ -80,7 +80,7 @@ export function useAuth() {
     queryClient.setQueryData(queryKeys.auth.compte, nouveau)
     queryClient.clear()
     queryClient.setQueryData(queryKeys.auth.compte, nouveau)
-    // Opened from another app of the site (IozyPlay): back to it, signed in.
+    // Opened from another app of the site (IozyTest): back to it, signed in.
     if (nouveau) retournerApresConnexion()
   }
 

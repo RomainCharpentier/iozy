@@ -124,13 +124,13 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
-  # IozyPlay (the blindtest), under /play behind the same nginx: one address,
+  # IozyTest (the blindtest), under /test behind the same nginx: one address,
   # one certificate, one reverse proxy entry. Its image is built from
-  # iozyplay/ of this repository by the deploy workflow, like the two others;
+  # iozytest/ of this repository by the deploy workflow, like the two others;
   # watchtower follows it the same way. The questions added from the app live
   # in the volume.
-  iozyplay:
-    image: ghcr.io/romaincharpentier/iozyplay-app:latest
+  iozytest:
+    image: ghcr.io/romaincharpentier/iozytest-app:latest
     restart: unless-stopped
     volumes:
       - iozyplay_data:/app/data
@@ -192,4 +192,6 @@ networks:
 volumes:
   postgres_data:
   media_data:
+  # Named before the app became IozyTest. Docker stores this name: a new one
+  # would start empty and leave the added questions behind.
   iozyplay_data:

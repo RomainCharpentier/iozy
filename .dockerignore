@@ -1,4 +1,4 @@
-# Build context = the repository root (the web and IozyPlay images need the
+# Build context = the repository root (the web and IozyTest images need the
 # sibling iozykit/). Keep the context small and free of local state.
 .git
 .github
