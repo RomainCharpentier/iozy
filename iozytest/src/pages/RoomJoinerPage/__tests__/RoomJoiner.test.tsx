@@ -106,6 +106,28 @@ describe('RoomJoiner', () => {
     )
   })
 
+  it('rend le bouton quand le serveur ne répond pas', async () => {
+    vi.useFakeTimers()
+    try {
+      renderJoiner()
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Démarrer la partie/ }))
+      })
+      expect(screen.getByRole('button', { name: /Démarrage…/ })).toBeTruthy()
+
+      act(() => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      expect(toastError).toHaveBeenCalledWith('Le serveur ne répond pas. Veuillez réessayer.')
+      expect(
+        (screen.getByRole('button', { name: /Démarrer la partie/ }) as HTMLButtonElement).disabled
+      ).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("un invité qui n'est pas hôte attend, sans bouton de lancement", () => {
     hookState.isHost = false
     renderJoiner()
