@@ -15,7 +15,13 @@ describe('Transport HTTP et socket sous /test', () => {
   let baseUrl
 
   before(async () => {
-    httpServer = createServer(createExpressApp({ basePath }))
+    const app = createExpressApp({ basePath })
+    // Route de test : renvoie ce que le serveur a lu (paramètre, chaîne de
+    // requête, corps JSON), pour vérifier path-to-regexp, qs et body-parser.
+    app.post(`${basePath}/api/echo/:id`, (req, res) => {
+      res.json({ id: req.params.id, query: req.query, body: req.body })
+    })
+    httpServer = createServer(app)
     io = createSocketServer(httpServer, { basePath })
     io.on('connection', (socket) => {
       socket.on('echo', (payload, ack) => ack(payload))
@@ -34,12 +40,26 @@ describe('Transport HTTP et socket sous /test', () => {
     assert.deepStrictEqual(await res.json(), { status: 'ok' })
   })
 
-  test('une route avec paramètre est bien résolue', async () => {
+  test('une route inconnue répond 404', async () => {
     const res = await fetch(`${baseUrl}${basePath}/api/inconnue/42`)
     assert.strictEqual(res.status, 404)
   })
 
-  test('le JSON envoyé est lu, et un JSON cassé est refusé', async () => {
+  test('le paramètre, la chaîne de requête et le JSON envoyé sont lus', async () => {
+    const res = await fetch(`${baseUrl}${basePath}/api/echo/42?a[b]=1&c=2`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Été' }),
+    })
+    assert.strictEqual(res.status, 200)
+    assert.deepStrictEqual(await res.json(), {
+      id: '42',
+      query: { a: { b: '1' }, c: '2' },
+      body: { titre: 'Été' },
+    })
+  })
+
+  test('un JSON cassé est refusé', async () => {
     const res = await fetch(`${baseUrl}${basePath}/api/health`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
