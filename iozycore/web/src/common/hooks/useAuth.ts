@@ -109,6 +109,16 @@ export function useAuth() {
     compte: compte.data ?? null,
     /** As long as the question has no answer, we show neither the app nor the sign-in. */
     enCoursDeVerification: compte.isLoading,
+    /**
+     * The question got no answer (server down, 502): this is NOT "nobody is
+     * signed in". Showing the sign-in form would ask a person with a valid
+     * session to sign in again, with no reason given. Only set while no
+     * account is known: a failed refresh keeps the account already read.
+     */
+    verificationError: compte.data === undefined && compte.isError ? compte.error : null,
+    /** Asks `/auth/me` again, after a failure. */
+    retryVerification: () => compte.refetch(),
+    retryingVerification: compte.isFetching,
     aucunCompteSurLInstance: etat.data?.aucunCompte ?? false,
     creationOuverte: etat.data?.creationOuverte ?? false,
     /** The catalog is browsed without an account: nothing is written, and nothing personal is read. */

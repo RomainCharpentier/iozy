@@ -4,6 +4,7 @@ import { PageIntrouvable } from '@/pages/not-found/PageIntrouvable'
 import { AppShell } from '@/common/components/layout/AppShell'
 import { ShelfPage } from '@/pages/collection/ShelfPage'
 import { AuthPage } from '@/pages/auth/AuthPage'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { useAuth } from '@/common/hooks/useAuth'
 import { estReserveeAuxComptes } from '@/common/lib/accesInvite'
 import { useDocumentTitleFromHeading } from '@/common/hooks/useDocumentTitle'
@@ -92,6 +93,29 @@ function EnAttente() {
 }
 
 /**
+ * The server did not say who is signed in (down, 502): say so, and offer to
+ * ask again, rather than a sign-in form that would read as a lost session.
+ */
+function VerificationFailed({ message, onRetry, retrying }: { message: string; onRetry: () => void; retrying: boolean }) {
+  return (
+    <main className="mx-auto flex min-h-[50vh] w-full max-w-md flex-col justify-center gap-4 px-4 py-10">
+      <h1 className="font-display text-4xl font-bold tracking-[-0.03em] text-textPrimary">
+        Iozy<span className="text-accent">Core</span>
+      </h1>
+      <ErrorBanner message={message} />
+      <button
+        type="button"
+        onClick={onRetry}
+        disabled={retrying}
+        className="min-h-11 self-start text-sm font-semibold text-accentText disabled:opacity-50"
+      >
+        {retrying ? 'Nouvelle tentative…' : 'Réessayer'}
+      </button>
+    </main>
+  )
+}
+
+/**
  * Nothing of the private application is shown without an account.
  *
  * <h2>Why here, and not in each screen</h2>
@@ -106,9 +130,18 @@ function EnAttente() {
  * a valid session, for the time of one round trip, would make them doubt at every
  * opening.
  */
-function PorteFermee({ children }: { children: ReactNode }) {
-  const { compte, enCoursDeVerification } = useAuth()
+export function PorteFermee({ children }: { children: ReactNode }) {
+  const { compte, enCoursDeVerification, verificationError, retryVerification, retryingVerification } = useAuth()
   if (enCoursDeVerification) return <EnAttente />
+  if (verificationError) {
+    return (
+      <VerificationFailed
+        message={verificationError.message}
+        onRetry={retryVerification}
+        retrying={retryingVerification}
+      />
+    )
+  }
   if (!compte) return <AuthPage />
   return <>{children}</>
 }
