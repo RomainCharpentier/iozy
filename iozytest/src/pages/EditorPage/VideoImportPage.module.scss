@@ -340,7 +340,7 @@
 }
 
 .removeVideoButton:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--error-alpha);
   transform: scale(1.1);
 }
 

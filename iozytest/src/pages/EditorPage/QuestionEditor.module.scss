@@ -534,7 +534,7 @@
 
 .inputError {
   border-color: var(--error-color) !important;
-  background: rgba(239, 68, 68, 0.1) !important;
+  background: var(--error-alpha) !important;
 }
 
 .errorIcon {
@@ -548,10 +548,10 @@
   gap: var(--spacing-sm);
   margin-top: var(--spacing-sm);
   padding: var(--spacing-md);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--error-alpha);
   border: 2px solid var(--error-color);
   border-radius: 0.5rem;
-  color: var(--error-color);
+  color: var(--error-text);
   font-size: 0.9rem;
 }
 

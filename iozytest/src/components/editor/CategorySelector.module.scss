@@ -220,10 +220,10 @@
   gap: 0.5rem;
   margin-top: 0.75rem;
   padding: 0.75rem;
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--error-alpha);
   border: 1px solid var(--error-color);
   border-radius: 8px;
-  color: var(--error-color);
+  color: var(--error-text);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.5;
