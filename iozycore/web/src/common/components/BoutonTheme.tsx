@@ -33,7 +33,7 @@ export function BoutonTheme({ compact = false }: { compact?: boolean }) {
       onClick={toggleTheme}
       title={action}
       aria-label={action}
-      className={`flex ${taille} shrink-0 items-center justify-center rounded-xl text-textDim transition-colors hover:bg-rowHover hover:text-textPrimary`}
+      className={`flex ${taille} shrink-0 items-center justify-center rounded-full text-textDim transition-colors hover:bg-rowHover hover:text-textPrimary`}
     >
       <Icone size={17} />
     </button>

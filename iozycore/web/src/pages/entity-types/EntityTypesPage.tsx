@@ -14,7 +14,7 @@ import { Squelette } from '@/common/components/Squelette'
 /** Dynamic type editor: list of the collection categories (the
  * 3 historical MVP types + any type created by the user). Reachable
  * from Paramètres > Administration avancée (see AdministrationPage) -
- * no 6th tab in the TabBar, technical configuration touched once
+ * no 6th tab in the thumb bar, technical configuration touched once
  * then forgotten, not a tool consulted at every session. */
 export function EntityTypesPage() {
   const navigate = useNavigate()

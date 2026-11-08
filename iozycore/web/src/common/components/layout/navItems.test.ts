@@ -1,40 +1,27 @@
 /**
- * <b>A single list, read by two bars — and the invariant that proves it.</b>
+ * <b>A single list, read by two bars - and the invariant that proves it.</b>
  *
- * The two bars each carried their copy, "manually kept
- * in sync": which is a guarantee to diverge. Ten flows thus
- * disappeared from mobile without anything flagging it.
- *
- * <p>The real remaining risk is no longer the copy, it is the <b>highlighting</b>:
- * `activeWhen` is written by hand, route by route. A forgotten route
- * lights nothing (the user no longer knows where they are), a route that is too wide
- * lights two (they think they are elsewhere). This file therefore checks, for
- * each real route of the app, that <b>exactly one</b> entry lights up.
+ * The real risk is the <b>highlighting</b>: `activeWhen` is written by hand,
+ * route by route. A route that is too wide lights two entries (the user thinks
+ * they are elsewhere). This file checks, for each real route of the app, that
+ * <b>at most one</b> entry lights up, and the right one.
  */
 import { describe, expect, it } from 'vitest'
 import { NAV_ITEMS, destinationsPour } from './navItems'
 
 /** The real routes, with the destination that must light up on each. */
 const ROUTES: [chemin: string, destination: string][] = [
-  ['/', '/'],
-  ['/entity/berserk', '/'],
-  ['/collection/type-manga', '/'],
-  ['/add', '/add'],
-  ['/scan', '/add'],
-  ['/apercu', '/add'],
-  ['/discover', '/discover'],
-  ['/tier-lists', '/discover'],
-  ['/tier-lists/board-1', '/discover'],
-  ['/suggestions', '/discover'],
-  ['/releases', '/discover'],
-  // The analysis of a listing left the bar (batch 137): it opens from
-  // Discover, and it is Discover that lights up.
-  ['/purchase-analysis', '/discover'],
-  ['/purchase-analysis/history', '/discover'],
+  ['/', 'accueil'],
+  ['/entity/berserk', 'accueil'],
+  ['/collection/type-manga', 'accueil'],
+  ['/releases', 'sorties'],
+  ['/purchase-analysis', 'acheter'],
+  ['/history', 'acheter'],
+  ['/history/42', 'acheter'],
 ]
 
 function allumees(pathname: string): string[] {
-  return NAV_ITEMS.filter((item) => item.activeWhen(pathname)).map((item) => item.to)
+  return NAV_ITEMS.filter((item) => item.activeWhen(pathname)).map((item) => item.cle)
 }
 
 describe('the navigation highlighting', () => {
@@ -43,59 +30,48 @@ describe('the navigation highlighting', () => {
   })
 
   it('lights nothing on a route that belongs to no destination', () => {
-    // Profile, Settings, Statistics: reached by shortcut, not by the
-    // navigation. Lighting a destination there would lie about where one is.
+    // The profile is lit by the avatar, the catalog by nothing: lighting a
+    // destination there would lie about where one is.
     expect(allumees('/profile')).toEqual([])
-    expect(allumees('/settings')).toEqual([])
+    expect(allumees('/add')).toEqual([])
     expect(allumees('/stats')).toEqual([])
   })
 
   it('does not let "/" light everything that starts with a slash', () => {
-    // The classic prefix trap: `startsWith('/')` is true everywhere.
-    expect(allumees('/discover')).not.toContain('/')
+    expect(allumees('/releases')).not.toContain('accueil')
   })
 })
 
 describe('the list itself', () => {
-  it('carries three destinations, all distinct, and none names a universe', () => {
-    expect(NAV_ITEMS).toHaveLength(3)
-    expect(new Set(NAV_ITEMS.map((item) => item.to)).size).toBe(3)
-    expect(NAV_ITEMS.map((item) => item.to)).not.toContain('/purchase-analysis')
+  it('carries the five intentions of the site, in their order', () => {
+    expect(NAV_ITEMS.map((item) => item.label)).toEqual(['Accueil', 'Sorties', 'À acheter', 'Partager', 'IozyTest'])
+  })
+
+  it('leads to IozyTest by a plain address, outside the router of this app', () => {
+    const iozytest = NAV_ITEMS.find((item) => item.cle === 'iozytest')
+    expect(iozytest?.href).toBe('/test/')
+    expect(iozytest?.to).toBeUndefined()
+  })
+
+  it('opens the sharing where the share link is managed today', () => {
+    const partager = NAV_ITEMS.find((item) => item.cle === 'partager')
+    expect(partager?.to).toBe('/profile')
+    expect(partager?.state).toEqual({ focusPartage: true })
   })
 
   it('gives each entry a short label that fits in the thumb bar', () => {
-    // On 375 px: "Ma collection" becomes "Collection" there.
     for (const item of NAV_ITEMS) {
-      expect(item.labelCourt.length).toBeLessThanOrEqual(item.label.length)
       expect(item.labelCourt.length).toBeLessThanOrEqual(12)
-    }
-  })
-
-  it('lights each entry on its own route', () => {
-    for (const item of NAV_ITEMS) {
-      expect(item.activeWhen(item.to)).toBe(true)
     }
   })
 })
 
-// A visitor has no "Ma collection": the work pages they open from the Catalogue
-// must light the Catalogue, or the bar shows no current place at all.
 describe('the navigation of a visitor', () => {
-  function allumeesPourVisiteur(pathname: string): string[] {
-    return destinationsPour(true)
-      .filter((item) => item.activeWhen(pathname))
-      .map((item) => item.to)
-  }
-
-  it('lights the Catalogue on a work page', () => {
-    expect(allumeesPourVisiteur('/entity/42')).toEqual(['/add'])
+  it('keeps only what needs no account', () => {
+    expect(destinationsPour(true).map((item) => item.cle)).toEqual(['sorties', 'iozytest'])
   })
 
-  it('leaves an account on "Ma collection" there', () => {
-    expect(
-      destinationsPour(false)
-        .filter((item) => item.activeWhen('/entity/42'))
-        .map((item) => item.to),
-    ).toEqual(['/'])
+  it('keeps everything for an account', () => {
+    expect(destinationsPour(false)).toHaveLength(5)
   })
 })

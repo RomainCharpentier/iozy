@@ -52,7 +52,7 @@ export function ProfilePage() {
       {/* The sharing lives here, its main home. The shortcuts of "Ma
           collection" and "Mes envies" lead to the same sharing and the same
           token - it is this component that they drive, never a second one. */}
-      <div id="partage" ref={partageRef} className="scroll-mt-4">
+      <div id="partage" ref={partageRef} className="scroll-mt-4 lg:scroll-mt-24">
         <ShareSection />
       </div>
 
