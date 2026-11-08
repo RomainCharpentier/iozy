@@ -17,9 +17,17 @@ export interface UseRoomSocketJoinParams {
   onError?: (code: string, message: string) => void
 }
 
+/** Réglages du salon diffusés par le serveur (room:joined / room:state) */
+export interface RoomSettings {
+  categories: string[]
+  defaultTimeLimit?: number
+}
+
 export interface UseRoomSocketJoinResult {
   players: Player[]
   isHost: boolean
+  /** Null tant que le serveur ne les a pas envoyés */
+  settings: RoomSettings | null
   gameStarted: boolean
   leaveRoom: () => void
 }
@@ -70,6 +78,7 @@ export function useRoomSocketJoin(
   const trimmedName = playerName.trim()
   const [players, setPlayers] = useState<Player[]>([])
   const [isHost, setIsHost] = useState(false)
+  const [settings, setSettings] = useState<RoomSettings | null>(null)
   const [gameStarted, setGameStarted] = useState(false)
   const gameStartedRef = useRef(false)
   // Vrai quand on bascule vers /game : le démontage du lobby ne doit alors PAS quitter le salon
@@ -100,9 +109,10 @@ export function useRoomSocketJoin(
       room,
       sessionToken,
     }: {
-      room: { players?: Player[]; phase?: string }
+      room: { players?: Player[]; phase?: string; settings?: RoomSettings }
       sessionToken?: string
     }) => {
+      if (room.settings) setSettings(room.settings)
       setSessionToken(roomCode, sessionToken)
       // Room active : sera réintégrée automatiquement après une reconnexion
       setCurrentRoom(roomCode)
@@ -120,7 +130,12 @@ export function useRoomSocketJoin(
       }
     }
 
-    const handleRoomState = (state: { players?: Player[]; phase?: string }) => {
+    const handleRoomState = (state: {
+      players?: Player[]
+      phase?: string
+      settings?: RoomSettings
+    }) => {
+      if (state.settings) setSettings(state.settings)
       const updatedPlayers = state.players || []
       if (Array.isArray(updatedPlayers) && updatedPlayers.length > 0) {
         setPlayers(updatedPlayers)
@@ -175,7 +190,7 @@ export function useRoomSocketJoin(
     }
   }, [roomCode, trimmedName, enabled, leaveRoom, callbacksRef])
 
-  return { players, isHost, gameStarted, leaveRoom }
+  return { players, isHost, settings, gameStarted, leaveRoom }
 }
 
 export function useRoomSocketCreate(

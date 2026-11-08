@@ -58,3 +58,15 @@
   color: var(--success);
   font-weight: 600;
 }
+
+/* Invité devenu hôte : la ligne d'état puis le bouton de lancement, alignés à droite. */
+.hostStart {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+
+  .status {
+    align-self: stretch;
+  }
+}
