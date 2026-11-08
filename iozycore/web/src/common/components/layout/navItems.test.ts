@@ -16,8 +16,8 @@ const ROUTES: [chemin: string, destination: string][] = [
   ['/collection/type-manga', 'accueil'],
   ['/releases', 'sorties'],
   ['/purchase-analysis', 'acheter'],
-  ['/history', 'acheter'],
-  ['/history/42', 'acheter'],
+  ['/purchase-analysis/history', 'acheter'],
+  ['/purchase-analysis/history/42', 'acheter'],
 ]
 
 function allumees(pathname: string): string[] {

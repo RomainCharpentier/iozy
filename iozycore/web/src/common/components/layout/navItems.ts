@@ -57,7 +57,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'À acheter',
     labelCourt: 'À acheter',
     icon: ShoppingBag,
-    activeWhen: (p) => p.startsWith('/purchase-analysis') || p.startsWith('/history'),
+    activeWhen: (p) => p.startsWith('/purchase-analysis'),
   },
   {
     cle: 'partager',
