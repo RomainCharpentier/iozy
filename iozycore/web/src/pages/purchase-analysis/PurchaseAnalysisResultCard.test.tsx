@@ -166,6 +166,26 @@ describe('the purchase analysis result', () => {
     expect(screen.getByText('Cher')).toBeInTheDocument()
   })
 
+  it('never shows the flat 50 of an analysis saved before the weights were fixed', () => {
+    const plate = analyse({ verdictScore: 50, requestedAt: '2026-08-12T10:00:00Z' })
+    render(<PurchaseAnalysisResultCard analysis={plate} onReset={() => {}} />, { wrapper: enrobage })
+
+    expect(screen.getByText(/Note globale/).textContent).toContain('score indisponible pour cette ancienne analyse')
+    expect(screen.queryByText(/50\/100/)).not.toBeInTheDocument()
+  })
+
+  it('says the badge of an old flat analysis has no score', () => {
+    const plate = analyse({
+      verdictScore: 50,
+      requestedAt: '2026-08-12T10:00:00Z',
+      assessment: undefined as unknown as PurchaseAnalysisDto['assessment'],
+    })
+    render(<PurchaseAnalysisResultCard analysis={plate} onReset={() => {}} />, { wrapper: enrobage })
+
+    expect(screen.getByText(/score indisponible pour cette ancienne analyse/)).toBeInTheDocument()
+    expect(screen.queryByText(/50\/100/)).not.toBeInTheDocument()
+  })
+
   it('says the lot completes the edition when the owned volumes fill the rest', () => {
     render(<PurchaseAnalysisResultCard analysis={analyse()} onReset={() => {}} />, { wrapper: enrobage })
 

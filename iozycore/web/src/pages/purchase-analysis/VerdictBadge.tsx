@@ -1,5 +1,6 @@
 import { CheckCheck, Check, Minus, TriangleAlert, X } from 'lucide-react'
 import type { Verdict } from '@/common/types/purchaseAnalysis'
+import { NOTE_SCORE_INDISPONIBLE } from './scoreAffichable'
 
 // Record<Verdict, {label, icon, className}> - EXCELLENTE/BONNE AFFAIRE share the existing `accent` token (told apart
 // by icon/label, see the 🟢🟢 vs 🟢 pictogram of the specification);
@@ -17,13 +18,15 @@ const CONFIG: Record<Verdict, { label: string; icon: typeof Check; className: st
   AVOID: { label: 'À éviter', icon: X, className: 'bg-danger text-dangerInk' },
 }
 
-export function VerdictBadge({ verdict, score }: { verdict: Verdict; score?: number }) {
+/** `score` null: the score of this analysis is unknown (see scoreAffichable) - the badge says so. */
+export function VerdictBadge({ verdict, score }: { verdict: Verdict; score?: number | null }) {
   const { label, icon: Icon, className } = CONFIG[verdict]
   return (
     <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap ${className}`}>
       <Icon size={18} strokeWidth={2.5} />
       {label}
-      {score !== undefined && <span className="font-normal opacity-80">· {score}/100</span>}
+      {score != null && <span className="font-normal opacity-80">· {score}/100</span>}
+      {score === null && <span className="font-normal opacity-80">· {NOTE_SCORE_INDISPONIBLE}</span>}
     </span>
   )
 }
