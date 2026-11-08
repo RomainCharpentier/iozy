@@ -15,7 +15,7 @@ css/components.css       .iozy-btn (+ --primary/--secondary/--ghost/--danger/--l
                          .iozy-apps (le sélecteur d'app de l'en-tête, un <details>)
 brand/                   les marques (tuile + étagère) et leurs règles
 scripts/build-css.mjs    génère css/tokens.css
-scripts/check-contrast.mjs  vérifie AA (4,5:1) sur toutes les paires qui comptent, dans les deux thèmes
+scripts/check-contrast.mjs  vérifie AA (4,5:1 pour le texte, 3:1 pour le bord des champs et l'anneau de focus) dans les deux thèmes
 CHARTE.md                la charte écrite : ce qu'on fait, ce qu'on ne fait pas, et pourquoi
 ```
 
@@ -23,7 +23,7 @@ CHARTE.md                la charte écrite : ce qu'on fait, ce qu'on ne fait pas
 
 ```bash
 npm run build            # régénère css/tokens.css après une modification de tokens.json
-npm run check:contrast   # échoue si une paire texte/fond ou encre/aplat passe sous 4,5:1
+npm run check:contrast   # échoue si un texte passe sous 4,5:1, ou un bord de champ ou l'accent sous 3:1
 npm test                 # les deux
 ```
 
