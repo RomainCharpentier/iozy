@@ -5,7 +5,8 @@
  * stay empty. These tests pin each route, its method and the body of the status.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchCollectionSummary, fetchWork, listWorks, setCollectorStatus } from './works'
+import { fetchCollectionSummary, fetchWork, listWorks, ownWorkElement, setCollectorStatus } from './works'
+import { setEditionTotal } from './editionTotal'
 
 const fetchMock = vi.fn()
 
@@ -48,5 +49,21 @@ describe('works api', () => {
       method: 'PUT',
       body: { status: 'PAUSED' },
     })
+  })
+
+  it('owns one element with POST on its key (lot 211 route)', async () => {
+    await ownWorkElement('abc', 'variant-1')
+    expect(lastCall()).toMatchObject({ url: '/api/works/abc/elements/variant-1/own', method: 'POST' })
+  })
+
+  it('sets or clears the total of an edition with PUT on the manga series route', async () => {
+    await setEditionTotal('abc', 'Kana', 18)
+    expect(lastCall()).toEqual({
+      url: '/api/manga/series/abc/total',
+      method: 'PUT',
+      body: { editionName: 'Kana', totalVolumes: 18 },
+    })
+    await setEditionTotal('abc', null, null)
+    expect(lastCall().body).toEqual({ editionName: null, totalVolumes: null })
   })
 })

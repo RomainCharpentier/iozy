@@ -19,6 +19,7 @@ export function ElementManquant({
   libelle,
   onJeLAi,
   className = '',
+  immobile = false,
   children,
 }: {
   /** What the element is, read aloud: "Tome 12". */
@@ -26,6 +27,8 @@ export function ElementManquant({
   onJeLAi: () => void
   /** The shape of the element (its aspect ratio, its size). */
   className?: string
+  /** Still outline: what is missing no longer counts (a paused or dropped work, lot 213). */
+  immobile?: boolean
   /** What is drawn inside; the label itself when absent. */
   children?: ReactNode
 }) {
@@ -35,7 +38,7 @@ export function ElementManquant({
       onClick={onJeLAi}
       aria-label={`${libelle} : je l'ai`}
       title={`${libelle} : je l'ai`}
-      className={`iozy-manque iozy-teinte relative flex items-end justify-start overflow-hidden rounded-xl p-2 text-left font-display font-bold ${className}`}
+      className={`iozy-manque iozy-teinte relative flex items-end justify-start overflow-hidden rounded-xl p-2 text-left font-display font-bold ${immobile ? 'animate-none!' : ''} ${className}`}
     >
       {children ?? libelle}
     </button>

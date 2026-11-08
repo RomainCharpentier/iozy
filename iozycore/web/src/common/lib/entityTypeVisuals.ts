@@ -142,3 +142,14 @@ export function getEntityTypeVisual(type: EntityTypeDto | string | undefined): E
     ...(chosenAspect ? { aspectClassName: chosenAspect } : {}),
   }
 }
+
+/**
+ * The shape the type itself declares for its objects (its `aspectKey`, or the
+ * shape its universe ships with), or null when nobody declared one - a custom
+ * type left as created. The entity page then shows each element as its whole
+ * cover, never cropped into a portrait it never asked for (lot 213).
+ */
+export function declaredAspectClassName(type: EntityTypeDto | undefined): string | null {
+  if (!type) return null
+  return (type.aspectKey ? ASPECTS[type.aspectKey] : undefined) ?? BY_CODE[type.code]?.aspectClassName ?? null
+}

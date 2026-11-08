@@ -15,6 +15,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  declaredAspectClassName,
   UNIVERSE_ASPECTS,
   UNIVERSE_ICONS,
   UNIVERSE_PALETTE,
@@ -95,5 +96,17 @@ describe('the lists offered as a choice', () => {
     for (const { className } of UNIVERSE_ASPECTS) {
       expect(className).toMatch(/^aspect-(square|\[[\d/]+\])$/)
     }
+  })
+})
+
+describe('the shape of the elements on the entity page (lot 213)', () => {
+  it('is the one the type or its universe declares', () => {
+    expect(declaredAspectClassName({ ...typeDeCollection('VINYL'), aspectKey: 'carre' })).toBe('aspect-square')
+    expect(declaredAspectClassName(typeDeCollection('BOARD_GAME'))).toBe('aspect-square')
+  })
+
+  it('is none for a custom type left as created: the whole cover is shown', () => {
+    expect(declaredAspectClassName(typeDeCollection('VINYL'))).toBeNull()
+    expect(declaredAspectClassName(undefined)).toBeNull()
   })
 })
