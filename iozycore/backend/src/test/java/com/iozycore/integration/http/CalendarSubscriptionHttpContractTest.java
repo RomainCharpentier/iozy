@@ -104,4 +104,14 @@ class CalendarSubscriptionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(get("/api/public/calendar/{token}.ics", "x".repeat(43))).andExpect(status().isNotFound());
         mockMvc.perform(get("/api/public/calendar/{token}.ics", "x".repeat(300))).andExpect(status().isNotFound());
     }
+
+    @Test
+    void an_app_that_accepts_only_text_calendar_still_gets_a_bare_404() throws Exception {
+        MockHttpServletResponse response = mockMvc.perform(get("/api/public/calendar/{token}.ics", "x".repeat(43))
+                        .header("Accept", "text/calendar"))
+                .andExpect(status().isNotFound())
+                .andReturn().getResponse();
+
+        assertThat(response.getContentAsString()).isEmpty();
+    }
 }

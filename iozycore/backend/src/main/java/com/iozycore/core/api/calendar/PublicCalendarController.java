@@ -14,16 +14,18 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Optional;
 
 /**
  * The release feed an agenda app subscribes to. No session, on purpose: the app
  * has none, and the token is the password. An unknown or revoked token gives a
- * bare 404. The token is never logged here.
+ * bare 404, built here rather than thrown: the error handler would write a JSON
+ * body, which an app asking only for text/calendar cannot accept. The token is
+ * never logged here.
  *
  * <h2>Kind to the apps that poll</h2>
  * Google Agenda and Apple Calendrier read a feed every few hours. The answer
@@ -46,8 +48,11 @@ public class PublicCalendarController {
     @GetMapping("/{token}.ics")
     public ResponseEntity<String> feed(@PathVariable String token,
                                        @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
-        String ics = feedQuery.read(token, LocalDate.now())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lien introuvable"));
+        Optional<String> feed = feedQuery.read(token, LocalDate.now());
+        if (feed.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        String ics = feed.get();
         String etag = "\"" + DigestUtils.md5DigestAsHex(ics.getBytes(StandardCharsets.UTF_8)) + "\"";
         CacheControl cache = CacheControl.maxAge(Duration.ofHours(1)).cachePrivate();
         if (etag.equals(ifNoneMatch)) {
