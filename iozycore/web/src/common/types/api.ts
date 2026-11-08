@@ -274,6 +274,17 @@ export interface EditionProgressDto {
 /** MANUAL: typed by a person, never touched by the background job. PROVIDER: read in the French volume lists. */
 export type TotalSource = 'MANUAL' | 'PROVIDER'
 
+/** PUT /api/manga/series/{entityId}/total: the edition and where its total comes from. */
+export interface EditionTotalDto {
+  editionId: UUID
+  entityId: UUID
+  editionName: string
+  totalVolumes: number | null
+  totalSource: TotalSource | null
+  frenchRunFinished: boolean
+  totalCheckedAt: string | null
+}
+
 export interface CollectionProgressDto {
   entityId: UUID
   title: string

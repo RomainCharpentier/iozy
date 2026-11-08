@@ -6,6 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchCollectionSummary, fetchWork, listWorks, ownWorkElement, setCollectorStatus } from './works'
+import { setEditionTotal } from './editionTotal'
 
 const fetchMock = vi.fn()
 
@@ -55,5 +56,16 @@ describe('works api', () => {
     expect(lastCall()).toMatchObject({ url: '/api/works/abc/elements/bgg-42/own', method: 'POST' })
     await ownWorkElement('abc', 'variant/1')
     expect(lastCall().url).toBe('/api/works/abc/elements/variant%2F1/own')
+  })
+
+  it('sets or clears the total of an edition with PUT on the manga series route', async () => {
+    await setEditionTotal('abc', 'Kana', 18)
+    expect(lastCall()).toEqual({
+      url: '/api/manga/series/abc/total',
+      method: 'PUT',
+      body: { editionName: 'Kana', totalVolumes: 18 },
+    })
+    await setEditionTotal('abc', null, null)
+    expect(lastCall().body).toEqual({ editionName: null, totalVolumes: null })
   })
 })

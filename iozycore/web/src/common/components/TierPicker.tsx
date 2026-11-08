@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { TierBadge } from './TierBadge'
 import { useModalA11y } from '@/common/hooks/useModalA11y'
@@ -82,7 +83,9 @@ export function TierPicker({
 
   if (!open) return null
 
-  return (
+  // A portal: opened from a glass panel (backdrop-filter), a fixed sheet would
+  // be placed and clipped inside that panel instead of the screen.
+  return createPortal(
     <>
       <div className="voile-entree fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={onClose} />
       <div
@@ -169,6 +172,7 @@ export function TierPicker({
           </button>
         )}
       </div>
-    </>
+    </>,
+    document.body,
   )
 }
