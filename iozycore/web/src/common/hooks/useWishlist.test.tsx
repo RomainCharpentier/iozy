@@ -24,6 +24,7 @@ import { act } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { useWishlist } from './useWishlist'
+import { ApiError } from '@/common/api/client'
 import { ToastContext, type ToastAction } from '@/common/lib/toast'
 import type { WishlistEntryResponse } from '@/common/types/api'
 
@@ -121,6 +122,32 @@ describe('adding', () => {
   })
 })
 
+describe('failures', () => {
+  it('reports a failed add, and resolves addAsync without throwing', async () => {
+    const hook = await envies()
+    api.addToWishlist.mockRejectedValue(new ApiError(502, 'Le serveur ne répond pas'))
+
+    let resultat: unknown = 'pas encore'
+    await act(async () => {
+      resultat = await hook.current.addAsync({ entityId: 'berserk' })
+    })
+
+    expect(resultat).toBeUndefined()
+    await waitFor(() => expect(messages).toHaveLength(1))
+    expect(messages[0].texte).toBe("Impossible d'ajouter aux envies : Le serveur ne répond pas")
+  })
+
+  it('reports a failed removal', async () => {
+    const hook = await envies([entree('e1', 'berserk', 'tome-7')])
+    api.removeFromWishlist.mockRejectedValue(new ApiError(502, 'Le serveur ne répond pas'))
+
+    await act(async () => hook.current.remove('e1', { entityId: 'berserk', variantId: 'tome-7' }))
+
+    await waitFor(() => expect(messages).toHaveLength(1))
+    expect(messages[0].texte).toBe('Impossible de retirer des envies : Le serveur ne répond pas')
+  })
+})
+
 describe('removing', () => {
   it('puts back exactly the same object - the volume, not its series', async () => {
     // Adding back by `entityId` alone put the entire series back in the
@@ -150,7 +177,7 @@ describe('adding a whole batch', () => {
     const hook = await envies()
     api.addToWishlist
       .mockResolvedValueOnce(entree('n1', 'berserk', 'tome-1'))
-      .mockRejectedValueOnce(new Error('409 déjà possédé'))
+      .mockRejectedValueOnce(new ApiError(409, 'déjà possédé'))
       .mockResolvedValueOnce(entree('n3', 'berserk', 'tome-3'))
 
     await act(async () => hook.current.addMany(lot))
@@ -162,13 +189,39 @@ describe('adding a whole batch', () => {
 
   it('says so frankly when there was nothing to add', async () => {
     const hook = await envies()
-    api.addToWishlist.mockRejectedValue(new Error('409'))
+    api.addToWishlist.mockRejectedValue(new ApiError(409, 'déjà possédé'))
 
     await act(async () => hook.current.addMany(lot))
 
     await waitFor(() => expect(messages).toHaveLength(1))
     expect(messages[0].texte).toBe('Rien à ajouter - tu as déjà tout ça, ou tu le voulais déjà')
     expect(messages[0].action).toBeUndefined()
+  })
+
+  it('does not read a server failure as "you already have all that"', async () => {
+    // A 502 or an offline run was swallowed like a 409, and ended with
+    // "tu as déjà tout ça" while nothing had been added.
+    const hook = await envies()
+    api.addToWishlist
+      .mockResolvedValueOnce(entree('n1', 'berserk', 'tome-1'))
+      .mockRejectedValueOnce(new ApiError(409, 'déjà possédé'))
+      .mockRejectedValueOnce(new ApiError(502, 'Le serveur ne répond pas'))
+
+    await act(async () => hook.current.addMany(lot))
+
+    await waitFor(() => expect(messages).toHaveLength(1))
+    expect(messages[0].texte).toBe('Tome ajouté aux envies, 1 tome non ajouté : Le serveur ne répond pas')
+    expect(messages[0].action?.label).toBe('Annuler')
+  })
+
+  it('reports a batch where the server never answered', async () => {
+    const hook = await envies()
+    api.addToWishlist.mockRejectedValue(new ApiError(502, 'Le serveur ne répond pas'))
+
+    await act(async () => hook.current.addMany(lot))
+
+    await waitFor(() => expect(messages).toHaveLength(1))
+    expect(messages[0].texte).toBe('3 tomes non ajoutés : Le serveur ne répond pas')
   })
 
   it('cancels the whole batch, entry by entry', async () => {
@@ -183,6 +236,22 @@ describe('adding a whole batch', () => {
     await act(async () => await messages[0].action?.onAction())
 
     expect(api.removeFromWishlist.mock.calls.map(([id]) => id)).toEqual(['n1', 'n2', 'n3'])
+  })
+
+  it('reports a failed cancel of the batch', async () => {
+    const hook = await envies()
+    api.addToWishlist
+      .mockResolvedValueOnce(entree('n1', 'berserk', 'tome-1'))
+      .mockResolvedValueOnce(entree('n2', 'berserk', 'tome-2'))
+      .mockResolvedValueOnce(entree('n3', 'berserk', 'tome-3'))
+    api.removeFromWishlist.mockRejectedValue(new ApiError(502, 'Le serveur ne répond pas'))
+
+    await act(async () => hook.current.addMany(lot))
+    await waitFor(() => expect(messages).toHaveLength(1))
+    await act(async () => await messages[0].action?.onAction())
+
+    await waitFor(() => expect(messages).toHaveLength(2))
+    expect(messages[1].texte).toBe("Impossible d'annuler l'ajout : Le serveur ne répond pas")
   })
 
   it('does not use the plural for a single volume', async () => {

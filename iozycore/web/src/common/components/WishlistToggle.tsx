@@ -85,6 +85,7 @@ export function WishlistToggle({
         : external
     if (!cible) return
     const creee = await wishlist.addAsync(cible)
+    if (!creee) return
     setResoluEntityId(creee.entityId)
   }
 

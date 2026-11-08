@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { addToWishlist, listWishlist, removeFromWishlist, type WishlistTarget } from '@/common/api/wishlist'
+import { ApiError } from '@/common/api/client'
+import type { WishlistEntryResponse } from '@/common/types/api'
 import { useToast } from '@/common/lib/toast'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { invaliderApresEnvie } from '@/common/lib/invalidations'
@@ -68,6 +70,8 @@ export function useWishlist() {
         onAction: () => removeMutation.mutate({ entryId: created.id, cible: target, silencieux: true }),
       })
     },
+    // Without this, a failed add left the button as it was and said nothing.
+    onError: (error) => toast(`Impossible d'ajouter aux envies : ${error.message}`),
   })
 
   const removeMutation = useMutation({
@@ -88,6 +92,7 @@ export function useWishlist() {
         onAction: () => addMutation.mutate(variables.cible),
       })
     },
+    onError: (error) => toast(`Impossible de retirer des envies : ${error.message}`),
   })
 
   /**
@@ -101,32 +106,54 @@ export function useWishlist() {
    * is refused with a 409 (wanting and owning do not overlap), and it is a
    * normal case in a listing that overlaps with the collection. Interrupting
    * there would abandon all the following volumes, without saying anything.
+   *
+   * **Only the 409 is normal**: any other failure (server down, offline) is
+   * counted and reported. Before, it was swallowed too, and a run where the
+   * server did not answer ended with "tu as déjà tout ça".
    */
   const addManyMutation = useMutation({
     mutationFn: async (cibles: WishlistTarget[]) => {
-      const nouveaux = []
+      const nouveaux: WishlistEntryResponse[] = []
+      let failed = 0
+      let lastError = ''
       for (const cible of cibles) {
         try {
           nouveaux.push(await addToWishlist(cible))
-        } catch {
-          // Already owned, or already wanted: nothing to add, nothing to report.
+        } catch (error) {
+          // Already owned: nothing to add, nothing to report.
+          if (error instanceof ApiError && error.status === 409) continue
+          failed += 1
+          lastError = error instanceof Error ? error.message : String(error)
         }
       }
-      return nouveaux
+      return { crees: nouveaux, failed, lastError }
     },
-    onSuccess: (crees) => {
+    onSuccess: ({ crees, failed, lastError }) => {
       invalidate()
-      if (crees.length === 0) {
+      if (failed === 0 && crees.length === 0) {
         toast('Rien à ajouter - tu as déjà tout ça, ou tu le voulais déjà')
         return
       }
-      toast(crees.length === 1 ? 'Tome ajouté aux envies' : `${crees.length} tomes ajoutés aux envies`, {
+      const ajoutes = crees.length === 1 ? 'Tome ajouté aux envies' : `${crees.length} tomes ajoutés aux envies`
+      const nonAjoutes = failed === 1 ? '1 tome non ajouté' : `${failed} tomes non ajoutés`
+      if (crees.length === 0) {
+        toast(`${nonAjoutes} : ${lastError}`)
+        return
+      }
+      toast(failed > 0 ? `${ajoutes}, ${nonAjoutes} : ${lastError}` : ajoutes, {
         label: 'Annuler',
         onAction: async () => {
-          for (const entree of crees) {
-            await removeFromWishlist(entree.id)
+          // A failed removal must not stay silent, nor leave a rejected promise:
+          // the entries removed before it are gone, the others are still wanted.
+          try {
+            for (const entree of crees) {
+              await removeFromWishlist(entree.id)
+            }
+          } catch (error) {
+            toast(`Impossible d'annuler l'ajout : ${error instanceof Error ? error.message : String(error)}`)
+          } finally {
+            invalidate()
           }
-          invalidate()
         },
       })
     },
@@ -162,7 +189,10 @@ export function useWishlist() {
      * identity - and therefore to be able to then display it as "in your
      * wishes" or remove it.
      */
-    addAsync: (target: WishlistTarget) => addMutation.mutateAsync(target),
+    // A failure resolves to undefined: the add mutation already reported it, and
+    // callers that only await the result would otherwise leave an unhandled rejection.
+    addAsync: (target: WishlistTarget): Promise<WishlistEntryResponse | undefined> =>
+      addMutation.mutateAsync(target).catch(() => undefined),
     /** Replaying the button does not create a duplicate: the backend is idempotent on
      *  the wanted object, and what is already owned is simply ignored. */
     addMany: (cibles: WishlistTarget[]) => addManyMutation.mutate(cibles),
