@@ -49,6 +49,10 @@ describe('what a visit cannot reach', () => {
     // It only shows what one owns or wishes: it would be empty for a visitor,
     // and its title would speak of a collection that they do not have.
     expect(estReserveeAuxComptes('/')).toBe(true)
+    // The whole collection moved to /collection with the home page (lot 212);
+    // its category pages stay open (see the catalog above).
+    expect(estReserveeAuxComptes('/collection')).toBe(true)
+    expect(estReserveeAuxComptes('/collection/manga')).toBe(false)
     // Without making "/" a prefix that would swallow everything else.
     expect(estReserveeAuxComptes('/add')).toBe(false)
     expect(estReserveeAuxComptes('/entity/abc')).toBe(false)

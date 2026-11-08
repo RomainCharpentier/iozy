@@ -664,7 +664,7 @@ export function EntityDetailPage() {
       <button
         type="button"
         onClick={() => {
-          const vers = retour ?? (estInvite ? { to: '/add', libelle: 'Catalogue' } : { to: '/', libelle: 'Ma collection' })
+          const vers = retour ?? (estInvite ? { to: '/add', libelle: 'Catalogue' } : { to: '/collection', libelle: 'Ma collection' })
           naviguerAvecVol(
             vers.depuisOeuvre ? refJaquette.current : null,
             () => navigate(vers.to, { state: { position: vers.position } }),

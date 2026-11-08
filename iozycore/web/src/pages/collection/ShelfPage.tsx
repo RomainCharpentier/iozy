@@ -44,7 +44,7 @@ const LIBELLES_DECOMPTE: Record<FiltreCollection, (n: number) => string> = {
 
 /** A room shows what moved last, about one screen: everything is one click away, on its shelf page. */
 const OEUVRES_PAR_SALLE = 10
-const RETOUR_COLLECTION = { to: '/', libelle: 'Ma collection' }
+const RETOUR_COLLECTION = { to: '/collection', libelle: 'Ma collection' }
 
 /** An empty screen must say WHY it is empty, and how to get out of it. */
 function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre: string; detail: string } {
@@ -380,7 +380,7 @@ export function ShelfPage() {
                 // The origin travels with the navigation: without it, the back link
                 // of this screen would offer Administration, its natural
                 // parent - a detour, for someone who comes from here.
-                navigate('/types', { state: { retour: { to: '/', libelle: 'Ma collection' } } })
+                navigate('/types', { state: { retour: RETOUR_COLLECTION } })
               }}
               className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover"
             >

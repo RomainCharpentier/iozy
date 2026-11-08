@@ -41,7 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Accueil',
     labelCourt: 'Accueil',
     icon: House,
-    activeWhen: (p) => p === '/' || p.startsWith('/entity/') || p.startsWith('/collection/'),
+    activeWhen: (p) => p === '/' || p === '/collection' || p.startsWith('/entity/') || p.startsWith('/collection/'),
   },
   {
     cle: 'sorties',

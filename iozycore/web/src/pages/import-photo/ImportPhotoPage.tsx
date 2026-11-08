@@ -947,7 +947,7 @@ function Rapport({ rapport }: { rapport: RapportImportEtagereDto }) {
           </li>
         ))}
       </ul>
-      <Link to="/" className="self-start text-sm font-semibold text-accent underline underline-offset-2">
+      <Link to="/collection" className="self-start text-sm font-semibold text-accent underline underline-offset-2">
         Voir ma collection
       </Link>
     </section>

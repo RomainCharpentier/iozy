@@ -103,7 +103,7 @@ export function CategoryPage() {
     <div className="flex flex-col gap-4">
       {/* The common back link: 44 px high, the destination named by whoever opened
           the screen (see lib/retour), otherwise the natural parent. */}
-      <LienRetour parDefaut={{ to: '/', libelle: 'Ma collection' }} />
+      <LienRetour parDefaut={{ to: '/collection', libelle: 'Ma collection' }} />
 
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <div className="flex items-center gap-2.5">
