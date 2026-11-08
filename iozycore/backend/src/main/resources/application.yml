@@ -85,6 +85,29 @@ iozycore:
       # Between two series that may reach the BnF, which limits the rate per address.
       pause-ms: 3000
       recheck-after-days: 7
+  board-game-expansions:
+    # The expansions of the board games (lot 211), read from BoardGameGeek
+    # into a shared cache: a page never waits on BGG. A few games per run, a
+    # pause between two, the run stops at the first silent answer; a stored
+    # answer is read again after refresh-after-days. Off on the e2e stack.
+    backfill:
+      enabled: ${BOARD_GAME_EXPANSIONS_BACKFILL_ENABLED:${RELEASES_REFRESH_ENABLED:true}}
+      initial-delay-ms: ${BOARD_GAME_EXPANSIONS_BACKFILL_INITIAL_DELAY_MS:300000}
+      every-ms: 3600000
+      games-per-run: ${BOARD_GAME_EXPANSIONS_BACKFILL_GAMES_PER_RUN:10}
+      # Between two BGG calls (also between the cover reads of one game).
+      pause-ms: 2000
+      refresh-after-days: 30
+  video-game-franchises:
+    # The licence of the video games (lot 211), read from IGDB into a shared
+    # cache. Does nothing without the IGDB key. Same rules as above.
+    backfill:
+      enabled: ${VIDEO_GAME_FRANCHISES_BACKFILL_ENABLED:${RELEASES_REFRESH_ENABLED:true}}
+      initial-delay-ms: ${VIDEO_GAME_FRANCHISES_BACKFILL_INITIAL_DELAY_MS:330000}
+      every-ms: 3600000
+      games-per-run: ${VIDEO_GAME_FRANCHISES_BACKFILL_GAMES_PER_RUN:10}
+      pause-ms: 1000
+      refresh-after-days: 30
 
 spring:
   application:
