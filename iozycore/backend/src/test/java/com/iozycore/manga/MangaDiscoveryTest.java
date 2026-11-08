@@ -11,6 +11,8 @@ import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import org.junit.jupiter.api.Test;
 import com.iozycore.core.testing.InMemoryEntityRepository;
+import com.iozycore.core.testing.InMemoryOwnershipRepository;
+import com.iozycore.core.application.insights.OwnedWorks;
 import com.iozycore.core.testing.InMemoryExperienceRepository;
 
 import java.time.LocalDate;
@@ -18,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.iozycore.core.testing.OwnedWorksFixtures.everythingOwnedIn;
+import static com.iozycore.core.testing.OwnedWorksFixtures.owned;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.core.domain.insights.DiscoveryCandidate;
 
@@ -39,7 +43,7 @@ class MangaDiscoveryTest {
                 new MetadataCandidate("JIKAN", "2", "Bakuman", null, Map.of())     // new - must appear
         ));
 
-        MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository, List.of(jikan));
+        MangaDiscovery service = new MangaDiscovery(everythingOwnedIn(entityRepository), experienceRepository, List.of(jikan));
 
         Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
 
@@ -52,7 +56,7 @@ class MangaDiscoveryTest {
     @Test
     void says_nothing_is_owned_without_asking_the_source() {
         StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of());
-        MangaDiscovery service = new MangaDiscovery(new InMemoryEntityRepository(), new CountingExperienceRepository(), List.of(jikan));
+        MangaDiscovery service = new MangaDiscovery(everythingOwnedIn(new InMemoryEntityRepository()), new CountingExperienceRepository(), List.of(jikan));
 
         Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
 
@@ -71,7 +75,7 @@ class MangaDiscoveryTest {
         pluto.setAttribute("mangaka", "Urasawa, Naoki");
         entityRepository.save(pluto);
         StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of());
-        MangaDiscovery service = new MangaDiscovery(entityRepository, new CountingExperienceRepository(), List.of(jikan));
+        MangaDiscovery service = new MangaDiscovery(everythingOwnedIn(entityRepository), new CountingExperienceRepository(), List.of(jikan));
 
         Discovery discovery = service.discover(EntityTypeFixtures.MANGA);
 
@@ -87,7 +91,7 @@ class MangaDiscoveryTest {
         Entity pluto = Entity.create(EntityTypeFixtures.MANGA.id(), "Pluto");
         entityRepository.save(pluto);
         experienceRepository.save(Experience.record_(pluto.id(), null, "READ", LocalDate.now(), 8, null));
-        MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository,
+        MangaDiscovery service = new MangaDiscovery(everythingOwnedIn(entityRepository), experienceRepository,
                 List.of(new StubJikanMetadataProvider(List.of())));
 
         assertThat(service.discover(EntityTypeFixtures.MANGA).emptyReason()).isEqualTo(EmptyReason.NO_KNOWN_AUTHOR);
@@ -137,6 +141,46 @@ class MangaDiscoveryTest {
         assertThat(muet.appels).isEqualTo(2);
     }
 
+    // ------------------------------------------ Only what this account owns
+
+    @Test
+    void starts_from_the_mangas_this_account_owns_not_the_whole_catalog() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        CountingExperienceRepository experienceRepository = new CountingExperienceRepository();
+        Entity berserk = Entity.create(EntityTypeFixtures.MANGA.id(), "Berserk");
+        berserk.setAttribute("mangaka", "Miura, Kentarou");
+        entityRepository.save(berserk);
+        experienceRepository.save(Experience.record_(berserk.id(), null, "READ", LocalDate.now(), 7, null));
+        Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note"); // rated higher, not owned here
+        deathNote.setAttribute("mangaka", "Ohba, Tsugumi");
+        entityRepository.save(deathNote);
+        experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.now(), 10, null));
+        InMemoryOwnershipRepository ownerships = new InMemoryOwnershipRepository();
+        ownerships.save(owned(berserk));
+        StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of(
+                new MetadataCandidate("JIKAN", "1", "Death Note", null, Map.of())));
+
+        Discovery discovery = new MangaDiscovery(new OwnedWorks(entityRepository, ownerships), experienceRepository,
+                List.of(jikan)).discover(EntityTypeFixtures.MANGA);
+
+        assertThat(jikan.appels).isEqualTo(1);
+        assertThat(discovery.candidates()).extracting(DiscoveryCandidate::title).containsExactly("Death Note");
+        assertThat(discovery.candidates().get(0).reason()).contains("Miura, Kentarou");
+    }
+
+    @Test
+    void says_nothing_is_owned_when_the_catalog_only_holds_mangas_of_other_accounts() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        entityRepository.save(Entity.create(EntityTypeFixtures.MANGA.id(), "Pluto"));
+        StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of());
+
+        Discovery discovery = new MangaDiscovery(new OwnedWorks(entityRepository, new InMemoryOwnershipRepository()),
+                new CountingExperienceRepository(), List.of(jikan)).discover(EntityTypeFixtures.MANGA);
+
+        assertThat(discovery.emptyReason()).isEqualTo(EmptyReason.NOTHING_OWNED);
+        assertThat(jikan.appels).isZero();
+    }
+
     private static MangaDiscovery serviceWithRatedBerserk(List<MetadataProvider> providers) {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         CountingExperienceRepository experienceRepository = new CountingExperienceRepository();
@@ -144,7 +188,7 @@ class MangaDiscoveryTest {
         berserk.setAttribute("mangaka", "Miura, Kentarou");
         entityRepository.save(berserk);
         experienceRepository.save(Experience.record_(berserk.id(), null, "READ", LocalDate.now(), 10, null));
-        return new MangaDiscovery(entityRepository, experienceRepository, providers);
+        return new MangaDiscovery(everythingOwnedIn(entityRepository), experienceRepository, providers);
     }
 
     // ------------------------------------------ What the volume measurement found (batch 141)
@@ -160,7 +204,7 @@ class MangaDiscoveryTest {
             entityRepository.save(serie);
             experienceRepository.save(Experience.record_(serie.id(), null, "READ", LocalDate.now(), 5 + (i % 5), null));
         }
-        MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository,
+        MangaDiscovery service = new MangaDiscovery(everythingOwnedIn(entityRepository), experienceRepository,
                 List.of(new StubJikanMetadataProvider(List.of(new MetadataCandidate("JIKAN", "9", "Autre", null, Map.of())))));
 
         service.discover(EntityTypeFixtures.MANGA);
@@ -179,7 +223,7 @@ class MangaDiscoveryTest {
         experienceRepository.save(Experience.record_(berserk.id(), null, "READ", LocalDate.now(), 10, null));
         StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(
                 List.of(new MetadataCandidate("JIKAN", "3", "Gigantomakhia", null, Map.of())));
-        MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository, List.of(jikan));
+        MangaDiscovery service = new MangaDiscovery(everythingOwnedIn(entityRepository), experienceRepository, List.of(jikan));
 
         Discovery premiere = service.discover(EntityTypeFixtures.MANGA);
         Discovery seconde = service.discover(EntityTypeFixtures.MANGA);
@@ -197,7 +241,7 @@ class MangaDiscoveryTest {
         entityRepository.save(berserk);
         experienceRepository.save(Experience.record_(berserk.id(), null, "READ", LocalDate.now(), 10, null));
         StubJikanMetadataProvider muet = new StubJikanMetadataProvider(List.of());
-        MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository, List.of(muet));
+        MangaDiscovery service = new MangaDiscovery(everythingOwnedIn(entityRepository), experienceRepository, List.of(muet));
 
         service.discover(EntityTypeFixtures.MANGA);
         service.discover(EntityTypeFixtures.MANGA);

@@ -1,7 +1,6 @@
 package com.iozycore.manga;
 
 import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.experience.Experience;
 import com.iozycore.core.domain.experience.ExperienceRepository;
@@ -10,6 +9,7 @@ import com.iozycore.core.domain.insights.Discovery;
 import com.iozycore.core.domain.insights.Discovery.EmptyReason;
 import com.iozycore.core.domain.insights.DiscoveryCandidate;
 import com.iozycore.core.application.insights.DiscoverySource;
+import com.iozycore.core.application.insights.OwnedWorks;
 import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.core.metadata.QuotaExceededException;
@@ -66,7 +66,7 @@ public class MangaDiscovery implements DiscoverySource {
     private static final int MAX_SUGGESTIONS = 8;
     private static final Duration RETENUE = Duration.ofMinutes(30);
 
-    private final EntityRepository entityRepository;
+    private final OwnedWorks ownedWorks;
     private final ExperienceRepository experienceRepository;
     private final List<MetadataProvider> metadataProviders;
     private final TtlCache<String, Discovery> memoire = new TtlCache<>(RETENUE, 64);
@@ -78,7 +78,7 @@ public class MangaDiscovery implements DiscoverySource {
 
     @Override
     public Discovery discover(EntityType mangaType) {
-        List<Entity> ownedManga = entityRepository.findAllByType(mangaType.id());
+        List<Entity> ownedManga = ownedWorks.ofType(mangaType.id());
         if (ownedManga.isEmpty()) {
             return Discovery.nothingToAsk(EmptyReason.NOTHING_OWNED);
         }

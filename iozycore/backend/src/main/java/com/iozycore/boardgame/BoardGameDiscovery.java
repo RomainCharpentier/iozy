@@ -4,13 +4,13 @@ import com.iozycore.boardgame.bgg.BggCollectionItem;
 import com.iozycore.boardgame.bgg.BggHotListFetcher;
 import com.iozycore.boardgame.bgg.BggThingFetcher;
 import com.iozycore.core.domain.catalog.Entity;
-import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.shared.TexteRecherche;
 import com.iozycore.core.domain.insights.Discovery;
 import com.iozycore.core.domain.insights.Discovery.EmptyReason;
 import com.iozycore.core.domain.insights.DiscoveryCandidate;
 import com.iozycore.core.application.insights.DiscoverySource;
+import com.iozycore.core.application.insights.OwnedWorks;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +48,7 @@ public class BoardGameDiscovery implements DiscoverySource {
     private static final int MAX_HOT_GAMES_EXAMINED = 12;
     private static final int MAX_SUGGESTIONS = 8;
 
-    private final EntityRepository entityRepository;
+    private final OwnedWorks ownedWorks;
     private final BggThingFetcher bggThingFetcher;
     private final BggHotListFetcher bggHotListFetcher;
 
@@ -59,7 +59,7 @@ public class BoardGameDiscovery implements DiscoverySource {
 
     @Override
     public Discovery discover(EntityType entityType) {
-        List<Entity> ownedGames = entityRepository.findAllByType(entityType.id());
+        List<Entity> ownedGames = ownedWorks.ofType(entityType.id());
         if (ownedGames.isEmpty()) {
             return Discovery.nothingToAsk(EmptyReason.NOTHING_OWNED);
         }

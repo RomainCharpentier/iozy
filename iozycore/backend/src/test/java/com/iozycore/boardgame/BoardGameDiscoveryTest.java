@@ -11,12 +11,16 @@ import com.iozycore.core.domain.insights.DiscoveryCandidate;
 import com.iozycore.core.metadata.SourceUnavailableException;
 import org.junit.jupiter.api.Test;
 import com.iozycore.core.testing.InMemoryEntityRepository;
+import com.iozycore.core.testing.InMemoryOwnershipRepository;
+import com.iozycore.core.application.insights.OwnedWorks;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.iozycore.core.testing.OwnedWorksFixtures.everythingOwnedIn;
+import static com.iozycore.core.testing.OwnedWorksFixtures.owned;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -40,7 +44,7 @@ class BoardGameDiscoveryTest {
                 new BggCollectionItem(CASCADIA_ID, "Cascadia", null),
                 new BggCollectionItem(DUNE_ID, "Dune: Imperium", null)));
 
-        Discovery result = new BoardGameDiscovery(repositoryWithAzul(), things, hot).discover(EntityTypeFixtures.BOARD_GAME);
+        Discovery result = new BoardGameDiscovery(everythingOwnedIn(repositoryWithAzul()), things, hot).discover(EntityTypeFixtures.BOARD_GAME);
 
         assertThat(result.candidates()).extracting(DiscoveryCandidate::title).containsExactly("Cascadia");
         assertThat(result.candidates().get(0).reason()).isEqualTo("En commun : Tile Placement");
@@ -51,7 +55,7 @@ class BoardGameDiscoveryTest {
     void says_nothing_is_owned_without_asking_bgg() {
         StubBggHotListFetcher hot = new StubBggHotListFetcher(List.of());
 
-        Discovery result = new BoardGameDiscovery(new InMemoryEntityRepository(), new StubBggThingFetcher(Map.of()), hot)
+        Discovery result = new BoardGameDiscovery(everythingOwnedIn(new InMemoryEntityRepository()), new StubBggThingFetcher(Map.of()), hot)
                 .discover(EntityTypeFixtures.BOARD_GAME);
 
         assertThat(result.sourceAnswered()).isTrue();
@@ -65,7 +69,7 @@ class BoardGameDiscoveryTest {
         entityRepository.save(Entity.create(EntityTypeFixtures.BOARD_GAME.id(), "Typed by hand"));
         StubBggHotListFetcher hot = new StubBggHotListFetcher(List.of());
 
-        Discovery result = new BoardGameDiscovery(entityRepository, new StubBggThingFetcher(Map.of()), hot)
+        Discovery result = new BoardGameDiscovery(everythingOwnedIn(entityRepository), new StubBggThingFetcher(Map.of()), hot)
                 .discover(EntityTypeFixtures.BOARD_GAME);
 
         assertThat(result.emptyReason()).isEqualTo(EmptyReason.NOT_LINKED_TO_SOURCE);
@@ -76,7 +80,7 @@ class BoardGameDiscoveryTest {
     void says_bgg_did_not_answer_when_the_hot_list_is_silent() {
         StubBggThingFetcher things = new StubBggThingFetcher(Map.of(AZUL_ID, Set.of("Tile Placement")));
 
-        Discovery result = new BoardGameDiscovery(repositoryWithAzul(), things, new SilentBggHotListFetcher())
+        Discovery result = new BoardGameDiscovery(everythingOwnedIn(repositoryWithAzul()), things, new SilentBggHotListFetcher())
                 .discover(EntityTypeFixtures.BOARD_GAME);
 
         assertThat(result.candidates()).isEmpty();
@@ -90,7 +94,7 @@ class BoardGameDiscoveryTest {
         things.silentIds.add(AZUL_ID);
         StubBggHotListFetcher hot = new StubBggHotListFetcher(List.of(new BggCollectionItem(CASCADIA_ID, "Cascadia", null)));
 
-        Discovery result = new BoardGameDiscovery(repositoryWithAzul(), things, hot).discover(EntityTypeFixtures.BOARD_GAME);
+        Discovery result = new BoardGameDiscovery(everythingOwnedIn(repositoryWithAzul()), things, hot).discover(EntityTypeFixtures.BOARD_GAME);
 
         assertThat(result.candidates()).isEmpty();
         assertThat(result.sourceAnswered()).isFalse();
@@ -103,11 +107,47 @@ class BoardGameDiscoveryTest {
                 DUNE_ID, Set.of("Science Fiction")));
         StubBggHotListFetcher hot = new StubBggHotListFetcher(List.of(new BggCollectionItem(DUNE_ID, "Dune: Imperium", null)));
 
-        Discovery result = new BoardGameDiscovery(repositoryWithAzul(), things, hot).discover(EntityTypeFixtures.BOARD_GAME);
+        Discovery result = new BoardGameDiscovery(everythingOwnedIn(repositoryWithAzul()), things, hot).discover(EntityTypeFixtures.BOARD_GAME);
 
         assertThat(result.candidates()).isEmpty();
         assertThat(result.sourceAnswered()).isTrue();
         assertThat(result.emptyReason()).isNull();
+    }
+
+    // ------------------------------------------ Only what this account owns
+
+    @Test
+    void starts_from_the_games_this_account_owns_not_the_whole_catalog() {
+        InMemoryEntityRepository entityRepository = repositoryWithAzul();
+        Entity azul = entityRepository.all().get(0);
+        Entity cascadia = Entity.create(EntityTypeFixtures.BOARD_GAME.id(), "Cascadia"); // in the catalog, not owned here
+        cascadia.setAttribute("bggId", CASCADIA_ID);
+        entityRepository.save(cascadia);
+        InMemoryOwnershipRepository ownerships = new InMemoryOwnershipRepository();
+        ownerships.save(owned(azul));
+        StubBggThingFetcher things = new StubBggThingFetcher(Map.of(
+                AZUL_ID, Set.of("Tile Placement"),
+                CASCADIA_ID, Set.of("Tile Placement", "Animals")));
+        StubBggHotListFetcher hot = new StubBggHotListFetcher(List.of(new BggCollectionItem(CASCADIA_ID, "Cascadia", null)));
+
+        Discovery result = new BoardGameDiscovery(new OwnedWorks(entityRepository, ownerships), things, hot)
+                .discover(EntityTypeFixtures.BOARD_GAME);
+
+        assertThat(result.candidates()).extracting(DiscoveryCandidate::title).containsExactly("Cascadia");
+        assertThat(result.candidates().get(0).reason()).isEqualTo("En commun : Tile Placement");
+    }
+
+    @Test
+    void says_nothing_is_owned_when_the_catalog_only_holds_games_of_other_accounts() {
+        StubBggHotListFetcher hot = new StubBggHotListFetcher(List.of());
+
+        Discovery result = new BoardGameDiscovery(
+                new OwnedWorks(repositoryWithAzul(), new InMemoryOwnershipRepository()),
+                new StubBggThingFetcher(Map.of()), hot)
+                .discover(EntityTypeFixtures.BOARD_GAME);
+
+        assertThat(result.emptyReason()).isEqualTo(EmptyReason.NOTHING_OWNED);
+        assertThat(hot.calls).isZero();
     }
 
     private static InMemoryEntityRepository repositoryWithAzul() {

@@ -4,6 +4,7 @@ import com.iozycore.core.domain.follow.FollowedWork;
 import com.iozycore.core.domain.follow.FollowedWorkRepository;
 
 import com.iozycore.core.application.auth.AppUserDetailsService;
+import com.iozycore.core.application.insights.OwnedWorks;
 import com.iozycore.core.application.auth.Invite;
 import com.iozycore.core.application.auth.Visite;
 import com.iozycore.core.domain.catalog.Entity;
@@ -108,6 +109,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
     @Autowired private PublicShareController partagePublic;
     @Autowired private PurchaseAnalysisService purchaseAnalysis;
     @Autowired private MangaEditionRepository mangaEditions;
+    @Autowired private OwnedWorks ownedWorks;
 
     /** What this test created, to be erased: nothing will be rolled back for it. */
     private final List<UUID> oeuvresCreees = new ArrayList<>();
@@ -171,6 +173,31 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
 
         connecte(ALICE);
         assertThat(ownerships.findById(possession.id())).isPresent();
+    }
+
+    @Test
+    void discovery_starts_only_from_the_works_of_the_connected_account() {
+        Entity chezAlice = oeuvre("Monster");
+        Entity chezBob = oeuvre("Vagabond");
+        Entity vendue = oeuvre("Dorohedoro");
+
+        connecte(ALICE);
+        ownerships.save(Ownership.acquire(chezAlice.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        Ownership sold = Ownership.acquire(vendue.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
+        sold.markSold();
+        ownerships.save(sold);
+        connecte(BOB);
+        ownerships.save(Ownership.acquire(chezBob.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+
+        // The catalog holds all three works; each account starts from its own shelf only.
+        assertThat(ownedWorks.ofType(EntityTypeFixtures.MANGA.id())).extracting(Entity::id)
+                .contains(chezBob.id())
+                .doesNotContain(chezAlice.id(), vendue.id());
+
+        connecte(ALICE);
+        assertThat(ownedWorks.ofType(EntityTypeFixtures.MANGA.id())).extracting(Entity::id)
+                .contains(chezAlice.id())
+                .doesNotContain(chezBob.id(), vendue.id());
     }
 
 
