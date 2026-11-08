@@ -89,3 +89,12 @@ export function invaliderApresSuivi(queryClient: QueryClient) {
   // Following removes the wish for the work: its wished count and its place in the list change.
   queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
 }
+
+/**
+ * After the collector says where they stand with a work (ongoing, paused,
+ * dropped): its missing count changes, so does every list that reads it
+ * (the work, the list of works, the "to buy" page).
+ */
+export function invalidateAfterCollectorStatus(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
+}

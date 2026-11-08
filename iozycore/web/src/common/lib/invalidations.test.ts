@@ -14,6 +14,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { QueryClient } from '@tanstack/react-query'
 import {
+  invalidateAfterCollectorStatus,
   invalidateAfterMarketObservation,
   invalidateAfterPurchaseAnalysis,
   invaliderApresEnvie,
@@ -129,5 +130,15 @@ describe('after a market observation', () => {
       'purchaseAnalysis/completeness',
       'purchaseAnalysis/nearCompleteSuggestions',
     ])
+  })
+})
+
+describe('after a collector status', () => {
+  it('invalidates every work, so the missing counts follow', () => {
+    const { client, prefixes } = clientEspion()
+
+    invalidateAfterCollectorStatus(client)
+
+    expect(prefixes()).toEqual(['works'])
   })
 })
