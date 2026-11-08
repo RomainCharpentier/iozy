@@ -161,7 +161,8 @@
   flex-shrink: 0;
 }
 
-.categoriesSelection label {
+.categoriesSelection label,
+.categoriesTitle {
   display: block;
   margin-bottom: 0.75rem;
   font-weight: 600;
