@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { CalendarPlus } from 'lucide-react'
 import { getReleaseCalendar } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { LIBELLES_RELATION, libelleDateCourte, libelleMois, periodeSurUnAn } from '@/common/lib/releaseDate'
@@ -7,6 +9,7 @@ import { useNow } from '@/common/hooks/useNow'
 import { Jaquette } from '@/common/components/Jaquette'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import type { ReleaseEntryDto } from '@/common/types/api'
+import { releasesToIcs } from '@/common/lib/releaseIcs'
 import { cleDeSortie, grouperParMois } from './releaseCalendar'
 import { Squelette } from '@/common/components/Squelette'
 
@@ -39,7 +42,18 @@ export function ListeAVenir({
     queryKey: queryKeys.insights.releases(from, to),
     queryFn: () => getReleaseCalendar(from, to),
   })
-  const mois = grouperParMois(query.data?.entries ?? [])
+  const entries = query.data?.entries ?? []
+  const mois = grouperParMois(entries)
+  const now = useNow()
+  const [exportNote, setExportNote] = useState<string | null>(null)
+  // The button only shows when the file would hold at least one event.
+  const exportable = releasesToIcs(entries, now).included > 0
+
+  function exportCalendar() {
+    const { ics, included, skipped } = releasesToIcs(entries, new Date())
+    downloadFile(ics, 'iozycore-sorties.ics')
+    setExportNote(exportMessage(included, skipped))
+  }
 
   return (
     <aside aria-labelledby="a-venir-titre" className={`flex flex-col gap-4 ${className}`}>
@@ -48,6 +62,21 @@ export function ListeAVenir({
           À venir
         </h2>
         <p className="text-sm text-textDim">Tout ce qui sort dans l'année pour ta collection et tes envies.</p>
+        {exportable && (
+          <button
+            type="button"
+            onClick={exportCalendar}
+            className="mt-2 flex min-h-11 items-center gap-2 text-sm font-semibold text-accentText"
+          >
+            <CalendarPlus size={16} aria-hidden="true" />
+            Ajouter à mon agenda (.ics)
+          </button>
+        )}
+        {exportNote && (
+          <p role="status" className="text-sm text-textDim">
+            {exportNote}
+          </p>
+        )}
       </div>
 
       {query.isError && <ErrorBanner message={query.error.message} />}
@@ -100,4 +129,24 @@ function LigneAVenir({
       <span className="shrink-0 text-[11px] font-semibold text-textDim">{LIBELLES_RELATION[entry.relation] ?? entry.relation}</span>
     </button>
   )
+}
+
+/** What the file holds, and what it leaves out: a release only known to the month has no day to put in a calendar. */
+function exportMessage(included: number, skipped: number): string {
+  const written = included > 1 ? `${included} sorties à acheter ou en envie ajoutées au fichier.` : '1 sortie à acheter ou en envie ajoutée au fichier.'
+  if (skipped === 0) return written
+  const left = skipped > 1 ? `${skipped} sorties connues seulement au mois n'y sont pas.` : "1 sortie connue seulement au mois n'y est pas."
+  return `${written} ${left}`
+}
+
+function downloadFile(content: string, name: string) {
+  // jsdom has no object URL: the file is then simply not offered.
+  if (typeof URL.createObjectURL !== 'function') return
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/calendar;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  link.click()
+  // Revoked later: some browsers read the link after the click returns.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
