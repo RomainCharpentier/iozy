@@ -7,6 +7,7 @@ import MediaPlayer from '@/components/media/MediaPlayer'
 import { isYouTubeUrl } from '@/utils/youtube'
 import AnswerInput from '@/pages/GamePage/question/AnswerInput'
 import MediaSyncOverlay from '@/pages/GamePage/question/MediaSyncOverlay'
+import { getReadyStatus } from '@/pages/GamePage/question/readyStatus'
 import { TIMING } from '@/services/gameService'
 import { getPlayerId } from '@/utils/playerId'
 import { getQuestionStartTime } from '@/utils/timecode'
@@ -47,6 +48,8 @@ interface QuestionCardProps {
   answerAckPending?: boolean // En ligne : une réponse envoyée attend l'accusé du serveur
   questionNumber?: number // Pour l'écran de transition entre questions
   totalQuestions?: number
+  readyPlayerIds?: string[] // En ligne : joueurs prêts pour cette question (room:state)
+  selfId?: string // Joueur local, compté prêt dès que son média l'est
 }
 
 export default function QuestionCard({
@@ -75,6 +78,8 @@ export default function QuestionCard({
   answerAckPending = false,
   questionNumber,
   totalQuestions,
+  readyPlayerIds,
+  selfId,
 }: QuestionCardProps) {
   const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
 
@@ -327,6 +332,11 @@ export default function QuestionCard({
                 questionNumber={questionNumber}
                 totalQuestions={totalQuestions}
                 categoryLabel={getCategoryLabel(question.category)}
+                readyStatus={
+                  readyPlayerIds
+                    ? getReadyStatus(players, readyPlayerIds, selfId, mediaReady)
+                    : undefined
+                }
               />
             )}
             {/* Scène du lecteur : passe en 16:9 contraint par la hauteur au reveal vidéo */}
