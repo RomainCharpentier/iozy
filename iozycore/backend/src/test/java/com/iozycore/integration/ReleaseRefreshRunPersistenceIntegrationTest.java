@@ -40,5 +40,24 @@ class ReleaseRefreshRunPersistenceIntegrationTest extends PostgresIntegrationTes
         assertThat(latest.remaining()).isEqualTo(2);
         assertThat(latest.stoppedOnUnavailableProvider()).isTrue();
         assertThat(latest.error()).isEqualTo("quota");
+        assertThat(latest.outcome()).isEqualTo(ReleaseRefreshRun.Outcome.FAILED);
+    }
+
+    @Test
+    void finds_the_last_pass_that_moved_the_calendar_forward_and_keeps_skipped_and_timed_out_passes() {
+        // Further in the future than the other test: these are the latest rows.
+        Instant base = Instant.parse("3999-01-01T04:30:00Z");
+        runs.save(new ReleaseRefreshRun(UUID.randomUUID(), base, base.plusSeconds(30), ReleaseRefreshRun.Origin.CATCH_UP,
+                3, 1, true, null));
+        runs.save(new ReleaseRefreshRun(UUID.randomUUID(), base.plusSeconds(60), base.plusSeconds(60),
+                ReleaseRefreshRun.Origin.SCHEDULED, 0, 0, false, null, ReleaseRefreshRun.Outcome.SKIPPED));
+        runs.save(new ReleaseRefreshRun(UUID.randomUUID(), base.plusSeconds(120), base.plusSeconds(1920),
+                ReleaseRefreshRun.Origin.MANUAL, 0, 0, false, "Passe abandonnée", ReleaseRefreshRun.Outcome.TIMED_OUT));
+
+        assertThat(runs.findLatest().orElseThrow().outcome()).isEqualTo(ReleaseRefreshRun.Outcome.TIMED_OUT);
+        ReleaseRefreshRun success = runs.findLatestSuccessful().orElseThrow();
+        assertThat(success.startedAt()).isEqualTo(base);
+        assertThat(success.origin()).isEqualTo(ReleaseRefreshRun.Origin.CATCH_UP);
+        assertThat(success.outcome()).isEqualTo(ReleaseRefreshRun.Outcome.PARTIAL);
     }
 }

@@ -38,12 +38,17 @@ public class ReleaseRefreshRunJpaEntity {
 
     private String error;
 
+    /** See V41__release_refresh_run_outcome.sql. */
+    @Column(nullable = false)
+    private String outcome;
+
     protected ReleaseRefreshRunJpaEntity() {
         // required by JPA
     }
 
     public ReleaseRefreshRunJpaEntity(UUID id, Instant startedAt, Instant finishedAt, String origin, int staleCount,
-                                      int refreshedCount, boolean stoppedOnProvider, String error) {
+                                      int refreshedCount, boolean stoppedOnProvider, String error,
+                                      String outcome) {
         this.id = id;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
@@ -52,6 +57,7 @@ public class ReleaseRefreshRunJpaEntity {
         this.refreshedCount = refreshedCount;
         this.stoppedOnProvider = stoppedOnProvider;
         this.error = error;
+        this.outcome = outcome;
     }
 
     public boolean isStoppedOnProvider() { return stoppedOnProvider; }

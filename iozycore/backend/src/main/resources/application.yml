@@ -17,6 +17,18 @@ iozycore:
       series-per-run: ${RELEASES_REFRESH_SERIES_PER_NIGHT:10}
       # A series re-read less than a week ago is not re-read again.
       stale-after-days: 7
+      # The machine is often off at 04:30 (self-hosting). A few minutes after each
+      # start, then every quarter of an hour, a pass starts when the last successful
+      # one is older than this. After a failed or silent pass, the next try waits
+      # retry-after-hours, so a provider quota is not hit again and again.
+      catch-up-after-hours: ${RELEASES_REFRESH_CATCH_UP_AFTER_HOURS:24}
+      retry-after-hours: 6
+      # A pass that runs longer is given up and recorded as TIMED_OUT.
+      max-pass-minutes: 30
+      # Between two series: spreads the calls to the providers (BnF blocks bursts).
+      pause-between-series-ms: 2000
+      # A pass stops after this many series in a row without any answer (quota).
+      max-silent-series-in-a-row: 3
   covers:
     # The missing covers of the manga volumes (batch 194): a volume added by
     # number, by photo or during a provider outage has none, and nobody
@@ -55,6 +67,12 @@ iozycore:
 spring:
   application:
     name: iozycore
+  # The backfills and the release refresh are scheduled jobs. With the default
+  # single thread, a long backfill delayed the night refresh behind it.
+  task:
+    scheduling:
+      pool:
+        size: 4
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:iozycore}
     username: ${DB_USER:iozycore}

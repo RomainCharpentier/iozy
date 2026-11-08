@@ -9,4 +9,7 @@ public interface ReleaseRefreshRunRepository {
 
     /** The most recent pass, whoever started it. */
     Optional<ReleaseRefreshRun> findLatest();
+
+    /** The most recent pass that moved the calendar forward (see {@link ReleaseRefreshRun.Outcome#isSuccess}). */
+    Optional<ReleaseRefreshRun> findLatestSuccessful();
 }
