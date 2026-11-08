@@ -657,15 +657,15 @@ describe('Bouton Passer', () => {
   })
 })
 
-describe('Écran de fin', () => {
-  const renderEnd = (isHost: boolean) => {
+describe('Écran de fin : le podium', () => {
+  const renderEnd = (isHost: boolean, endPlayers: Player[] = players) => {
     const handlers = { onRestart: vi.fn(), onChangeThemes: vi.fn(), onQuit: vi.fn() }
     render(
       <EndScreen
         score={0}
         totalQuestions={5}
         gameMode="online"
-        players={players}
+        players={endPlayers}
         isHost={isHost}
         shouldPlaySound={false}
         onSoundPlayed={() => {}}
@@ -675,13 +675,13 @@ describe('Écran de fin', () => {
     return handlers
   }
 
-  it('hôte : Rejouer, Changer les thèmes et Quitter le salon', () => {
+  it('hôte : Rejouer en un clic, Changer les thèmes et Quitter le salon', () => {
     const handlers = renderEnd(true)
     const labels = screen.getAllByRole('button').map((b) => b.textContent?.trim())
-    expect(labels).toEqual(['🔄 Rejouer', '🎨 Changer les thèmes', '🚪 Quitter le salon'])
-    fireEvent.click(screen.getByRole('button', { name: /Rejouer/ }))
-    fireEvent.click(screen.getByRole('button', { name: /Changer les thèmes/ }))
-    fireEvent.click(screen.getByRole('button', { name: /Quitter le salon/ }))
+    expect(labels).toEqual(['Rejouer', 'Changer les thèmes', 'Quitter le salon'])
+    fireEvent.click(screen.getByRole('button', { name: 'Rejouer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Changer les thèmes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Quitter le salon' }))
     expect(handlers.onRestart).toHaveBeenCalledTimes(1)
     expect(handlers.onChangeThemes).toHaveBeenCalledTimes(1)
     expect(handlers.onQuit).toHaveBeenCalledTimes(1)
@@ -692,73 +692,73 @@ describe('Écran de fin', () => {
     const handlers = renderEnd(false)
     expect(screen.getByText(/En attente de l'hôte pour une nouvelle partie…/)).toBeTruthy()
     const labels = screen.getAllByRole('button').map((b) => b.textContent?.trim())
-    expect(labels).toEqual(['🚪 Quitter le salon'])
-    fireEvent.click(screen.getByRole('button', { name: /Quitter le salon/ }))
+    expect(labels).toEqual(['Quitter le salon'])
+    fireEvent.click(screen.getByRole('button', { name: 'Quitter le salon' }))
     expect(handlers.onQuit).toHaveBeenCalledTimes(1)
   })
 
-  it('classement final : la couronne remplace le rang du vainqueur', () => {
+  it('dit qui l’emporte et combien d’extraits ont été joués', () => {
     renderEnd(false)
-    const crown = screen.getByTitle('Vainqueur')
-    expect(crown.textContent).toBe('👑')
-    // Le nom du vainqueur n'inclut pas la couronne
-    expect(screen.getByText('Moi').textContent).toBe('Moi')
-    expect(screen.getByText('#2')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Tu l’emportes' })).toBeTruthy()
+    expect(screen.getByText('Partie terminée · 5 extraits')).toBeTruthy()
   })
 
-  it('classement final : un seul format de score, « X / N »', () => {
-    renderEnd(false)
-    // Ligne d'un joueur : nom puis score, sans doublon « 2 / 5 » + « 2 »
-    const row = (name: string) =>
-      screen.getByText(name).closest(`.${gameStyles.gameInterfacePlayer}`)?.textContent
-    expect(row('Moi')).toMatch(/Moi2 \/ 5$/)
-    expect(row('Autre')).toMatch(/Autre1 \/ 5$/)
-  })
-
-  it('pas de couronne en cas d’égalité stricte (même score positif)', () => {
-    const tiedPlayers: Player[] = [
-      { id: 'me', name: 'Moi', score: 2, isHost: true, connected: true },
-      { id: 'other', name: 'Autre', score: 2, connected: true },
-    ]
-    render(
-      <EndScreen
-        score={2}
-        totalQuestions={5}
-        gameMode="online"
-        players={tiedPlayers}
-        isHost={true}
-        shouldPlaySound={false}
-        onSoundPlayed={() => {}}
-        onRestart={() => {}}
-        onChangeThemes={() => {}}
-        onQuit={() => {}}
-      />
+  it('le podium dans l’ordre des rangs, scores compris', () => {
+    renderEnd(false, [
+      { id: 'c', name: 'Julien', score: 1 },
+      { id: 'a', name: 'Max', score: 4 },
+      { id: 'me', name: 'Moi', score: 3 },
+      { id: 'd', name: 'Léa', score: 0 },
+    ])
+    expect(screen.getByRole('heading', { name: 'Max l’emporte' })).toBeTruthy()
+    const steps = screen.getByRole('list', { name: 'Podium' })
+    const labels = Array.from(steps.querySelectorAll('li')).map((li) =>
+      li.getAttribute('aria-label')
     )
-    expect(screen.queryByTitle('Vainqueur')).toBeNull()
-    expect(screen.getByText('#1')).toBeTruthy()
+    expect(labels).toEqual([
+      '1er : Max, 4 points',
+      '2e : Moi (toi), 3 points',
+      '3e : Julien, 1 point',
+    ])
+    // À zéro point, Léa reste dans la suite du classement
+    const rest = screen.getByRole('list', { name: 'Suite du classement' })
+    expect(rest.textContent).toBe('4eLLéaLéa0 / 5')
   })
 
-  it('pas de couronne ni de félicitations quand personne n’a marqué de point', () => {
-    const zeroPlayers: Player[] = [
-      { id: 'me', name: 'Moi', score: 0, isHost: true, connected: true },
-      { id: 'other', name: 'Autre', score: 0, connected: true },
-    ]
-    render(
-      <EndScreen
-        score={0}
-        totalQuestions={5}
-        gameMode="online"
-        players={zeroPlayers}
-        isHost={true}
-        shouldPlaySound={false}
-        onSoundPlayed={() => {}}
-        onRestart={() => {}}
-        onChangeThemes={() => {}}
-        onQuit={() => {}}
-      />
+  it('égalité en tête : une marche pour deux, le suivant est 3e', () => {
+    renderEnd(true, [
+      { id: 'me', name: 'Moi', score: 2, isHost: true },
+      { id: 'other', name: 'Autre', score: 2 },
+      { id: 'x', name: 'Zoé', score: 1 },
+    ])
+    expect(screen.getByRole('heading', { name: 'Égalité en tête' })).toBeTruthy()
+    const steps = screen.getByRole('list', { name: 'Podium' })
+    const labels = Array.from(steps.querySelectorAll('li')).map((li) =>
+      li.getAttribute('aria-label')
     )
-    expect(screen.queryByTitle('Vainqueur')).toBeNull()
-    expect(screen.queryByText('Félicitations à tous les participants')).toBeNull()
-    expect(screen.getByText(/Personne n.a trouvé cette fois/)).toBeTruthy()
+    expect(labels).toEqual(['1er : Autre, Moi (toi), 2 points', '3e : Zoé, 1 point'])
+  })
+
+  it('suite du classement : le lecteur d’écran sait quelle ligne est la sienne', () => {
+    renderEnd(false, [
+      { id: 'a', name: 'Max', score: 4 },
+      { id: 'b', name: 'Léa', score: 3 },
+      { id: 'c', name: 'Zoé', score: 2 },
+      { id: 'me', name: 'Moi', score: 1 },
+    ])
+    const rest = screen.getByRole('list', { name: 'Suite du classement' })
+    expect(rest.textContent).toContain('Moi (toi)')
+  })
+
+  it('personne n’a marqué : pas de podium, tout le monde en liste', () => {
+    renderEnd(true, [
+      { id: 'me', name: 'Moi', score: 0, isHost: true },
+      { id: 'other', name: 'Autre', score: 0 },
+    ])
+    expect(screen.getByRole('heading', { name: 'Personne n’a marqué' })).toBeTruthy()
+    expect(screen.queryByRole('list', { name: 'Podium' })).toBeNull()
+    expect(
+      screen.getByRole('list', { name: 'Suite du classement' }).querySelectorAll('li')
+    ).toHaveLength(2)
   })
 })

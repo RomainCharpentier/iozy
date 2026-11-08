@@ -34,8 +34,9 @@ export default function RoomCreatorPage() {
     navigate('/game')
   }
 
+  // Retour là d'où l'on vient : la partie rapide part de « On joue ? », pas du choix des thèmes.
   const handleBack = () => {
-    navigate('/categories')
+    navigate(gameState.origin === 'quick' ? '/' : '/categories')
   }
 
   return (
@@ -44,6 +45,7 @@ export default function RoomCreatorPage() {
       questions={gameState.questions}
       playerName={gameState.playerName}
       gameMode={gameState.gameMode}
+      initialQuestionCount={gameState.questionCount}
       onRoomCreated={handleRoomCreated}
       onBack={handleBack}
     />

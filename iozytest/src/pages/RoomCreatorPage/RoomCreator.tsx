@@ -21,6 +21,8 @@ interface RoomCreatorProps {
   questions: Question[]
   playerName: string
   gameMode?: 'solo' | 'online'
+  /** Nombre d'extraits proposé au départ (partie rapide) ; sinon QUESTION_COUNT.DEFAULT. */
+  initialQuestionCount?: number
   onRoomCreated: (roomCode: string, questions?: Question[]) => void
   onBack: () => void
 }
@@ -30,6 +32,7 @@ export default function RoomCreator({
   questions,
   playerName: initialPlayerName,
   gameMode = 'online',
+  initialQuestionCount,
   onRoomCreated,
   onBack,
 }: RoomCreatorProps) {
@@ -48,7 +51,9 @@ export default function RoomCreator({
   const [timeLimit, setTimeLimit] = useState<number>(TIMING.DEFAULT_TIME_LIMIT)
 
   const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(0)
-  const [questionCount, setQuestionCount] = useState<number>(QUESTION_COUNT.MIN)
+  // 0 = pas encore réglé : le chargement des questions disponibles pose alors le défaut.
+  // (Partir de QUESTION_COUNT.MIN gardait 1 extrait, la valeur « déjà choisie » n'étant pas remplacée.)
+  const [questionCount, setQuestionCount] = useState<number>(0)
   const [isStartingGame, setIsStartingGame] = useState(false)
   const isStartingGameRef = useRef(false)
 
@@ -110,7 +115,7 @@ export default function RoomCreator({
         const maxCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.MAX, availableCount))
         const defaultCount = Math.max(
           QUESTION_COUNT.MIN,
-          Math.min(QUESTION_COUNT.DEFAULT, maxCount)
+          Math.min(initialQuestionCount ?? QUESTION_COUNT.DEFAULT, maxCount)
         )
 
         setQuestionCount((prev) => {

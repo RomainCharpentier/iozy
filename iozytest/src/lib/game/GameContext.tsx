@@ -9,6 +9,10 @@ interface GameState {
   players: Player[]
   playerName: string
   roomCode?: string | null
+  /** Nombre d'extraits proposé par défaut dans le salon (partie rapide : 10). */
+  questionCount?: number
+  /** D'où vient la partie : « Retour » du salon y ramène (partie rapide : accueil). */
+  origin?: 'quick' | 'themes'
 }
 
 interface GameContextType {
