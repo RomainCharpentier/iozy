@@ -13,22 +13,26 @@ import { liensAbonnement } from './releaseCalendar'
  *
  * <p>The link is secret: whoever holds it reads the releases, nothing else.
  * "Nouveau lien" revokes it and draws another one - the agendas that used the
- * old one stop receiving releases.
+ * old one stop receiving releases, so it asks once more before acting. Once the
+ * old link is revoked it leaves the screen at once: if drawing the new one
+ * fails, nothing dead is left to copy, and "Réessayer" asks again.
  */
 export function AbonnementAgenda() {
   const [ouvert, setOuvert] = useState(false)
   const [copie, setCopie] = useState<string | null>(null)
 
-  const [lienRenouvele, setLienRenouvele] = useState<CalendarSubscriptionDto | null>(null)
-  const abonnement = useMutation({ mutationFn: subscribeToCalendar })
+  const [confirmation, setConfirmation] = useState(false)
+  const [lien, setLien] = useState<CalendarSubscriptionDto | null>(null)
+  const abonnement = useMutation({ mutationFn: subscribeToCalendar, onSuccess: setLien })
   const renouveler = useMutation({
     mutationFn: async () => {
       await revokeCalendarSubscription()
+      // The old link is dead from here on: never leave it on screen.
+      setLien(null)
       return subscribeToCalendar()
     },
-    onSuccess: (nouveau) => setLienRenouvele(nouveau),
+    onSuccess: setLien,
   })
-  const lien = lienRenouvele ?? abonnement.data ?? null
 
   function ouvrir() {
     setOuvert(true)
@@ -57,6 +61,22 @@ export function AbonnementAgenda() {
 
   const liens = lien ? liensAbonnement(lien.feedPath, window.location.origin) : null
   const erreur = abonnement.error ?? renouveler.error
+  const enCours = abonnement.isPending || renouveler.isPending
+
+  function reessayer() {
+    if (lien) {
+      // The revoke itself failed: the shown link still works, try the renewal again.
+      renouveler.mutate()
+    } else {
+      renouveler.reset()
+      abonnement.mutate()
+    }
+  }
+
+  function couperLAncien() {
+    setConfirmation(false)
+    renouveler.mutate()
+  }
 
   return (
     <section aria-labelledby="abonnement-titre" className="iozy-verre flex flex-col gap-3 rounded-[20px] p-4 md:max-w-xl">
@@ -74,8 +94,16 @@ export function AbonnementAgenda() {
         </button>
       </div>
 
-      {erreur && <ErrorBanner message={erreur.message} />}
-      {!liens && !erreur && <p className="text-sm text-textDim">Création du lien…</p>}
+      {erreur && !enCours && (
+        <>
+          <ErrorBanner message={erreur.message} />
+          <button type="button" onClick={reessayer} className="btn-secondaire flex items-center gap-2 self-start">
+            <RefreshCw size={16} aria-hidden="true" />
+            Réessayer
+          </button>
+        </>
+      )}
+      {!liens && (enCours || !erreur) && <p className="text-sm text-textDim">Création du lien…</p>}
 
       {liens && (
         <>
@@ -89,15 +117,27 @@ export function AbonnementAgenda() {
           <p className="text-sm text-textDim">
             Ce lien est secret : qui l'a voit tes sorties. Un nouveau lien coupe l'ancien.
           </p>
-          <button
-            type="button"
-            onClick={() => renouveler.mutate()}
-            disabled={renouveler.isPending}
-            className="btn-secondaire flex items-center gap-2 self-start"
-          >
-            <RefreshCw size={16} aria-hidden="true" />
-            Nouveau lien
-          </button>
+          {confirmation ? (
+            <div role="group" aria-label="Couper l'ancien lien ?" className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-textPrimary">Couper l'ancien lien ?</p>
+              <button type="button" onClick={couperLAncien} className="btn-primaire">
+                Oui, couper l'ancien lien
+              </button>
+              <button type="button" onClick={() => setConfirmation(false)} className="btn-secondaire">
+                Annuler
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmation(true)}
+              disabled={enCours}
+              className="btn-secondaire flex items-center gap-2 self-start"
+            >
+              <RefreshCw size={16} aria-hidden="true" />
+              Nouveau lien
+            </button>
+          )}
         </>
       )}
     </section>

@@ -91,7 +91,7 @@ describe('ReleasesPage', () => {
     rendre()
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Vinland Saga' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Dans 5 jours')).toBeInTheDocument()
+    expect(screen.getByText('Dans 5 jours')).toBeInTheDocument()
     expect(insights.getReleaseCalendar).toHaveBeenCalledWith(dans(0), expect.any(String))
     // The next one is the hero, not a card of the list too.
     expect(screen.queryByRole('button', { name: /^Vinland Saga, Tome 15/ })).not.toBeInTheDocument()
@@ -150,6 +150,15 @@ describe('ReleasesPage', () => {
     expect(screen.getByText("Les sorties n'ont pas encore été cherchées.")).toBeInTheDocument()
   })
 
+  it('does not send a guest to a refresh button they do not have', async () => {
+    auth.estInvite = true
+    servir([])
+    insights.getReleaseRefreshStatus.mockResolvedValue({ available: true, running: false, lastRun: null })
+    rendre()
+    expect(await screen.findByText("Les sources n'ont pas encore été lues.")).toBeInTheDocument()
+    expect(screen.queryByText(/Lance une mise à jour/)).not.toBeInTheDocument()
+  })
+
   it('says nothing is announced when the sources were read', async () => {
     servir([])
     rendre()
@@ -175,8 +184,39 @@ describe('ReleasesPage', () => {
     expect(webcal).toHaveValue(`webcal://${window.location.host}/api/public/calendar/abc.ics`)
     expect(screen.getByRole('textbox', { name: 'Lien https://' })).toHaveValue(`${window.location.origin}/api/public/calendar/abc.ics`)
 
+    // Two steps: the first click only asks, and "Annuler" leaves the link alive.
     await userEvent.click(screen.getByRole('button', { name: 'Nouveau lien' }))
+    expect(screen.getByText("Couper l'ancien lien ?")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+    expect(calendar.revokeCalendarSubscription).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nouveau lien' }))
+    await userEvent.click(screen.getByRole('button', { name: "Oui, couper l'ancien lien" }))
     expect(await screen.findByDisplayValue(`${window.location.origin}/api/public/calendar/xyz.ics`)).toBeInTheDocument()
+    expect(calendar.revokeCalendarSubscription).toHaveBeenCalledTimes(1)
+  })
+
+  it('never leaves a revoked link on screen when the new one fails, and tries again', async () => {
+    servir([VINLAND])
+    calendar.subscribeToCalendar
+      .mockResolvedValueOnce({ token: 'abc', feedPath: '/api/public/calendar/abc.ics', createdAt: '2026-11-08T10:00:00Z' })
+      .mockRejectedValueOnce(new Error('Le serveur ne répond pas.'))
+      .mockResolvedValueOnce({ token: 'xyz', feedPath: '/api/public/calendar/xyz.ics', createdAt: '2026-11-08T11:00:00Z' })
+    calendar.revokeCalendarSubscription.mockResolvedValue(undefined)
+    rendre()
+
+    await userEvent.click(await screen.findByRole('button', { name: "S'abonner dans mon agenda" }))
+    await screen.findByRole('textbox', { name: 'Lien webcal://' })
+    await userEvent.click(screen.getByRole('button', { name: 'Nouveau lien' }))
+    await userEvent.click(screen.getByRole('button', { name: "Oui, couper l'ancien lien" }))
+
+    expect(await screen.findByText('Le serveur ne répond pas.')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Copier/ })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }))
+    expect(await screen.findByDisplayValue(`${window.location.origin}/api/public/calendar/xyz.ics`)).toBeInTheDocument()
+    expect(screen.queryByText('Le serveur ne répond pas.')).not.toBeInTheDocument()
     expect(calendar.revokeCalendarSubscription).toHaveBeenCalledTimes(1)
   })
 })
