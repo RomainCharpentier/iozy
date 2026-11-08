@@ -1900,3 +1900,53 @@ d'avant la règle existe, pour pouvoir la retirer.
 Vérifié : 1 315 tests backend après `test-compile` (le nouveau test
 `refuses_a_whole_work_that_is_already_owned`, la migration jouée par les
 tests d'intégration), 516 tests web, typecheck, lint.
+
+### Lot 207 — Les totaux des éditions françaises
+
+15 des 19 séries manga n'avaient aucun total d'édition : l'app ne pouvait pas dire ce qui manque.
+Une tâche de fond le remplit : le total est le plus haut numéro de tome sorti en France pour cette
+édition, il grandit avec la série. Un tome en précommande ne compte pas avant sa date. « Série
+terminée en France » ne s'affiche que si une source dit l'œuvre finie et que la liste française en
+a le compte exact. Une réponse partielle écrit le total mais laisse l'édition à revoir, et une série
+qui échoue passe derrière les autres. Un total saisi à la main doit viser une édition que la série a
+vraiment (une faute de frappe est refusée, pas créée). Migration V40.
+
+Vérifié : voir la ligne du lot 210.
+
+### Lot 208 — Des sorties qui se mettent vraiment à jour
+
+Une source muette (la BnF qui coupe la connexion) arrêtait toute la passe : celle du 7 octobre avait
+relu 0 série sur 3. Une série muette ne l'arrête plus (arrêt après 3 muettes d'affilée), une série
+en pause chez l'éditeur est relue, une passe manquée la nuit est rattrapée, et une réponse partielle
+ne remet jamais à neuf une ligne périmée. La ligne des sorties compte depuis la dernière mise à jour
+réussie, dit quand une source ne répond pas, et annonce la prochaine passe. Migration V41.
+
+Vérifié : voir la ligne du lot 210.
+
+### Lot 209 — Une œuvre et ses éléments, pour tous les types
+
+Le socle de la fiche unique côté serveur : `GET /api/works/{id}` donne les éléments d'une œuvre (tomes
+d'une édition, jeu de base et extensions, variantes d'un type personnalisé, ou l'œuvre seule), ce
+que j'ai, ce qui manque et la prochaine sortie ; `GET /api/works` et `/api/works/summary` pour
+l'accueil. Chaque univers dit de quoi une œuvre est faite, le cœur compte. Une copie de l'œuvre
+entière ou d'un tome sans numéro n'est plus perdue. Le statut du collectionneur (en cours, en pause,
+abandonnée) se règle par œuvre : en pause ou abandonnée, les manques restent listés mais ne
+comptent plus. Le mois et « aujourd'hui » suivent l'heure de Paris. Migration V42. Aucun écran ne
+s'en sert encore.
+
+Vérifié : voir la ligne du lot 210.
+
+### Lot 210 — La barre de verre et les couleurs de la jaquette
+
+Les en-têtes laissent place à la barre flottante en verre du prototype : Accueil · Sorties · À
+acheter · Partager · IozyTest, le champ « Chercher ou ajouter » et l'avatar ; sous 1024 px, la même
+liste dans une capsule en bas. IozyTest porte la même barre, et sans compte n'y garde que Sorties.
+Deux teintes sont tirées de la jaquette du moment (sombre pour le fond, vive pour l'accent), calculées
+pour garder tout texte en AA sur la pire jaquette ; la terracotta reste en secours et l'app dit
+discrètement quand un hôte d'image refuse le CORS. Le fond plein écran flouté vient de l'œuvre qui a
+bougé en dernier, jamais d'une œuvre hors collection. Un tome manquant a le contour qui respire et
+se nomme « Tome N : je l'ai ».
+
+Vérifié (les quatre lots réunis) : 1 466 tests backend, 668 tests web, typecheck, lint,
+contraste AA (124 combinaisons), frontières, build ; kit ; IozyTest 150 + 220 tests ; 21 parcours
+e2e.
