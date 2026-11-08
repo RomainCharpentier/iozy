@@ -56,7 +56,7 @@ Chargées par `@fontsource` dans chaque app (auto-hébergées, pas d'appel à Go
 
 C'est elle qui fait la ressemblance, autant que la couleur.
 
-- **La coquille** : en-tête collant « verre » (surface à 85 %, flou, une ligne) avec le mot-marque en texte ; les destinations en **pastilles** de 46 px, la courante surélevée (surface 2 + ligne + ombre) ; à droite, les raccourcis qui ne sont pas des destinations (thème, profil ou réglages). Sous 768 px : en-tête compact + **barre au pouce** fixe en bas (icône + libellé court, l'active en teinte d'accent). Jamais les deux à la fois, bascule 100 % CSS.
+- **La coquille** (depuis le lot 210) : la **barre du site** flotte en haut, en trois pièces de verre (`.iozy-barre--eclatee`) : la capsule « Iozy » + Accueil · Sorties · À acheter · Partager · IozyTest (`.iozy-barre__pilule`, `.iozy-barre__lien`, la courante pleine à l'encre du thème), le champ « Chercher ou ajouter » (`.iozy-recherche`), puis les raccourcis et l'avatar (`.iozy-avatar`, cerclé de la couleur vive). Sous 1024 px : la même navigation dans une capsule de verre en bas (`.iozy-onglets`, cibles de 52 px). Jamais les deux à la fois, bascule 100 % CSS. Seule, `.iozy-barre` reste une capsule unique (la page d'accueil du site).
 - **La grille de page** : trois colonnes `1fr | min(100% − 3rem, N) | 1fr`, chaque enfant dans la colonne du milieu, `N` nommé par écran. Pas de `vw`.
 - **Le pied de page** : la version, petite, sous tout.
 - **L'en-tête d'écran** : titre serré en Space Grotesk (un `h1` par écran), la phrase qui dit ce qu'on regarde — **vraie et calculée**, jamais un slogan — et l'action principale à droite, alignée sur la ligne de base du titre.
@@ -67,6 +67,15 @@ C'est elle qui fait la ressemblance, autant que la couleur.
 - **Les états vides** : une icône dans une pastille teintée, un titre, la phrase qui donne la sortie, l'action. **Les squelettes** prennent la place exacte de ce qui va venir.
 - **La zone de danger** : ni ombre ni ligne, un fond teinté `danger-tint`.
 - **La porte d'entrée** (connexion, choix du nom) : hors coquille, colonne étroite, halo d'accent en haut, le nom en grand, une carte-formulaire.
+
+## Verre et plein cadre (lot 210)
+
+Le fond d'un écran peut être la **jaquette du moment**, floutée sur tout l'écran (`--iozy-glass-backdrop-blur`, `-saturate`, `--iozy-backdrop-brightness`) sous un voile (`--iozy-backdrop-veil` : brun profond à 82 % en sombre, crème à 92 % en clair). Dessus, du **verre dépoli** :
+
+- `.iozy-verre` (verre léger : barre, pastilles, boutons secondaires) et `.iozy-verre--fort` (panneaux, cartes) ; jetons `glass-surface`, `glass-surface-strong`, `glass-line`, `glass-highlight`, `glass-shadow(-strong)` par thème, flou et saturation dans `glass`.
+- **Contraste garanti** : la jaquette sous le voile est inconnue, alors `check:contrast` prend les deux pires (noire et blanche), applique filtre, voile puis verre, et exige AA : tous les textes sur le fond voilé et sur le verre fort, texte et texte secondaire sur le verre léger.
+- **Couleur vive** : l'app peut poser `--teinte-vive` (et `--teinte-encre`, l'encre sur cet aplat) tirées de la jaquette ; les classes du kit la lisent, avec l'accent en repli. `.iozy-teinte` fait glisser couleurs et fonds en 0,7 s quand elle change.
+- **Ce qui manque** : `.iozy-manque`, un contour dans la couleur vive qui respire (un halo, jamais l'opacité, pour que le libellé reste lisible) ; immobile sous `prefers-reduced-motion`. Aucune étiquette d'état.
 
 ## Le logo
 

@@ -285,23 +285,80 @@
   font-size: 0.875rem;
 }
 
+/* ---- Verre dépoli (refonte « plein cadre ») ---- */
+/* Un panneau translucide posé sur le fond plein cadre (la jaquette floutée) :
+   fond à peine teinté, liseré clair, reflet en haut, ombre portée. Le verre
+   léger sert aux commandes (barre, pastilles, boutons secondaires), le verre
+   fort aux panneaux qui portent du texte. Les deux tiennent AA sur la pire
+   jaquette voilée (voir scripts/check-contrast.mjs). */
+.iozy-verre {
+  background: var(--iozy-glass-surface);
+  border: 1px solid var(--iozy-glass-line);
+  box-shadow:
+    inset 0 1px 0 var(--iozy-glass-highlight),
+    var(--iozy-glass-shadow);
+  backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
+  -webkit-backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
+}
+
+.iozy-verre--fort {
+  background: var(--iozy-glass-surface-strong);
+  box-shadow:
+    inset 0 1px 0 var(--iozy-glass-highlight),
+    var(--iozy-glass-shadow-strong);
+  backdrop-filter: blur(var(--iozy-glass-blur-strong)) saturate(var(--iozy-glass-saturate-strong));
+  -webkit-backdrop-filter: blur(var(--iozy-glass-blur-strong)) saturate(var(--iozy-glass-saturate-strong));
+}
+
+/* Ce qui prend la couleur de la jaquette change en douceur quand elle change.
+   La couleur vive vient de l'app (`--teinte-vive`) ; sans elle, l'accent. */
+.iozy-teinte {
+  transition:
+    background-color 0.7s ease,
+    color 0.7s ease,
+    border-color 0.7s ease,
+    box-shadow 0.7s ease;
+}
+
 /* ---- Barre du site ---- */
-/* L'en-tête d'une page qui n'est pas une app (la page d'accueil du site) : la marque
-   et son menu à gauche, les mêmes options qu'ailleurs à droite. Les apps ont
-   leur propre barre avec le même contenu. */
+/* Une capsule de verre qui flotte en haut de la page. Seule, elle porte la
+   marque et le lien de compte (la page d'accueil du site). Éclatée
+   (`--eclatee`), elle n'est plus qu'un rang : la capsule de navigation
+   (`__pilule`), le champ « Chercher ou ajouter » et l'avatar sont trois
+   pièces de verre séparées, comme sur la maquette validée. */
 .iozy-barre {
   position: sticky;
-  top: 0;
+  top: 12px;
   z-index: 40;
   display: flex;
   align-items: center;
   gap: 1rem;
-  height: 3.5rem;
-  padding: 0 1rem;
-  border-bottom: 1px solid var(--iozy-line);
-  background: color-mix(in srgb, var(--iozy-bg) 85%, transparent);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  height: 52px;
+  margin: 12px 16px 0;
+  padding: 0 0.5rem 0 1.25rem;
+  border-radius: var(--iozy-radius-pill);
+  background: var(--iozy-glass-surface);
+  border: 1px solid var(--iozy-glass-line);
+  box-shadow:
+    inset 0 1px 0 var(--iozy-glass-highlight),
+    var(--iozy-glass-shadow);
+  backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
+  -webkit-backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
+}
+
+.iozy-barre--eclatee {
+  top: 18px;
+  gap: 18px;
+  height: 60px;
+  width: min(100% - 64px, 1600px);
+  margin: 18px auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .iozy-barre__droite {
@@ -309,6 +366,200 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.iozy-barre__pilule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 52px;
+  padding: 0 8px 0 20px;
+  border-radius: var(--iozy-radius-pill);
+}
+
+.iozy-barre__marque {
+  margin-right: 10px;
+  font-family: var(--iozy-font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--iozy-text);
+  text-decoration: none;
+}
+
+.iozy-barre__nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Une destination : une pastille. La courante est pleine, à l'encre du
+   thème, et se lit à l'inverse (fond du thème écrit sur l'encre). */
+.iozy-barre__lien {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--iozy-radius-pill);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--iozy-text);
+  text-decoration: none;
+}
+
+.iozy-barre__lien:hover {
+  background: color-mix(in srgb, var(--iozy-text) 10%, transparent);
+}
+
+.iozy-barre__lien[aria-current='page'] {
+  background: var(--iozy-text);
+  color: var(--iozy-bg);
+}
+
+.iozy-barre__espace {
+  flex: 1;
+}
+
+/* Le champ « Chercher ou ajouter » : une capsule de verre, la loupe, le texte. */
+.iozy-recherche {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  width: 300px;
+  padding: 0 8px 0 18px;
+  border-radius: var(--iozy-radius-pill);
+  color: var(--iozy-text-dim);
+}
+
+.iozy-recherche input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--iozy-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.iozy-recherche input:focus {
+  outline: none;
+}
+
+.iozy-recherche:focus-within {
+  box-shadow:
+    inset 0 1px 0 var(--iozy-glass-highlight),
+    0 0 0 2px var(--teinte-vive, var(--iozy-accent));
+}
+
+.iozy-recherche input::placeholder {
+  color: var(--iozy-text-dim);
+  opacity: 1;
+}
+
+/* L'avatar : les initiales, cerclées de la couleur vive. */
+.iozy-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--iozy-radius-pill);
+  border: 2px solid var(--teinte-vive, var(--iozy-accent));
+  font-family: var(--iozy-font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--iozy-text);
+  text-decoration: none;
+}
+
+.iozy-avatar[aria-current='page'] {
+  background: var(--teinte-vive, var(--iozy-accent));
+  color: var(--teinte-encre, var(--iozy-accent-ink));
+}
+
+/* ---- Barre d'onglets au pouce (< 768 px) ---- */
+/* La même navigation, en bas, en verre ; 52 px de cible. */
+.iozy-onglets {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 26px;
+}
+
+.iozy-onglets__onglet {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--iozy-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.iozy-onglets__onglet > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iozy-onglets__onglet[aria-current='page'] {
+  background: var(--iozy-text);
+  color: var(--iozy-bg);
+}
+
+/* ---- Ce qui manque ---- */
+/* Un tome, un jeu, une extension qu'on n'a pas : un contour dans la couleur
+   vive qui respire (un halo, jamais l’opacité : le libellé doit rester
+   lisible). Pas d'étiquette d'état : la forme dit l'état. Sans
+   mouvement (préférence du système), le contour reste, immobile. */
+@keyframes iozy-respire {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 22px 2px var(--teinte-vive, var(--iozy-accent));
+  }
+}
+
+.iozy-manque {
+  border: 1.5px solid var(--teinte-vive, var(--iozy-accent));
+  background: color-mix(in srgb, var(--iozy-text) 5%, transparent);
+  color: var(--teinte-vive, var(--iozy-accent-text));
+  animation: iozy-respire 2.6s ease-in-out infinite;
+}
+
+.iozy-manque:hover,
+.iozy-manque:focus-visible {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iozy-manque {
+    animation: none;
+  }
 }
 
 /* Le lien de compte, le même partout : « Connexion » sans session IozyCore,

@@ -23,6 +23,8 @@ const statiques = [
     .map(([k, v]) => ligne(`font-${k}`, v)),
   ...Object.entries(tokens.radius).map(([k, v]) => ligne(`radius-${k}`, v)),
   ...Object.entries(tokens.size).map(([k, v]) => ligne(k, v)),
+  // Le verre : flou et saturation des panneaux, puis ceux du fond plein cadre.
+  ...Object.entries(tokens.glass).map(([k, v]) => ligne(`glass-${k}`, v)),
 ]
 
 const theme = (nom) => Object.entries(tokens.themes[nom]).map(([k, v]) => ligne(k, v))
