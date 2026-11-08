@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, mergeVariantAttributes, quickAdd, renameEntity } from '@/common/api/entities'
@@ -31,7 +31,7 @@ import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from '@/common/lib/teinte/useTeinteJaquette'
 import { usePleinCadre } from '@/common/components/pleinCadre/usePleinCadre'
 import { TierBadge } from '@/common/components/TierBadge'
-import { BoutonEnviesHero, BoutonSuivreHero, FicheHero } from './FicheHero'
+import { BoutonEnviesHero, BoutonSuivreHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
 import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
 import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeDateDeSortie, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
@@ -48,45 +48,57 @@ import { DeleteEntitySection } from './DeleteEntitySection'
 import { Carte } from '@/common/components/Carte'
 import { retourDepuis } from '@/common/lib/retour'
 import { useToast } from '@/common/lib/toast'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft, PanelRight, Pencil, RefreshCw, Scale } from 'lucide-react'
 import { invaliderApresPossession } from '@/common/lib/invalidations'
 import { SqueletteFiche } from '@/common/components/Squelette'
 import { consolesDeLOeuvre } from '@/common/lib/consoles'
-import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
+import { declaredAspectClassName } from '@/common/lib/entityTypeVisuals'
 import { naviguerAvecVol } from '@/common/lib/volJaquette'
-import { CompteTomes, FaitsFiche } from './FaitsFiche'
-import { AjoutDirect } from './AjoutDirect'
+import { FaitsFiche } from './FaitsFiche'
 import { BasFiche } from './BasFiche'
 import { animerEntreeFiche } from './entreeFiche'
 import { plageDeTomes } from './etages'
 import { RELEASE_DATE_ATTRIBUTE_KEY } from '@/common/lib/releaseDate'
-import type { QuickAddResponse } from '@/common/types/api'
+import type { CollectorStatus, QuickAddResponse, WorkElementDto } from '@/common/types/api'
+import type { WishlistTarget } from '@/common/api/wishlist'
+import { fetchWork, ownWorkElement, setCollectorStatus } from '@/common/api/works'
+import { setEditionTotal } from '@/common/api/editionTotal'
+import { Jaquette } from '@/common/components/Jaquette'
+import { GrilleElements } from './GrilleElements'
+import { PanneauOeuvre, StatutCollection, TotalOeuvre } from './PanneauOeuvre'
+import { VoletFiche } from './VoletFiche'
+import { editionComptee, elementsAMettreDeCote, gesteJeLAi, provenanceDuTotal } from './elementsOeuvre'
 import { faitsDeLOeuvre, type Fait } from './faitsDeLOeuvre'
 import { ConsoleExemplaire } from './ConsoleExemplaire'
 
 /**
- * The detail page of a work, after the mockup "Fiche série - multi-éditions".
+ * The single entity page, for every category (lot 213, mock-up "A · plein cadre").
  *
- * <h2>The page has three bands</h2>
- * A top band tinted by the cover (identity + row of editions),
- * the dense grid of the volumes of the displayed edition, and an inspector with three
- * columns (personal / work / source). No more tabs: everything is there, and
- * it is the structure of the page that does the sorting.
+ * <h2>What I have, what I miss</h2>
+ * The page reads the work from the works read model (GET /works/{id}): the
+ * cover fills the screen, blurred, and the sharp cover lies on top of it; the
+ * count in very large figures, a ring in the vivid tone, what is missing, the
+ * next release, and the grid of the elements - volumes, games of a licence,
+ * expansions of a box, variants of a custom type, or the work itself. The shape
+ * of an element is the one its type declares; a custom type left as created
+ * shows its whole cover. A click on what is missing: "je l'ai"; a click on what
+ * is owned arms its removal, in place.
  *
- * <h2>Read, then edit</h2>
- * The brush button of the mockup switches the whole page between two states.
- * At rest it is READ: compact readouts, no form, no stray "+".
- * In edit mode the add points appear (follow an
- * edition, add a volume) and, under the inspector, the full editors already
- * built (rankings, experiences, tags, information, relationships,
- * deletion). None of these editors was rewritten for this mockup -
- * they change when they appear, not how they behave.
+ * <h2>The collector's word</h2>
+ * En cours, en pause, abandonnée: paused or dropped, the gaps are still drawn
+ * but no longer breathe nor count. A total nobody knows says "total inconnu",
+ * and can be typed in place when the work is counted in editions.
+ *
+ * <h2>The rest lives in the side panel</h2>
+ * Notes, tags, rankings, readings, editions, the inspector and its single
+ * "Éditer", relationships, reload, rename and delete moved to the "Notes,
+ * tags et outils" panel - none was dropped, and none was rewritten: they
+ * change where they appear, not how they behave.
  *
  * <h2>Displaying an edition is not following it</h2>
- * Two separate things, long mixed up in a single `useState`:
- * the DISPLAYED edition is a screen state, the FOLLOWED edition is persisted
- * data (see com.iozycore.domain.followededition). It is the one that decides
- * what is opened on the next visit.
+ * The DISPLAYED edition is a screen state (the shelf of the panel), the
+ * FOLLOWED edition is persisted data: it decides which edition the work is
+ * counted in, on this page and everywhere else.
  */
 /** Default values with a STABLE identity: passed to the inspector draft
  *  while the work is not loaded, a fresh `{}` or `[]` at
@@ -132,6 +144,15 @@ export function EntityDetailPage() {
   const [titleInput, setTitleInput] = useState('')
   const [editingCover, setEditingCover] = useState(false)
   const [coverUrlInput, setCoverUrlInput] = useState('')
+  const [voletOuvert, setVoletOuvert] = useState(false)
+  const refBoutonVolet = useRef<HTMLButtonElement>(null)
+  const fermerVolet = useCallback(() => setVoletOuvert(false), [])
+  /** The elements whose "je l'ai" or removal is on its way: a second click waits. */
+  const [elementsEnCours, setElementsEnCours] = useState<ReadonlySet<string>>(new Set())
+
+  // The work as the collection sees it: its elements, its counts, its next release.
+  const workQuery = useQuery({ queryKey: queryKeys.works.detail(entityId), queryFn: () => fetchWork(entityId) })
+  const work = workQuery.data ?? null
 
   const entityQuery = useQuery({ queryKey: queryKeys.entities.detail(entityId), queryFn: () => getEntity(entityId) })
   const ownershipsQuery = useQuery({ queryKey: queryKeys.ownerships(entityId), queryFn: () => listOwnerships(entityId) })
@@ -257,18 +278,29 @@ export function EntityDetailPage() {
    * lost its screen in Batch 55 and `quick-add` does not carry it.
    */
   const retraitTome = useMutation({
-    mutationFn: async (retires: OwnershipResponse[]) => {
-      for (const possession of retires) {
+    mutationFn: async (retrait: {
+      retires: OwnershipResponse[]
+      /** What was removed, for the message when no undo is possible ("Marins retiré"). */
+      libelle?: string
+      /** The edition the volume is counted in, for the undo. */
+      edition?: string
+    }) => {
+      for (const possession of retrait.retires) {
         await deleteOwnership(possession.id)
       }
-      return retires
+      return retrait
     },
-    onSuccess: (retires, _variables) => {
+    onSuccess: ({ retires, libelle, edition }) => {
       invaliderApresPossession(queryClient)
       const premier = retires[0]
       if (!premier || !entity) return
-      const numero = numeroDeVariant(premier.variantId)
-      if (numero === null) return
+      const numero = compteParEditions ? numeroDeVariant(premier.variantId) : null
+      if (numero === null) {
+        // Only a volume is given back by its number: anything else would come
+        // back as a new copy dated today, which is not an undo.
+        toast(`${libelle ?? entity.title} retiré`)
+        return
+      }
       toast(retires.length > 1 ? `${retires.length} exemplaires retirés` : 'Tome retiré', {
         label: 'Annuler',
         onAction: () =>
@@ -276,7 +308,7 @@ export function EntityDetailPage() {
             entityTypeId: entity.entityTypeId,
             titre: entity.title,
             numero,
-            edition: groupeActif?.editionName || undefined,
+            edition,
             condition: premier.condition,
             acquiredAt: premier.acquiredAt,
             purchasePrice: premier.purchasePrice ?? undefined,
@@ -291,6 +323,33 @@ export function EntityDetailPage() {
     onSuccess: () => {
       invaliderApresPossession(queryClient)
       toast(`${entity?.title} ajouté`)
+    },
+  })
+
+  /** "Je l'ai" on an element its source declares ownable (lot 211's route). */
+  const possederElement = useMutation({
+    mutationFn: (element: WorkElementDto) => ownWorkElement(entityId, element.key),
+    onSuccess: (_work, element) => {
+      invaliderApresPossession(queryClient)
+      toast(`${element.label} ajouté`)
+    },
+  })
+
+  const statutMutation = useMutation({
+    mutationFn: (statut: CollectorStatus) => setCollectorStatus(entityId, statut),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.works.all }),
+  })
+
+  /** The total of the edition the work is counted in, typed or cleared by hand (lot 207's route). */
+  const totalMutation = useMutation({
+    mutationFn: (total: number | null) => setEditionTotal(entityId, editionDuTotal?.editionName || null, total),
+    onSuccess: () => {
+      invaliderApresPossession(queryClient)
+      if (entity && editionDuTotal) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.purchaseAnalysis.edition(entity.title, editionDuTotal.editionName),
+        })
+      }
     },
   })
 
@@ -444,7 +503,10 @@ export function EntityDetailPage() {
     queryFn: () => getEntityProgress(entityId),
   })
 
-  const groupes = isManga ? (progressQuery.data?.editions ?? []) : []
+  // Only a work counted in numbered editions has some (the progress of the
+  // server says so): its volumes are owned and wished by their number.
+  const groupes = progressQuery.data?.editions ?? []
+  const compteParEditions = groupes.length > 0
 
   // Arriving from a shelf, once the volumes are there to stand up.
   const entreeJouee = useRef(false)
@@ -461,6 +523,11 @@ export function EntityDetailPage() {
     groupes.find((g) => g.editionName === editionAffichee) ??
     groupes.find((g) => g.editionName === editionSuivie) ??
     groupes[0]
+  // The edition the works read model counts, which is the one whose total the page types.
+  const editionDuTotal = editionComptee(groupes, editionSuivie)
+  const totalEditable = !estInvite && !!editionDuTotal && editionDuTotal.editionName !== ''
+  // The shape the type declares; null for a custom type left as created: the whole cover.
+  const forme = declaredAspectClassName(entityType)
 
   // A detail page can exist without any volume - added to the wishes, or
   // created by an add that found nothing. It is the same "quels tomes
@@ -537,7 +604,6 @@ export function EntityDetailPage() {
   const exemplairesDeJeu =
     entityType?.code === 'VIDEO_GAME' && !estInvite ? ownerships.filter((o) => o.status === 'OWNED' && !o.variantId) : []
   const avecTomes = entity.variants.length > 0 || groupes.length > 0 || isManga
-  const visuelDuType = getEntityTypeVisual(entityType)
   const faitsAffiches: Fait[] = [
     ...exemplairesDeJeu.map((exemplaire) => ({
       libelle: 'Console',
@@ -576,16 +642,6 @@ export function EntityDetailPage() {
   const dansEnvies = !!wishlist.entryFor(entityId)
   const suivie = suivis.estSuivie(entityId)
   const possedee = ownerships.some((o) => o.status === 'OWNED')
-  // Only one state at a time (Owned / Followed / Wish). Followed wins in
-  // the display: one follows what one still collects, even with volumes in
-  // hand; then owned; then wanted.
-  const etatCollection = suivie
-    ? { libelle: 'Suivie', couleur: 'var(--color-accentText)' }
-    : possedee
-      ? { libelle: 'Possédée', couleur: 'var(--color-ok)' }
-      : dansEnvies
-        ? { libelle: 'Dans mes envies', couleur: 'var(--color-warning)' }
-        : null
   const tomesVoulus = wishlist.variantsVoulus
 
   // `totalVolumes` ALONE, never the number of cataloged volumes as a fallback: that
@@ -603,13 +659,11 @@ export function EntityDetailPage() {
     possedes: groupe.ownedVolumeNumbers.length,
   }))
 
-  // One edition is a line under the title: its name and its publisher, which its card used to say.
+  // One edition is a word over the title: its name and its publisher.
   const editionUnique =
-    groupes.length === 1 && !modeEdition && !estInvite
+    groupes.length === 1 && !estInvite
       ? [editionsAffichees[0].nom, editionsAffichees[0].editeur].filter(Boolean).join(' · ')
       : ''
-  const editionDuCompte =
-    groupeActif && !estInvite ? editionsAffichees.find((edition) => edition.nom === groupeActif.editionName) : undefined
 
   async function basculerEnvies() {
     const entree = wishlist.entryFor(entityId)
@@ -625,19 +679,24 @@ export function EntityDetailPage() {
    * and are cataloged nowhere. It is the backend that makes them exist
    * along the way (see TomeResolver), without ever creating an ownership.
    */
-  function ajouterUnTome(numero: number) {
+  function ajouterUnTome(numero: number, edition = groupeActif?.editionName, quandFini?: () => void) {
     if (!entity) return
-    ajoutTome.mutate({
-      entityTypeId: entity.entityTypeId,
-      titre: entity.title,
-      numero,
-      edition: groupeActif?.editionName || undefined,
-      quandEcrit: (resultat) =>
-        toast(`Tome ${numero} ajouté`, {
-          label: 'Annuler',
-          onAction: () => void annulerAjout(resultat.variantId ? [resultat.variantId] : []),
-        }),
-    })
+    ajoutTome.mutate(
+      {
+        entityTypeId: entity.entityTypeId,
+        titre: entity.title,
+        numero,
+        edition: edition || undefined,
+        quandEcrit: (resultat) => {
+          quandFini?.()
+          toast(`Tome ${numero} ajouté`, {
+            label: 'Annuler',
+            onAction: () => void annulerAjout(resultat.variantId ? [resultat.variantId] : []),
+          })
+        },
+      },
+      { onError: () => quandFini?.() },
+    )
   }
 
   /** Undoing an add: the copies were just created, so nothing is lost with them. */
@@ -657,58 +716,225 @@ export function EntityDetailPage() {
     else wishlist.add(cible)
   }
 
+  // The kicker over the title: the category, who made it, how far the source says it is.
+  const kicker = [entityType?.label, auteur, statut?.libelle.toLowerCase(), editionUnique || annees]
+    .filter(Boolean)
+    .join(' · ')
+
+  // "Mettre de côté": the missing elements that can be wished - by their
+  // catalog variant, or by their number in the edition the work is counted in.
+  const aMettreDeCote = work ? elementsAMettreDeCote(work) : []
+  const ciblesDeCote: WishlistTarget[] = aMettreDeCote.flatMap((element): WishlistTarget[] =>
+    element.variantId
+      ? [{ entityId, variantId: element.variantId }]
+      : compteParEditions && element.number !== null
+        ? [{ entityId, volumeNumber: element.number, edition: editionDuTotal?.editionName || undefined }]
+        : [],
+  )
+
+  function attendre(cle: string, enCours: boolean) {
+    setElementsEnCours((avant) => {
+      const apres = new Set(avant)
+      if (enCours) apres.add(cle)
+      else apres.delete(cle)
+      return apres
+    })
+  }
+
+  /** "Je l'ai" on an element of the grid, by the path its data allows (see gesteJeLAi). */
+  function jeLAi(element: WorkElementDto) {
+    const geste = gesteJeLAi(element, compteParEditions)
+    if (geste === 'numero' && element.number !== null) {
+      attendre(element.key, true)
+      ajouterUnTome(element.number, editionDuTotal?.editionName, () => attendre(element.key, false))
+    } else if (geste === 'element') {
+      attendre(element.key, true)
+      possederElement.mutate(element, { onSettled: () => attendre(element.key, false) })
+    } else if (geste === 'oeuvre') {
+      attendre(element.key, true)
+      ajoutOeuvre.mutate(undefined, { onSettled: () => attendre(element.key, false) })
+    }
+  }
+
+  /** The second click of a removal (the tile asked first): every active copy of that element. */
+  function retirer(element: WorkElementDto) {
+    const retires = ownerships.filter(
+      (o) =>
+        o.status === 'OWNED' &&
+        (element.variantId ? o.variantId === element.variantId : o.id === element.ownershipId),
+    )
+    if (retires.length === 0) return
+    attendre(element.key, true)
+    retraitTome.mutate(
+      { retires, libelle: element.label, edition: editionDuTotal?.editionName || undefined },
+      { onSettled: () => attendre(element.key, false) },
+    )
+  }
+
   return (
     <>
-      {/* Always there: an app installed in full screen has no Back button. A
-          received link or a reload has no origin: the natural parent, then. */}
-      <button
-        type="button"
-        onClick={() => {
-          const vers = retour ?? (estInvite ? { to: '/add', libelle: 'Catalogue' } : { to: '/', libelle: 'Ma collection' })
-          naviguerAvecVol(
-            vers.depuisOeuvre ? refJaquette.current : null,
-            () => navigate(vers.to, { state: { position: vers.position } }),
-            `[data-oeuvre="${vers.depuisOeuvre}"] [data-face]`,
-          )
-        }}
-        className="relative z-[1] flex min-h-11 w-fit items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary"
-      >
-        <ArrowLeft size={15} />
-        {retour?.libelle ?? (estInvite ? 'Catalogue' : 'Ma collection')}
-      </button>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(240px,340px)] lg:gap-12">
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* Always there: an app installed in full screen has no Back button. A
+              received link or a reload has no origin: the natural parent, then. */}
+          <button
+            type="button"
+            onClick={() => {
+              const vers = retour ?? (estInvite ? { to: '/add', libelle: 'Catalogue' } : { to: '/', libelle: 'Ma collection' })
+              naviguerAvecVol(
+                vers.depuisOeuvre ? refJaquette.current : null,
+                () => navigate(vers.to, { state: { position: vers.position } }),
+                `[data-oeuvre="${vers.depuisOeuvre}"] [data-face]`,
+              )
+            }}
+            className="relative z-[1] flex min-h-11 w-fit items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary"
+          >
+            <ArrowLeft size={15} />
+            {retour?.libelle ?? (estInvite ? 'Catalogue' : 'Ma collection')}
+          </button>
 
-      <FicheHero
-        aspectClassName={visuelDuType.aspectClassName}
-        grandeJaquette={!avecTomes}
-        refJaquette={refJaquette}
-        faits={
-          editionDuCompte ? (
-            <CompteTomes possedes={editionDuCompte.possedes} total={editionDuCompte.total} />
-          ) : !avecTomes && !modeEdition ? (
-            <FaitsFiche faits={faitsAffiches} />
-          ) : null
-        }
-        teinte={teinte}
-        kicker={null}
-        titre={entity.title}
-        auteur={avecTomes || modeEdition ? auteur : null}
-        statut={statut}
-        annees={[annees, editionUnique].filter(Boolean).join(' · ') || null}
-        couvertureUrl={couvertureUrl}
-        repliCouverture={
-          <div className="absolute inset-0" style={{ background: gradientFor(entity.title) }} aria-hidden="true" />
-        }
-        onCouverture={
-          estInvite
-            ? undefined
-            : () => {
-                setCoverUrlInput(couvertureUrl ?? '')
-                setEditingCover(true)
+          {kicker && (
+            <p className="iozy-teinte text-[13px] font-semibold tracking-[0.16em] text-vive uppercase">{kicker}</p>
+          )}
+          <h1 className="font-display text-5xl leading-[0.92] font-bold tracking-[-0.035em] break-words text-textPrimary [text-shadow:0_6px_40px_rgb(0_0_0/0.25)] md:text-7xl">
+            {entity.title}
+          </h1>
+
+          {!avecTomes && faitsAffiches.length > 0 && <FaitsFiche faits={faitsAffiches} />}
+
+          {workQuery.isError ? (
+            <ErrorBanner message={workQuery.error.message} />
+          ) : work ? (
+            <PanneauOeuvre
+              work={work}
+              consultation={estInvite}
+              total={
+                <TotalOeuvre
+                  total={work.totalCount}
+                  provenance={provenanceDuTotal(editionDuTotal)}
+                  editable={totalEditable}
+                  enCours={totalMutation.isPending}
+                  erreur={totalMutation.isError ? totalMutation.error.message : null}
+                  onEnregistrer={(total) => totalMutation.mutateAsync(total)}
+                />
               }
-        }
-        onEvaluer={
-          groupeActif && !estInvite
-            ? () =>
+              statut={
+                estInvite ? undefined : (
+                  <StatutCollection
+                    statut={work.collectorStatus}
+                    enCours={statutMutation.isPending}
+                    onChoisir={(statut) => statutMutation.mutate(statut)}
+                  />
+                )
+              }
+              miseDeCote={
+                ciblesDeCote.length > 0 && !estInvite ? (
+                  <button
+                    type="button"
+                    disabled={wishlist.isPending}
+                    onClick={() => wishlist.addMany(ciblesDeCote)}
+                    className="iozy-teinte min-h-12 rounded-full bg-vive px-5 text-[15px] font-bold text-encreVive disabled:opacity-60"
+                  >
+                    {ciblesDeCote.length === 1
+                      ? `Mettre ${aMettreDeCote[0].label} de côté`
+                      : `Mettre les ${ciblesDeCote.length} manquants de côté`}
+                  </button>
+                ) : undefined
+              }
+              grille={
+                <GrilleElements
+                  elements={work.elements}
+                  forme={forme}
+                  jaquetteOeuvre={couvertureUrl}
+                  gesteDe={(element) => gesteJeLAi(element, compteParEditions)}
+                  onJeLAi={jeLAi}
+                  onRetirer={estInvite ? undefined : retirer}
+                  immobile={work.collectorStatus !== 'ONGOING'}
+                  consultation={estInvite}
+                  enCours={elementsEnCours}
+                />
+              }
+            />
+          ) : (
+            <div className="iozy-verre iozy-verre--fort h-64 animate-pulse rounded-[28px]" aria-hidden="true" />
+          )}
+          {(ajoutTome.isError || ajoutOeuvre.isError || possederElement.isError || retraitTome.isError) && (
+            <ErrorBanner
+              message={
+                (ajoutTome.error ?? ajoutOeuvre.error ?? possederElement.error ?? retraitTome.error)?.message ??
+                'Le geste n’a pas abouti.'
+              }
+            />
+          )}
+          {statutMutation.isError && <ErrorBanner message={statutMutation.error.message} />}
+
+          {proposition.section}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              ref={refBoutonVolet}
+              type="button"
+              aria-expanded={voletOuvert}
+              onClick={() => setVoletOuvert((ouvert) => !ouvert)}
+              className="iozy-verre flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-textPrimary"
+            >
+              <PanelRight size={16} aria-hidden="true" />
+              Notes, tags et outils
+            </button>
+            {!estInvite && (
+              <BoutonSuivreHero suivie={suivie} onBasculer={() => suivis.basculer(entityId)} disabled={suivis.isPending} />
+            )}
+            {/* An owned work cannot be wanted (the server refuses it). It stays
+                while a wish from before that rule remains, so that it can be removed. */}
+            {!estInvite && !compteParEditions && (!possedee || dansEnvies) && (
+              <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
+            )}
+          </div>
+        </div>
+
+        {/* The sharp cover, laid over its own blurred backdrop like a sleeve. */}
+        <div className="order-first lg:order-none">
+          <div className="lg:sticky lg:top-24">
+            <figure
+              ref={refJaquette}
+              className={`relative w-[46%] max-w-[340px] overflow-hidden rounded-[22px] shadow-[0_40px_90px_rgb(0_0_0/0.45),0_0_0_1px_rgb(255_255_255/0.12)] lg:w-full ${forme ?? ''}`}
+            >
+              <Jaquette
+                src={couvertureUrl}
+                loading="eager"
+                className={forme ? 'absolute inset-0 h-full w-full object-cover' : 'block h-auto w-full'}
+                repli={
+                  <div
+                    className={`w-full ${forme ?? 'aspect-[2/3]'}`}
+                    style={{ background: gradientFor(entity.title) }}
+                    aria-hidden="true"
+                  />
+                }
+              />
+            </figure>
+          </div>
+        </div>
+      </div>
+
+      <VoletFiche ouvert={voletOuvert} onFermer={fermerVolet} retourFocus={refBoutonVolet}>
+        <div className="flex flex-wrap items-center gap-2">
+          {!estInvite && (
+            <button
+              type="button"
+              onClick={basculerModeEdition}
+              aria-pressed={modeEdition}
+              className={`flex h-11 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold whitespace-nowrap transition-colors ${
+                modeEdition ? 'bg-accent text-accentInk' : 'bg-surface text-textPrimary shadow-token-sm hover:text-accentText'
+              }`}
+            >
+              <Pencil size={14} />
+              {modeEdition ? 'Terminer' : 'Éditer'}
+            </button>
+          )}
+          {groupeActif && !estInvite && (
+            <button
+              type="button"
+              onClick={() =>
                 navigate('/purchase-analysis', {
                   state: {
                     seriesTitle: entity.title,
@@ -718,50 +944,27 @@ export function EntityDetailPage() {
                     retour: { to: `/entity/${entityId}`, libelle: entity.title },
                   },
                 })
-            : null
-        }
-        actionEnvies={
-          // An owned work cannot be wanted (the server refuses it): no button
-          // to offer. It stays while a wish from before that rule remains, so
-          // that it can be removed.
-          isManga || estInvite || dansEnvies || possedee ? null : (
-            <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
-          )
-        }
-        actionSuivre={
-          estInvite ? null : (
-            <BoutonSuivreHero suivie={suivie} onBasculer={() => suivis.basculer(entityId)} disabled={suivis.isPending} />
-          )
-        }
-        // Owning is said by the object (lot 198): only what is not owned gets a word.
-        etat={estInvite || (possedee && !suivie) ? null : etatCollection}
-        modeEdition={modeEdition}
-        onBasculerMode={estInvite ? undefined : basculerModeEdition}
-        editions={
-          groupes.length > 0 ? (
-            // One edition is a word under the title; its card only serves to edit.
-            groupes.length === 1 && !modeEdition && !estInvite ? null : <CartesEditions
-              editions={editionsAffichees}
-              editionAffichee={groupeActif?.editionName ?? ''}
-              editionSuivie={editionSuivie}
-              onAfficher={(nom) => setEditionAffichee(nom)}
-              // Following an edition is a personal choice: absent for a visitor.
-              onSuivre={estInvite ? undefined : (nom) => suivreMutation.mutate(nom)}
-              onNePlusSuivre={estInvite ? undefined : () => nePlusSuivreMutation.mutate()}
-              consultation={estInvite}
-              onAjouterEdition={() => setAjoutTomeOuvert(true)}
-              modeEdition={modeEdition}
-            />
-          ) : (
-            // Nothing in the catalog: these are the editions offered by the
-            // provider, and the gauge counts what is checked.
-            proposition.cartesEditions
-          )
-        }
-      >
+              }
+              className="flex h-11 items-center gap-1.5 rounded-xl bg-surface px-3.5 text-[13px] font-semibold whitespace-nowrap text-textPrimary shadow-token-sm transition-colors hover:text-accentText"
+            >
+              <Scale size={14} />
+              Évaluer une annonce
+            </button>
+          )}
+          {!estInvite && (
+            <button
+              type="button"
+              onClick={() => {
+                setCoverUrlInput(couvertureUrl ?? '')
+                setEditingCover(true)
+              }}
+              className="flex h-11 items-center gap-1.5 rounded-xl bg-surface px-3.5 text-[13px] font-semibold whitespace-nowrap text-textPrimary shadow-token-sm transition-colors hover:text-accentText"
+            >
+              Modifier la couverture
+            </button>
+          )}
+        </div>
 
-      {/* Renaming and cover: two rare corrections, on the band, right
-          under what they change. They do not deserve a permanent field. */}
       {(editingTitle || editingCover) && (
         <div className="relative">
           <div className="flex flex-col gap-2">
@@ -791,28 +994,24 @@ export function EntityDetailPage() {
         </div>
       )}
 
-      {/* A game that is only wanted: the gesture of the page is having it. */}
-      {!avecTomes && !possedee && !estInvite && !modeEdition && (
-        <div className="pt-[18px]">
-          <AjoutDirect
-            libelle="Je l'ai"
-            consoles={consolesDeLOeuvre(entity.attributes)}
-            onAjouter={(console) => ajoutOeuvre.mutate(console)}
-            enCours={ajoutOeuvre.isPending}
-            attente={false}
-            erreur={ajoutOeuvre.isError ? ajoutOeuvre.error.message : null}
-            apres={
-              dansEnvies ? (
-                <button type="button" onClick={() => void basculerEnvies()} className="btn-secondaire">
-                  Retirer de mes envies
-                </button>
-              ) : undefined
-            }
-          />
-        </div>
-      )}
+        {avecTomes && faitsAffiches.length > 0 && <FaitsFiche faits={faitsAffiches} />}
 
-      {proposition.section}
+        {groupes.length > 0 ? (
+          <CartesEditions
+            editions={editionsAffichees}
+            editionAffichee={groupeActif?.editionName ?? ''}
+            editionSuivie={editionSuivie}
+            onAfficher={(nom) => setEditionAffichee(nom)}
+            // Following an edition is a personal choice: absent for a visitor.
+            onSuivre={estInvite ? undefined : (nom) => suivreMutation.mutate(nom)}
+            onNePlusSuivre={estInvite ? undefined : () => nePlusSuivreMutation.mutate()}
+            consultation={estInvite}
+            onAjouterEdition={() => setAjoutTomeOuvert(true)}
+            modeEdition={modeEdition}
+          />
+        ) : (
+          proposition.cartesEditions
+        )}
 
       {groupeActif && (
         <>
@@ -833,7 +1032,10 @@ export function EntityDetailPage() {
               // "Annuler" has only six seconds to give it back.
               const tuile = tuiles.find((t) => t.volumeNumber === numero)
               if (tuile?.status === 'owned' && tuile.variant) {
-                retraitTome.mutate(ownerships.filter((o) => o.variantId === tuile.variant!.id))
+                retraitTome.mutate({
+                  retires: ownerships.filter((o) => o.variantId === tuile.variant!.id),
+                  edition: groupeActif?.editionName || undefined,
+                })
               }
             }}
             onJeLAi={(numero) =>
@@ -1267,12 +1469,7 @@ export function EntityDetailPage() {
           </div>
         </div>
       )}
-
-      {/* Room for the floating "Aide": at the bottom of the page it covered
-          the end of the inspector. On a wide screen too - at 1280 px the
-          content reaches the edge, and the button sat on the panel's corner
-          (UI review of 2026-10-13). */}
-      </FicheHero>
+      </VoletFiche>
 
       <div aria-hidden="true" className="h-14" />
 
@@ -1332,6 +1529,7 @@ export function EntityDetailPage() {
     </>
   )
 }
+
 
 /**
  * The title of the progress question, in the vocabulary of the type.
