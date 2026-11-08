@@ -1950,3 +1950,62 @@ se nomme « Tome N : je l'ai ».
 Vérifié (les quatre lots réunis) : 1 466 tests backend, 668 tests web, typecheck, lint,
 contraste AA (124 combinaisons), frontières, build ; kit ; IozyTest 150 + 220 tests ; 21 parcours
 e2e.
+
+### Lot 211 — Extensions et licences, comptées une fois
+
+Un jeu de société liste ses extensions (BGG), un jeu vidéo les autres jeux de sa licence sur la même
+console (IGDB) ; « je l'ai » sur l'un d'eux crée la copie sur la bonne console. Une extension ou un
+jeu de licence qu'on ne suit pas reste affiché sans entrer dans le total ni dans les manques ; une
+licence se suit console par console dès deux jeux possédés. Dans les listes, un même objet n'est plus
+compté sous deux œuvres. Une réponse d'erreur d'un fournisseur n'est plus retenue comme « rien
+trouvé » ; sans clé ou sans réponse, la fiche dit qu'elle se contente du catalogue.
+
+Vérifié : voir la ligne du lot 216.
+
+### Lot 212 — L'accueil « ta semaine »
+
+L'app s'ouvre sur l'accueil du prototype : l'œuvre du moment en une (sortie de la semaine, sinon ce
+qui manque), « presque fini », les sorties de la semaine et une jauge, puis les rayons par catégorie
+avec leurs dernières jaquettes. Les œuvres suivies sans être possédées y figurent ; « presque fini »
+ne cite jamais une œuvre au total inconnu. La collection reste sous `/collection`, fermée aux
+visiteurs.
+
+Vérifié : voir la ligne du lot 216.
+
+### Lot 213 — Une seule fiche pour toutes les catégories
+
+La fiche d'une œuvre est refaite sur les œuvres et leurs éléments : titre en grand, compte et anneau,
+grille des éléments à la forme du type, prochaine sortie, statut en cours, en pause ou abandonnée.
+Un clic sur un manquant l'ajoute (par son numéro, par l'élément, ou l'œuvre entière en demandant la
+console quand il y en a plusieurs) ; le retrait se fait en deux temps et retire toutes les copies de
+l'élément. Le total d'une édition se saisit sur place. Un type personnalisé a la même fiche. À
+l'intégration, la fiche suit ce que le serveur du lot 211 sait réellement posséder en un clic.
+
+Vérifié : voir la ligne du lot 216.
+
+### Lot 214 — IozyTest : partie rapide et podium
+
+L'accueil d'IozyTest demande « On joue ? » et lance une partie rapide en un clic, avec 20 extraits
+par défaut tirés des seules questions jouables ; « Retour » y ramène. Une partie finit sur un podium,
+où le lecteur d'écran dit aussi quelle place est la sienne.
+
+Vérifié : voir la ligne du lot 216.
+
+### Lot 215 — Les sorties en compte à rebours, et dans l'agenda
+
+La page Sorties devient un compte à rebours, avec un lien secret à ajouter à son agenda (flux `.ics`) ;
+couper l'ancien lien demande confirmation, et un lien mort ne reste pas affiché. Les manques d'une
+œuvre en pause ou abandonnée n'y figurent plus. L'état des données de sorties tient en une ligne ; un
+visiteur n'est pas renvoyé vers un bouton qu'il n'a pas. Migration V45.
+
+Vérifié : voir la ligne du lot 216.
+
+### Lot 216 — À acheter, et le budget du mois
+
+La page « À acheter » réunit les sorties à venir, ce qui manque aux collections en cours et les
+envies, avec « je l'ai » sur place (annulable) ; une œuvre voulue entière garde sa propre ligne. Elle
+montre la dépense du mois par date d'achat et un budget mensuel facultatif, arrondi au centime. Une
+ancienne analyse d'achat au score plat de 50 n'affiche plus de verdict. Migration V46.
+
+Vérifié (les six lots réunis) : 1 559 tests backend, 738 tests web, typecheck, lint, contraste AA
+(124 combinaisons), frontières, build ; kit ; IozyTest 150 + 252 tests et build ; 28 parcours e2e.
