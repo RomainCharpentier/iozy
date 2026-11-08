@@ -9,6 +9,8 @@ interface GameState {
   players: Player[]
   playerName: string
   roomCode?: string | null
+  /** Nombre d'extraits proposé par défaut dans le salon (partie rapide : 10). */
+  questionCount?: number
 }
 
 interface GameContextType {

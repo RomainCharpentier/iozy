@@ -168,3 +168,36 @@ describe('RoomCreator', () => {
     expect(screen.getByRole('button', { name: 'Lien copié' })).toBeTruthy()
   })
 })
+
+describe('RoomCreator : nombre d’extraits proposé', () => {
+  const MANY = Array.from({ length: 40 }, (_, i) => ({ id: `q${i}`, answer: `A${i}` }))
+
+  const startAndReadCount = async (initialQuestionCount?: number) => {
+    getQuestionsForCategories.mockResolvedValue(MANY)
+    render(
+      <RoomCreator
+        categories={['anime']}
+        questions={[]}
+        playerName="Hôte"
+        initialQuestionCount={initialQuestionCount}
+        onRoomCreated={vi.fn()}
+        onBack={vi.fn()}
+      />
+    )
+    const start = await screen.findByRole('button', { name: /Démarrer la partie/ })
+    await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false))
+    await act(async () => {
+      fireEvent.click(start)
+    })
+    const call = fakeSocket.emit.mock.calls.find(([event]) => event === 'game:start')
+    return (call?.[1] as { questionCount: number }).questionCount
+  }
+
+  it('propose 20 extraits par défaut quand la banque en a assez', async () => {
+    expect(await startAndReadCount()).toBe(20)
+  })
+
+  it('partie rapide : propose le nombre demandé', async () => {
+    expect(await startAndReadCount(10)).toBe(10)
+  })
+})

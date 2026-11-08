@@ -44,6 +44,7 @@ export default function RoomCreatorPage() {
       questions={gameState.questions}
       playerName={gameState.playerName}
       gameMode={gameState.gameMode}
+      initialQuestionCount={gameState.questionCount}
       onRoomCreated={handleRoomCreated}
       onBack={handleBack}
     />
