@@ -13,6 +13,7 @@ import com.iozycore.core.testing.InMemoryOwnershipRepository;
 import com.iozycore.manga.testing.InMemoryMangaEditionRepository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -164,6 +165,32 @@ class CollectionProgressServiceTest {
         assertThat(progress.editions()).isEmpty();
         assertThat(progress.dominantEdition()).isNull();
         assertThat(progress.ownedVolumeCount()).isZero();
+    }
+
+    @Test
+    void the_progress_of_one_work_reads_only_the_editions_of_that_work() {
+        // One work must not load every edition of the database.
+        InMemoryMangaEditionRepository scopedEditions = new InMemoryMangaEditionRepository() {
+            @Override
+            public List<MangaEdition> findAll() {
+                throw new AssertionError("findAll must not be called for one work");
+            }
+        };
+        CollectionProgressService scopedService = new CollectionProgressService(entities, ownerships, scopedEditions);
+        Entity series = Entity.create(EntityTypeFixtures.MANGA.id(), "One Piece");
+        Variant t1 = series.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Glenat"));
+        entities.save(series);
+        own(series, t1);
+        Entity other = Entity.create(EntityTypeFixtures.MANGA.id(), "Bleach");
+        entities.save(other);
+        scopedEditions.save(MangaEdition.create(series.id(), "One Piece", "Glenat", EditionTier.STANDARD, null, 110, null, false, false, null));
+        scopedEditions.save(MangaEdition.create(other.id(), "Bleach", "Glenat", EditionTier.STANDARD, null, 74, null, false, false, null));
+
+        CollectionProgress progress = scopedService.compute(series.id()).orElseThrow();
+
+        assertThat(progress.editions()).hasSize(1);
+        assertThat(progress.editions().get(0).totalVolumes()).isEqualTo(110);
+        assertThat(progress.editions().get(0).missingCount()).isEqualTo(109);
     }
 
     private void own(Entity entity, Variant variant) {

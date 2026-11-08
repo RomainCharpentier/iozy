@@ -78,16 +78,16 @@ public class CollectionProgressService implements SeriesProgressSource {
         // All the editions in ONE query rather than one per edition group
         // and per work: on a collection of 500 series, this was ~1000 round trips
         // to the database for a single display of Ma collection.
-        Map<String, Integer> totalsByEntityAndEdition = indexEditionTotals();
+        Map<String, Integer> totalsByEntityAndEdition = indexEditionTotals(mangaEditionRepository.findAll());
         return entityRepository.search(null, null, null).stream()
                 .map(entity -> compute(entity, activeByEntity.getOrDefault(entity.id(), List.of()),
                         totalsByEntityAndEdition))
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Integer> indexEditionTotals() {
+    private Map<String, Integer> indexEditionTotals(List<MangaEdition> editions) {
         Map<String, Integer> totals = new LinkedHashMap<>();
-        for (MangaEdition edition : mangaEditionRepository.findAll()) {
+        for (MangaEdition edition : editions) {
             if (edition.entityId() != null && edition.totalVolumes() != null) {
                 totals.put(CollectionProgress.editionKey(edition.entityId(), edition.editionName()), edition.totalVolumes());
             }
@@ -95,13 +95,15 @@ public class CollectionProgressService implements SeriesProgressSource {
         return totals;
     }
 
-    /** Progression of a specific work - {@link Optional#empty()} if it does not exist. */
+    /** Progression of a specific work - {@link Optional#empty()} if it does not exist.
+     * Loads only the editions of this work, not every edition of the database. */
     @Override
     public Optional<CollectionProgress> compute(UUID entityId) {
         return entityRepository.findById(entityId)
                 .map(entity -> compute(entity, ownershipRepository.findByEntityId(entityId).stream()
                         .filter(Ownership::isActive)
-                        .collect(Collectors.toList()), indexEditionTotals()));
+                        .collect(Collectors.toList()),
+                        indexEditionTotals(mangaEditionRepository.findByEntityId(entityId))));
     }
 
     private CollectionProgress compute(Entity entity, List<Ownership> activeOwnerships,
