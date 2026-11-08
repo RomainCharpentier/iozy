@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -17,6 +18,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,13 +31,17 @@ class HomeWeekHttpContractTest extends HttpContractTestBase {
     @Test
     void reads_the_week_with_its_blocks() throws Exception {
         String serie = "Vinland Saga " + UUID.randomUUID();
-        // Volume 2 owned: volume 1 is a known gap, one missing - almost done.
+        // Volume 2 owned in a 2-volume edition: volume 1 is the one missing - almost done.
+        // The total must be known: a gap under an unknown total is never "one left".
         UUID series = quickAddService.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(), serie,
                 OwnershipCondition.NEW, Map.of(), 2, "Kana").entityId();
+        mockMvc.perform(put("/api/manga/series/" + series + "/total").contentType("application/json")
+                        .content("{\"totalVolumes\":2}"))
+                .andExpect(status().isOk());
         EntityType figurines = entityTypeRepository.save(EntityType.create("FIG_" + UUID.randomUUID()
                 .toString().substring(0, 8), "Figurines", Set.of(), Set.of()));
         UUID statue = quickAddService.addNewEntityWithOwnership(figurines.id(), "Totoro " + UUID.randomUUID(),
-                OwnershipCondition.NEW).entityId();
+                OwnershipCondition.NEW, Map.of("coverImageUrl", "https://covers.example/totoro.jpg")).entityId();
 
         String body = mockMvc.perform(get("/api/home/week"))
                 .andExpect(status().isOk())
@@ -51,20 +57,23 @@ class HomeWeekHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.chiffre.releasesThisWeek").isNumber())
                 .andExpect(jsonPath("$.presqueFini[?(@.work.entityId == '" + series + "')].work.missingCount")
                         .value(1))
+                .andExpect(jsonPath("$.presqueFini[?(@.work.entityId == '" + series + "')].work.totalCount")
+                        .value(2))
                 .andExpect(jsonPath("$.presqueFini[?(@.work.entityId == '" + series + "')].missing[0].label")
                         .value("Tome 1"))
                 .andExpect(jsonPath("$.presqueFini[?(@.work.entityId == '" + series + "')].missing[0].state")
                         .value("MISSING"))
                 .andExpect(jsonPath("$.rayons[?(@.entityTypeId == '" + figurines.id() + "')].workCount").value(1))
                 .andExpect(jsonPath("$.rayons[?(@.entityTypeId == '" + figurines.id() + "')].objectCount").value(1))
-                .andExpect(jsonPath("$.rayons[?(@.entityTypeId == '" + figurines.id() + "')].covers").isArray())
                 .andReturn().getResponse().getContentAsString();
-        System.out.println("GET /api/home/week -> " + body.substring(0, Math.min(body.length(), 800)));
 
         String weekStart = com.jayway.jsonpath.JsonPath.read(body, "$.weekStart");
         String weekEnd = com.jayway.jsonpath.JsonPath.read(body, "$.weekEnd");
         assertThat(LocalDate.parse(weekStart).getDayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
         assertThat(LocalDate.parse(weekEnd)).isEqualTo(LocalDate.parse(weekStart).plusDays(6));
-        assertThat(statue).isNotNull();
+        // The custom type's shelf shows the cover of its work.
+        assertThat(com.jayway.jsonpath.JsonPath.<List<String>>read(body,
+                "$.rayons[?(@.entityTypeId == '" + figurines.id() + "')].covers[*].entityId"))
+                .containsExactly(statue.toString());
     }
 }

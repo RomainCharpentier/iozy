@@ -33,15 +33,16 @@ import java.util.stream.Stream;
  *
  * <h2>The blocks, each one may be empty</h2>
  * <ul>
- *   <li><b>lead</b>: a work of the collection (owned or wished) with a release this
+ *   <li><b>lead</b>: a work of the collection (owned, wished or followed) with a release this
  *       week - the release closest to today, an upcoming one before a past one;
  *       else the owned work that moved last; else nothing;</li>
  *   <li><b>alsoThisWeek</b>: up to {@value #MAX_ALSO} other works - their release this
  *       week first, by date, then the works moved this week, latest first;</li>
  *   <li><b>figure</b>: the objects of the collection and this month's additions
  *       ({@link CollectionSummary}), {@code null} for an empty collection;</li>
- *   <li><b>almostDone</b>: owned works the collector follows (ONGOING) that lack
- *       between 1 and {@value #MAX_MISSING_ALMOST_DONE} counted elements, fewest first;</li>
+ *   <li><b>almostDone</b>: owned works the collector follows (ONGOING), with a known
+ *       total, that lack between 1 and {@value #MAX_MISSING_ALMOST_DONE} counted elements,
+ *       fewest first;</li>
  *   <li><b>shelves</b>: per type with an owned work, its works, its objects and up to
  *       {@value #COVERS_PER_SHELF} covers of the works that moved last.</li>
  * </ul>
@@ -119,7 +120,7 @@ public record HomeWeek(LocalDate weekStart, LocalDate weekEnd, Lead lead, List<I
     /**
      * Composes the week.
      *
-     * @param works   the works of the account (owned or wished), in any order
+     * @param works   the works of the account (owned, wished or followed), in any order
      * @param summary the objects of the account
      * @param today   today in the collector's calendar
      * @param zone    the collector's time zone, to read when a move happened
@@ -164,6 +165,8 @@ public record HomeWeek(LocalDate weekStart, LocalDate weekEnd, Lead lead, List<I
         List<AlmostDone> almostDone = sorted.stream()
                 .filter(work -> work.ownedCount() > 0)
                 .filter(work -> work.collectorStatus() == CollectorStatus.ONGOING)
+                // An unknown total is never guessed: its missing elements are only gaps.
+                .filter(WorkView::totalKnown)
                 .filter(work -> work.missingCount() >= 1 && work.missingCount() <= MAX_MISSING_ALMOST_DONE)
                 .sorted(Comparator.comparingInt(WorkView::missingCount))
                 .limit(MAX_ALMOST_DONE)

@@ -38,6 +38,7 @@ class HomeWeekTest {
         CollectorStatus status = CollectorStatus.ONGOING;
         int owned = 1;
         int wished;
+        Integer total = 10;
         Instant moved = Instant.parse("2026-10-01T10:00:00Z");
         ReleaseEntry next;
         final List<WorkView.CountedElement> elements = new ArrayList<>();
@@ -49,6 +50,7 @@ class HomeWeekTest {
         Work moved(String instant) { moved = Instant.parse(instant); return this; }
         Work status(CollectorStatus value) { status = value; return this; }
         Work noCover() { cover = null; return this; }
+        Work unknownTotal() { total = null; return this; }
 
         Work next(ReleaseDate date, String label, Integer number) {
             next = new ReleaseEntry(date, id, title, type, label, number, null, null,
@@ -71,7 +73,7 @@ class HomeWeekTest {
 
         WorkView view() {
             int missing = (int) elements.stream().filter(WorkView.CountedElement::countedAsMissing).count();
-            return new WorkView(id, type, title, cover, status, owned, null, missing, wished, elements, next, moved);
+            return new WorkView(id, type, title, cover, status, owned, total, missing, wished, elements, next, moved);
         }
     }
 
@@ -198,8 +200,8 @@ class HomeWeekTest {
         WorkView three = work("Trois").missing(3).view();
         WorkView four = work("Quatre").missing(4).view();
         WorkView complete = work("Complet").view();
-        WorkView paused = work("En pause").status(CollectorStatus.PAUSED)
-                .element(1, WorkElement.State.MISSING, null, false).view();
+        // Counted as missing on purpose: only its status keeps it out.
+        WorkView paused = work("En pause").status(CollectorStatus.PAUSED).missing(1).view();
         WorkView wishOnly = work("Envie").owned(0).wished(1).missing(1).view();
 
         List<HomeWeek.AlmostDone> almostDone = compose(EMPTY, two, one, three, four, complete, paused, wishOnly)
@@ -207,6 +209,19 @@ class HomeWeekTest {
 
         assertThat(almostDone).extracting(a -> a.work().title()).containsExactly("Un", "Deux", "Trois");
         assertThat(almostDone.get(1).missing()).extracting(WorkElement::label).containsExactly("Tome 101", "Tome 102");
+    }
+
+    @Test
+    void almost_done_never_claims_a_work_with_an_unknown_total() {
+        // Volume 2 owned, total unknown: volume 1 is a gap, not "one left".
+        WorkView unknown = work("Sans total").unknownTotal()
+                .element(1, WorkElement.State.MISSING, null, true)
+                .element(2, WorkElement.State.OWNED, null, false)
+                .view();
+        WorkView known = work("Avec total").missing(1).view();
+
+        assertThat(compose(EMPTY, unknown, known).almostDone()).extracting(a -> a.work().title())
+                .containsExactly("Avec total");
     }
 
     @Test
