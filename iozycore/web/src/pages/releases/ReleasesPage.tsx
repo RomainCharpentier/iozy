@@ -1,212 +1,158 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 import { getReleaseCalendar } from '@/common/api/insights'
 import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
-import { isoLocal, libelleMois, titreDuJour } from '@/common/lib/releaseDate'
+import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
+import { isoLocal, libelleMois, periodeSurUnAn } from '@/common/lib/releaseDate'
 import { useNow } from '@/common/hooks/useNow'
+import { useAuth } from '@/common/hooks/useAuth'
 import { Chip } from '@/common/components/Chip'
 import { EtatVide } from '@/common/components/EtatVide'
-import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
-import { LienRetour } from '@/common/components/LienRetour'
 import { ReleaseRefreshLine } from '@/common/components/ReleaseRefreshLine'
-import { ReleaseRow } from '@/common/components/ReleaseRow'
-import { useReleaseRefresh } from '@/common/hooks/useReleaseRefresh'
-import { GrilleDuMois } from './GrilleDuMois'
-import { ListeAVenir } from './ListeAVenir'
-import { bornesDuMois, cleDeSortie, compterParCategorie, moisDepuisParametre, moisPrecedent, moisSuivant, rangerParJour } from './releaseCalendar'
 import { Squelette } from '@/common/components/Squelette'
+import { usePleinCadre } from '@/common/components/pleinCadre/usePleinCadre'
+import { useReleaseRefresh } from '@/common/hooks/useReleaseRefresh'
+import type { ReleaseEntryDto } from '@/common/types/api'
+import { AbonnementAgenda } from './AbonnementAgenda'
+import { CarteSortie } from './CarteSortie'
+import { CompteARebours } from './CompteARebours'
+import { cleDeSortie, compterParCategorie, grouperParMois, prochaineSortie } from './releaseCalendar'
+import { useJeLAiSortie } from './useJeLAiSortie'
 
-const PARAMETRE_MOIS = 'mois'
-
-/** The subheading of a day of the agenda: the same voice as the month title, one step below. */
-const CLASSE_INTERTITRE = 'font-display text-base font-bold tracking-[-0.01em] text-textPrimary'
+const RETOUR = { to: '/releases', libelle: 'Sorties' }
 
 /**
- * The release calendar: month by month, what comes out for the works
- * that one owns or wants, all categories together (batch 146).
+ * Sorties (lot 215, mock-up "Sorties", look A): what comes out in the year
+ * for the works one owns, follows or wants, all categories together.
  *
- * <p>Three readings of the same calendar. The <b>grid</b> gives the shape of the
- * month - where today falls, which days are busy, what comes out in
- * each cell. The <b>agenda</b> gives the detail of the month, sorted by day;
- * touching a cell reduces it to that day. And <b>à venir</b>, next to the grid
- * on desktop, below on mobile, lists everything that comes out within the year without
- * turning the pages; one of its rows brings the grid to its day. A
- * list of only the days that have something did not make a calendar:
- * it is the first usage feedback of this screen, and the reason for the grid.
+ * <p>The top of the page is the next release: the days left in a huge
+ * number, its cover spread blurred behind the whole screen. Under it, every
+ * release to come, month by month. The filters are read from the data - one
+ * chip per category that has a release, a custom type included.
  *
- * <p>The server never returns an approximate date: what is only known
- * to the month reads "date à préciser", outside the grid; a year
- * alone is not read at all.
+ * <p>What the collection does not have yet breathes (`.iozy-manque`); a click
+ * on it says "je l'ai précommandé" through quick-add, the path of every other
+ * screen. What it has is plain glass that leads to the work.
  *
- * <p>The month lives in the URL (`?mois=2026-10`): a link can be shared there, and
- * going back returns to the previous month, not to the previous page. The chosen
- * day, for its part, only lives on the screen: it is a look, not a place.
+ * <p>The state of the data is one line, at the bottom: when the sources were
+ * read, and when they will be read again. The .ics file of before became a
+ * subscription: the agenda app reads the link again by itself.
  */
 export function ReleasesPage() {
-  const [parametres, setParametres] = useSearchParams()
   const now = useNow()
-  const mois = moisDepuisParametre(parametres.get(PARAMETRE_MOIS), now)
-  const { from, to } = bornesDuMois(mois)
+  const aujourdHui = isoLocal(now)
+  const { from, to } = periodeSurUnAn(now)
+  const { estInvite } = useAuth()
   const [categorie, setCategorie] = useState<string | null>(null)
-  const [jourChoisi, setJourChoisi] = useState<string | null>(null)
-  const grilleRef = useRef<HTMLDivElement>(null)
 
   const calendrierQuery = useQuery({
     queryKey: queryKeys.insights.releases(from, to),
     queryFn: () => getReleaseCalendar(from, to),
   })
   const typesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
-  const libelleParType = useMemo(() => new Map((typesQuery.data ?? []).map((t) => [t.id, t.label])), [typesQuery.data])
+  const typesParId = useMemo(() => new Map((typesQuery.data ?? []).map((t) => [t.id, t])), [typesQuery.data])
+  const { status: etatMiseAJour } = useReleaseRefresh()
+  const jamaisConsultees = !!etatMiseAJour?.available && !etatMiseAJour.lastRun
 
   const toutes = calendrierQuery.data?.entries ?? []
   const comptes = compterParCategorie(toutes)
-  // An empty calendar has two meanings: nothing announced, or sources never
-  // read. The page used to say the first in both cases, with no way to
-  // launch a pass from here (desktop pass of 2026-11-01).
-  const { status: etatMiseAJour } = useReleaseRefresh()
-  const jamaisConsultees = !!etatMiseAJour?.available && !etatMiseAJour.lastRun
-  // A chosen category that has nothing this month falls back on "Tout": a
-  // chip that can no longer be seen must not filter silently.
+  // A chosen category that no longer has a release falls back on "Tout": a
+  // chip that cannot be seen must not filter silently.
   const categorieActive = categorie && comptes.has(categorie) ? categorie : null
   const visibles = categorieActive ? toutes.filter((e) => e.entityTypeId === categorieActive) : toutes
-  const range = rangerParJour(visibles)
-  const parJour = new Map(range.jours.map((jour) => [jour.iso, jour.entries]))
-  // Same rule for the day: chosen then emptied by a filter or another month, it clears.
-  const jourActif = jourChoisi && parJour.has(jourChoisi) ? jourChoisi : null
-  const jours = jourActif ? range.jours.filter((jour) => jour.iso === jourActif) : range.jours
+  const prochaine = prochaineSortie(visibles, aujourdHui)
+  const mois = grouperParMois(visibles.filter((e) => e !== prochaine))
 
-  const aujourdHui = isoLocal(now)
-  const moisCourant = aujourdHui.slice(0, 7)
-  const retour = { to: `/releases?${PARAMETRE_MOIS}=${mois}`, libelle: 'Calendrier des sorties' }
+  usePleinCadre(prochaine?.coverImageUrl)
 
-  function allerAuMois(cible: string) {
-    setJourChoisi(null)
-    setParametres({ [PARAMETRE_MOIS]: cible })
-  }
-
-  /** From the list of what is coming: the month, and the day when the source knows it. */
-  function voirDansLaGrille(cible: string, jour: string | null) {
-    setJourChoisi(jour)
-    setParametres({ [PARAMETRE_MOIS]: cible })
-    // On mobile the list is under the agenda: bring the grid back in view.
-    // `nearest` moves nothing when it is already there (desktop).
-    grilleRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
-  }
-
-  const toutLeMois = (
-    <button type="button" onClick={() => setJourChoisi(null)} className="min-h-11 shrink-0 text-sm font-semibold text-accentText">
-      Tout le mois
-    </button>
-  )
+  const jeLAi = useJeLAiSortie()
+  const onJeLAi = estInvite ? undefined : (entry: ReleaseEntryDto) => jeLAi.mutate(entry)
+  const enCours = (entry: ReleaseEntryDto) => jeLAi.isPending && jeLAi.variables === entry
+  const aspect = (entry: ReleaseEntryDto) => getEntityTypeVisual(typesParId.get(entry.entityTypeId)).aspectClassName
 
   return (
-    <div className="flex flex-col gap-5">
-      <LienRetour parDefaut={{ to: '/discover', libelle: 'Découvrir' }} />
+    <div className="flex flex-col gap-10">
+      <h1 className="sr-only">Sorties</h1>
 
-      <EnTeteSection niveau={1} titre="Calendrier des sorties" sousTitre="Ce qui sort pour ta collection et tes envies." />
+      {calendrierQuery.isError && <ErrorBanner message={calendrierQuery.error.message} />}
+      {calendrierQuery.isLoading && <Squelette lignes={4} />}
+      {jeLAi.isError && <ErrorBanner message={jeLAi.error.message} />}
 
-      <ReleaseRefreshLine />
+      {calendrierQuery.isSuccess && toutes.length === 0 && (
+        <EtatVide
+          icone={CalendarDays}
+          titre={jamaisConsultees ? "Les sorties n'ont pas encore été cherchées." : "Rien d'annoncé pour l'année qui vient."}
+          detail={
+            jamaisConsultees
+              ? 'Lance une mise à jour ci-dessous : les sources seront lues pour ta collection et tes envies.'
+              : 'Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici.'
+          }
+        />
+      )}
 
-      {/* Two columns from 1100 px (the page goes to 960 px, see AppShell): the
-          month on the left, everything that is coming on the right. On mobile, one under the other. */}
-      <div className="flex flex-col gap-8 min-[1100px]:grid min-[1100px]:grid-cols-[1.6fr_1fr] min-[1100px]:items-start min-[1100px]:gap-x-8">
-        <div className="flex min-w-0 flex-col gap-5">
-          <div ref={grilleRef} className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => allerAuMois(moisPrecedent(mois))}
-              aria-label="Mois précédent"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-textPrimary"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <div className="flex min-w-0 flex-col items-center gap-1">
-              <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-textPrimary">{libelleMois(mois)}</h2>
-              {mois !== moisCourant && (
-                <button type="button" onClick={() => allerAuMois(moisCourant)} className="min-h-11 text-sm font-semibold text-accentText">
-                  Aujourd'hui
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => allerAuMois(moisSuivant(mois))}
-              aria-label="Mois suivant"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-textPrimary"
-            >
-              <ChevronRight size={18} />
-            </button>
+      {prochaine && (
+        <CompteARebours
+          entry={prochaine}
+          aujourdHui={aujourdHui}
+          typeLabel={typesParId.get(prochaine.entityTypeId)?.label}
+          aspectClassName={aspect(prochaine)}
+          retour={RETOUR}
+          onJeLAi={onJeLAi}
+          enCours={enCours(prochaine)}
+        />
+      )}
+
+      {toutes.length > 0 && (
+        <section aria-labelledby="a-venir-titre" className="flex flex-col gap-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="a-venir-titre" className="font-display text-xl font-bold tracking-[-0.02em] text-textPrimary">
+              À venir
+            </h2>
+            {comptes.size > 1 && (
+              <div className="defilement-discret flex gap-2 overflow-x-auto" role="group" aria-label="Filtrer par catégorie">
+                <Chip label="Tout" isActive={categorieActive === null} onClick={() => setCategorie(null)} count={toutes.length} />
+                {[...comptes.entries()].map(([typeId, compte]) => (
+                  <Chip
+                    key={typeId}
+                    label={typesParId.get(typeId)?.label ?? 'Catégorie'}
+                    isActive={categorieActive === typeId}
+                    onClick={() => setCategorie(typeId)}
+                    count={compte}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
-          {calendrierQuery.isError && <ErrorBanner message={calendrierQuery.error.message} />}
+          {mois.length === 0 && <p className="text-sm text-textDim">Rien d'autre d'annoncé pour l'instant.</p>}
 
-          {toutes.length > 0 && comptes.size > 1 && (
-            <div className="defilement-discret flex gap-2 overflow-x-auto" role="group" aria-label="Filtrer par catégorie">
-              <Chip label="Tout" isActive={categorieActive === null} onClick={() => setCategorie(null)} count={toutes.length} />
-              {[...comptes.entries()].map(([typeId, compte]) => (
-                <Chip
-                  key={typeId}
-                  label={libelleParType.get(typeId) ?? 'Catégorie'}
-                  isActive={categorieActive === typeId}
-                  onClick={() => setCategorie(typeId)}
-                  count={compte}
-                />
-              ))}
-            </div>
-          )}
-
-          <GrilleDuMois mois={mois} parJour={parJour} jourChoisi={jourActif} onChoisir={setJourChoisi} aujourdHui={aujourdHui} />
-
-          {calendrierQuery.isLoading && <Squelette lignes={3} />}
-
-          {calendrierQuery.isSuccess && toutes.length === 0 && (
-            <EtatVide
-              icone={CalendarDays}
-              titre={
-                jamaisConsultees
-                  ? "Les sorties n'ont pas encore été cherchées."
-                  : `Rien ne sort en ${libelleMois(mois).toLowerCase()} pour ta collection ni tes envies.`
-              }
-              detail={
-                jamaisConsultees
-                  ? 'Lance une mise à jour ci-dessus : les sources seront lues pour ta collection et tes envies.'
-                  : 'Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici.'
-              }
-            />
-          )}
-
-          {!jourActif && range.aPreciser.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <h3 className={CLASSE_INTERTITRE}>Ce mois-ci, date à préciser</h3>
-              {range.aPreciser.map((entry) => (
-                <ReleaseRow key={cleDeSortie(entry)} entry={entry} typeLabel={libelleParType.get(entry.entityTypeId)} retour={retour} />
-              ))}
-            </section>
-          )}
-
-          {jours.map((jour) => (
-            <section key={jour.iso} className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <h3 className={CLASSE_INTERTITRE}>{titreDuJour(jour.iso)}</h3>
-                {jourActif && toutLeMois}
-              </div>
-              {jour.entries.map((entry) => (
-                <ReleaseRow key={cleDeSortie(entry)} entry={entry} typeLabel={libelleParType.get(entry.entityTypeId)} retour={retour} />
-              ))}
+          {mois.map((m) => (
+            <section key={m.mois} aria-label={libelleMois(m.mois)} className="flex flex-col gap-3">
+              <h3 className="text-[13px] font-semibold tracking-[0.12em] text-textDim uppercase">{libelleMois(m.mois)}</h3>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {m.entries.map((entry) => (
+                  <li key={cleDeSortie(entry)} className="min-w-0">
+                    <CarteSortie
+                      entry={entry}
+                      aspectClassName={aspect(entry)}
+                      retour={RETOUR}
+                      onJeLAi={onJeLAi}
+                      enCours={enCours(entry)}
+                    />
+                  </li>
+                ))}
+              </ul>
             </section>
           ))}
-        </div>
+        </section>
+      )}
 
-        <ListeAVenir
-          libelleParType={libelleParType}
-          onVoir={voirDansLaGrille}
-          jamaisConsultees={jamaisConsultees}
-          className="defilement-discret min-[1100px]:sticky min-[1100px]:top-20 min-[1100px]:max-h-[calc(100vh-6rem)] min-[1100px]:overflow-y-auto"
-        />
+      <div className="flex flex-col gap-4">
+        {!estInvite && <AbonnementAgenda />}
+        <ReleaseRefreshLine />
       </div>
     </div>
   )

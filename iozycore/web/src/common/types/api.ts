@@ -528,3 +528,13 @@ export interface CollectionSummaryDto {
   addedThisMonthByType: TypeCountDto[]
   byType: TypeCountDto[]
 }
+
+// --- Calendar subscription (lot 215) ---
+/** The secret link an agenda app reads. Whoever holds the token reads the releases. */
+export interface CalendarSubscriptionDto {
+  token: string
+  /** "/api/public/calendar/{token}.ics": the client puts its own origin in front. */
+  feedPath: string
+  /** ISO instant. */
+  createdAt: string
+}

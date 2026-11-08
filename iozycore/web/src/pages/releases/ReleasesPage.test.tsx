@@ -1,43 +1,56 @@
 /**
- * <b>The release calendar: a month as a grid, its agenda, everything that
- * is coming alongside, and what each release represents.</b>
+ * <b>Sorties: the countdown to the next release, everything to come month
+ * by month, filters read from the data, and the agenda subscription.</b>
  *
- * <p>What breaks silently here: a month misread from the URL, a
- * release put under the wrong day or missing from its cell, a relation that
- * stops being written, a chosen day that no longer clears, an empty month that
- * loses its grid, an "À venir" row that no longer brings the grid to the right
- * place.
+ * <p>What breaks silently here: a countdown on the wrong release, a category
+ * that gets no chip because it is not one of the known universes, a missing
+ * release that no longer offers the pre-order, an owned one that offers it,
+ * an empty year that says "nothing" when the sources were never read, a
+ * subscription link written with the wrong scheme.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { ReleasesPage } from './ReleasesPage'
+import { liensAbonnement } from './releaseCalendar'
 import { typeDeCollection } from '@/test/fixtures'
 import { isoLocal } from '@/common/lib/releaseDate'
-import type { ReleaseCalendarDto, ReleaseEntryDto } from '@/common/types/api'
+import type { ReleaseEntryDto } from '@/common/types/api'
 
 const insights = vi.hoisted(() => ({ getReleaseCalendar: vi.fn(), getReleaseRefreshStatus: vi.fn(), startReleaseRefresh: vi.fn() }))
 vi.mock('@/common/api/insights', () => insights)
 const types = vi.hoisted(() => ({ listEntityTypes: vi.fn() }))
 vi.mock('@/common/api/entityTypes', () => types)
-vi.mock('@/common/hooks/useAuth', () => ({ useAuth: () => ({ estInvite: false }) }))
+const entities = vi.hoisted(() => ({ quickAdd: vi.fn() }))
+vi.mock('@/common/api/entities', () => entities)
+const calendar = vi.hoisted(() => ({ subscribeToCalendar: vi.fn(), revokeCalendarSubscription: vi.fn() }))
+vi.mock('@/common/api/calendar', () => calendar)
+const auth = vi.hoisted(() => ({ estInvite: false }))
+vi.mock('@/common/hooks/useAuth', () => ({ useAuth: () => auth }))
 
 const MANGA = { ...typeDeCollection('MANGA', 'Manga'), hasReleaseSource: true }
-const SOCIETE = typeDeCollection('BOARD_GAME', 'Jeu de société')
+/** A type the owner made: nothing in the code knows it. */
+const VINYLE = typeDeCollection('VINYLE_42', 'Vinyle')
+
+/** A day from today, as the server writes it. */
+function dans(jours: number): string {
+  const d = new Date()
+  return isoLocal(new Date(d.getFullYear(), d.getMonth(), d.getDate() + jours))
+}
 
 function sortie(surcharges: Partial<ReleaseEntryDto>): ReleaseEntryDto {
   return {
-    date: '2000-01-14',
+    date: dans(5),
     precision: 'DAY',
-    entityId: 'naruto',
-    entityTitle: 'Naruto',
+    entityId: 'vinland',
+    entityTitle: 'Vinland Saga',
     entityTypeId: MANGA.id,
-    label: 'Tome 72 · Kana',
-    volumeNumber: 72,
-    editionName: 'Kana',
+    label: 'Tome 15 · Kurokawa',
+    volumeNumber: 15,
+    editionName: 'Kurokawa',
     coverImageUrl: null,
     relation: 'MISSING',
     source: 'GOOGLE_BOOKS',
@@ -45,55 +58,20 @@ function sortie(surcharges: Partial<ReleaseEntryDto>): ReleaseEntryDto {
   }
 }
 
-/** January 2000, as the server would return it: a release known to the month, then two days. */
-const JANVIER_2000: ReleaseCalendarDto = {
-  from: '2000-01-01',
-  to: '2000-01-31',
-  entries: [
-    sortie({ date: '2000-01', precision: 'MONTH', entityId: 'spy', entityTitle: 'Spy x Family', label: 'Tome 15 · Kurokawa', relation: 'WANTED' }),
-    sortie({ date: '2000-01-02', entityId: 'naruto-71', label: 'Tome 71 · Kana', relation: 'OWNED' }),
-    sortie({ date: '2000-01-14' }),
-    sortie({ date: '2000-01-14', entityId: 'ark', entityTitle: 'Ark Nova', entityTypeId: SOCIETE.id, label: '', relation: 'OWNED', source: 'MANUAL' }),
-  ],
+const VINLAND = sortie({})
+const DISQUE = sortie({ date: dans(40), entityId: 'ram', entityTitle: 'Random Access Memories', entityTypeId: VINYLE.id, label: '', volumeNumber: null, editionName: null, relation: 'OWNED', source: 'MANUAL' })
+const FRIEREN = sortie({ date: dans(12), entityId: 'frieren', entityTitle: 'Frieren', label: 'Tome 15 · Ki-oon', editionName: 'Ki-oon', relation: 'WANTED' })
+
+function servir(entries: ReleaseEntryDto[]) {
+  insights.getReleaseCalendar.mockImplementation(async (from: string, to: string) => ({ from, to, entries }))
 }
 
-/**
- * Two requests leave the screen: the displayed month, and the coming year
- * ("À venir", from today). The requested month receives `mois`; the year
- * receives `annee`; any other month only receives what falls inside it.
- */
-function servir(mois: ReleaseCalendarDto, annee: ReleaseEntryDto[] = []) {
-  const aujourdHui = isoLocal(new Date())
-  insights.getReleaseCalendar.mockImplementation(async (from: string, to: string) => {
-    if (from === mois.from) return mois
-    if (from === aujourdHui) return { from, to, entries: annee }
-    return { from, to, entries: annee.filter((e) => e.date >= from.slice(0, 7) && e.date <= to) }
-  })
-}
-
-function Url() {
-  const location = useLocation()
-  return <output data-testid="url">{location.pathname + location.search}</output>
-}
-
-function rendre(url: string) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+function rendre() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   function enrobage({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[url]}>
-          <Routes>
-            <Route
-              path="/releases"
-              element={
-                <>
-                  {children}
-                  <Url />
-                </>
-              }
-            />
-          </Routes>
-        </MemoryRouter>
+        <MemoryRouter initialEntries={['/releases']}>{children}</MemoryRouter>
       </QueryClientProvider>
     )
   }
@@ -102,207 +80,113 @@ function rendre(url: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  types.listEntityTypes.mockResolvedValue([MANGA, SOCIETE])
-  // No refresh on this instance: the page reads the calendar alone.
+  auth.estInvite = false
+  types.listEntityTypes.mockResolvedValue([MANGA, VINYLE])
   insights.getReleaseRefreshStatus.mockResolvedValue({ available: false, running: false, lastRun: null })
 })
 
 describe('ReleasesPage', () => {
-  it('reads the month in the URL, asks the server for it bounded, and renders it as a grid then an agenda', async () => {
-    servir(JANVIER_2000)
-    rendre('/releases?mois=2000-01')
+  it('counts down to the next release, and asks the server for the coming year', async () => {
+    servir([DISQUE, FRIEREN, VINLAND])
+    rendre()
 
-    expect(await screen.findByRole('heading', { name: 'Janvier 2000' })).toBeInTheDocument()
-    expect(insights.getReleaseCalendar).toHaveBeenCalledWith('2000-01-01', '2000-01-31')
-
-    // The grid: the busy days can be chosen, and say how many.
-    expect(screen.getByRole('table', { name: 'Grille de janvier 2000' })).toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: 'dimanche 2 janvier, 1 sortie' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'vendredi 14 janvier, 2 sorties' })).toBeInTheDocument()
-
-    // The agenda: the days in order, and apart what has no day.
-    const intertitres = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
-    expect(intertitres).toEqual(['Ce mois-ci, date à préciser', 'Dimanche 2 janvier', 'Vendredi 14 janvier'])
-
-    // The relation, always written, without the source - and the category when nothing more precise says what comes out.
-    expect(screen.getByRole('link', { name: /Spy x Family.*Tome 15 · Kurokawa.*Envie/ })).toHaveAttribute('href', '/entity/spy')
-    expect(screen.getByRole('link', { name: /Naruto.*Tome 71 · Kana.*Possédé/ })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Naruto.*Tome 72 · Kana.*À acheter/ })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Ark Nova.*Jeu de société.*Possédé/ })).toBeInTheDocument()
-    expect(screen.queryByText(/Google Books|Date saisie sur la fiche/)).not.toBeInTheDocument()
-
-    // The month is not the one of the device: "Aujourd'hui" brings back.
-    expect(screen.getByRole('button', { name: "Aujourd'hui" })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Vinland Saga' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Dans 5 jours')).toBeInTheDocument()
+    expect(insights.getReleaseCalendar).toHaveBeenCalledWith(dans(0), expect.any(String))
+    // The next one is the hero, not a card of the list too.
+    expect(screen.queryByRole('button', { name: /^Vinland Saga, Tome 15/ })).not.toBeInTheDocument()
   })
 
-  it('choosing a day in the grid keeps only it, and "Tout le mois" brings back', async () => {
-    servir(JANVIER_2000)
-    rendre('/releases?mois=2000-01')
-    const utilisateur = userEvent.setup()
+  it('offers one chip per category that has a release, a custom type included', async () => {
+    servir([VINLAND, FRIEREN, DISQUE])
+    rendre()
 
-    await utilisateur.click(await screen.findByRole('button', { name: 'vendredi 14 janvier, 2 sorties' }))
+    const filtres = await screen.findByRole('group', { name: 'Filtrer par catégorie' })
+    expect(within(filtres).getAllByRole('button').map((b) => b.textContent)).toEqual(['Tout3', 'Manga2', 'Vinyle1'])
 
-    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Vendredi 14 janvier'])
-    expect(screen.getByRole('link', { name: /Ark Nova/ })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Tome 71/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Spy x Family/ })).not.toBeInTheDocument()
-
-    await utilisateur.click(screen.getByRole('button', { name: 'Tout le mois' }))
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(3)
-    expect(screen.getByRole('link', { name: /Spy x Family/ })).toBeInTheDocument()
+    await userEvent.click(within(filtres).getByRole('button', { name: /Vinyle/ }))
+    // Filtered on the vinyl, the countdown is about the record.
+    expect(await screen.findByRole('heading', { level: 2, name: 'Random Access Memories' })).toBeInTheDocument()
+    expect(screen.queryByText('Frieren')).not.toBeInTheDocument()
   })
 
-  it('filters by category when there are several, and falls back on Tout', async () => {
-    servir({
-      from: '2000-01-01',
-      to: '2000-01-31',
-      entries: [sortie({}), sortie({ entityId: 'ark', entityTitle: 'Ark Nova', entityTypeId: SOCIETE.id, label: '', source: 'MANUAL' })],
+  it('pre-orders a missing release in one click through quick-add, and leaves an owned one as a link', async () => {
+    entities.quickAdd.mockResolvedValue({ entityId: 'frieren', matchedExistingEntity: true, variantId: 'v', matchedExistingVariant: false })
+    servir([VINLAND, FRIEREN, DISQUE])
+    rendre()
+
+    const frieren = await screen.findByRole('button', { name: /^Frieren, Tome 15 · Ki-oon, .* : je l'ai précommandé$/ })
+    await userEvent.click(frieren)
+    expect(entities.quickAdd).toHaveBeenCalledWith({
+      entityTypeId: MANGA.id,
+      title: 'Frieren',
+      condition: 'NEW',
+      volumeNumber: 15,
+      edition: 'Ki-oon',
     })
-    rendre('/releases?mois=2000-01')
-    const utilisateur = userEvent.setup()
 
-    await screen.findByRole('link', { name: /Ark Nova/ })
-    await utilisateur.click(await screen.findByRole('button', { name: /Jeu de société/ }))
+    expect(screen.getByRole('link', { name: /^Random Access Memories, le / })).toHaveAttribute('href', '/entity/ram')
+    expect(screen.queryByRole('button', { name: /Random Access Memories.*je l'ai/ })).not.toBeInTheDocument()
 
-    expect(screen.queryByRole('link', { name: /Naruto/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Ark Nova/ })).toBeInTheDocument()
-    // The grid follows the filter: the cell now only counts what remains.
-    expect(screen.getByRole('button', { name: 'vendredi 14 janvier, 1 sortie' })).toBeInTheDocument()
-
-    await utilisateur.click(screen.getByRole('button', { name: /^Tout/ }))
-    expect(screen.getByRole('link', { name: /Naruto/ })).toBeInTheDocument()
+    // The hero offers it too.
+    expect(screen.getByRole('button', { name: "Je l'ai précommandé" })).toBeInTheDocument()
   })
 
-  it('turns the calendar pages through the URL, and forgets the chosen day when turning', async () => {
-    servir(JANVIER_2000)
-    rendre('/releases?mois=2000-01')
-    const utilisateur = userEvent.setup()
+  it('lets a guest look without writing', async () => {
+    auth.estInvite = true
+    servir([VINLAND, FRIEREN])
+    rendre()
 
-    await utilisateur.click(await screen.findByRole('button', { name: 'dimanche 2 janvier, 1 sortie' }))
-    expect(screen.getByRole('button', { name: 'Tout le mois' })).toBeInTheDocument()
-
-    await utilisateur.click(screen.getByRole('button', { name: 'Mois suivant' }))
-
-    expect(screen.getByTestId('url')).toHaveTextContent('/releases?mois=2000-02')
-    await waitFor(() => expect(insights.getReleaseCalendar).toHaveBeenCalledWith('2000-02-01', '2000-02-29'))
-    expect(screen.getByRole('heading', { name: 'Février 2000' })).toBeInTheDocument()
-    expect(screen.getByRole('table', { name: 'Grille de février 2000' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Tout le mois' })).not.toBeInTheDocument()
-
-    await utilisateur.click(screen.getByRole('button', { name: 'Mois précédent' }))
-    await utilisateur.click(screen.getByRole('button', { name: 'Mois précédent' }))
-    expect(screen.getByTestId('url')).toHaveTextContent('/releases?mois=1999-12')
+    expect(await screen.findByRole('link', { name: /^Frieren, Tome 15/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /je l'ai précommandé/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: "S'abonner dans mon agenda" })).not.toBeInTheDocument()
   })
 
-  it('lists everything that is coming alongside, month by month, and a row brings the grid to its day', async () => {
-    servir(JANVIER_2000, [
-      sortie({ date: '2000-03-19', entityId: 'gta', entityTitle: 'GTA VI', label: '', entityTypeId: SOCIETE.id, relation: 'WANTED', source: 'MANUAL' }),
-      sortie({ date: '2000-02', precision: 'MONTH', entityId: 'spy-16', entityTitle: 'Spy x Family', label: 'Tome 16 · Kurokawa' }),
-      sortie({ date: '2000-02-03', entityId: 'naruto-73', label: 'Tome 73 · Kana' }),
-    ])
-    rendre('/releases?mois=2000-01')
-    const utilisateur = userEvent.setup()
-
-    const aVenir = await screen.findByRole('complementary', { name: 'À venir' })
-    expect((await within(aVenir).findAllByRole('heading', { level: 3 })).map((h) => h.textContent)).toEqual(['Février 2000', 'Mars 2000'])
-    const lignes = within(aVenir)
-      .getAllByRole('button')
-      .map((b) => b.textContent)
-      .filter((t) => t !== 'Ajouter à mon agenda (.ics)')
-    expect(lignes[0]).toMatch(/3 févr\..*Naruto.*Tome 73/)
-    expect(lignes[1]).toMatch(/à préciser.*Spy x Family/)
-    expect(lignes[2]).toMatch(/19 mars.*GTA VI.*Jeu de société.*Envie/)
-
-    await utilisateur.click(within(aVenir).getByRole('button', { name: /GTA VI/ }))
-
-    expect(screen.getByTestId('url')).toHaveTextContent('/releases?mois=2000-03')
-    expect(await screen.findByRole('button', { name: 'dimanche 19 mars, 1 sortie' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toContain('Dimanche 19 mars')
-    expect(screen.getByRole('button', { name: 'Tout le mois' })).toBeInTheDocument()
+  it('tells an empty year apart from sources never read', async () => {
+    servir([])
+    insights.getReleaseRefreshStatus.mockResolvedValue({ available: true, running: false, lastRun: null })
+    rendre()
+    expect(await screen.findByText("Les sources de sorties n'ont pas encore été consultées.")).toBeInTheDocument()
+    expect(screen.getByText("Les sorties n'ont pas encore été cherchées.")).toBeInTheDocument()
   })
 
-  it('exports what is coming to buy or wanted as a calendar file, and says what it leaves out', async () => {
-    servir(JANVIER_2000, [
-      sortie({ date: '2000-03-19', entityId: 'gta', entityTitle: 'GTA VI', label: '', relation: 'WANTED' }),
-      sortie({ date: '2000-02', precision: 'MONTH', entityId: 'spy-16', entityTitle: 'Spy x Family', label: 'Tome 16 · Kurokawa' }),
-      sortie({ date: '2000-02-03', entityId: 'naruto-73', label: 'Tome 73 · Kana' }),
-      sortie({ date: '2000-02-04', entityId: 'owned', entityTitle: 'Déjà là', relation: 'OWNED' }),
-    ])
-    const fichiers: Blob[] = []
-    const createObjectURL = vi.fn((blob: Blob) => {
-      fichiers.push(blob)
-      return 'blob:agenda'
-    })
-    const avant = { createObjectURL: URL.createObjectURL, revokeObjectURL: URL.revokeObjectURL }
-    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() })
-    const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-    rendre('/releases?mois=2000-01')
-    const utilisateur = userEvent.setup()
-
-    const aVenir = await screen.findByRole('complementary', { name: 'À venir' })
-    await utilisateur.click(await within(aVenir).findByRole('button', { name: 'Ajouter à mon agenda (.ics)' }))
-
-    expect(within(aVenir).getByRole('status')).toHaveTextContent(
-      "2 sorties à acheter ou en envie ajoutées au fichier. 1 sortie connue seulement au mois n'y est pas.",
-    )
-    expect(clic).toHaveBeenCalledTimes(1)
-    const ics = await fichiers[0].text()
-    expect(ics).toContain('SUMMARY:GTA VI')
-    expect(ics).toContain('SUMMARY:Naruto · Tome 73 · Kana')
-    expect(ics).not.toContain('Spy x Family')
-    expect(ics).not.toContain('Déjà là')
-    clic.mockRestore()
-    Object.assign(URL, avant)
-  })
-
-  it('offers no calendar file when nothing is coming to buy or wanted', async () => {
-    servir(JANVIER_2000, [sortie({ date: '2000-02-04', entityId: 'owned', entityTitle: 'Déjà là', relation: 'OWNED' })])
-    rendre('/releases?mois=2000-01')
-
-    const aVenir = await screen.findByRole('complementary', { name: 'À venir' })
-    expect(await within(aVenir).findByText('Déjà là')).toBeInTheDocument()
-    expect(within(aVenir).queryByRole('button', { name: 'Ajouter à mon agenda (.ics)' })).not.toBeInTheDocument()
-  })
-
-  it('keeps its grid when the month is empty, and says how to follow a work', async () => {
-    servir({ from: '2000-01-01', to: '2000-01-31', entries: [] })
-    rendre('/releases?mois=2000-01')
-
-    expect(await screen.findByText('Rien ne sort en janvier 2000 pour ta collection ni tes envies.')).toBeInTheDocument()
-    expect(screen.getByText("Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici.")).toBeInTheDocument()
-    expect(screen.getByRole('table', { name: 'Grille de janvier 2000' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /sortie/ })).not.toBeInTheDocument()
+  it('says nothing is announced when the sources were read', async () => {
+    servir([])
+    rendre()
     expect(await screen.findByText("Rien d'annoncé pour l'année qui vient.")).toBeInTheDocument()
   })
 
-  it('says the sources were never read, and offers the pass, rather than "nothing announced"', async () => {
-    insights.getReleaseRefreshStatus.mockResolvedValue({ available: true, running: false, lastRun: null })
-    servir({ from: '2000-01-01', to: '2000-01-31', entries: [] })
-    rendre('/releases?mois=2000-01')
-
-    expect(await screen.findByText("Les sorties n'ont pas encore été cherchées.")).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Mettre à jour maintenant' })).toBeInTheDocument()
-    expect(await screen.findByText("Rien de connu : les sources n'ont pas encore été consultées.")).toBeInTheDocument()
-    expect(screen.queryByText(/Rien ne sort en janvier 2000/)).not.toBeInTheDocument()
-    expect(screen.queryByText("Rien d'annoncé pour l'année qui vient.")).not.toBeInTheDocument()
+  it('shows the error of the server', async () => {
+    insights.getReleaseCalendar.mockRejectedValue(new Error('Le serveur ne répond pas.'))
+    rendre()
+    expect(await screen.findByText('Le serveur ne répond pas.')).toBeInTheDocument()
   })
 
-  it('falls back on the month of the device when the URL derails, without breaking anything', async () => {
-    servir({ from: '', to: '', entries: [] })
-    rendre('/releases?mois=octobre')
+  it('gives the subscription links, and draws a new one on demand', async () => {
+    servir([VINLAND])
+    calendar.subscribeToCalendar
+      .mockResolvedValueOnce({ token: 'abc', feedPath: '/api/public/calendar/abc.ics', createdAt: '2026-11-08T10:00:00Z' })
+      .mockResolvedValueOnce({ token: 'xyz', feedPath: '/api/public/calendar/xyz.ics', createdAt: '2026-11-08T11:00:00Z' })
+    calendar.revokeCalendarSubscription.mockResolvedValue(undefined)
+    rendre()
 
-    await waitFor(() => expect(insights.getReleaseCalendar).toHaveBeenCalled())
-    // The page asks for TWO windows: the month, and the year ahead. On the
-    // first of a month both start on a "-01", so the month is the one that
-    // ends in the same month it starts (seen on 2026-11-01: the first
-    // "-01" call was the year, ending in October 2027).
-    const appelDuMois = insights.getReleaseCalendar.mock.calls.find(
-      (appel) => String(appel[0]).endsWith('-01') && String(appel[1]).slice(0, 7) === String(appel[0]).slice(0, 7),
-    )
-    expect(appelDuMois).toBeDefined()
-    const [from, to] = appelDuMois as [string, string]
-    expect(from).toMatch(/^\d{4}-\d{2}-01$/)
-    expect(to).toMatch(/^\d{4}-\d{2}-(28|29|30|31)$/)
-    expect(screen.queryByRole('button', { name: "Aujourd'hui" })).not.toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: "S'abonner dans mon agenda" }))
+    const webcal = await screen.findByRole('textbox', { name: 'Lien webcal://' })
+    expect(webcal).toHaveValue(`webcal://${window.location.host}/api/public/calendar/abc.ics`)
+    expect(screen.getByRole('textbox', { name: 'Lien https://' })).toHaveValue(`${window.location.origin}/api/public/calendar/abc.ics`)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nouveau lien' }))
+    expect(await screen.findByDisplayValue(`${window.location.origin}/api/public/calendar/xyz.ics`)).toBeInTheDocument()
+    expect(calendar.revokeCalendarSubscription).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('liensAbonnement', () => {
+  it('writes the same feed as https:// and webcal://', () => {
+    expect(liensAbonnement('/api/public/calendar/t.ics', 'https://iozy.example')).toEqual({
+      https: 'https://iozy.example/api/public/calendar/t.ics',
+      webcal: 'webcal://iozy.example/api/public/calendar/t.ics',
+    })
+    expect(liensAbonnement('/api/public/calendar/t.ics', 'http://localhost:5173').webcal).toBe('webcal://localhost:5173/api/public/calendar/t.ics')
   })
 })
