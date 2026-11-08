@@ -23,11 +23,15 @@ public class TagService {
     private final TagRepository tagRepository;
     private final EntityRepository entityRepository;
 
-    /** Idempotent: a label that already exists returns its tag. */
+    /**
+     * Idempotent: a label that already exists returns its tag. The label is
+     * trimmed first, as in {@link #rename}, so " Shonen" finds "Shonen".
+     */
     @Transactional
     public Tag create(String label) {
-        return tagRepository.findByLabel(label)
-                .orElseGet(() -> tagRepository.save(new Tag(UUID.randomUUID(), label)));
+        String trimmed = label == null ? "" : label.trim();
+        return tagRepository.findByLabel(trimmed)
+                .orElseGet(() -> tagRepository.save(new Tag(UUID.randomUUID(), trimmed)));
     }
 
     public List<Tag> listAll() {

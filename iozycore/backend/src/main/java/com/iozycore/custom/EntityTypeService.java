@@ -1,5 +1,6 @@
 package com.iozycore.custom;
 
+import com.iozycore.core.application.NotFoundException;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
@@ -21,6 +22,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EntityTypeService {
 
+    /**
+     * The types seeded by V1__init_schema.sql. The universes (manga, video
+     * game, board game) find them by code, so deleting one would break them
+     * for every account, even while no work uses it yet.
+     */
+    static final Set<String> BUILT_IN_CODES = Set.of("MANGA", "VIDEO_GAME", "BOARD_GAME");
+
     private final EntityTypeRepository entityTypeRepository;
     private final EntityRepository entityRepository;
 
@@ -38,7 +46,7 @@ public class EntityTypeService {
     public EntityType update(UUID id, String label, Set<String> allowedExperienceTypes,
                               Set<String> customFieldKeys, String colorKey, String iconKey, String aspectKey) {
         EntityType existing = entityTypeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("EntityType introuvable : " + id));
+                .orElseThrow(() -> new NotFoundException("EntityType introuvable : " + id));
         return entityTypeRepository.save(existing.withUpdatedFields(label, allowedExperienceTypes, customFieldKeys,
                 colorKey, iconKey, aspectKey));
     }
@@ -51,7 +59,7 @@ public class EntityTypeService {
     public EntityType update(UUID id, String label, Set<String> allowedExperienceTypes,
                               Set<String> customFieldKeys) {
         EntityType existing = entityTypeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("EntityType introuvable : " + id));
+                .orElseThrow(() -> new NotFoundException("EntityType introuvable : " + id));
         // Without visual keys provided, the ones already saved are kept (see
         // EntityType.withUpdatedFields with 3 arguments) - a caller that ignores
         // this notion must not erase it by omission.
@@ -62,6 +70,12 @@ public class EntityTypeService {
         if (entityRepository.existsByType(id)) {
             long entityCount = entityRepository.findAllByType(id).size();
             throw new EntityTypeDeletionNotAllowedException(id, entityCount);
+        }
+        EntityType existing = entityTypeRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("EntityType introuvable : " + id));
+        if (BUILT_IN_CODES.contains(existing.code())) {
+            throw new IllegalStateException("Le type " + existing.label()
+                    + " est fourni avec l'application : il ne peut pas être supprimé.");
         }
         entityTypeRepository.deleteById(id);
     }

@@ -53,6 +53,23 @@ class CatalogUseCasesTest {
         }
 
         @Test
+        void creating_trims_the_label_and_finds_the_existing_tag() {
+            Tag shonen = service.create("Shonen");
+
+            assertThat(service.create("  Shonen ").id()).isEqualTo(shonen.id());
+            assertThat(service.create(" Seinen ").label()).isEqualTo("Seinen");
+            assertThat(tags.findAll()).hasSize(2);
+        }
+
+        @Test
+        void a_label_longer_than_the_column_is_refused() {
+            assertThat(service.create("a".repeat(Tag.MAX_LABEL_LENGTH)).label()).hasSize(Tag.MAX_LABEL_LENGTH);
+            assertThatThrownBy(() -> service.create("b".repeat(Tag.MAX_LABEL_LENGTH + 1)))
+                    .isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> service.create("   ")).isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
         void attaching_an_unknown_tag_or_to_an_unknown_work_is_not_found() {
             Entity work = entities.save(Entity.create(manga, "Berserk"));
             Tag tag = service.create("seinen");
