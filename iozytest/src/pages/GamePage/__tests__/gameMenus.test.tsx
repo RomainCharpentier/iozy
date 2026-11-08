@@ -21,6 +21,8 @@ vi.mock('@/utils/sounds', () => ({
     playClick: vi.fn(),
     playStart: vi.fn(),
     playSuccess: vi.fn(),
+    setEnabled: vi.fn(),
+    setVolume: vi.fn(),
   },
 }))
 
