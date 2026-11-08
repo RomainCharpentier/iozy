@@ -4,6 +4,7 @@ import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
 
 import java.util.LinkedHashMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +42,11 @@ public class InMemoryMangaEditionRepository implements MangaEditionRepository {
     @Override
     public List<MangaEdition> findByEntityId(UUID entityId) {
         return store.values().stream().filter(e -> entityId.equals(e.entityId())).toList();
+    }
+
+    @Override
+    public List<MangaEdition> findByEntityIdIn(Collection<UUID> entityIds) {
+        return store.values().stream().filter(e -> e.entityId() != null && entityIds.contains(e.entityId())).toList();
     }
 
     @Override

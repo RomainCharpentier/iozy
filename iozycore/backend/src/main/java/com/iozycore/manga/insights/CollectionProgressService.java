@@ -87,8 +87,8 @@ public class CollectionProgressService implements SeriesProgressSource {
 
     /**
      * The progress of these works only, from ownerships already read: the
-     * edition totals in one query, whatever the number of works (the works read
-     * model of the core calls this once per request).
+     * edition totals of these works only, in one query whatever their number
+     * (the works read model of the core calls this once per request).
      */
     public List<CollectionProgress> computeFor(List<Entity> works, List<Ownership> activeOwnerships) {
         if (works.isEmpty()) {
@@ -97,7 +97,8 @@ public class CollectionProgressService implements SeriesProgressSource {
         Map<UUID, List<Ownership>> activeByEntity = activeOwnerships.stream()
                 .filter(Ownership::isActive)
                 .collect(Collectors.groupingBy(Ownership::entityId));
-        Map<String, Integer> totals = indexEditionTotals(mangaEditionRepository.findAll());
+        Map<String, Integer> totals = indexEditionTotals(mangaEditionRepository.findByEntityIdIn(
+                works.stream().map(Entity::id).collect(Collectors.toSet())));
         return works.stream()
                 .map(entity -> compute(entity, activeByEntity.getOrDefault(entity.id(), List.of()), totals))
                 .collect(Collectors.toList());
