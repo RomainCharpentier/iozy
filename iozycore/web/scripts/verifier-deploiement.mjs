@@ -23,7 +23,8 @@
  * address exists.
  *
  * ## It creates nothing, and needs no account
- * Only GETs on open routes or routes that are supposed to refuse. It can
+ * Only GETs on open routes or routes that are supposed to refuse, and one POST
+ * that the API refuses (check 2 bis). It can
  * therefore be run on a real deployment, at any time, leaving nothing there.
  */
 
@@ -85,6 +86,24 @@ try {
   verifier(protegee.status === 401, '/api/entities/search refuses with 401 without a session', `received ${protegee.status}`)
 } catch (cause) {
   problemes.push(`/api/entities/search unreachable — ${cause.message}`)
+}
+
+// --- 2 bis. A photo is not refused by the proxy
+//
+//     nginx refuses any body over 1 MB by default (413), and one phone photo
+//     is bigger. A 2 MB body sent to an open route must reach Spring: it can
+//     refuse it (no CSRF token, wrong method), but never with 413. The request
+//     changes nothing on the server.
+try {
+  const gros = await fetch(`${base}/api/auth/etat`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: new Uint8Array(2 * 1024 * 1024),
+  })
+  verifier(gros.status !== 413, 'a 2 MB body reaches the API (no 413)', `received ${gros.status}`)
+} catch (cause) {
+  problemes.push(`POST of 2 MB to /api/auth/etat failed — ${cause.message}`)
 }
 
 // --- 3. The share link stays open, and tells the truth
@@ -186,6 +205,47 @@ try {
   verifier(blindtest.status === 200, '/test/api/health answers 200', `received ${blindtest.status}`)
 } catch (cause) {
   problemes.push(`/ unreachable — ${cause.message}`)
+}
+
+// --- 6 ter. The security headers, on the app shell AND on the API
+//
+//     nginx drops them in a location that sets its own add_header: checking
+//     one page is not enough, the shell (no-cache rule) and the API (proxy)
+//     are the two places where they get lost.
+try {
+  for (const chemin of [`${app}/`, `${app}/sw.js`, '/api/auth/etat']) {
+    const reponse = await demander(chemin)
+    const entetes = reponse.headers
+    verifier(entetes.get('x-content-type-options') === 'nosniff', `${chemin} sends nosniff (once)`,
+      `x-content-type-options: ${entetes.get('x-content-type-options') ?? 'absent'}`)
+    verifier(/frame-ancestors 'self'/.test(entetes.get('content-security-policy') ?? ''), `${chemin} cannot be framed by another site`,
+      `content-security-policy: ${entetes.get('content-security-policy') ?? 'absent'}`)
+    verifier(Boolean(entetes.get('referrer-policy')), `${chemin} sends a Referrer-Policy`, 'referrer-policy absent')
+    verifier(!/\d/.test(entetes.get('server') ?? ''), `${chemin} hides the server version`, `server: ${entetes.get('server')}`)
+  }
+} catch (cause) {
+  problemes.push(`security headers not checked — ${cause.message}`)
+}
+
+// --- 6 quater. The scripts of the app go out compressed, and stay in cache
+//
+//     The stock nginx image does not compress, and gives no cache rule to
+//     the hashed files: every visit downloads the whole bundle, raw.
+try {
+  const coquille = await (await demander(`${app}/`)).text()
+  const script = coquille.match(/\/assets\/[^"']+\.js/)?.[0]
+  verifier(Boolean(script), 'the shell names a hashed script', 'no /assets/*.js in the shell')
+  if (script) {
+    const chemin = `${app}${script}`
+    const fichier = await fetch(`${base}${chemin}`, { redirect: 'manual', headers: { 'Accept-Encoding': 'gzip' } })
+    verifier(fichier.status === 200, `${chemin} is served`, `received ${fichier.status}`)
+    verifier(fichier.headers.get('content-encoding') === 'gzip', `${chemin} is compressed`,
+      `content-encoding: ${fichier.headers.get('content-encoding') ?? 'absent'}`)
+    const cache = fichier.headers.get('cache-control') ?? ''
+    verifier(/max-age=\d{7,}/.test(cache), `${chemin} is kept in cache for long`, `cache-control: ${cache || 'absent'}`)
+  }
+} catch (cause) {
+  problemes.push(`hashed script not checked — ${cause.message}`)
 }
 
 // --- 7. The anti-CSRF cookie, when there is TLS
