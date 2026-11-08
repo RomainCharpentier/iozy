@@ -84,5 +84,11 @@ public abstract class PostgresIntegrationTest {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+        // The background backfills start minutes after the context: in the
+        // middle of the suite. Their queries then land inside the measure of a
+        // test that counts queries (StatsSansN1Test), and they would ask the
+        // providers. Each one has its own tests; here they stay off.
+        registry.add("iozycore.covers.backfill.enabled", () -> "false");
+        registry.add("iozycore.shelf-details.backfill.enabled", () -> "false");
     }
 }
