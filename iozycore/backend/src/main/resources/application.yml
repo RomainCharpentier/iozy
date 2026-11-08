@@ -3,6 +3,10 @@
 # release to name.
 iozycore:
   version: ${IOZYCORE_VERSION:dev}
+  # The collector's calendar: "today" and "added this month" of the works read
+  # model (lot 209). The server runs in UTC in Docker; the month turns at
+  # midnight in Paris for the collector.
+  collector-time-zone: Europe/Paris
   releases:
     # The release calendar (batch 146) re-reads the ONGOING manga series every night
     # so that announced volumes end up in it - the

@@ -20,6 +20,14 @@ export const queryKeys = {
     from: (entityId: string) => ['relationships', 'from', entityId] as const,
     to: (entityId: string) => ['relationships', 'to', entityId] as const,
   },
+  /** The works read model (batch 209): one work with its elements, the list, the summary.
+   *  One prefix, so that an ownership or a wish refreshes all three. */
+  works: {
+    all: ['works'] as const,
+    list: ['works', 'list'] as const,
+    summary: ['works', 'summary'] as const,
+    detail: (entityId: string) => ['works', 'detail', entityId] as const,
+  },
   /** The followed works of the account: the third state, next to ownerships and wishes. */
   followedWorks: { all: ['followedWorks'] as const },
   wishlist: {

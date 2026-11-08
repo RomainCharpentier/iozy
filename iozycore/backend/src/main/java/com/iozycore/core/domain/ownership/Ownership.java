@@ -45,11 +45,13 @@ public class Ownership {
     private String note;
     private BigDecimal purchasePrice; // nullable: never guessed, see the class Javadoc
     private String platform; // nullable: the console of this copy, never guessed
+    private final Instant createdAt; // when the row entered the app, not the purchase date (acquiredAt)
     private final List<DomainEvent> pendingEvents = new ArrayList<>();
 
     private Ownership(UUID id, UUID entityId, UUID variantId, UUID ownerId, OwnershipCondition condition,
-                       LocalDate acquiredAt, String note) {
+                       LocalDate acquiredAt, String note, Instant createdAt) {
         this.id = id;
+        this.createdAt = createdAt;
         this.entityId = entityId;
         this.variantId = variantId;
         this.ownerId = ownerId;
@@ -62,15 +64,17 @@ public class Ownership {
     public static Ownership acquire(UUID entityId, UUID variantId, OwnershipCondition condition,
                                      LocalDate acquiredAt, String note) {
         Ownership ownership = new Ownership(
-                UUID.randomUUID(), entityId, variantId, null, condition, acquiredAt, note);
+                UUID.randomUUID(), entityId, variantId, null, condition, acquiredAt, note, Instant.now());
         ownership.pendingEvents.add(new OwnershipAdded(ownership.id, entityId, Instant.now()));
         return ownership;
     }
 
     public static Ownership reconstitute(UUID id, UUID entityId, UUID variantId, UUID ownerId,
                                           OwnershipCondition condition, OwnershipStatus status,
-                                          LocalDate acquiredAt, String note, BigDecimal purchasePrice) {
-        Ownership ownership = new Ownership(id, entityId, variantId, ownerId, condition, acquiredAt, note);
+                                          LocalDate acquiredAt, String note, BigDecimal purchasePrice,
+                                          Instant createdAt) {
+        Ownership ownership = new Ownership(id, entityId, variantId, ownerId, condition, acquiredAt, note,
+                createdAt);
         ownership.status = status;
         ownership.purchasePrice = purchasePrice;
         return ownership;
@@ -171,6 +175,11 @@ public class Ownership {
 
     public LocalDate acquiredAt() {
         return acquiredAt;
+    }
+
+    /** When this copy was added to the app - what "added this month" counts. Never the purchase date. */
+    public Instant createdAt() {
+        return createdAt;
     }
 
     public String note() {

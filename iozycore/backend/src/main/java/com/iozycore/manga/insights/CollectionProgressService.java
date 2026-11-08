@@ -85,6 +85,25 @@ public class CollectionProgressService implements SeriesProgressSource {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * The progress of these works only, from ownerships already read: the
+     * edition totals of these works only, in one query whatever their number
+     * (the works read model of the core calls this once per request).
+     */
+    public List<CollectionProgress> computeFor(List<Entity> works, List<Ownership> activeOwnerships) {
+        if (works.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, List<Ownership>> activeByEntity = activeOwnerships.stream()
+                .filter(Ownership::isActive)
+                .collect(Collectors.groupingBy(Ownership::entityId));
+        Map<String, MangaEdition> totals = indexEditionTotals(mangaEditionRepository.findByEntityIdIn(
+                works.stream().map(Entity::id).collect(Collectors.toSet())));
+        return works.stream()
+                .map(entity -> compute(entity, activeByEntity.getOrDefault(entity.id(), List.of()), totals))
+                .collect(Collectors.toList());
+    }
+
     private Map<String, MangaEdition> indexEditionTotals(List<MangaEdition> editions) {
         Map<String, MangaEdition> totals = new LinkedHashMap<>();
         for (MangaEdition edition : editions) {

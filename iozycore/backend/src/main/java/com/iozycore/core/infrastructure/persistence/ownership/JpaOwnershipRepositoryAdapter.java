@@ -71,7 +71,8 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
                 ownership.acquiredAt(),
                 ownership.note(),
                 ownership.purchasePrice().orElse(null),
-                ownership.platform().orElse(null)
+                ownership.platform().orElse(null),
+                ownership.createdAt()
         );
     }
 
@@ -85,7 +86,8 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
                 OwnershipStatus.valueOf(jpaEntity.getStatus()),
                 jpaEntity.getAcquiredAt(),
                 jpaEntity.getNote(),
-                jpaEntity.getPurchasePrice()
+                jpaEntity.getPurchasePrice(),
+                jpaEntity.getCreatedAt()
         );
         ownership.updatePlatform(jpaEntity.getPlatform());
         return ownership;

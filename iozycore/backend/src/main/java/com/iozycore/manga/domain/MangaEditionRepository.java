@@ -1,5 +1,6 @@
 package com.iozycore.manga.domain;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,6 +21,9 @@ public interface MangaEditionRepository {
     /** All known editions structurally linked to a catalog Series (see {@link MangaEdition#entityId()}) - unlike
      * {@link #findBySeriesTitle}, never a text-matching fallback: only editions actually attached. */
     List<MangaEdition> findByEntityId(UUID entityId);
+
+    /** The editions linked to these Series, in one read - the batch form of {@link #findByEntityId}. */
+    List<MangaEdition> findByEntityIdIn(Collection<UUID> entityIds);
 
     /** All known editions - bulk read for a screen that shows the
      * progression of SEVERAL series at once (see Ma collection), instead of one

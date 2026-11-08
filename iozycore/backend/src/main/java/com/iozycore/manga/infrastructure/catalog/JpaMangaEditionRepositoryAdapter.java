@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,6 +47,16 @@ public class JpaMangaEditionRepositoryAdapter implements MangaEditionRepository 
         return jpaRepository.findAll().stream()
                 .map(MangaEditionMapper::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MangaEdition> findByEntityIdIn(Collection<UUID> entityIds) {
+        if (entityIds.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findByEntityIdIn(entityIds).stream()
+                .map(MangaEditionMapper::toDomain)
+                .toList();
     }
 
     @Override

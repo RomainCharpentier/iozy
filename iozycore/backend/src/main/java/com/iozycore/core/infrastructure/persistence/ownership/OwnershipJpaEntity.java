@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.TenantId;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -50,9 +51,12 @@ public class OwnershipJpaEntity {
     @Column(name = "platform")
     private String platform;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
     public OwnershipJpaEntity(UUID id, UUID entityId, UUID variantId, UUID ownerId, String condition,
                                String status, LocalDate acquiredAt, String note, BigDecimal purchasePrice,
-                               String platform) {
+                               String platform, Instant createdAt) {
         this.id = id;
         this.entityId = entityId;
         this.variantId = variantId;
@@ -63,5 +67,7 @@ public class OwnershipJpaEntity {
         this.note = note;
         this.purchasePrice = purchasePrice;
         this.platform = platform;
+        // A copy built before this column (or by a caller that does not say) is created now.
+        this.createdAt = createdAt == null ? Instant.now() : createdAt;
     }
 }

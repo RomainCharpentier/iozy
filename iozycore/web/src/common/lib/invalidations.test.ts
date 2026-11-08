@@ -14,6 +14,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { QueryClient } from '@tanstack/react-query'
 import {
+  invalidateAfterCollectorStatus,
   invalidateAfterMarketObservation,
   invalidateAfterPurchaseAnalysis,
   invaliderApresEnvie,
@@ -48,6 +49,7 @@ describe('after an ownership', () => {
       'ownerships',
       'insights',
       'purchaseAnalysis/nearCompleteSuggestions',
+      'works',
     ])
     expect(queryKeys.insights.value.slice(0, 1)).toEqual(['insights'])
     expect(queryKeys.insights.stats.slice(0, 1)).toEqual(['insights'])
@@ -65,7 +67,14 @@ describe('after a wish', () => {
     invaliderApresEnvie(client)
 
     // Wanting the whole work removes the follow: the follow and the calendar follow.
-    expect(prefixes()).toEqual(['wishlist', 'followedWorks', 'insights/releases', 'entities', 'insights/progress'])
+    expect(prefixes()).toEqual([
+      'wishlist',
+      'followedWorks',
+      'insights/releases',
+      'entities',
+      'insights/progress',
+      'works',
+    ])
   })
 })
 
@@ -77,6 +86,10 @@ describe('the prefixes themselves', () => {
     expect(queryKeys.entities.detail('berserk').slice(0, 1)).toEqual(queryKeys.entities.all)
     expect(queryKeys.entities.search({ q: 'ber' }).slice(0, 1)).toEqual(queryKeys.entities.all)
     expect(queryKeys.insights.progressOf('berserk').slice(0, 2)).toEqual(queryKeys.insights.progress)
+    // `['works']` carries one work, the list and the summary.
+    expect(queryKeys.works.detail('berserk').slice(0, 1)).toEqual(queryKeys.works.all)
+    expect(queryKeys.works.list.slice(0, 1)).toEqual(queryKeys.works.all)
+    expect(queryKeys.works.summary.slice(0, 1)).toEqual(queryKeys.works.all)
   })
 })
 
@@ -84,7 +97,7 @@ describe('after a follow', () => {
   it('invalidates the follow, the wish it may have removed, the catalog and the calendar', () => {
     const { client, prefixes } = clientEspion()
     invaliderApresSuivi(client)
-    expect(prefixes()).toEqual(['followedWorks', 'wishlist', 'entities', 'insights/releases'])
+    expect(prefixes()).toEqual(['followedWorks', 'wishlist', 'entities', 'insights/releases', 'works'])
   })
 })
 
@@ -117,5 +130,15 @@ describe('after a market observation', () => {
       'purchaseAnalysis/completeness',
       'purchaseAnalysis/nearCompleteSuggestions',
     ])
+  })
+})
+
+describe('after a collector status', () => {
+  it('invalidates every work, so the missing counts follow', () => {
+    const { client, prefixes } = clientEspion()
+
+    invalidateAfterCollectorStatus(client)
+
+    expect(prefixes()).toEqual(['works'])
   })
 })

@@ -436,3 +436,95 @@ export interface ReleaseCalendarDto {
   to: string
   entries: ReleaseEntryDto[]
 }
+
+// --- Works and their elements (batch 209) ---
+/** Where the collector stands with a work. PAUSED and DROPPED still list their
+ *  missing elements, but count none of them. */
+export type CollectorStatus = 'ONGOING' | 'PAUSED' | 'DROPPED'
+
+/** OWNED in the collection; MISSING published and not owned; WANTED in the wishes;
+ *  UPCOMING announced, not out yet. */
+export type WorkElementState = 'OWNED' | 'MISSING' | 'WANTED' | 'UPCOMING'
+
+/** One element of a work: a volume, a game, an expansion, or the work itself (key "work"). */
+export interface WorkElementDto {
+  /** Stable within the work ("volume-12", "variant-{id}", "work"). */
+  key: string
+  label: string
+  number: number | null
+  /** Null: show the cover of the work. */
+  coverImageUrl: string | null
+  state: WorkElementState
+  /** "2026-10-14" or "2026-10" (known to the month), or null. */
+  releaseDate: string | null
+  variantId: UUID | null
+  ownershipId: UUID | null
+  /** True when it counts in missingCount: lacking, published, and the work is ONGOING. */
+  countedAsMissing: boolean
+}
+
+export interface WorkNextReleaseDto {
+  /** "2026-10-14" or "2026-10". */
+  date: string
+  precision: 'DAY' | 'MONTH'
+  /** "Tome 12 · Kana", empty when it is the work itself. */
+  label: string
+  volumeNumber: number | null
+  /** No source knows a price yet: null for now. */
+  price: number | null
+}
+
+/** GET /api/works/{entityId}: the single entity page, for every type. */
+export interface WorkDto {
+  entityId: UUID
+  entityTypeId: UUID
+  title: string
+  coverImageUrl: string | null
+  collectorStatus: CollectorStatus
+  ownedCount: number
+  /** Null when nobody knows the total: show the owned count alone, never a guess. */
+  totalCount: number | null
+  /** Counted missing elements (0 for a paused or dropped work). */
+  missingCount: number
+  totalKnown: boolean
+  elements: WorkElementDto[]
+  nextRelease: WorkNextReleaseDto | null
+  /** ISO instant: latest ownership created, wish added or catalog change. */
+  lastMovedAt: string | null
+}
+
+/** GET /api/works: every owned or wished work, most recently moved first. */
+export interface WorkProgressDto {
+  entityId: UUID
+  entityTypeId: UUID
+  title: string
+  coverImageUrl: string | null
+  collectorStatus: CollectorStatus
+  ownedCount: number
+  totalCount: number | null
+  missingCount: number
+  wishedCount: number
+  /** "2026-10-14", "2026-10", or null. */
+  nextReleaseDate: string | null
+  lastMovedAt: string | null
+}
+
+export interface CollectorStatusDto {
+  entityId: UUID
+  collectorStatus: CollectorStatus
+}
+
+export interface TypeCountDto {
+  entityTypeId: UUID
+  count: number
+}
+
+/** GET /api/works/summary. One object = one copy owned today (an active ownership):
+ *  a volume, a game box, a work owned as one piece. Wishes, followed works, sold and
+ *  lost copies are not objects. "Added this month" = copies created this calendar month. */
+export interface CollectionSummaryDto {
+  totalObjects: number
+  addedThisMonth: number
+  addedThisMonthByType: TypeCountDto[]
+  byType: TypeCountDto[]
+}

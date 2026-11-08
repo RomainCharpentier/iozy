@@ -35,6 +35,8 @@ export function invaliderApresPossession(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ['insights'] })
   // What is missing to complete a series changes with what we own.
   queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.nearCompleteSuggestions })
+  // A work, its elements, the list and the summary all count what we own.
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
 }
 
 /**
@@ -51,6 +53,8 @@ export function invaliderApresEnvie(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ['insights', 'releases'] })
   queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
   queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
+  // A wished element changes state, and the list holds the wished works.
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
 }
 
 /**
@@ -82,4 +86,15 @@ export function invaliderApresSuivi(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.all })
   queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
   queryClient.invalidateQueries({ queryKey: ['insights', 'releases'] })
+  // Following removes the wish for the work: its wished count and its place in the list change.
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
+}
+
+/**
+ * After the collector says where they stand with a work (ongoing, paused,
+ * dropped): its missing count changes, so does every list that reads it
+ * (the work, the list of works, the "to buy" page).
+ */
+export function invalidateAfterCollectorStatus(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
 }
