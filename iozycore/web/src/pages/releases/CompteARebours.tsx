@@ -44,15 +44,18 @@ export function CompteARebours({
         <p className="iozy-teinte text-[13px] font-semibold tracking-[0.16em] text-accentText uppercase">
           {auJour ? `Prochaine sortie · ${titreDuJour(entry.date)}` : 'Prochaine sortie'}
         </p>
-        <p className="flex flex-wrap items-end gap-x-5 gap-y-1" aria-label={mot ? `Dans ${nombre} ${mot}` : nombre}>
+        <p className="flex flex-wrap items-end gap-x-5 gap-y-1">
+          {/* A paragraph cannot carry a name (ARIA 1.2): the sentence is read from a hidden span. */}
+          <span className="sr-only">{mot ? `Dans ${nombre} ${mot}` : nombre}</span>
           <span
+            aria-hidden="true"
             className={`font-display leading-[0.8] font-bold tracking-[-0.05em] text-textPrimary ${
               /^\d+$/.test(nombre) ? 'text-[112px] md:text-[168px]' : 'text-6xl md:text-8xl'
             }`}
           >
             {nombre}
           </span>
-          {mot && <span className="pb-2 text-xl font-semibold text-textDim md:pb-3.5">{mot}</span>}
+          {mot && <span aria-hidden="true" className="pb-2 text-xl font-semibold text-textDim md:pb-3.5">{mot}</span>}
         </p>
         <h2 id="prochaine-sortie" className="font-display text-4xl leading-[0.95] font-bold tracking-[-0.03em] text-textPrimary md:text-[56px]">
           {entry.entityTitle}

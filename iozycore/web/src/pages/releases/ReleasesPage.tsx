@@ -86,9 +86,14 @@ export function ReleasesPage() {
           icone={CalendarDays}
           titre={jamaisConsultees ? "Les sorties n'ont pas encore été cherchées." : "Rien d'annoncé pour l'année qui vient."}
           detail={
-            jamaisConsultees
-              ? 'Lance une mise à jour ci-dessous : les sources seront lues pour ta collection et tes envies.'
-              : 'Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici.'
+            // A guest has no refresh button and adds nothing: never point them to one.
+            estInvite
+              ? jamaisConsultees
+                ? "Les sources n'ont pas encore été lues."
+                : 'Aucune sortie annoncée pour cette collection.'
+              : jamaisConsultees
+                ? 'Lance une mise à jour ci-dessous : les sources seront lues pour ta collection et tes envies.'
+                : 'Ajoute une œuvre à ta collection ou à tes envies, ou suis-la depuis sa fiche, pour voir ses sorties ici.'
           }
         />
       )}

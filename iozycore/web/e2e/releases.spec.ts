@@ -68,7 +68,7 @@ test('date a work on its detail page, then find it again in Sorties, in the agen
   const filtres = page.getByRole('group', { name: 'Filtrer par catégorie' })
   if (await filtres.isVisible()) await filtres.getByRole('button', { name: new RegExp(univers) }).click()
   await expect(page.getByRole('heading', { level: 2, name: oeuvre })).toBeVisible()
-  await expect(page.getByLabel('Dans 20 jours')).toBeVisible()
+  await expect(page.getByText('Dans 20 jours')).toBeVisible()
   //     Owned: nothing to pre-order, the hero leads to its detail page.
   await expect(page.getByRole('button', { name: "Je l'ai précommandé" })).toHaveCount(0)
   await expect(page.locator('section', { has: page.getByRole('heading', { level: 2, name: oeuvre }) })).toContainText(univers)
