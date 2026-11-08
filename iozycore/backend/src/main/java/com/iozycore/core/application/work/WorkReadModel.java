@@ -21,6 +21,7 @@ import com.iozycore.core.domain.work.WorkElements;
 import com.iozycore.core.domain.work.WorkElementsContext;
 import com.iozycore.core.domain.work.WorkView;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,9 +61,18 @@ import java.util.stream.Stream;
  * Checked by {@code WorksSansN1Test}.
  *
  * <h2>Last move</h2>
- * The latest of: an ownership created, a wish added, the work changed in the
- * catalog. A newly announced release would belong here too, but no source
- * stores when it learnt of a release yet, so it is not counted (never guessed).
+ * The latest of what THIS account did: a copy created (still owned or not:
+ * selling a copy keeps its creation as a move) or a wish added. The catalog is
+ * shared, so a change to the work itself (another account's edit, a metadata
+ * refresh) is not a move of mine and never reorders my list. A newly announced
+ * release would belong here too, but no source stores when it learnt of a
+ * release yet, so it is not counted (never guessed).
+ *
+ * <h2>The collector's calendar</h2>
+ * "Today" and "this month" are read in the collector's time zone
+ * ({@code iozycore.collector-time-zone}, Europe/Paris by default), not the
+ * server's (UTC in Docker): a copy added on the 1st at 00:30 in Paris belongs
+ * to that month.
  */
 @Service
 @Transactional(readOnly = true)
@@ -84,9 +94,10 @@ public class WorkReadModel {
     public WorkReadModel(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
                          OwnershipRepository ownershipRepository, WishlistEntryRepository wishlistEntryRepository,
                          WorkCollectorStatusRepository statusRepository, ReleaseCalendarService releaseCalendar,
-                         List<WorkElementsSource> sources) {
+                         List<WorkElementsSource> sources,
+                         @Value("${iozycore.collector-time-zone:Europe/Paris}") String collectorTimeZone) {
         this(entityRepository, entityTypeRepository, ownershipRepository, wishlistEntryRepository, statusRepository,
-                releaseCalendar, sources, Clock.systemDefaultZone());
+                releaseCalendar, sources, Clock.system(ZoneId.of(collectorTimeZone)));
     }
 
     WorkReadModel(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
@@ -101,6 +112,11 @@ public class WorkReadModel {
         this.releaseCalendar = releaseCalendar;
         this.sources = List.copyOf(sources);
         this.clock = clock;
+    }
+
+    /** The zone of the collector's calendar - read by the test of the wiring. */
+    ZoneId collectorZone() {
+        return clock.getZone();
     }
 
     /**
@@ -118,8 +134,7 @@ public class WorkReadModel {
         Map<UUID, CollectorStatus> statuses = statusRepository.findByEntityId(entityId)
                 .map(status -> Map.of(status.entityId(), status.status()))
                 .orElse(Map.of());
-        return viewsOf(Map.of(type, List.of(work)), ownerships, wishes, statuses,
-                entityRepository.updatedAtOf(List.of(entityId))).get(0);
+        return viewsOf(Map.of(type, List.of(work)), ownerships, wishes, statuses).get(0);
     }
 
     /** Every work the account owns (an active copy) or wishes, most recently moved first. */
@@ -143,8 +158,7 @@ public class WorkReadModel {
         }
         Map<UUID, CollectorStatus> statuses = statusRepository.findAll().stream()
                 .collect(Collectors.toMap(WorkCollectorStatus::entityId, WorkCollectorStatus::status, (a, b) -> a));
-        List<WorkView> views = new ArrayList<>(viewsOf(worksByType, ownerships, wishes, statuses,
-                entityRepository.updatedAtOf(ids)));
+        List<WorkView> views = new ArrayList<>(viewsOf(worksByType, ownerships, wishes, statuses));
         views.sort(Comparator.comparing(WorkView::lastMovedAt, Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(view -> view.title().toLowerCase()));
         return views;
@@ -210,8 +224,7 @@ public class WorkReadModel {
     }
 
     private List<WorkView> viewsOf(Map<EntityType, List<Entity>> worksByType, List<Ownership> ownerships,
-                                   List<WishlistEntry> wishes, Map<UUID, CollectorStatus> statuses,
-                                   Map<UUID, Instant> updatedAt) {
+                                   List<WishlistEntry> wishes, Map<UUID, CollectorStatus> statuses) {
         LocalDate today = LocalDate.now(clock);
         List<Ownership> active = ownerships.stream().filter(Ownership::isActive).toList();
         Map<UUID, List<Ownership>> allOwnershipsByWork = ownerships.stream()
@@ -241,11 +254,8 @@ public class WorkReadModel {
                                 .thenComparing(e -> e.volumeNumber() == null ? 0 : e.volumeNumber()))
                         .orElse(null);
                 Instant lastMoved = latest(Stream.concat(
-                        Stream.concat(
-                                allOwnershipsByWork.getOrDefault(work.id(), List.of()).stream()
-                                        .map(Ownership::createdAt),
-                                workWishes.stream().map(w -> w.addedAt().atStartOfDay(clock.getZone()).toInstant())),
-                        Stream.of(updatedAt.get(work.id()))));
+                        allOwnershipsByWork.getOrDefault(work.id(), List.of()).stream().map(Ownership::createdAt),
+                        workWishes.stream().map(w -> w.addedAt().atStartOfDay(clock.getZone()).toInstant())));
                 views.add(WorkView.of(work.id(), work.entityTypeId(), work.title(),
                         WorkElementsContext.coverOf(work.attributes()), elements.get(work.id()),
                         statuses.get(work.id()), workWishes.size(), next, lastMoved, today));

@@ -12,6 +12,8 @@ import com.iozycore.core.domain.shared.DefaultOwner;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.domain.work.CollectorStatus;
+import com.iozycore.core.domain.work.WorkCollectorStatus;
+import com.iozycore.core.domain.work.WorkCollectorStatusRepository;
 import com.iozycore.core.domain.work.WorkView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +49,7 @@ class WorksIsolationTest extends PostgresIntegrationTest {
     @Autowired private EntityRepository catalogue;
     @Autowired private OwnershipRepository ownerships;
     @Autowired private WishlistEntryRepository wishes;
+    @Autowired private WorkCollectorStatusRepository statuses;
     @Autowired private JdbcTemplate jdbc;
 
     private final List<UUID> createdWorks = new ArrayList<>();
@@ -72,6 +76,43 @@ class WorksIsolationTest extends PostgresIntegrationTest {
         Entity work = catalogue.save(Entity.create(EntityTypeFixtures.BOARD_GAME.id(), title + " " + UUID.randomUUID()));
         createdWorks.add(work.id());
         return work;
+    }
+
+    @Test
+    void a_change_to_the_shared_work_does_not_move_it_in_my_list() {
+        Entity older = work("Azul");
+        Entity newer = work("Cascadia");
+        signIn(ALICE);
+        Ownership olderCopy = ownerships.save(
+                Ownership.acquire(older.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        Ownership newerCopy = ownerships.save(
+                Ownership.acquire(newer.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        jdbc.update("UPDATE ownership SET created_at = now() - interval '2 days' WHERE id = ?", olderCopy.id());
+        jdbc.update("UPDATE ownership SET created_at = now() - interval '1 day' WHERE id = ?", newerCopy.id());
+        Instant before = works.work(older.id()).lastMovedAt();
+
+        // Another account edits the work, or a refresh rewrites it: the catalog row changes.
+        signIn(BOB);
+        jdbc.update("UPDATE entity SET updated_at = now() + interval '1 day' WHERE id = ?", older.id());
+
+        signIn(ALICE);
+        assertThat(works.work(older.id()).lastMovedAt()).isEqualTo(before);
+        List<UUID> order = works.works().stream().map(WorkView::entityId)
+                .filter(id -> id.equals(older.id()) || id.equals(newer.id())).toList();
+        assertThat(order).containsExactly(newer.id(), older.id());
+    }
+
+    @Test
+    void two_first_statuses_for_the_same_work_at_once_leave_one_row_and_no_error() {
+        Entity game = work("Wingspan");
+        signIn(ALICE);
+        // Both requests read no row before either writes: each one inserts a new status.
+        statuses.save(WorkCollectorStatus.create(game.id(), CollectorStatus.PAUSED, Instant.now()));
+        statuses.save(WorkCollectorStatus.create(game.id(), CollectorStatus.DROPPED, Instant.now()));
+
+        assertThat(works.work(game.id()).collectorStatus()).isEqualTo(CollectorStatus.DROPPED);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM work_collector_status WHERE entity_id = ?",
+                Long.class, game.id())).isEqualTo(1L);
     }
 
     @Test
