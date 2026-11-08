@@ -29,7 +29,13 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/utils/sounds', () => ({
-  soundManager: { playClick: vi.fn(), playStart: vi.fn(), playSuccess: vi.fn(), setEnabled: vi.fn(), setVolume: vi.fn() },
+  soundManager: {
+    playClick: vi.fn(),
+    playStart: vi.fn(),
+    playSuccess: vi.fn(),
+    setEnabled: vi.fn(),
+    setVolume: vi.fn(),
+  },
 }))
 
 vi.mock('@/utils/socket', () => ({
