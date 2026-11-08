@@ -129,19 +129,33 @@ public class IgdbFranchiseFetcher implements FranchiseSource {
         }
     }
 
-    static Groups parseGroups(String body) {
+    /**
+     * Only a JSON array is an IGDB answer: an empty array means a game IGDB does
+     * not know (no licence, stored as such). An object (an error body) or text
+     * that is not JSON is no answer: it throws and nothing is stored.
+     */
+    static JsonNode answer(String body) {
+        JsonNode root;
         try {
-            JsonNode root = MAPPER.readTree(body);
-            Map<String, String> collections = new LinkedHashMap<>();
-            Map<String, String> franchises = new LinkedHashMap<>();
-            for (JsonNode game : root) {
-                readGroups(game.path("collections"), collections);
-                readGroups(game.path("franchises"), franchises);
-            }
-            return new Groups(collections, franchises);
+            root = MAPPER.readTree(body);
         } catch (Exception e) {
-            return new Groups(Map.of(), Map.of());
+            throw new SourceUnavailableException("Unreadable IGDB licence response: " + e.getMessage(), e);
         }
+        if (root == null || !root.isArray()) {
+            throw new SourceUnavailableException("IGDB licence response is not a list");
+        }
+        return root;
+    }
+
+    static Groups parseGroups(String body) {
+        JsonNode root = answer(body);
+        Map<String, String> collections = new LinkedHashMap<>();
+        Map<String, String> franchises = new LinkedHashMap<>();
+        for (JsonNode game : root) {
+            readGroups(game.path("collections"), collections);
+            readGroups(game.path("franchises"), franchises);
+        }
+        return new Groups(collections, franchises);
     }
 
     private static void readGroups(JsonNode groups, Map<String, String> into) {
@@ -154,34 +168,30 @@ public class IgdbFranchiseFetcher implements FranchiseSource {
     }
 
     static List<FranchiseGame> parseGames(String body) {
-        try {
-            JsonNode root = MAPPER.readTree(body);
-            List<FranchiseGame> games = new ArrayList<>();
-            for (JsonNode game : root) {
-                String id = game.path("id").asText("");
-                String name = game.path("name").asText("").trim();
-                if (id.isEmpty() || name.isEmpty() || !kept(game)) {
-                    continue;
-                }
-                List<String> platforms = new ArrayList<>();
-                for (JsonNode platform : game.path("platforms")) {
-                    String platformName = platform.path("name").asText("").trim();
-                    if (!platformName.isEmpty()) {
-                        platforms.add(platformName);
-                    }
-                }
-                String releaseDate = game.hasNonNull("first_release_date")
-                        ? Instant.ofEpochSecond(game.path("first_release_date").asLong())
-                        .atZone(ZoneOffset.UTC).toLocalDate().toString()
-                        : null;
-                games.add(new FranchiseGame(id, name, coverUrl(game.path("cover").path("url").asText(null)),
-                        platforms, releaseDate));
+        JsonNode root = answer(body);
+        List<FranchiseGame> games = new ArrayList<>();
+        for (JsonNode game : root) {
+            String id = game.path("id").asText("");
+            String name = game.path("name").asText("").trim();
+            if (id.isEmpty() || name.isEmpty() || !kept(game)) {
+                continue;
             }
-            return games.stream().collect(Collectors.toMap(FranchiseGame::igdbId, g -> g, (a, b) -> a,
-                    LinkedHashMap::new)).values().stream().toList();
-        } catch (Exception e) {
-            return List.of();
+            List<String> platforms = new ArrayList<>();
+            for (JsonNode platform : game.path("platforms")) {
+                String platformName = platform.path("name").asText("").trim();
+                if (!platformName.isEmpty()) {
+                    platforms.add(platformName);
+                }
+            }
+            String releaseDate = game.hasNonNull("first_release_date")
+                    ? Instant.ofEpochSecond(game.path("first_release_date").asLong())
+                    .atZone(ZoneOffset.UTC).toLocalDate().toString()
+                    : null;
+            games.add(new FranchiseGame(id, name, coverUrl(game.path("cover").path("url").asText(null)),
+                    platforms, releaseDate));
         }
+        return games.stream().collect(Collectors.toMap(FranchiseGame::igdbId, g -> g, (a, b) -> a,
+                LinkedHashMap::new)).values().stream().toList();
     }
 
     /** A game type left out (DLC, bundle, episode...) is dropped; an answer without type is kept. */

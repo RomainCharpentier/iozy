@@ -1,12 +1,14 @@
 package com.iozycore.boardgame.bgg;
 
 import com.iozycore.boardgame.expansion.BoardGameExpansion;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** What the /thing answers of BGG say about expansions (inline fixtures, no network). */
 class BggExpansionFetcherTest {
@@ -30,9 +32,21 @@ class BggExpansionFetcherTest {
     }
 
     @Test
-    void an_unreadable_or_empty_answer_gives_no_expansion() {
+    void a_well_formed_answer_without_the_game_gives_no_expansion() {
         assertThat(BggExpansionFetcher.parseLinks("<items></items>")).isEmpty();
-        assertThat(BggExpansionFetcher.parseLinks("not xml")).isEmpty();
+        assertThat(BggExpansionFetcher.parseLinks(
+                "<items><item type=\"boardgame\" id=\"13\"><name value=\"CATAN\"/></item></items>")).isEmpty();
+    }
+
+    @Test
+    void an_error_body_or_text_that_is_not_xml_is_no_answer_and_is_never_stored_as_no_expansion() {
+        assertThatThrownBy(() -> BggExpansionFetcher.parseLinks("not xml"))
+                .isInstanceOf(SourceUnavailableException.class);
+        assertThatThrownBy(() -> BggExpansionFetcher.parseLinks(
+                "<error><message>Rate limit exceeded.</message></error>"))
+                .isInstanceOf(SourceUnavailableException.class);
+        assertThatThrownBy(() -> BggExpansionFetcher.parseCovers("<html><body>Busy</body></html>"))
+                .isInstanceOf(SourceUnavailableException.class);
     }
 
     @Test

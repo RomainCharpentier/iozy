@@ -1,11 +1,13 @@
 package com.iozycore.videogame.igdb;
 
+import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.videogame.franchise.FranchiseGame;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** What IGDB says about the licence of a game (inline fixtures, no network). */
 class IgdbFranchiseFetcherTest {
@@ -23,7 +25,18 @@ class IgdbFranchiseFetcherTest {
     @Test
     void a_game_without_licence_has_no_group() {
         assertThat(IgdbFranchiseFetcher.parseGroups("[{\"id\": 1}]").isEmpty()).isTrue();
-        assertThat(IgdbFranchiseFetcher.parseGroups("oops").isEmpty()).isTrue();
+        assertThat(IgdbFranchiseFetcher.parseGroups("[]").isEmpty()).isTrue();
+    }
+
+    @Test
+    void an_error_body_or_text_that_is_not_json_is_no_answer_and_is_never_stored_as_no_licence() {
+        assertThatThrownBy(() -> IgdbFranchiseFetcher.parseGroups("oops"))
+                .isInstanceOf(SourceUnavailableException.class);
+        assertThatThrownBy(() -> IgdbFranchiseFetcher.parseGroups(
+                "{\"title\": \"Syntax Error\", \"status\": 400}"))
+                .isInstanceOf(SourceUnavailableException.class);
+        assertThatThrownBy(() -> IgdbFranchiseFetcher.parseGames("{\"message\": \"Too Many Requests\"}"))
+                .isInstanceOf(SourceUnavailableException.class);
     }
 
     @Test

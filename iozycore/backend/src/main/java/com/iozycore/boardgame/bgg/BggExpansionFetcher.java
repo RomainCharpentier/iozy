@@ -3,7 +3,6 @@ package com.iozycore.boardgame.bgg;
 import com.iozycore.boardgame.expansion.BoardGameExpansion;
 import com.iozycore.boardgame.expansion.ExpansionSource;
 import com.iozycore.core.metadata.SourceUnavailableException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
@@ -37,7 +36,6 @@ import java.util.Map;
  * never while a page is read.
  */
 @Component
-@Slf4j
 public class BggExpansionFetcher implements ExpansionSource {
 
     private static final String THING_URL = "https://boardgamegeek.com/xmlapi2/thing?id=%s";
@@ -100,9 +98,19 @@ public class BggExpansionFetcher implements ExpansionSource {
         }
     }
 
-    /** The expansions linked from a base game, in BGG order, without the inbound links. */
+    /**
+     * The expansions linked from a base game, in BGG order, without the inbound links.
+     *
+     * <p>Only a well-formed {@code <items>} answer is an answer. An empty
+     * {@code <items/>} means BGG knows no game with that id: no expansions,
+     * stored as such. Anything else (not XML, an {@code <error>} body, a page
+     * of HTML) is a provider that did not really answer: it throws, and
+     * nothing is stored.
+     *
+     * @throws SourceUnavailableException the answer is not a BGG list of items
+     */
     static List<BoardGameExpansion> parseLinks(String xmlBody) {
-        Element item = firstItem(parse(xmlBody));
+        Element item = firstItem(items(xmlBody));
         if (item == null) {
             return List.of();
         }
@@ -128,11 +136,8 @@ public class BggExpansionFetcher implements ExpansionSource {
 
     /** The cover and year of each item of a /thing answer that holds several ids. */
     static Map<String, Cover> parseCovers(String xmlBody) {
-        Document document = parse(xmlBody);
+        Document document = items(xmlBody);
         Map<String, Cover> covers = new HashMap<>();
-        if (document == null) {
-            return covers;
-        }
         NodeList items = document.getElementsByTagName("item");
         for (int i = 0; i < items.getLength(); i++) {
             Element item = (Element) items.item(i);
@@ -144,22 +149,24 @@ public class BggExpansionFetcher implements ExpansionSource {
         return covers;
     }
 
-    /** An unreadable answer is an empty one: BGG did answer. */
-    private static Document parse(String xmlBody) {
+    /** A /thing answer whose root is {@code <items>}; anything else is no answer. */
+    private static Document items(String xmlBody) {
+        Document document;
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            return factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(new StringReader(xmlBody)));
+            document = factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(new StringReader(xmlBody)));
         } catch (Exception e) {
-            log.warn("Unreadable BGG /thing response: {}", e.getMessage());
-            return null;
+            throw new SourceUnavailableException("Unreadable BGG /thing response: " + e.getMessage(), e);
         }
+        String root = document.getDocumentElement().getTagName();
+        if (!"items".equals(root)) {
+            throw new SourceUnavailableException("BGG /thing answered <" + root + "> instead of <items>");
+        }
+        return document;
     }
 
     private static Element firstItem(Document document) {
-        if (document == null) {
-            return null;
-        }
         NodeList items = document.getElementsByTagName("item");
         return items.getLength() == 0 ? null : (Element) items.item(0);
     }
