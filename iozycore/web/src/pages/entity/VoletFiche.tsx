@@ -41,12 +41,16 @@ export function VoletFiche({
   }, [ouvert, onFermer, retourFocus])
 
   if (!ouvert) return null
+  // z-50: over the tab bar of a phone (z-40, later in the page), which would
+  // otherwise hide the end of the panel, its delete zone included.
+  // Sheets opened from inside (TierPicker) go through a portal: the glass
+  // (backdrop-filter) makes this panel the box of any fixed child.
   return (
     <aside
       ref={ref}
       tabIndex={-1}
       aria-label="Notes, tags et outils"
-      className="iozy-verre iozy-verre--fort fixed inset-x-0 top-0 bottom-0 z-40 flex flex-col overflow-y-auto overscroll-contain rounded-none p-4 outline-none md:inset-x-auto md:top-3 md:right-3 md:bottom-3 md:w-[min(600px,calc(100vw-1.5rem))] md:rounded-[28px] md:p-6"
+      className="iozy-verre iozy-verre--fort fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-y-auto overscroll-contain rounded-none p-4 outline-none md:inset-x-auto md:top-3 md:right-3 md:bottom-3 md:w-[min(600px,calc(100vw-1.5rem))] md:rounded-[28px] md:p-6"
     >
       <div className="sticky top-0 z-10 -mx-1 mb-2 flex items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold text-textPrimary">Notes, tags et outils</h2>
