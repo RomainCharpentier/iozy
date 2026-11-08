@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CircleCheck, TriangleAlert, Info, CircleX, BookmarkPlus } from 'lucide-react'
 import { recordMarketObservation } from '@/common/api/purchaseAnalysis'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
@@ -6,6 +6,7 @@ import { libelleBaseCourt } from '@/common/lib/basePrix'
 import type { ItemAnalysisDto, ListingDto, WarningSeverity } from '@/common/types/purchaseAnalysis'
 import { EDITION_TIER_LABELS } from '@/common/types/purchaseAnalysis'
 import { formaterEuros } from '@/common/lib/formats'
+import { invalidateAfterMarketObservation } from '@/common/lib/invalidations'
 
 const WARNING_ICONS: Record<WarningSeverity, typeof Info> = {
   INFO: Info,
@@ -57,6 +58,7 @@ export function SeriesBreakdownItem({
   const observationPossible =
     matchedEdition !== null && listing !== null && observedAt !== null && contiguous && item.itemCostShare !== null
 
+  const queryClient = useQueryClient()
   const observationMutation = useMutation({
     mutationFn: () =>
       recordMarketObservation({
@@ -73,6 +75,7 @@ export function SeriesBreakdownItem({
         observedAt: observedAt!,
         note: listing!.rawTitle,
       }),
+    onSuccess: () => invalidateAfterMarketObservation(queryClient, matchedEdition!.id),
   })
 
   const baseCoutRestant = libelleBaseCourt(completeness.costToCompleteBasis)
