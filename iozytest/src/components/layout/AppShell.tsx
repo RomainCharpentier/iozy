@@ -28,7 +28,7 @@ const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 
 /**
  * La coquille : en-tête (bureau) ou en-tête compact + barre au pouce (mobile),
- * la grille de page, le pied de page. Un seul point de bascule, 768 px, tenu
+ * la grille de page, le pied de page. Un seul point de bascule, 1024 px, tenu
  * par le CSS de AppShell.module.scss.
  */
 export default function AppShell({ children }: { children: ReactNode }) {
