@@ -84,6 +84,13 @@ export function CustomTierBoardPage() {
     },
   })
 
+  /** A failed rank or removal stays on screen until the next gesture on an
+   *  item: opening another work must not show the error of the previous one. */
+  function clearItemErrors() {
+    rankMutation.reset()
+    removeItemMutation.reset()
+  }
+
   /** The detail page of the work shows its memberships (see TomesGridSection):
    *  without this invalidation, it would keep announcing this list. */
   function invaliderApresItem(entityId: string) {
@@ -158,7 +165,10 @@ export function CustomTierBoardPage() {
           {unranked.length > 0 && (
             <button
               type="button"
-              onClick={() => quickRank.start(unranked)}
+              onClick={() => {
+                clearItemErrors()
+                quickRank.start(unranked)
+              }}
               className="btn-secondaire"
             >
               <Zap size={15} />
@@ -243,6 +253,7 @@ export function CustomTierBoardPage() {
                 ) : (
                   <div className="flex flex-col gap-2 p-2">
                     <p className="text-xs text-textDim">Supprimer définitivement « {list.name} » ? Irréversible.</p>
+                    {deleteMutation.isError && <ErrorBanner message={deleteMutation.error.message} />}
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -252,7 +263,13 @@ export function CustomTierBoardPage() {
                       >
                         Confirmer
                       </button>
-                      <button type="button" onClick={() => setConfirmingDelete(false)} className="rounded-lg px-2 py-1.5 text-xs text-textDim">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          deleteMutation.reset()
+                          setConfirmingDelete(false)
+                        }}
+                        className="rounded-lg px-2 py-1.5 text-xs text-textDim">
                         Annuler
                       </button>
                     </div>
@@ -273,6 +290,9 @@ export function CustomTierBoardPage() {
         />
       )}
 
+      {/* A failed drag has no picker to show its error: it shows here. */}
+      {!selectedEntry && rankMutation.isError && <ErrorBanner message={rankMutation.error.message} />}
+
       {ranked.length === 0 && unranked.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-surface2 p-6 text-center">
           <p className="text-sm text-textDim">Aucune œuvre dans cette Tier List pour l'instant.</p>
@@ -282,7 +302,10 @@ export function CustomTierBoardPage() {
           ranked={rankedByRank}
           unranked={unranked}
           activeRanks={list.activeRanks}
-          onSelectEntry={setActiveEntry}
+          onSelectEntry={(entry) => {
+            clearItemErrors()
+            setActiveEntry(entry)
+          }}
           onDropEntry={(entry, rank) => rankMutation.mutate({ entityId: entry.entityId, rank })}
         />
       )}
@@ -291,6 +314,7 @@ export function CustomTierBoardPage() {
         <TierPicker
           open
           onClose={() => {
+            clearItemErrors()
             quickRank.stop()
             setActiveEntry(null)
           }}
@@ -300,8 +324,16 @@ export function CustomTierBoardPage() {
           currentRank={selectedEntry.rank}
           onSelect={(rank) => rankMutation.mutate({ entityId: selectedEntry.entityId, rank })}
           progress={quickRank.progress}
-          onSkip={quickRank.isActive ? quickRank.next : undefined}
+          onSkip={
+            quickRank.isActive
+              ? () => {
+                  clearItemErrors()
+                  quickRank.next()
+                }
+              : undefined
+          }
           onRemoveFromList={() => removeItemMutation.mutate(selectedEntry)}
+          error={(rankMutation.error ?? removeItemMutation.error)?.message}
         />
       )}
     </div>
