@@ -26,12 +26,10 @@ const q = (id: string, category: Question['category']): Question => ({
   answer: id,
 })
 
-const identity = (questions: Question[]) => questions
-
 describe('buildQuickGame', () => {
   it('dix extraits par défaut, quand la banque en a assez', () => {
     const bank = Array.from({ length: 30 }, (_, i) => q(`q${i}`, 'animes'))
-    const setup = buildQuickGame(bank, identity)
+    const setup = buildQuickGame(bank)
     expect(QUICK_GAME_QUESTION_COUNT).toBe(10)
     expect(setup?.questionCount).toBe(10)
     // Tout le pool part au salon : le serveur tire lui-même les 10 extraits.
@@ -39,30 +37,34 @@ describe('buildQuickGame', () => {
   })
 
   it('borne le nombre d’extraits à la taille de la banque', () => {
-    const setup = buildQuickGame([q('a', 'films'), q('b', 'films'), q('c', 'jeux')], identity)
+    const setup = buildQuickGame([q('a', 'films'), q('b', 'films'), q('c', 'jeux')])
     expect(setup?.questionCount).toBe(3)
   })
 
   it('prend tous les thèmes présents, multi-thèmes compris, sans doublon', () => {
     const bank = [q('a', 'films'), q('b', ['animes', 'chansons']), q('c', 'films')]
-    expect(buildQuickGame(bank, identity)?.categories).toEqual(['films', 'animes', 'chansons'])
+    expect(buildQuickGame(bank)?.categories).toEqual(['films', 'animes', 'chansons'])
   })
 
   it('compte une question rangée dans deux thèmes une seule fois', () => {
     const dup = q('a', 'films')
-    const setup = buildQuickGame([dup, { ...dup, category: 'series' }], identity)
+    const setup = buildQuickGame([dup, { ...dup, category: 'series' }])
     expect(setup?.questions).toHaveLength(1)
     expect(setup?.questionCount).toBe(1)
   })
 
-  it('mélange la banque', () => {
-    const bank = [q('a', 'films'), q('b', 'films')]
-    const reversed = (questions: Question[]) => [...questions].reverse()
-    expect(buildQuickGame(bank, reversed)?.questions.map((x) => x.id)).toEqual(['b', 'a'])
+  it('ne compte pas les questions sans thème, que le salon ne tire jamais', () => {
+    const setup = buildQuickGame([q('a', ''), q('b', []), q('c', 'films')])
+    expect(setup?.questions.map((x) => x.id)).toEqual(['c'])
+    expect(setup?.questionCount).toBe(1)
+  })
+
+  it('rien à jouer quand aucune question n’a de thème', () => {
+    expect(buildQuickGame([q('a', ''), q('b', [])])).toBeNull()
   })
 
   it('rien à jouer quand la banque est vide', () => {
-    expect(buildQuickGame([], identity)).toBeNull()
+    expect(buildQuickGame([])).toBeNull()
   })
 })
 
