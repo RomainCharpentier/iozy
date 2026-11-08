@@ -398,7 +398,7 @@
 .iozy-barre__lien {
   display: inline-flex;
   align-items: center;
-  height: 40px;
+  height: 44px;
   padding: 0 16px;
   border-radius: var(--iozy-radius-pill);
   font-size: 14px;
@@ -482,7 +482,7 @@
   color: var(--teinte-encre, var(--iozy-accent-ink));
 }
 
-/* ---- Barre d'onglets au pouce (< 768 px) ---- */
+/* ---- Barre d'onglets au pouce (< 1024 px) ---- */
 /* La même navigation, en bas, en verre ; 52 px de cible. */
 .iozy-onglets {
   position: fixed;

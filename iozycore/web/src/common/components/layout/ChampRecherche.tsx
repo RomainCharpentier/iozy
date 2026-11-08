@@ -75,7 +75,7 @@ export function ChampRecherche({
             aria-controls={menuOuvert ? idMenu : undefined}
             aria-label="Autres façons d'ajouter"
             title="Autres façons d'ajouter"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-textDim hover:text-textPrimary"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-textDim hover:text-textPrimary"
           >
             <Plus size={18} />
           </button>

@@ -884,7 +884,6 @@ html:active-view-transition * {
   filter: blur(var(--iozy-glass-backdrop-blur)) saturate(var(--iozy-glass-backdrop-saturate))
     brightness(var(--iozy-backdrop-brightness));
   transform: scale(1.1);
-  transition: opacity 0.7s ease;
 }
 
 .fond-plein-cadre__voile {
