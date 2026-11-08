@@ -151,6 +151,12 @@ export interface MangaEditionDto {
   languageCode: string
   createdAt: string
   updatedAt: string
+  /** Where totalVolumes comes from (lot 207) - null while it is unknown. */
+  totalSource?: 'MANUAL' | 'PROVIDER' | null
+  /** True only when a source says the French run is over. */
+  frenchRunFinished?: boolean
+  /** The last time the background job read the sources for this edition. */
+  totalCheckedAt?: string | null
 }
 
 export interface VolumeRangeDto {
