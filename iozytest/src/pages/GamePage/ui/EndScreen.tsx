@@ -1,8 +1,9 @@
 import gameStyles from '@/pages/GamePage/Game.module.scss'
 import Score from '@/pages/GamePage/ui/Score'
-import PlayersPanel from '@/pages/GamePage/ui/PlayersPanel'
+import Podium from '@/pages/GamePage/ui/Podium'
 import type { GameMode, Player } from '@/lib/game/types'
 import { isOnline } from '@/lib/game/gameMode'
+import { getPlayerId } from '@/utils/playerId'
 
 interface EndScreenProps {
   score: number
@@ -18,8 +19,8 @@ interface EndScreenProps {
 }
 
 /**
- * Écran de fin : récapitulatif et actions à gauche, classement final dans la colonne
- * de droite (même emplacement que pendant la partie).
+ * Écran de fin. En ligne (le seul parcours atteignable) : le podium, sur toute
+ * la largeur. Solo (encore dans le code) : le récapitulatif centré.
  */
 export default function EndScreen({
   score,
@@ -33,27 +34,36 @@ export default function EndScreen({
   onQuit,
   onSoundPlayed,
 }: EndScreenProps) {
+  if (isOnline(gameMode)) {
+    return (
+      <Podium
+        players={players}
+        totalQuestions={totalQuestions}
+        selfId={getPlayerId()}
+        isHost={isHost}
+        shouldPlaySound={shouldPlaySound}
+        onRestart={onRestart}
+        onChangeThemes={onChangeThemes}
+        onQuit={onQuit}
+        onSoundPlayed={onSoundPlayed}
+      />
+    )
+  }
+
   return (
-    <>
-      <section className={gameStyles.endScreenMain} aria-label="Fin de partie">
-        <Score
-          score={score}
-          totalQuestions={totalQuestions}
-          gameMode={gameMode}
-          players={players}
-          isHost={isHost}
-          onRestart={onRestart}
-          onChangeThemes={onChangeThemes}
-          onQuit={onQuit}
-          shouldPlaySound={shouldPlaySound}
-          onSoundPlayed={onSoundPlayed}
-        />
-      </section>
-      {isOnline(gameMode) && (
-        <div className={gameStyles.gamePlayersPanel}>
-          <PlayersPanel players={players} isGameEnded={true} totalQuestions={totalQuestions} />
-        </div>
-      )}
-    </>
+    <section className={gameStyles.endScreenMain} aria-label="Fin de partie">
+      <Score
+        score={score}
+        totalQuestions={totalQuestions}
+        gameMode={gameMode}
+        players={players}
+        isHost={isHost}
+        onRestart={onRestart}
+        onChangeThemes={onChangeThemes}
+        onQuit={onQuit}
+        shouldPlaySound={shouldPlaySound}
+        onSoundPlayed={onSoundPlayed}
+      />
+    </section>
   )
 }
