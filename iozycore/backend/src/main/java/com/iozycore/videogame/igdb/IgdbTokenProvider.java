@@ -49,6 +49,11 @@ public class IgdbTokenProvider {
     private volatile String cachedToken;
     private volatile Instant cachedExpiresAt;
 
+    /** True when the IGDB credentials are set: without them, no IGDB call can succeed. */
+    public boolean isConfigured() {
+        return clientId != null && !clientId.isBlank() && clientSecret != null && !clientSecret.isBlank();
+    }
+
     /** Returns a valid access token, renewing it if missing/expired. */
     synchronized String getAccessToken() throws IgdbUnavailableException {
         if (!isExpired(cachedExpiresAt, Instant.now())) {
