@@ -9,6 +9,7 @@ import com.iozycore.core.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.core.domain.shared.VariantDeletionNotAllowedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 import java.util.List;
@@ -47,6 +48,11 @@ public class VariantDeletionService {
     private final List<VariantDeletionHook> hooks;
     private final EntityDeletionService entityDeletionService;
 
+    /**
+     * One transaction for the whole cascade: if any step fails, the volume
+     * comes back too - never a volume gone and an error shown to the user.
+     */
+    @Transactional
     public void delete(UUID entityId, UUID variantId) {
         Entity entity = entityRepository.findById(entityId)
                 .orElseThrow(() -> new NotFoundException("Entity introuvable : " + entityId));
