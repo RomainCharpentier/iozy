@@ -25,6 +25,8 @@ function resteACompleter(oeuvre: EntityResponse): boolean {
 /**
  * "Compléter les éditeurs": the works added before the shelves were arranged
  * by publisher kept none. On the shelf page, like the tool for the covers.
+ * The server also does this by itself every hour (ShelfDetailsBackfill); the
+ * button stays for right after an add, so nobody waits for the next run.
  *
  * <p>Sequential, one call per work, and it stops at the first silence: a batch
  * would use up a quota instead of stopping cleanly on it. It writes as a source,

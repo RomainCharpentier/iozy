@@ -40,7 +40,17 @@ public class MetadataDetailsService {
      * when no source has more, or when the one that has more did not answer.
      */
     public Map<String, Object> details(EntityType entityType, Map<String, Object> attributes) {
+        return ask(entityType, attributes).details();
+    }
+
+    /**
+     * The details, and whether a source of this type did not answer. An empty
+     * map alone cannot tell "the source has nothing more" from "the source is
+     * silent": a background job needs the difference to stop on a silence.
+     */
+    public Answer ask(EntityType entityType, Map<String, Object> attributes) {
         Map<String, Object> details = new LinkedHashMap<>();
+        boolean sourceUnavailable = false;
         for (MetadataProvider provider : providers) {
             if (!provider.supports(entityType)) {
                 continue;
@@ -48,11 +58,16 @@ public class MetadataDetailsService {
             try {
                 provider.details(attributes).forEach(details::putIfAbsent);
             } catch (RuntimeException e) {
+                sourceUnavailable = true;
                 log.warn("Details of a {} not available from {}: {}",
                         entityType.code(), provider.getClass().getName(), e.getMessage());
             }
         }
-        return details;
+        return new Answer(details, sourceUnavailable);
+    }
+
+    /** What {@link #ask} got, and whether a source of the type was silent. */
+    public record Answer(Map<String, Object> details, boolean sourceUnavailable) {
     }
 
     /**
