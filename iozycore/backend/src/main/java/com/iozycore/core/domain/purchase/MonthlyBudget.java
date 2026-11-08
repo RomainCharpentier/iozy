@@ -47,13 +47,16 @@ public final class MonthlyBudget {
     }
 
     private static BigDecimal checked(BigDecimal amount) {
-        if (amount == null || amount.signum() <= 0) {
+        // Round first: an amount that rounds to 0.00 is no budget, and the
+        // table refuses it (CHECK monthly_amount > 0).
+        BigDecimal cents = amount == null ? null : amount.setScale(2, RoundingMode.HALF_UP);
+        if (cents == null || cents.signum() <= 0) {
             throw new IllegalArgumentException("Le budget doit être un montant positif, en euros");
         }
-        if (amount.compareTo(MAX_AMOUNT) > 0) {
+        if (cents.compareTo(MAX_AMOUNT) > 0) {
             throw new IllegalArgumentException("Le budget du mois ne peut pas dépasser 100 000 €");
         }
-        return amount.setScale(2, RoundingMode.HALF_UP);
+        return cents;
     }
 
     public UUID id() {

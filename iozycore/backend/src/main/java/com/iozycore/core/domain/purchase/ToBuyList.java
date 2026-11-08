@@ -1,6 +1,7 @@
 package com.iozycore.core.domain.purchase;
 
 import com.iozycore.core.domain.work.CollectorStatus;
+import com.iozycore.core.domain.work.DefaultWorkElements;
 import com.iozycore.core.domain.work.WorkElement;
 import com.iozycore.core.domain.work.WorkView;
 
@@ -24,7 +25,15 @@ import java.util.List;
  *       collector's word, it stays even when the work no longer counts.</li>
  * </ul>
  * A paused or dropped work brings nothing else: its missing elements are not
- * counted, so they are not on the list either.
+ * counted, so they are not on the list either. A work with no copy at all
+ * (only wished) brings only its wishes: wishing a work is not owning part of
+ * it, so its other elements are not "missing".
+ *
+ * <h2>The work as a whole stays on its own line</h2>
+ * When a work with elements is also wished as a whole (key
+ * {@link DefaultWorkElements#WHOLE_WORK_KEY}), that wish is its own line: it
+ * is never grouped with the elements, so "Je l'ai" on a grouped line always
+ * takes an element, never the whole work.
  *
  * <h2>Order</h2>
  * The soonest release first; then the work closest to complete (the fewest
@@ -43,7 +52,10 @@ public final class ToBuyList {
     public static List<ToBuyLine> of(List<WorkView> works, LocalDate today) {
         List<ToBuyLine> lines = new ArrayList<>();
         for (WorkView work : works) {
-            boolean ongoing = work.collectorStatus() == CollectorStatus.ONGOING;
+            boolean hasCopy = work.elements().stream()
+                    .anyMatch(counted -> counted.element().state() == WorkElement.State.OWNED);
+            boolean completing = hasCopy && work.collectorStatus() == CollectorStatus.ONGOING;
+            boolean manyElements = work.elements().size() > 1;
             List<WorkElement> lacking = new ArrayList<>();
             for (WorkView.CountedElement counted : work.elements()) {
                 WorkElement element = counted.element();
@@ -51,11 +63,18 @@ public final class ToBuyList {
                     continue;
                 }
                 boolean wanted = element.state() == WorkElement.State.WANTED;
-                if (WorkElement.isUpcoming(element.releaseDate(), today)) {
-                    if (ongoing || wanted) {
+                boolean upcoming = WorkElement.isUpcoming(element.releaseDate(), today);
+                if (manyElements && DefaultWorkElements.WHOLE_WORK_KEY.equals(element.key())) {
+                    if (wanted) {
+                        lines.add(upcoming
+                                ? line(work, ToBuyLine.Kind.UPCOMING, List.of(element), element)
+                                : line(work, ToBuyLine.Kind.WISH, List.of(element), null));
+                    }
+                } else if (upcoming) {
+                    if (completing || wanted) {
                         lines.add(line(work, ToBuyLine.Kind.UPCOMING, List.of(element), element));
                     }
-                } else if (counted.countedAsMissing() || wanted) {
+                } else if ((completing && counted.countedAsMissing()) || wanted) {
                     lacking.add(element);
                 }
             }

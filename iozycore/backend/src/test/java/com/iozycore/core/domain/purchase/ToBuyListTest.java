@@ -82,4 +82,34 @@ class ToBuyListTest {
         assertThat(lines).extracting(ToBuyLine::title).containsExactly("Catan : Marins");
         assertThat(lines.get(0).kind()).isEqualTo(ToBuyLine.Kind.WISH);
     }
+
+    @Test
+    void a_work_wished_as_a_whole_with_no_copy_brings_only_that_wish_on_its_own_line() {
+        WorkElement wholeWork = new WorkElement("work", "Catan", null, null, WorkElement.State.WANTED,
+                null, null, null);
+        WorkView wished = work("Catan", CollectorStatus.ONGOING, wholeWork,
+                new WorkElement("variant-a", "Marins", null, null, WorkElement.State.MISSING, null, null, null),
+                new WorkElement("variant-b", "Villes", null, null, WorkElement.State.MISSING, null, null, null));
+
+        List<ToBuyLine> lines = ToBuyList.of(List.of(wished), TODAY);
+
+        assertThat(lines).hasSize(1);
+        assertThat(lines.get(0).kind()).isEqualTo(ToBuyLine.Kind.WISH);
+        assertThat(lines.get(0).elements()).extracting(WorkElement::key).containsExactly("work");
+    }
+
+    @Test
+    void the_whole_work_wish_is_never_grouped_with_the_missing_volumes() {
+        WorkElement wholeWork = new WorkElement("work", "Berserk", null, null, WorkElement.State.WANTED,
+                null, null, null);
+        WorkView series = work("Berserk", CollectorStatus.ONGOING, owned(1),
+                volume(2, WorkElement.State.MISSING, null), volume(3, WorkElement.State.MISSING, null), wholeWork);
+
+        List<ToBuyLine> lines = ToBuyList.of(List.of(series), TODAY);
+
+        assertThat(lines).extracting(ToBuyLine::kind)
+                .containsExactlyInAnyOrder(ToBuyLine.Kind.COMPLETE, ToBuyLine.Kind.WISH);
+        ToBuyLine complete = lines.stream().filter(l -> l.kind() == ToBuyLine.Kind.COMPLETE).findFirst().orElseThrow();
+        assertThat(complete.elements()).extracting(WorkElement::label).containsExactly("Tome 2", "Tome 3");
+    }
 }

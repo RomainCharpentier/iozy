@@ -21,4 +21,11 @@ class MonthlyBudgetTest {
         assertThatThrownBy(() -> MonthlyBudget.create(new BigDecimal("100000.01"), Instant.now()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void an_amount_that_rounds_to_zero_is_refused() {
+        assertThatThrownBy(() -> MonthlyBudget.create(new BigDecimal("0.004"), Instant.now()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("positif");
+    }
 }
