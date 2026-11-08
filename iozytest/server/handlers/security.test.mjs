@@ -4,6 +4,9 @@ import { setupGameHandlers } from './gameHandlers.js'
 import { setupRoomHandlers } from './roomHandlers.js'
 import { createRoom, addPlayer, getRoomState } from '../domain/room.js'
 import { roomRepository } from '../infrastructure/roomRepository.js'
+import express from 'express'
+import { createExpressApp } from '../config/server.js'
+import { createWriteGuard, UNAUTHORIZED_MESSAGE } from '../config/writeGuard.js'
 
 function createMockSocket(socketId) {
   const events = {}
@@ -233,5 +236,139 @@ describe('Sécurité - jeton de session (usurpation)', () => {
     setupRoomHandlers(p1Again, io)
     p1Again._trigger('room:join', { roomCode, playerId: 'p1-id', playerName: 'P1', sessionToken: playerToken })
     assert.ok(p1Again._getEmitted().some(e => e.event === 'room:joined'))
+  })
+})
+
+describe('Sécurité - écritures de la banque de questions', () => {
+  const ADMIN_TOKEN = 'jeton-de-test'
+
+  // Un serveur HTTP éphémère ; renvoie son adresse et de quoi le fermer.
+  async function listen(app) {
+    const server = app.listen(0)
+    await new Promise(resolve => server.once('listening', resolve))
+    return { url: `http://127.0.0.1:${server.address().port}`, close: () => new Promise(r => server.close(r)) }
+  }
+
+  // Le garde seul devant un handler factice : aucune écriture dans data/.
+  function guardedApp(guard) {
+    const app = express()
+    app.use(express.json())
+    app.put('/api/questions', guard, (req, res) => res.json({ ok: true }))
+    app.delete('/api/categories/:id', guard, (req, res) => res.json({ ok: true }))
+    return app
+  }
+
+  const meStub = (status, body) => async (url, options) => {
+    meStub.calls.push({ url, cookie: options?.headers?.cookie })
+    return { status, json: async () => body }
+  }
+  meStub.calls = []
+  const noFetch = async () => { throw new Error('IozyCore injoignable') }
+  const prodEnv = { NODE_ENV: 'production', IOZYCORE_API_URL: 'http://core.test' }
+
+  test('401 sans session ni jeton en production, sur les vraies routes', async () => {
+    const guard = createWriteGuard({ env: prodEnv, fetchImpl: noFetch })
+    const { url, close } = await listen(createExpressApp({ writeGuard: guard }))
+    try {
+      const writes = [
+        ['POST', '/api/questions'], ['PUT', '/api/questions'], ['DELETE', '/api/questions/q1'],
+        ['POST', '/api/categories'], ['PUT', '/api/categories/c1'], ['DELETE', '/api/categories/c1'],
+      ]
+      for (const [method, path] of writes) {
+        const response = await fetch(url + path, {
+          method, headers: { 'content-type': 'application/json' }, body: method === 'DELETE' ? undefined : '{}',
+        })
+        assert.strictEqual(response.status, 401, `${method} ${path}`)
+        assert.strictEqual((await response.json()).error, UNAUTHORIZED_MESSAGE)
+      }
+      // Les lectures restent ouvertes
+      assert.strictEqual((await fetch(url + '/api/health')).status, 200)
+    } finally {
+      await close()
+    }
+  })
+
+  test('passe avec un compte Iozy non invité (cookie relayé à /api/auth/me)', async () => {
+    meStub.calls = []
+    const guard = createWriteGuard({ env: prodEnv, fetchImpl: meStub(200, { pseudo: 'Romain', invite: false }) })
+    const { url, close } = await listen(guardedApp(guard))
+    try {
+      const response = await fetch(url + '/api/questions', {
+        method: 'PUT', headers: { 'content-type': 'application/json', cookie: 'JSESSIONID=abc' }, body: '{}',
+      })
+      assert.strictEqual(response.status, 200)
+      assert.deepStrictEqual(meStub.calls, [{ url: 'http://core.test/api/auth/me', cookie: 'JSESSIONID=abc' }])
+    } finally {
+      await close()
+    }
+  })
+
+  test('401 pour un invité ou une session refusée par IozyCore', async () => {
+    for (const fetchImpl of [meStub(200, { pseudo: 'visiteur', invite: true }), meStub(401, {}), noFetch]) {
+      const { url, close } = await listen(guardedApp(createWriteGuard({ env: prodEnv, fetchImpl })))
+      try {
+        const response = await fetch(url + '/api/categories/c1', { method: 'DELETE', headers: { cookie: 'JSESSIONID=abc' } })
+        assert.strictEqual(response.status, 401)
+      } finally {
+        await close()
+      }
+    }
+  })
+
+  test('le jeton d\'administration ouvre les écritures, un mauvais jeton non', async () => {
+    const guard = createWriteGuard({ env: { ...prodEnv, IOZYTEST_ADMIN_TOKEN: ADMIN_TOKEN }, fetchImpl: noFetch })
+    const { url, close } = await listen(guardedApp(guard))
+    try {
+      const send = token => fetch(url + '/api/questions', {
+        method: 'PUT', headers: { 'content-type': 'application/json', 'x-iozytest-admin-token': token }, body: '{}',
+      })
+      assert.strictEqual((await send(ADMIN_TOKEN)).status, 200)
+      assert.strictEqual((await send('mauvais')).status, 401)
+    } finally {
+      await close()
+    }
+  })
+
+  test('hors production sans jeton : ouvert, avec un seul avertissement, sans interroger IozyCore', async () => {
+    const logs = []
+    meStub.calls = []
+    const guard = createWriteGuard({ env: { NODE_ENV: 'development' }, fetchImpl: meStub(401, {}), log: m => logs.push(m) })
+    const { url, close } = await listen(guardedApp(guard))
+    try {
+      for (let i = 0; i < 2; i++) {
+        const response = await fetch(url + '/api/questions', {
+          method: 'PUT', headers: { 'content-type': 'application/json', cookie: 'JSESSIONID=abc' }, body: '{}',
+        })
+        assert.strictEqual(response.status, 200)
+      }
+      assert.strictEqual(logs.length, 1)
+      assert.strictEqual(meStub.calls.length, 0)
+    } finally {
+      await close()
+    }
+  })
+
+  test('un jeton réglé ferme aussi le mode ouvert hors production', async () => {
+    const guard = createWriteGuard({ env: { NODE_ENV: 'development', IOZYTEST_ADMIN_TOKEN: ADMIN_TOKEN }, fetchImpl: noFetch })
+    const { url, close } = await listen(guardedApp(guard))
+    try {
+      const response = await fetch(url + '/api/categories/c1', { method: 'DELETE' })
+      assert.strictEqual(response.status, 401)
+    } finally {
+      await close()
+    }
+  })
+
+  test('refuse une écriture qui n\'est pas du JSON (formulaire d\'un autre site)', async () => {
+    const guard = createWriteGuard({ env: { NODE_ENV: 'development' }, fetchImpl: noFetch, log: () => {} })
+    const { url, close } = await listen(guardedApp(guard))
+    try {
+      const response = await fetch(url + '/api/questions', {
+        method: 'PUT', headers: { 'content-type': 'text/plain' }, body: '{}',
+      })
+      assert.strictEqual(response.status, 415)
+    } finally {
+      await close()
+    }
   })
 })
