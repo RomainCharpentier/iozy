@@ -17,6 +17,8 @@ import com.iozycore.core.domain.user.AppUserRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.domain.work.CollectorStatus;
+import com.iozycore.core.domain.purchase.MonthlyBudget;
+import com.iozycore.core.domain.purchase.MonthlyBudgetRepository;
 import com.iozycore.core.domain.work.WorkCollectorStatus;
 import com.iozycore.core.domain.work.WorkCollectorStatusRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -28,6 +30,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -68,6 +71,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     @Autowired private EntityRepository catalogue;
     @Autowired private FollowedWorkRepository suivies;
     @Autowired private WorkCollectorStatusRepository statuts;
+    @Autowired private MonthlyBudgetRepository budgets;
     @Autowired private JdbcTemplate jdbc;
 
     private final List<UUID> oeuvresCreees = new ArrayList<>();
@@ -139,7 +143,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void the_followed_works_and_the_collector_statuses_go_with_the_account() {
+    void the_followed_works_the_collector_statuses_and_the_budget_go_with_the_account() {
         AppUser bob = compte("bob");
         Entity serie = catalogue.save(Entity.create(EntityTypeFixtures.MANGA.id(), "Dorohedoro " + UUID.randomUUID()));
         oeuvresCreees.add(serie.id());
@@ -147,12 +151,14 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         connecte(bob.id());
         suivies.save(FollowedWork.follow(serie.id(), LocalDate.now()));
         statuts.save(WorkCollectorStatus.create(serie.id(), CollectorStatus.PAUSED, Instant.now()));
+        budgets.save(MonthlyBudget.create(new BigDecimal("150"), Instant.now()));
 
         connecte(DefaultOwner.ID);
         gestion.supprimer(bob.id(), DefaultOwner.ID);
 
         assertThat(lignesDe("followed_work", bob.id())).isZero();
         assertThat(lignesDe("work_collector_status", bob.id())).isZero();
+        assertThat(lignesDe("purchase_budget", bob.id())).isZero();
     }
 
     @Test
