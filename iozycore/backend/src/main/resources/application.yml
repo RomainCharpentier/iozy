@@ -35,6 +35,22 @@ iozycore:
       series-per-run: ${COVERS_BACKFILL_SERIES_PER_RUN:25}
       # Between two series that may reach the BnF, which limits the rate per address.
       pause-ms: 1500
+  shelf-details:
+    # The publisher (and the consoles of video games) of the works added
+    # before the shelves were arranged by publisher: without them a room says
+    # "Éditeur inconnu". The catalogue asks IGDB or BGG for the details of
+    # those works itself, a little after each start, then every hour as long
+    # as one misses a key. Only missing keys are written, never one typed by
+    # hand. A type stops at its first silent provider; the next hour picks up
+    # there. Off on the e2e stack, like the release refresh.
+    backfill:
+      enabled: ${SHELF_DETAILS_BACKFILL_ENABLED:${RELEASES_REFRESH_ENABLED:true}}
+      # After the cover backfill, so that the two do not start together.
+      initial-delay-ms: ${SHELF_DETAILS_BACKFILL_INITIAL_DELAY_MS:180000}
+      every-ms: 3600000
+      works-per-run: ${SHELF_DETAILS_BACKFILL_WORKS_PER_RUN:40}
+      # Between two calls: BGG asks for about one request per second.
+      pause-ms: 1000
 
 spring:
   application:
