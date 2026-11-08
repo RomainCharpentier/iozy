@@ -5,7 +5,7 @@
  * stay empty. These tests pin each route, its method and the body of the status.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchCollectionSummary, fetchWork, listWorks, setCollectorStatus } from './works'
+import { fetchCollectionSummary, fetchWork, listWorks, ownWorkElement, setCollectorStatus } from './works'
 
 const fetchMock = vi.fn()
 
@@ -48,5 +48,12 @@ describe('works api', () => {
       method: 'PUT',
       body: { status: 'PAUSED' },
     })
+  })
+
+  it('owns one element with POST on its key, escaped, and no body', async () => {
+    await ownWorkElement('abc', 'bgg-42')
+    expect(lastCall()).toMatchObject({ url: '/api/works/abc/elements/bgg-42/own', method: 'POST' })
+    await ownWorkElement('abc', 'variant/1')
+    expect(lastCall().url).toBe('/api/works/abc/elements/variant%2F1/own')
   })
 })

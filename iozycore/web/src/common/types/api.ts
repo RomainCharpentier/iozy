@@ -461,6 +461,25 @@ export interface WorkElementDto {
   ownershipId: UUID | null
   /** True when it counts in missingCount: lacking, published, and the work is ONGOING. */
   countedAsMissing: boolean
+  /** A derived element the collector does not follow yet (an expansion, another game of the
+   *  licence): listed, never counted as missing. Never true for an owned element. */
+  optional: boolean
+  /** The other work behind the element (a game of the licence in the catalog), or null. */
+  linkedEntityId: UUID | null
+}
+
+/** Where the derived elements of a work come from (expansions on BGG, licence on IGDB). */
+export interface WorkElementsSourceDto {
+  /** "BGG" or "IGDB". */
+  provider: string
+  /** True when the provider could not be used: the elements are the catalog's only. */
+  fallback: boolean
+  /** Why, in French, to show discreetly ("Licence indisponible : clé IGDB absente"), or null. */
+  note: string | null
+  /** The licence, or null. */
+  groupName: string | null
+  /** The console the elements are limited to, or null. */
+  scope: string | null
 }
 
 export interface WorkNextReleaseDto {
@@ -491,6 +510,8 @@ export interface WorkDto {
   nextRelease: WorkNextReleaseDto | null
   /** ISO instant: latest ownership created, wish added or catalog change. */
   lastMovedAt: string | null
+  /** Null when the type has no derived elements (manga, custom types). */
+  elementsSource: WorkElementsSourceDto | null
 }
 
 /** GET /api/works: every owned or wished work, most recently moved first. */
