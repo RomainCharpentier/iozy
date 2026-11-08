@@ -630,7 +630,10 @@ export function EntityDetailPage() {
             : null
         }
         actionEnvies={
-          isManga || estInvite ? null : (
+          // An owned work cannot be wanted (the server refuses it): no button
+          // to offer. It stays while a wish from before that rule remains, so
+          // that it can be removed.
+          isManga || estInvite || (possedee && !dansEnvies) ? null : (
             <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
           )
         }
