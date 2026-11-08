@@ -113,6 +113,10 @@ class EditionTotalHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(put(url(serie)).contentType("application/json").content("{\"totalVolumes\":5}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Cette série a plusieurs éditions : précise laquelle"));
+        mockMvc.perform(put(url(serie)).contentType("application/json")
+                        .content("{\"editionName\":\"Knaa\",\"totalVolumes\":5}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Cette série n'a pas d'édition « Knaa »"));
         mockMvc.perform(put("/api/manga/series/" + UUID.randomUUID() + "/total").contentType("application/json")
                         .content("{\"editionName\":\"Kana\",\"totalVolumes\":5}"))
                 .andExpect(status().isNotFound());

@@ -5,6 +5,7 @@ import com.iozycore.core.application.NotFoundException;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.shared.TexteRecherche;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,6 +25,11 @@ import java.util.UUID;
  * This use case sets it explicitly: a number is stored as {@code MANUAL} (the
  * background job never touches it), {@code null} clears it and lets the job
  * try again.
+ *
+ * <p>The edition must be one the series already has (a volume under that
+ * name, or a reference row linked to it): a typo never creates an edition in
+ * the shared catalogue. A reference row that belongs to a homonym series
+ * (same title, another work) is refused rather than given this series' count.
  */
 @Service
 @RequiredArgsConstructor
@@ -62,26 +67,41 @@ public class EditionTotalService {
                         .findFirst()
                         .flatMap(mangaEditionRepository::findById))
                 .orElseThrow(() -> new IllegalStateException("L'édition « " + name + " » n'a pas pu être créée"));
+        if (!entity.id().equals(edition.entityId())) {
+            throw new IllegalArgumentException("L'édition « " + name + " » appartient à une autre série du même titre");
+        }
         return mangaEditionRepository.save(edition.withManualTotal(totalVolumes));
     }
 
-    /** The name given, or the single named edition of the series (its volumes, then its reference rows). */
+    /**
+     * The edition named, as the series writes it, or its single named edition
+     * when none is given. The names come from its volumes, then its reference
+     * rows; case, accents and punctuation are folded.
+     */
     private String resolveEditionName(Entity entity, String editionName) {
-        if (editionName != null && !editionName.isBlank()) {
-            return editionName.trim();
-        }
         Map<String, String> names = new LinkedHashMap<>();
         for (String name : CataloguedEditions.of(entity).keySet()) {
-            names.putIfAbsent(name.toLowerCase(Locale.ROOT), name);
+            names.putIfAbsent(fold(name), name.trim());
         }
         for (MangaEdition edition : mangaEditionRepository.findByEntityId(entity.id())) {
-            names.putIfAbsent(edition.editionName().trim().toLowerCase(Locale.ROOT), edition.editionName().trim());
+            names.putIfAbsent(fold(edition.editionName()), edition.editionName().trim());
+        }
+        if (editionName != null && !editionName.isBlank()) {
+            String known = names.get(fold(editionName));
+            if (known == null) {
+                throw new IllegalArgumentException("Cette série n'a pas d'édition « " + editionName.trim() + " »");
+            }
+            return known;
         }
         if (names.size() != 1) {
             throw new IllegalArgumentException(names.isEmpty()
-                    ? "Cette série n'a pas encore d'édition : précise son nom"
+                    ? "Cette série n'a pas encore d'édition : ajoute d'abord un tome"
                     : "Cette série a plusieurs éditions : précise laquelle");
         }
         return names.values().iterator().next();
+    }
+
+    private static String fold(String name) {
+        return TexteRecherche.normaliser(name).trim();
     }
 }
