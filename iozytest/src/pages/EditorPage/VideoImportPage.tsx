@@ -69,15 +69,6 @@ export default function VideoImportPage() {
     }
   }
 
-  // Détecter si c'est une playlist ou une vidéo unique
-  useEffect(() => {
-    if (videoUrl.trim()) {
-      setIsPlaylist(isYouTubePlaylistUrl(videoUrl))
-    } else {
-      setIsPlaylist(false)
-    }
-  }, [videoUrl])
-
   // Fonction pour charger une vidéo/playlist
   const loadVideo = useCallback(
     async (url: string) => {
@@ -137,6 +128,9 @@ export default function VideoImportPage() {
           }))
 
           setVideos(videosWithAnswers)
+          // Le mode vient de ce qui a été chargé, pas du champ : il est vidé juste après,
+          // et les cases de la playlist disparaissaient avec lui
+          setIsPlaylist(true)
           setVideoUrl('') // Réinitialiser l'URL après chargement
           setEditingIndex(null) // Réinitialiser l'édition
           toast.success(`${playlistVideos.length} vidéo(s) chargée(s)`)
@@ -180,6 +174,7 @@ export default function VideoImportPage() {
           }
 
           setVideos([singleVideo])
+          setIsPlaylist(false)
           setVideoUrl('') // Réinitialiser l'URL après chargement
           setEditingIndex(null) // Réinitialiser l'édition
           toast.success('Vidéo chargée')
@@ -358,6 +353,7 @@ export default function VideoImportPage() {
         onConfirm: () => {
           setConfirmState({ type: null, message: '', onConfirm: () => {} })
           setVideos([])
+          setIsPlaylist(false)
           setVideoUrl('')
           setEditingIndex(null)
           setSelectedCategories([])

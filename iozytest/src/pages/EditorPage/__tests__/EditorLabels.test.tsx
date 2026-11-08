@@ -79,7 +79,7 @@ describe("Libellés de l'éditeur", () => {
     fireEvent.click(screen.getByRole('button', { name: 'Charger la vidéo ou playlist' }))
 
     expect(await screen.findByRole('checkbox', { name: 'Importer « Générique A »' })).toBeTruthy()
-    expect(screen.getByRole('checkbox', { name: 'Importer « Générique B »' })).toBeTruthy()
+    expect(await screen.findByRole('checkbox', { name: 'Importer « Générique B »' })).toBeTruthy()
 
     const group = screen.getByRole('group', { name: 'Catégories :' })
     expect(group.querySelector('input[type="checkbox"]')).toBeTruthy()
