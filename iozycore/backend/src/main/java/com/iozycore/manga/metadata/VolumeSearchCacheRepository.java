@@ -1,5 +1,6 @@
 package com.iozycore.manga.metadata;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +23,13 @@ public interface VolumeSearchCacheRepository {
      * on the client side): a new Google Books search overwrites the old
      * stored result instead of being added to it. The row is stamped with the
      * current time and with {@code chainVersion}. */
-    void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion);
+    default void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion) {
+        save(entityTypeId, seriesTitle, author, volumes, chainVersion, Instant.now());
+    }
+
+    /** Same upsert, stamped with {@code fetchedAt}: a merge keeps the age of the row it adds to (lot 208). */
+    void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion,
+              Instant fetchedAt);
 
     /** Forgets the row of this key, if it exists - see TomeSearchService.searchVolumes (Batch 126). */
     void delete(UUID entityTypeId, String seriesTitle, String author);

@@ -152,7 +152,10 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isOk())
                 // The manga universe can refresh its dates; nothing runs from a test.
                 .andExpect(jsonPath("$.available").value(true))
-                .andExpect(jsonPath("$.running").value(false));
+                .andExpect(jsonPath("$.running").value(false))
+                // The night pass is off in the tests: nothing is planned, and the line says so.
+                .andExpect(jsonPath("$.scheduled").value(false))
+                .andExpect(jsonPath("$.sourceSilent").isBoolean());
     }
 
     @Test

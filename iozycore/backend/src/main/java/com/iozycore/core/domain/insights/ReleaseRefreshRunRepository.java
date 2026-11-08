@@ -7,6 +7,9 @@ public interface ReleaseRefreshRunRepository {
 
     ReleaseRefreshRun save(ReleaseRefreshRun run);
 
-    /** The most recent pass, whoever started it. */
+    /** The pass that ended last, whoever started it. */
     Optional<ReleaseRefreshRun> findLatest();
+
+    /** The pass that ended last among those that moved the calendar forward (see {@link ReleaseRefreshRun.Outcome#isSuccess}). */
+    Optional<ReleaseRefreshRun> findLatestSuccessful();
 }

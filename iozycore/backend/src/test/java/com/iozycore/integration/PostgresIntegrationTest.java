@@ -91,5 +91,7 @@ public abstract class PostgresIntegrationTest {
         registry.add("iozycore.covers.backfill.enabled", () -> "false");
         registry.add("iozycore.shelf-details.backfill.enabled", () -> "false");
         registry.add("iozycore.edition-totals.backfill.enabled", () -> "false");
+        // Same for the release refresh: its catch-up pass would start minutes after the context.
+        registry.add("iozycore.releases.refresh.enabled", () -> "false");
     }
 }

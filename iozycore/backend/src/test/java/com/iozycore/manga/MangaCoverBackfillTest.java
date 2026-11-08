@@ -217,9 +217,10 @@ class MangaCoverBackfillTest {
         }
 
         @Override
-        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion) {
+        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion,
+                         java.time.Instant fetchedAt) {
             store.put(StoredVolumeSearch.key(seriesTitle, author),
-                    new StoredVolumeSearch(seriesTitle, author, volumes, java.time.Instant.now(), chainVersion));
+                    new StoredVolumeSearch(seriesTitle, author, volumes, fetchedAt, chainVersion));
         }
 
         @Override

@@ -57,22 +57,31 @@ public final class ReleaseCalendarDtos {
      * @param available false when no universe can refresh its dates: there is nothing to launch
      * @param running   a pass is running now
      * @param lastRun   the most recent pass, or null if there never was one
+     * @param lastSuccessAt when the last pass that moved the calendar forward ended, or null if none did
+     * @param nextPlannedAt when the next pass should start on its own (night slot or catch-up),
+     *                      or null when nothing runs on its own
+     * @param sourceSilent  the last pass found a provider silent: the calendar shows what was stored before
+     * @param scheduled     the night pass and the catch-up are on
      */
-    public record ReleaseRefreshStatusResponse(boolean available, boolean running, LastRunResponse lastRun) {
+    public record ReleaseRefreshStatusResponse(boolean available, boolean running, LastRunResponse lastRun,
+                                               Instant lastSuccessAt, Instant nextPlannedAt, boolean sourceSilent,
+                                               boolean scheduled) {
     }
 
     /**
-     * @param origin    SCHEDULED (the night job) or MANUAL
+     * @param origin    SCHEDULED (the night job), CATCH_UP (after a missed night) or MANUAL
      * @param stale     series that were due for a re-read at the start of the pass
      * @param refreshed series re-read by the pass
      * @param remaining series still due after it
      * @param error     what went wrong when the pass failed, otherwise null
+     * @param outcome   COMPLETED, PARTIAL, PROVIDER_SILENT, FAILED, SKIPPED or TIMED_OUT
      */
     public record LastRunResponse(Instant startedAt, Instant finishedAt, String origin, int stale, int refreshed,
-                                  int remaining, boolean stoppedOnUnavailableProvider, String error) {
+                                  int remaining, boolean stoppedOnUnavailableProvider, String error, String outcome) {
         public static LastRunResponse from(ReleaseRefreshRun run) {
             return new LastRunResponse(run.startedAt(), run.finishedAt(), run.origin().name(), run.stale(),
-                    run.refreshed(), run.remaining(), run.stoppedOnUnavailableProvider(), run.error());
+                    run.refreshed(), run.remaining(), run.stoppedOnUnavailableProvider(), run.error(),
+                    run.outcome().name());
         }
     }
 }

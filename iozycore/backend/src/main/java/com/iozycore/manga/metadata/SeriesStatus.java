@@ -14,6 +14,9 @@ import java.util.Set;
 public final class SeriesStatus {
 
     private static final Set<String> ONGOING = Set.of("releasing", "publishing", "currentlypublishing");
+    /** Not published right now, but not over either: AniList HIATUS / NOT_YET_RELEASED, Jikan "On Hiatus" /
+     *  "Not yet published", MyAnimeList on_hiatus / not_yet_published. */
+    private static final Set<String> NOT_OVER = Set.of("hiatus", "onhiatus", "notyetreleased", "notyetpublished");
 
     /** AniList {@code FINISHED}, Jikan {@code Finished}, MyAnimeList v2 {@code finished}. */
     private static final Set<String> FINISHED = Set.of("finished");
@@ -37,5 +40,21 @@ public final class SeriesStatus {
         }
         String normalized = text.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
         return FINISHED.contains(normalized);
+    }
+
+    /**
+     * True for a series that can still announce a volume: ongoing, on hiatus, or
+     * not started yet. The release refresh re-reads these (lot 208: a series on hiatus
+     * was left out until then). A finished,
+     * cancelled or discontinued series, or an unknown status, is not re-read.
+     */
+    public static boolean mayAnnounceVolumes(Object attributeValue) {
+        if (isOngoing(attributeValue)) {
+            return true;
+        }
+        if (!(attributeValue instanceof String text)) {
+            return false;
+        }
+        return NOT_OVER.contains(text.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", ""));
     }
 }

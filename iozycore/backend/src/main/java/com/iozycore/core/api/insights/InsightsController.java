@@ -10,6 +10,7 @@ import com.iozycore.core.api.insights.ReleaseCalendarDtos.ReleaseCalendarRespons
 import com.iozycore.core.api.insights.ReleaseCalendarDtos.ReleaseRefreshStatusResponse;
 import com.iozycore.core.application.insights.ReleaseRefreshService;
 import com.iozycore.core.application.insights.StatsService;
+import com.iozycore.core.domain.insights.ReleaseRefreshRun;
 import com.iozycore.core.domain.insights.StatsSummary;
 import com.iozycore.core.domain.insights.YearlyRecap;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import com.iozycore.core.application.insights.SeriesProgressGateway;
 
@@ -150,8 +152,13 @@ public class InsightsController {
     }
 
     private ReleaseRefreshStatusResponse currentRefreshStatus() {
+        Optional<ReleaseRefreshRun> lastRun = releaseRefreshService.lastRun();
+        boolean sourceSilent = lastRun.map(run -> run.outcome() == ReleaseRefreshRun.Outcome.PARTIAL
+                || run.outcome() == ReleaseRefreshRun.Outcome.PROVIDER_SILENT).orElse(false);
         return new ReleaseRefreshStatusResponse(releaseRefreshService.isAvailable(), releaseRefreshService.isRunning(),
-                releaseRefreshService.lastRun().map(LastRunResponse::from).orElse(null));
+                lastRun.map(LastRunResponse::from).orElse(null),
+                releaseRefreshService.lastSuccessfulRun().map(ReleaseRefreshRun::finishedAt).orElse(null),
+                releaseRefreshService.nextPlannedAt().orElse(null), sourceSilent, releaseRefreshService.isScheduled());
     }
     /** An ISO date to the day, without which the message names the parameter at fault rather than letting a 500 through. */
     private static LocalDate parseDay(String value, String parameter) {
