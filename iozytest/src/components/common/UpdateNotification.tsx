@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
+import { applyPendingUpdate } from '@/utils/serviceWorker'
 
 /**
  * Composant pour notifier l'utilisateur lorsqu'une mise à jour du service worker est disponible
  */
 export function UpdateNotification() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
+  const { pathname } = useLocation()
+
+  // Une version arrivée pendant une partie s'applique au premier écran hors de /game.
+  useEffect(() => {
+    applyPendingUpdate(pathname)
+  }, [pathname])
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {

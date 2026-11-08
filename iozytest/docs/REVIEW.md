@@ -39,6 +39,8 @@
 - [x] Lien `/editor/import-video` vers une route inexistante (`QuestionEditor.tsx:823`).
 - [x] Les réglages son ne sont appliqués qu'après ouverture de `/settings` (`SettingsMenu.tsx:16`).
 - [ ] Le service worker peut recharger la page en pleine partie (`serviceWorker.ts:85`, `UpdateNotification.tsx:15`).
+- [ ] Les réglages son ne sont appliqués qu'après ouverture de `/settings` (`SettingsMenu.tsx:16`).
+- [x] Le service worker peut recharger la page en pleine partie (`serviceWorker.ts:85`, `UpdateNotification.tsx:15`).
 
 ## P1 — Sécurité / triche
 

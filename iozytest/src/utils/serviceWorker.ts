@@ -23,6 +23,61 @@ function rememberAutomaticReload() {
   }
 }
 
+// Une nouvelle version arrivée pendant une partie attend la sortie de /game :
+// recharger en pleine manche relance le média, perd la réponse en cours et
+// repasse par room:rejoin.
+let refreshing = false
+let pendingReload = false
+
+function isGamePath(pathname: string): boolean {
+  return /\/game\/?$/.test(pathname)
+}
+
+function reloadOnce(reload: () => void) {
+  if (refreshing) return
+  if (Date.now() - lastAutomaticReload() < RELOAD_MIN_INTERVAL_MS) {
+    console.log('[SW] New service worker activated, already reloaded a moment ago: not again')
+    return
+  }
+  refreshing = true
+  pendingReload = false
+  rememberAutomaticReload()
+  console.log('[SW] New service worker activated, reloading...')
+  reload()
+}
+
+/** Un nouveau worker a pris le contrôle : recharger, sauf en pleine partie. */
+export function onNewWorkerActive(
+  pathname: string = window.location.pathname,
+  reload: () => void = () => window.location.reload()
+) {
+  if (isGamePath(pathname)) {
+    pendingReload = true
+    console.log('[SW] New service worker activated during a game: reload after the game')
+    return
+  }
+  reloadOnce(reload)
+}
+
+/** Appelé à chaque changement de route : applique la mise à jour en attente hors de /game. */
+export function applyPendingUpdate(
+  pathname: string = window.location.pathname,
+  reload: () => void = () => window.location.reload()
+) {
+  if (!pendingReload || isGamePath(pathname)) return
+  reloadOnce(reload)
+}
+
+export function hasPendingUpdate(): boolean {
+  return pendingReload
+}
+
+/** Pour les tests seulement. */
+export function resetUpdateStateForTests() {
+  refreshing = false
+  pendingReload = false
+}
+
 export function registerServiceWorker() {
   // Ne pas enregistrer le service worker en développement pour éviter les problèmes de cache
   if (isDevelopment) {
@@ -132,17 +187,10 @@ export function registerServiceWorker() {
       // « Update on reload » des outils de développement), une page qui
       // recharge sans fin est pire qu'une page en retard d'une version.
       // C'est le seul écouteur de ce genre : UpdateNotification s'y fie.
-      let refreshing = false
+      // En pleine partie, le rechargement attend la sortie de /game (onNewWorkerActive).
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!hadOurController || refreshing) return
-        if (Date.now() - lastAutomaticReload() < RELOAD_MIN_INTERVAL_MS) {
-          console.log('[SW] New service worker activated, already reloaded a moment ago: not again')
-          return
-        }
-        refreshing = true
-        rememberAutomaticReload()
-        console.log('[SW] New service worker activated, reloading...')
-        window.location.reload()
+        if (!hadOurController) return
+        onNewWorkerActive()
       })
     })
   } else {
