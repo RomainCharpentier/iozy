@@ -13,6 +13,10 @@ import com.iozycore.core.testing.InMemoryEntityTypeRepository;
 import com.iozycore.core.testing.InMemoryFollowedWorkRepository;
 import com.iozycore.core.testing.InMemoryOwnershipRepository;
 import com.iozycore.core.testing.InMemoryWishlistEntryRepository;
+import com.iozycore.core.testing.InMemoryWorkCollectorStatusRepository;
+import com.iozycore.core.domain.work.CollectorStatus;
+import com.iozycore.core.domain.work.WorkCollectorStatus;
+import java.time.Instant;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -42,9 +46,11 @@ class ReleaseCalendarServiceTest {
     private final CountingOwnershipRepository ownerships = new CountingOwnershipRepository();
     private final CountingWishlistEntryRepository wishlist = new CountingWishlistEntryRepository();
     private final CountingFollowedWorkRepository followed = new CountingFollowedWorkRepository();
+    private final InMemoryWorkCollectorStatusRepository statuses = new InMemoryWorkCollectorStatusRepository();
 
     private ReleaseCalendarService service(ReleaseSource... sources) {
-        return new ReleaseCalendarService(types, entities, ownerships, wishlist, followed, List.of(sources));
+        return new ReleaseCalendarService(types, entities, ownerships, wishlist, followed, statuses,
+                List.of(sources));
     }
 
     // ------------------------------------------------------------ Dates entered on a detail page
@@ -99,6 +105,28 @@ class ReleaseCalendarServiceTest {
         suivre(inNovember, yearOnly);
 
         assertThat(service().releasesBetween(OCTOBER_1, OCTOBER_31).entries()).isEmpty();
+    }
+
+    @Test
+    void a_paused_or_dropped_work_no_longer_lists_its_missing_releases() {
+        Entity paused = boardGame("En pause", "2026-10-14");
+        Entity dropped = boardGame("Abandonnee", "2026-10-15");
+        Entity ongoing = boardGame("En cours", "2026-10-16");
+        Entity pausedButOwned = boardGame("En pause mais precommande", "2026-10-17");
+        ownerships.save(Ownership.acquire(pausedButOwned.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        suivre(paused, dropped, ongoing, pausedButOwned);
+        statuses.save(WorkCollectorStatus.create(paused.id(), CollectorStatus.PAUSED, Instant.now()));
+        statuses.save(WorkCollectorStatus.create(dropped.id(), CollectorStatus.DROPPED, Instant.now()));
+        statuses.save(WorkCollectorStatus.create(pausedButOwned.id(), CollectorStatus.PAUSED, Instant.now()));
+        statuses.save(WorkCollectorStatus.create(ongoing.id(), CollectorStatus.ONGOING, Instant.now()));
+
+        assertThat(service().releasesBetween(OCTOBER_1, OCTOBER_31).entries())
+                .extracting(ReleaseEntry::entityTitle, ReleaseEntry::relation)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("En cours", ReleaseEntry.Relation.MISSING),
+                        org.assertj.core.groups.Tuple.tuple("En pause mais precommande", ReleaseEntry.Relation.OWNED));
+        assertThat(service().latest(10)).extracting(ReleaseEntry::entityTitle)
+                .doesNotContain("En pause", "Abandonnee");
     }
 
     @Test

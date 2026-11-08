@@ -11,6 +11,8 @@ import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.core.domain.work.WorkCollectorStatus;
+import com.iozycore.core.domain.work.WorkCollectorStatusRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -84,6 +86,7 @@ public class ReleaseCalendarService {
     private final OwnershipRepository ownershipRepository;
     private final WishlistEntryRepository wishlistEntryRepository;
     private final FollowedWorkRepository followedWorkRepository;
+    private final WorkCollectorStatusRepository collectorStatusRepository;
     private final List<ReleaseSource> sources;
 
     /** True when a universe can date the releases of this category without them being typed. */
@@ -136,6 +139,13 @@ public class ReleaseCalendarService {
             return List.of();
         }
 
+        // A paused or dropped work no longer counts as missing: its releases the
+        // collector does not own or want are not "to buy", so they leave the calendar.
+        Set<UUID> notCollected = collectorStatusRepository.findAll().stream()
+                .filter(status -> !status.status().countsMissing())
+                .map(WorkCollectorStatus::entityId)
+                .collect(Collectors.toSet());
+
         List<ReleaseEntry> entries = new ArrayList<>();
         for (EntityType entityType : entityTypeRepository.findAll()) {
             List<Entity> entities = entityRepository.findAllByType(entityType.id()).stream()
@@ -151,6 +161,8 @@ public class ReleaseCalendarService {
 
             entries.addAll(releasesOf(context));
         }
+        entries.removeIf(entry -> entry.relation() == ReleaseEntry.Relation.MISSING
+                && notCollected.contains(entry.entityId()));
         entries.sort(CALENDAR_ORDER);
         return entries;
     }
