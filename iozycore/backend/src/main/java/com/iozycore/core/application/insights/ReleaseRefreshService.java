@@ -136,7 +136,7 @@ public class ReleaseRefreshService {
         return current.get() != null;
     }
 
-    /** The most recent pass, including one whose row could not be saved. */
+    /** The pass that ended last, including one whose row could not be saved. */
     public Optional<ReleaseRefreshRun> lastRun() {
         return newest(runs.findLatest(), Optional.ofNullable(unrecorded.get()));
     }
@@ -297,7 +297,7 @@ public class ReleaseRefreshService {
     }
 
     private static Optional<ReleaseRefreshRun> newest(Optional<ReleaseRefreshRun> a, Optional<ReleaseRefreshRun> b) {
-        return Stream.concat(a.stream(), b.stream()).max(Comparator.comparing(ReleaseRefreshRun::startedAt));
+        return Stream.concat(a.stream(), b.stream()).max(Comparator.comparing(ReleaseRefreshRun::finishedAt));
     }
 
     private static String truncated(String message) {

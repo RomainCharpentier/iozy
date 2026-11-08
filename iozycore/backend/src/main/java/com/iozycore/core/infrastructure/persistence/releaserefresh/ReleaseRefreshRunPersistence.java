@@ -14,9 +14,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 interface ReleaseRefreshRunJpaRepository extends JpaRepository<ReleaseRefreshRunJpaEntity, UUID> {
-    Optional<ReleaseRefreshRunJpaEntity> findFirstByOrderByStartedAtDesc();
+    // By end, not by start: a night slot skipped while a long pass runs starts after it
+    // but ends before it, and must not hide it (lot 208).
+    Optional<ReleaseRefreshRunJpaEntity> findFirstByOrderByFinishedAtDesc();
 
-    Optional<ReleaseRefreshRunJpaEntity> findFirstByOutcomeInOrderByStartedAtDesc(Collection<String> outcomes);
+    Optional<ReleaseRefreshRunJpaEntity> findFirstByOutcomeInOrderByFinishedAtDesc(Collection<String> outcomes);
 }
 
 @Repository
@@ -35,7 +37,7 @@ class JpaReleaseRefreshRunRepositoryAdapter implements ReleaseRefreshRunReposito
     @Override
     @Transactional(readOnly = true)
     public Optional<ReleaseRefreshRun> findLatest() {
-        return jpaRepository.findFirstByOrderByStartedAtDesc().map(JpaReleaseRefreshRunRepositoryAdapter::toDomain);
+        return jpaRepository.findFirstByOrderByFinishedAtDesc().map(JpaReleaseRefreshRunRepositoryAdapter::toDomain);
     }
 
     @Override
@@ -43,7 +45,7 @@ class JpaReleaseRefreshRunRepositoryAdapter implements ReleaseRefreshRunReposito
     public Optional<ReleaseRefreshRun> findLatestSuccessful() {
         List<String> successful = Arrays.stream(ReleaseRefreshRun.Outcome.values())
                 .filter(ReleaseRefreshRun.Outcome::isSuccess).map(Enum::name).toList();
-        return jpaRepository.findFirstByOutcomeInOrderByStartedAtDesc(successful)
+        return jpaRepository.findFirstByOutcomeInOrderByFinishedAtDesc(successful)
                 .map(JpaReleaseRefreshRunRepositoryAdapter::toDomain);
     }
 

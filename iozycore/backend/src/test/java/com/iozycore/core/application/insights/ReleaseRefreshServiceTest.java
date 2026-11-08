@@ -126,6 +126,24 @@ class ReleaseRefreshServiceTest {
     }
 
     @Test
+    void a_skipped_night_slot_does_not_hide_the_pass_that_was_running() {
+        List<Runnable> handedOver = new ArrayList<>();
+        ReleaseRefreshService service = new ReleaseRefreshService(
+                List.of(() -> new ReleaseRefreshSource.Result(4, 4, false)), runs, true, clock, handedOver::add);
+        assertThat(service.startManual()).isTrue();
+        clock.advance(Duration.ofMinutes(5));
+        service.nightly();
+        clock.advance(Duration.ofMinutes(5));
+
+        handedOver.get(0).run();
+
+        assertThat(service.lastRun()).get().satisfies(run -> {
+            assertThat(run.origin()).isEqualTo(Origin.MANUAL);
+            assertThat(run.outcome()).isEqualTo(Outcome.COMPLETED);
+        });
+    }
+
+    @Test
     void never_runs_two_passes_at_once() {
         AtomicReference<ReleaseRefreshService> holder = new AtomicReference<>();
         AtomicBoolean secondLaunchAccepted = new AtomicBoolean(true);
@@ -355,7 +373,7 @@ class ReleaseRefreshServiceTest {
         @Override
         public Optional<ReleaseRefreshRun> findLatest() {
             synchronized (saved) {
-                return saved.stream().max(java.util.Comparator.comparing(ReleaseRefreshRun::startedAt));
+                return saved.stream().max(java.util.Comparator.comparing(ReleaseRefreshRun::finishedAt));
             }
         }
 
@@ -363,7 +381,7 @@ class ReleaseRefreshServiceTest {
         public Optional<ReleaseRefreshRun> findLatestSuccessful() {
             synchronized (saved) {
                 return saved.stream().filter(run -> run.outcome().isSuccess())
-                        .max(java.util.Comparator.comparing(ReleaseRefreshRun::startedAt));
+                        .max(java.util.Comparator.comparing(ReleaseRefreshRun::finishedAt));
             }
         }
     }
