@@ -38,9 +38,31 @@ import java.util.UUID;
 public record MangaEdition(UUID id, UUID entityId, String seriesTitle, String editionName, EditionTier tier,
                             String publisher, Integer totalVolumes, BigDecimal retailPriceNewPerVolume,
                             boolean outOfPrint, boolean betterEditionAnnounced, String betterEditionNote,
-                            String languageCode, Instant createdAt, Instant updatedAt) {
+                            String languageCode, Instant createdAt, Instant updatedAt,
+                            TotalSource totalSource, boolean frenchRunFinished, Instant totalCheckedAt) {
+
+    /**
+     * The shape from before the total had a source (lot 207). Until then only a
+     * person wrote a total, so a known total is {@link TotalSource#MANUAL} -
+     * the same rule as migration V40.
+     */
+    public MangaEdition(UUID id, UUID entityId, String seriesTitle, String editionName, EditionTier tier,
+                        String publisher, Integer totalVolumes, BigDecimal retailPriceNewPerVolume,
+                        boolean outOfPrint, boolean betterEditionAnnounced, String betterEditionNote,
+                        String languageCode, Instant createdAt, Instant updatedAt) {
+        this(id, entityId, seriesTitle, editionName, tier, publisher, totalVolumes, retailPriceNewPerVolume,
+                outOfPrint, betterEditionAnnounced, betterEditionNote, languageCode, createdAt, updatedAt,
+                totalVolumes == null ? null : TotalSource.MANUAL, false, null);
+    }
 
     public MangaEdition {
+        if (totalVolumes == null) {
+            // An unknown total has no source and cannot be a finished run.
+            totalSource = null;
+            frenchRunFinished = false;
+        } else if (totalSource == null) {
+            totalSource = TotalSource.MANUAL;
+        }
         if (seriesTitle == null || seriesTitle.isBlank()) {
             throw new IllegalArgumentException("A manga edition must reference a series title");
         }
@@ -73,10 +95,18 @@ public record MangaEdition(UUID id, UUID entityId, String seriesTitle, String ed
                 retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote, "fr", now, now);
     }
 
-    /** Partial update (progressive enrichment) - any {@code null} argument keeps the current value. */
+    /**
+     * Partial update (progressive enrichment) - any {@code null} argument keeps the current value.
+     * <p>
+     * A total that differs from the current one is a person's word: it becomes
+     * {@link TotalSource#MANUAL}. The SAME total keeps its source - the edition
+     * form sends the total back with every save, and changing the publisher
+     * must not freeze a total that the background job still revisits.
+     */
     public MangaEdition withUpdatedReferenceData(EditionTier tier, String publisher, Integer totalVolumes,
                                                   BigDecimal retailPriceNewPerVolume, Boolean outOfPrint,
                                                   Boolean betterEditionAnnounced, String betterEditionNote) {
+        boolean totalChanged = totalVolumes != null && !totalVolumes.equals(this.totalVolumes);
         return new MangaEdition(id, entityId, seriesTitle, editionName,
                 tier != null ? tier : this.tier,
                 publisher != null ? publisher : this.publisher,
@@ -85,7 +115,36 @@ public record MangaEdition(UUID id, UUID entityId, String seriesTitle, String ed
                 outOfPrint != null ? outOfPrint : this.outOfPrint,
                 betterEditionAnnounced != null ? betterEditionAnnounced : this.betterEditionAnnounced,
                 betterEditionNote != null ? betterEditionNote : this.betterEditionNote,
-                languageCode, createdAt, Instant.now());
+                languageCode, createdAt, Instant.now(),
+                totalChanged ? TotalSource.MANUAL : this.totalSource,
+                totalChanged ? false : this.frenchRunFinished,
+                this.totalCheckedAt);
+    }
+
+    /**
+     * A total said by a person, or {@code null} to make it unknown again. A
+     * cleared total also forgets when the sources were last read, so the
+     * background job tries again at its next run.
+     */
+    public MangaEdition withManualTotal(Integer totalVolumes) {
+        return new MangaEdition(id, entityId, seriesTitle, editionName, tier, publisher, totalVolumes,
+                retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote, languageCode,
+                createdAt, Instant.now(), totalVolumes == null ? null : TotalSource.MANUAL, false,
+                totalVolumes == null ? null : this.totalCheckedAt);
+    }
+
+    /** A total read in the French volume lists, at {@code checkedAt}. */
+    public MangaEdition withProviderTotal(int totalVolumes, boolean frenchRunFinished, Instant checkedAt) {
+        return new MangaEdition(id, entityId, seriesTitle, editionName, tier, publisher, totalVolumes,
+                retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote, languageCode,
+                createdAt, Instant.now(), TotalSource.PROVIDER, frenchRunFinished, checkedAt);
+    }
+
+    /** The sources answered at {@code checkedAt} without a usable total: nothing else changes. */
+    public MangaEdition withTotalChecked(Instant checkedAt) {
+        return new MangaEdition(id, entityId, seriesTitle, editionName, tier, publisher, totalVolumes,
+                retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote, languageCode,
+                createdAt, updatedAt, totalSource, frenchRunFinished, checkedAt);
     }
 
     /** Links this edition to its catalog Series after the fact (e.g. once SeriesMatcher resolves a real Entity for
@@ -93,6 +152,6 @@ public record MangaEdition(UUID id, UUID entityId, String seriesTitle, String ed
     public MangaEdition withEntityId(UUID entityId) {
         return new MangaEdition(id, entityId, seriesTitle, editionName, tier, publisher, totalVolumes,
                 retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote, languageCode,
-                createdAt, Instant.now());
+                createdAt, Instant.now(), totalSource, frenchRunFinished, totalCheckedAt);
     }
 }

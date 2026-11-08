@@ -51,6 +51,24 @@ iozycore:
       works-per-run: ${SHELF_DETAILS_BACKFILL_WORKS_PER_RUN:40}
       # Between two calls: BGG asks for about one request per second.
       pause-ms: 1000
+  edition-totals:
+    # The volume count of the French editions (lot 207): without it a series
+    # cannot say what is missing, and only a person ever typed it. The
+    # catalogue reads it from the French volume lists (BnF first, then Google
+    # Books, served from the volume search cache when fresh): a little after
+    # each start, then every hour for the editions that are due. A total typed
+    # by hand is never touched; an ongoing run is read again after
+    # recheck-after-days. A run stops at the first series that gets nothing
+    # while a provider is silent. Off on the e2e stack, like the release refresh.
+    backfill:
+      enabled: ${EDITION_TOTALS_BACKFILL_ENABLED:${RELEASES_REFRESH_ENABLED:true}}
+      # After the covers and the shelf details, so that the three do not start together.
+      initial-delay-ms: ${EDITION_TOTALS_BACKFILL_INITIAL_DELAY_MS:240000}
+      every-ms: 3600000
+      series-per-run: ${EDITION_TOTALS_BACKFILL_SERIES_PER_RUN:10}
+      # Between two series that may reach the BnF, which limits the rate per address.
+      pause-ms: 3000
+      recheck-after-days: 7
 
 spring:
   application:

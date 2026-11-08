@@ -90,5 +90,6 @@ public abstract class PostgresIntegrationTest {
         // providers. Each one has its own tests; here they stay off.
         registry.add("iozycore.covers.backfill.enabled", () -> "false");
         registry.add("iozycore.shelf-details.backfill.enabled", () -> "false");
+        registry.add("iozycore.edition-totals.backfill.enabled", () -> "false");
     }
 }

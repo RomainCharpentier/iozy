@@ -78,18 +78,18 @@ public class CollectionProgressService implements SeriesProgressSource {
         // All the editions in ONE query rather than one per edition group
         // and per work: on a collection of 500 series, this was ~1000 round trips
         // to the database for a single display of Ma collection.
-        Map<String, Integer> totalsByEntityAndEdition = indexEditionTotals(mangaEditionRepository.findAll());
+        Map<String, MangaEdition> totalsByEntityAndEdition = indexEditionTotals(mangaEditionRepository.findAll());
         return entityRepository.search(null, null, null).stream()
                 .map(entity -> compute(entity, activeByEntity.getOrDefault(entity.id(), List.of()),
                         totalsByEntityAndEdition))
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Integer> indexEditionTotals(List<MangaEdition> editions) {
-        Map<String, Integer> totals = new LinkedHashMap<>();
+    private Map<String, MangaEdition> indexEditionTotals(List<MangaEdition> editions) {
+        Map<String, MangaEdition> totals = new LinkedHashMap<>();
         for (MangaEdition edition : editions) {
             if (edition.entityId() != null && edition.totalVolumes() != null) {
-                totals.put(CollectionProgress.editionKey(edition.entityId(), edition.editionName()), edition.totalVolumes());
+                totals.put(CollectionProgress.editionKey(edition.entityId(), edition.editionName()), edition);
             }
         }
         return totals;
@@ -107,7 +107,7 @@ public class CollectionProgressService implements SeriesProgressSource {
     }
 
     private CollectionProgress compute(Entity entity, List<Ownership> activeOwnerships,
-                                        Map<String, Integer> totalsByEntityAndEdition) {
+                                        Map<String, MangaEdition> totalsByEntityAndEdition) {
         Map<String, List<String>> groups = displayGroups(entity);
         Map<UUID, Variant> variantsById = entity.variants().stream()
                 .collect(Collectors.toMap(Variant::id, v -> v, (a, b) -> a));
@@ -141,9 +141,13 @@ public class CollectionProgressService implements SeriesProgressSource {
             }
             allOwned.addAll(owned);
 
+            MangaEdition reference = editionName.isEmpty() ? null
+                    : totalsByEntityAndEdition.get(CollectionProgress.editionKey(entity.id(), editionName));
             editions.add(new CollectionProgress.EditionProgress(editionName, sourceEditions,
                     List.copyOf(owned), List.copyOf(catalogued),
-                    editionName.isEmpty() ? null : totalsByEntityAndEdition.get(CollectionProgress.editionKey(entity.id(), editionName))));
+                    reference == null ? null : reference.totalVolumes(),
+                    reference == null || reference.totalSource() == null ? null : reference.totalSource().name(),
+                    reference != null && reference.frenchRunFinished()));
         }
 
         // Stable and useful order: the fullest edition first (same rule
