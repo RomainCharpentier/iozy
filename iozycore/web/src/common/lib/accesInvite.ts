@@ -75,6 +75,8 @@ const RESERVEES_TELLES_QUELLES = ['/collection']
  * catching a `/typesomething` that would have nothing to do with it.
  */
 export function estReserveeAuxComptes(chemin: string): boolean {
-  if (RESERVEES_TELLES_QUELLES.includes(chemin)) return true
+  // React Router matches `/collection/` to `/collection`: so must this gate.
+  const normalized = chemin.replace(/\/+$/, '') || '/'
+  if (RESERVEES_TELLES_QUELLES.includes(normalized)) return true
   return RESERVEES_AUX_COMPTES.some((route) => chemin === route || chemin.startsWith(`${route}/`))
 }

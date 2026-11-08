@@ -6,7 +6,10 @@ import type { HomeElementDto, HomeLeadDto } from '@/common/types/home'
 import { Couverture } from './Couverture'
 import { pourquoiLaUne, surtitreDeLaUne, titreDeSortie } from './phrases'
 
-/** Beyond this, one segment per element would be a hairline: the sentence says it alone. */
+/**
+ * Beyond this, one segment per element would be a hairline: the sentence says it
+ * alone. At 390 px, 60 outlined segments (3 px each at least) fit only with a 1 px gap.
+ */
 const SEGMENTS_MAX = 60
 
 /**
@@ -22,7 +25,7 @@ function Jauge({ elements }: { elements: HomeElementDto[] }) {
   if (manquants > 0) parties.push(`${manquants} manquant${manquants > 1 ? 's' : ''}`)
   if (aVenir > 0) parties.push(`${aVenir} à venir`)
   return (
-    <div role="img" aria-label={parties.join(', ')} className="mt-6 flex h-3 gap-[3px]">
+    <div role="img" aria-label={parties.join(', ')} className="mt-6 flex h-3 gap-px overflow-hidden sm:gap-[3px]">
       {elements.map((e) => (
         <span
           key={e.key}

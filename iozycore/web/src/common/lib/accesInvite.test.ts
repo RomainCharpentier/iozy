@@ -52,6 +52,9 @@ describe('what a visit cannot reach', () => {
     // The whole collection moved to /collection with the home page (lot 212);
     // its category pages stay open (see the catalog above).
     expect(estReserveeAuxComptes('/collection')).toBe(true)
+    // A trailing slash reaches the same page in React Router.
+    expect(estReserveeAuxComptes('/collection/')).toBe(true)
+    expect(estReserveeAuxComptes('/collection//')).toBe(true)
     expect(estReserveeAuxComptes('/collection/manga')).toBe(false)
     // Without making "/" a prefix that would swallow everything else.
     expect(estReserveeAuxComptes('/add')).toBe(false)
