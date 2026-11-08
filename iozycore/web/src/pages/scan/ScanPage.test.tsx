@@ -14,6 +14,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ScanPage } from './ScanPage'
 import { typeDeCollection } from '@/test/fixtures'
+import { ApiError } from '@/common/api/client'
 
 const metadata = vi.hoisted(() => ({ lookupBarcode: vi.fn() }))
 vi.mock('@/common/api/metadata', () => metadata)
@@ -65,5 +66,28 @@ describe('a scanned volume', () => {
     expect(api.quickAdd).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'One Piece', volumeNumber: 1, edition: 'Édition originale' }),
     )
+  })
+})
+
+describe('a scan that fails', () => {
+  it('says the volume was not added when the add is refused, and closes the menu', async () => {
+    api.quickAdd.mockRejectedValue(new ApiError(500, 'Le serveur a refusé'))
+    rendre()
+    await userEvent.type(await screen.findByLabelText('Ou saisis le code-barres (ISBN)'), '9782723488525')
+    await userEvent.click(screen.getByRole('button', { name: 'Chercher' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Ajouter à ma collection' }))
+
+    expect(
+      await screen.findByText("One Piece n'a pas été ajouté : Le serveur a refusé - rescanne pour réessayer"),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('shows the load error of the collection types instead of saying no Manga type exists', async () => {
+    api.listEntityTypes.mockRejectedValue(new ApiError(500, 'Le serveur ne répond pas'))
+    rendre()
+
+    expect(await screen.findByText('Le serveur ne répond pas')).toBeInTheDocument()
+    expect(screen.queryByText(/Aucun type "Manga" configuré/)).not.toBeInTheDocument()
   })
 })
