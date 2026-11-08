@@ -73,7 +73,7 @@ class HomeWeekTest {
 
         WorkView view() {
             int missing = (int) elements.stream().filter(WorkView.CountedElement::countedAsMissing).count();
-            return new WorkView(id, type, title, cover, status, owned, total, missing, wished, elements, next, moved);
+            return new WorkView(id, type, title, cover, status, owned, total, missing, wished, elements, next, moved, null);
         }
     }
 

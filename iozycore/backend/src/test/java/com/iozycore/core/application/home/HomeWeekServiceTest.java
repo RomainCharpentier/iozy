@@ -39,10 +39,11 @@ class HomeWeekServiceTest {
     private final InMemoryOwnershipRepository ownerships = new InMemoryOwnershipRepository();
     private final InMemoryWishlistEntryRepository wishes = new InMemoryWishlistEntryRepository();
     private final InMemoryFollowedWorkRepository followed = new InMemoryFollowedWorkRepository();
+    private final InMemoryWorkCollectorStatusRepository statuses = new InMemoryWorkCollectorStatusRepository();
     private final ReleaseCalendarService calendar = new ReleaseCalendarService(types, entities, ownerships, wishes,
-            followed, List.of());
+            followed, statuses, List.of());
     private final WorkReadModel works = new WorkReadModel(entities, types, ownerships, wishes,
-            new InMemoryWorkCollectorStatusRepository(), calendar, List.of(), PARIS.getId());
+            statuses, calendar, List.of(), PARIS.getId());
     private final HomeWeekService service = new HomeWeekService(works, followed, PARIS.getId());
 
     @Test
