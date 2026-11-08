@@ -15,7 +15,7 @@
  * </ul>
  */
 import { describe, expect, it } from 'vitest'
-import { indexerVenues, plusRecentes } from './venues'
+import { couvertureDuMoment, indexerVenues, plusRecentes } from './venues'
 import { oeuvre, possession, tome } from '@/test/fixtures'
 import type { WishlistEntryResponse } from '@/common/types/api'
 
@@ -99,5 +99,39 @@ describe('plusRecentes', () => {
     plusRecentes(liste, indexerVenues([], []), 10)
 
     expect(liste.map((e) => e.title)).toEqual(['Pluto', 'Berserk'])
+  })
+})
+
+describe('couvertureDuMoment', () => {
+  const vinland = oeuvre({ titre: 'Vinland Saga', tomes: [tome(1)], jaquette: 'https://covers.example/vinland.jpg' })
+  const sansJaquette = oeuvre({ titre: 'Zelda', tomes: [tome(2)] })
+  const frieren = oeuvre({ titre: 'Frieren', tomes: [tome(3)], jaquette: 'https://covers.example/frieren.jpg' })
+
+  it('wears the cover of the work that moved last', () => {
+    const venues = indexerVenues(
+      [
+        possession({ entityId: vinland.id, variantId: 'tome-1', acquiseLe: '2026-01-01' }),
+        possession({ entityId: frieren.id, variantId: 'tome-3', acquiseLe: '2026-11-01' }),
+      ],
+      [],
+    )
+
+    expect(couvertureDuMoment([vinland, frieren], venues)).toBe('https://covers.example/frieren.jpg')
+  })
+
+  it('passes over a work without a cover, to the next one that has one', () => {
+    const venues = indexerVenues(
+      [
+        possession({ entityId: vinland.id, variantId: 'tome-1', acquiseLe: '2026-01-01' }),
+        possession({ entityId: sansJaquette.id, variantId: 'tome-2', acquiseLe: '2026-11-01' }),
+      ],
+      [],
+    )
+
+    expect(couvertureDuMoment([vinland, sansJaquette], venues)).toBe('https://covers.example/vinland.jpg')
+  })
+
+  it('has none when no work has a cover: the brand tones apply', () => {
+    expect(couvertureDuMoment([sansJaquette], indexerVenues([], []))).toBeNull()
   })
 })

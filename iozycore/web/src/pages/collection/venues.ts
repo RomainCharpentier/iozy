@@ -1,4 +1,5 @@
 import type { EntityResponse, OwnershipResponse, WishlistEntryResponse } from '@/common/types/api'
+import { coverImageUrlFrom } from '@/common/lib/coverImage'
 
 /**
  * "Since when" each object is here - what the "Récents
@@ -65,4 +66,17 @@ export function plusRecentes(entities: EntityResponse[], venues: Venues, nombre:
   return [...entities]
     .sort((a, b) => derniereVenue(b, venues).localeCompare(derniereVenue(a, venues)) || a.title.localeCompare(b.title, 'fr'))
     .slice(0, nombre)
+}
+
+/**
+ * The cover the collection wears as its backdrop ("plein cadre", lot 210):
+ * the one of the work that moved last - a volume added, a work wished for -
+ * among those that have a cover. Null when none has one: the brand tones.
+ */
+export function couvertureDuMoment(entities: EntityResponse[], venues: Venues): string | null {
+  for (const entity of plusRecentes(entities, venues, entities.length)) {
+    const url = coverImageUrlFrom(entity.attributes)
+    if (url) return url
+  }
+  return null
 }

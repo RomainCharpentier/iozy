@@ -13,7 +13,8 @@ import {
   correspondAuFiltre,
   ordonnerLesTypes,
 } from './shelfTiles'
-import { indexerVenues, plusRecentes } from './venues'
+import { couvertureDuMoment, indexerVenues, plusRecentes } from './venues'
+import { usePleinCadre } from '@/common/components/pleinCadre/usePleinCadre'
 import { useObjetsCollection } from './useObjetsCollection'
 import { useOuvrirOeuvre } from './useOuvrirOeuvre'
 import {
@@ -96,6 +97,8 @@ export function ShelfPage() {
   const { entities: allEntities, entityTypes, ownerships, wishlist } = donnees
   const { etats, manquants, objetDe } = useObjetsCollection(donnees, preferences.filtre)
   const venues = useMemo(() => indexerVenues(ownerships, wishlist.entries), [ownerships, wishlist.entries])
+  // The collection wears the cover of the work that moved last (lot 210).
+  usePleinCadre(useMemo(() => couvertureDuMoment(allEntities, venues), [allEntities, venues]))
 
   /** The works that THIS filter keeps. The tag applies to all: it is set on the
    *  work, owned or not. */

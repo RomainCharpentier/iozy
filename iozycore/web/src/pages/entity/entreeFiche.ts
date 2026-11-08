@@ -7,22 +7,12 @@ function animer(element: Element, images: Keyframe[], options: KeyframeAnimation
 }
 
 /**
- * Arriving on a work from its shelf, while its cover flies: the color of the
- * series opens from the cover, the page rises, the volumes stand up one by one
+ * Arriving on a work from its shelf, while its cover flies: the
+ * page rises, the volumes stand up one by one
  * and the planks draw themselves. Readable at rest whatever happens.
  */
 export function animerEntreeFiche(): void {
   if (mouvementReduit()) return
-  const jaquette = document.querySelector('[data-cible-vol]')?.getBoundingClientRect()
-  const teinte = document.querySelector('[data-teinte-fiche]')
-  if (jaquette && teinte) {
-    const fond = teinte.getBoundingClientRect()
-    const x = jaquette.left + jaquette.width / 2 - fond.left
-    const y = jaquette.top + jaquette.height / 2 - fond.top
-    animer(teinte, [{ clipPath: `circle(0px at ${x}px ${y}px)` }, { clipPath: `circle(1700px at ${x}px ${y}px)` }], {
-      duration: 760,
-    })
-  }
   document.querySelectorAll('[data-colonne-fiche] > *').forEach((bloc, rang) =>
     animer(bloc, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], {
       duration: 460,

@@ -1,7 +1,7 @@
 import { RELEASE_DATE_ATTRIBUTE_KEY, formatReleaseDate } from '@/common/lib/releaseDate'
 import { useState, type ReactNode } from 'react'
 import { AlignLeft, ChevronDown, Download, PenLine, UserRound } from 'lucide-react'
-import { tonDe } from './useTeinteJaquette'
+import { tonDe } from '@/common/lib/teinte/useTeinteJaquette'
 import { CLES_SOURCE, libelleDe, type BrouillonAttributs } from './useBrouillonInspecteur'
 import { libelleStatutSerie } from './seriesInfo'
 

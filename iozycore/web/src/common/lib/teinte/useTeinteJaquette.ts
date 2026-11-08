@@ -1,11 +1,26 @@
 import { useEffect, useState } from 'react'
 import { couleursDominantes, type CouleursJaquette } from './couleursJaquette'
+import { TERRACOTTA } from './derivation'
 
 /** Brand terracotta: only for a work without a cover, or one that cannot be read at all. */
-const REPLI: CouleursJaquette = { principale: [188, 88, 59], seconde: [188, 88, 59] }
+const REPLI: CouleursJaquette = { principale: TERRACOTTA, seconde: TERRACOTTA }
+
+/**
+ * Why the brand color stands in for the cover:
+ * - `sans-jaquette`: there is no cover;
+ * - `cors`: the image loads, but its host forbids reading its pixels (the app
+ *   says so, discreetly - see PleinCadre);
+ * - `illisible`: the image does not load at all.
+ */
+export type RaisonRepli = 'sans-jaquette' | 'cors' | 'illisible'
+
+interface Lecture {
+  couleurs: CouleursJaquette | null
+  raison: RaisonRepli | null
+}
 
 /** What was already read in this visit: going back to a work shows its colors at once. */
-const lues = new Map<string, CouleursJaquette | null>()
+const lues = new Map<string, Lecture>()
 
 function lire(source: string): Promise<CouleursJaquette | null> {
   return new Promise((resolve) => {
@@ -32,7 +47,32 @@ function lire(source: string): Promise<CouleursJaquette | null> {
 }
 
 /**
- * The colors of a cover (see couleursDominantes): the background of its detail page.
+ * Does the image load at all, when its pixels are not asked for? An image that
+ * loads this way but failed with `crossOrigin` is one whose host refused CORS.
+ */
+function seCharge(source: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const image = new Image()
+    image.onload = () => resolve(true)
+    image.onerror = () => resolve(false)
+    image.src = source
+  })
+}
+
+async function lireJaquette(url: string): Promise<Lecture> {
+  const couleurs = (await lire(`/api/covers/image?url=${encodeURIComponent(url)}`)) ?? (await lire(url))
+  if (couleurs) return { couleurs, raison: null }
+  return { couleurs: null, raison: (await seCharge(url)) ? 'cors' : 'illisible' }
+}
+
+export interface TeinteJaquette extends CouleursJaquette {
+  connue: boolean
+  /** Null when the colors are the cover's own; otherwise why the terracotta stands in. */
+  repli: RaisonRepli | null
+}
+
+/**
+ * The colors of a cover (see couleursDominantes): the background of the page.
  *
  * <h2>Why through the server</h2>
  * A browser only reads the pixels of an image whose host allows it. BoardGameGeek
@@ -45,15 +85,14 @@ function lire(source: string): Promise<CouleursJaquette | null> {
  * <p>`connue`: the colors have an answer. Until then the page shows no color rather
  * than the terracotta, which would flash on every series that is not red.
  */
-export function useTeinteJaquette(url: string | null | undefined): CouleursJaquette & { connue: boolean } {
+export function useTeinteJaquette(url: string | null | undefined): TeinteJaquette {
   const [, setLues] = useState(0)
 
   useEffect(() => {
     if (!url || lues.has(url)) return
     let annule = false
     void (async () => {
-      const couleurs = (await lire(`/api/covers/image?url=${encodeURIComponent(url)}`)) ?? (await lire(url))
-      lues.set(url, couleurs)
+      lues.set(url, await lireJaquette(url))
       if (!annule) setLues((n) => n + 1)
     })()
     return () => {
@@ -61,9 +100,10 @@ export function useTeinteJaquette(url: string | null | undefined): CouleursJaque
     }
   }, [url])
 
-  if (!url) return { ...REPLI, connue: true }
-  if (!lues.has(url)) return { ...REPLI, connue: false }
-  return { ...(lues.get(url) ?? REPLI), connue: true }
+  if (!url) return { ...REPLI, connue: true, repli: 'sans-jaquette' }
+  const lecture = lues.get(url)
+  if (!lecture) return { ...REPLI, connue: false, repli: null }
+  return { ...(lecture.couleurs ?? REPLI), connue: true, repli: lecture.raison }
 }
 
 /**

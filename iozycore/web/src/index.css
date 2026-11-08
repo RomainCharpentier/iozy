@@ -41,11 +41,24 @@
   /* `-ink` goes ON a fill (primary button, selected chip); `-text` is the
      color AS text on a neutral background. The two were mixed up before
      (`bg-accent text-accentText`, 1.47:1 in dark): see IozyKit/CHARTE.md. */
-  --color-accent: var(--iozy-accent);
-  --color-accentText: var(--iozy-accent-text);
+  /* Since lot 210 the accent is the VIVID tone of the cover on screen (see
+     the --teinte-* block below and lib/teinte/derivation.ts), terracotta when
+     there is none. The derivation keeps it AA as text on every background and
+     on its own tint, and keeps the kit ink readable on it, so the pairs of the
+     charter still hold. `sombre` is the background tone of the page. */
+  --color-accent: var(--teinte-vive);
+  --color-accentText: var(--teinte-vive);
   --color-accentPress: var(--iozy-accent-press);
-  --color-accentTint: var(--iozy-accent-tint);
-  --color-accentInk: var(--iozy-accent-ink);
+  --color-accentTint: color-mix(in srgb, var(--teinte-vive) 16%, transparent);
+  --color-accentInk: var(--teinte-encre);
+  --color-vive: var(--teinte-vive);
+  --color-encreVive: var(--teinte-encre);
+  --color-sombre: var(--teinte-sombre);
+
+  /* The frosted glass of the kit (lot 210). */
+  --color-verre: var(--iozy-glass-surface);
+  --color-verreFort: var(--iozy-glass-surface-strong);
+  --color-ligneVerre: var(--iozy-glass-line);
 
   --color-danger: var(--iozy-danger);
   --color-dangerText: var(--iozy-danger-text);
@@ -151,6 +164,51 @@
   --color-rank-d: #6cbd9d;
   --color-rank-e: #7096bd;
   --color-rank-f: #a99c91;
+}
+
+/* The tones of the cover on screen (lot 210, "plein cadre"). The shell
+   (common/components/pleinCadre) writes them on <html> from the cover of the
+   moment; these values are what a page outside the shell reads (sign-in),
+   and they are exactly the terracotta derivation of lib/teinte/derivation.ts
+   (a test compares them). Registered as colors so that a change of cover
+   fades instead of jumping. */
+@property --teinte-sombre {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(27 17 14);
+}
+
+@property --teinte-vive {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(217 153 135);
+}
+
+@property --teinte-encre {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(22 18 15);
+}
+
+:root {
+  /* teinte - light theme */
+  --teinte-sombre: rgb(248 243 242);
+  --teinte-vive: rgb(144 67 45);
+  --teinte-encre: rgb(255 255 255);
+}
+
+[data-theme="dark"] {
+  /* teinte - dark theme */
+  --teinte-sombre: rgb(27 17 14);
+  --teinte-vive: rgb(217 153 135);
+  --teinte-encre: rgb(22 18 15);
+}
+
+html {
+  transition:
+    --teinte-sombre 0.7s ease,
+    --teinte-vive 0.7s ease,
+    --teinte-encre 0.7s ease;
 }
 
 /* Dark values of the roles of this app. The charter roles need nothing
@@ -336,14 +394,14 @@ button, a, input, textarea, select {
    of controls: 44 px. Press: the surface shrinks by 2 %.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* The primary button: the accent, filled, with its tinted shadow. */
+/* The primary button: the vivid tone of the cover, filled, its ink on it. */
 @utility btn-primaire {
-  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold whitespace-nowrap text-accentInk shadow-token-accent transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-vive px-4 text-sm font-semibold whitespace-nowrap text-encreVive shadow-token-accent transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
-/* The secondary button: a surface, a line, a soft shadow. */
+/* The secondary button: a piece of light glass (lot 210). */
 @utility btn-secondaire {
-  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-surface px-4 text-sm font-semibold whitespace-nowrap text-textPrimary ring-1 ring-line shadow-token-sm transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-verre px-4 text-sm font-semibold whitespace-nowrap text-textPrimary ring-1 ring-ligneVerre shadow-token-sm backdrop-blur-xl backdrop-saturate-150 transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
 /* The discreet button: text, nothing around it - for "Annuler", action links. */
@@ -372,9 +430,9 @@ button, a, input, textarea, select {
   @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface2 transition duration-150 select-none active:scale-[0.98];
 }
 
-/* A glass navigation bar: translucent, blurred, a line. */
+/* A glass panel: the strong glass of the kit (lot 210). */
 @utility barre-verre {
-  @apply bg-surface/85 backdrop-blur-xl backdrop-saturate-150;
+  @apply bg-verreFort backdrop-blur-2xl backdrop-saturate-150;
 }
 
 /* A block waiting for its data: the shape of what is going to come.
@@ -800,15 +858,40 @@ html:active-view-transition * {
   }
 }
 
-/* The background of a detail page: the colors of its cover, opening from the top
-   corners and fading into the page in both themes (the color is mixed with the
-   page, so the text above it stays readable). */
-.fiche-teinte {
-  --mix: 34%;
+/* The "plein cadre" background (lot 210): the cover of the moment, blurred
+   to a wash of color over the whole screen, under a veil of its own deep (or,
+   in the light theme, pale) tone. No edge: the image overflows the screen by
+   120 px on every side before the blur. The veil opacity comes from the kit
+   (`backdrop-veil`) through the shell, which writes `--teinte-voile-part`; at that
+   opacity every text role reaches AA over the worst cover (see
+   lib/teinte/derivation.ts). The bottom of the screen settles into the
+   background tone itself, which only adds contrast. */
+.fond-plein-cadre {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--teinte-sombre);
+}
+
+.fond-plein-cadre__image {
+  position: absolute;
+  inset: -120px;
+  width: calc(100% + 240px);
+  height: calc(100% + 240px);
+  object-fit: cover;
+  filter: blur(var(--iozy-glass-backdrop-blur)) saturate(var(--iozy-glass-backdrop-saturate))
+    brightness(var(--iozy-backdrop-brightness));
+  transform: scale(1.1);
+  transition: opacity 0.7s ease;
+}
+
+.fond-plein-cadre__voile {
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(90% 110% at 10% 0%, color-mix(in srgb, var(--t1) var(--mix), var(--color-background)) 0%, transparent 70%),
-    radial-gradient(70% 90% at 90% 0%, color-mix(in srgb, var(--t2) calc(var(--mix) * 0.8), var(--color-background)) 0%, transparent 72%);
+    linear-gradient(180deg, transparent 50%, var(--teinte-sombre) 100%),
+    color-mix(in srgb, var(--teinte-sombre) var(--teinte-voile-part, 100%), transparent);
 }
-[data-theme='dark'] .fiche-teinte {
-  --mix: 40%;
-}
+

@@ -18,8 +18,15 @@ import type { ReactNode } from 'react'
  * the `surface` / `background` gap remains, and a card placed on another one
  * disappears. The `surface2` border is what makes it hold in
  * both themes - invisible in light, structuring in dark.
+ *
+ * <h2>Strong glass since lot 210</h2>
+ * The page is now the blurred cover of the moment (see pleinCadre): an
+ * opaque card would cut a hole in it. The card is a pane of the kit's strong
+ * glass (`.iozy-verre--fort`), on which every text role of the theme keeps AA
+ * over the worst cover (iozykit check:contrast). The light glass line keeps
+ * the edge the border used to draw.
  */
-export const CLASSE_CARTE = 'rounded-[20px] border border-line bg-surface p-5 shadow-token-sm sm:p-6'
+export const CLASSE_CARTE = 'iozy-verre iozy-verre--fort rounded-[20px] p-5 sm:p-6'
 
 /** Same card, in a danger zone: no shadow or border, a tinted background
  *  that signals by itself that we are no longer in the ordinary content (see the

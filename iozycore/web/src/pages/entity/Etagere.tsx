@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { Plus } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
 import { mouvementReduit } from '@/common/lib/volJaquette'
-import { tonDe } from './useTeinteJaquette'
+import { tonDe } from '@/common/lib/teinte/useTeinteJaquette'
 import type { VolumeAffiche } from './GrilleVolumes'
 import { ECART_DOS, MARGE_ETAGE, dosParEtage, formatEtagere, plageDeTomes, positionTranche, repartirEnEtages } from './etages'
 
@@ -159,7 +159,7 @@ export function Etagere({
 
   return (
     <div ref={conteneur} className="flex flex-col">
-      <div className={`z-10 mb-2.5 min-h-[104px] sm:min-h-[60px] ${choisis.length > 0 ? 'sticky top-[60px] md:top-[72px]' : 'relative'}`}>
+      <div className={`z-10 mb-2.5 min-h-[104px] sm:min-h-[60px] ${choisis.length > 0 ? 'sticky top-3 lg:top-[90px]' : 'relative'}`}>
         {choisis.length > 0 ? (
           <BarreChoix
             choisis={choisis}
