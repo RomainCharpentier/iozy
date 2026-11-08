@@ -6,8 +6,10 @@
  */
 import { describe, expect, it } from 'vitest'
 import type { WorkDto, WorkElementDto } from '@/common/types/api'
-import { edition } from '@/test/fixtures'
+import { edition, possession } from '@/test/fixtures'
 import {
+  ciblesAMettreDeCote,
+  copiesARetirer,
   editionComptee,
   elementsAMettreDeCote,
   gesteJeLAi,
@@ -51,6 +53,11 @@ function oeuvre(options: Partial<WorkDto> = {}): WorkDto {
 describe('the gesture on an element not owned', () => {
   it('owns an element the source declares ownable, whatever its type', () => {
     expect(gesteJeLAi(element({ key: 'variant-1', ownable: true }), false)).toBe('element')
+  })
+
+  it('owns through the source only what is missing, never what is wanted or still to come', () => {
+    expect(gesteJeLAi(element({ key: 'variant-1', ownable: true, state: 'WANTED' }), false)).not.toBe('element')
+    expect(gesteJeLAi(element({ key: 'variant-1', ownable: true, state: 'UPCOMING' }), false)).not.toBe('element')
   })
 
   it('adds the work itself whole', () => {
@@ -134,5 +141,33 @@ describe('what can be set aside', () => {
     ]
     expect(elementsAMettreDeCote(oeuvre({ elements })).map((e) => e.key)).toEqual(['a'])
     expect(elementsAMettreDeCote(oeuvre({ elements, collectorStatus: 'PAUSED' }))).toEqual([])
+  })
+})
+
+describe('the wishes of "mettre de côté"', () => {
+  it('names the element that is really sent, not the first one missing', () => {
+    // The first missing element has neither variant nor number: it cannot be wished.
+    const elements = [element({ key: 'boite', label: 'Boîte' }), element({ key: 'volume-3', label: 'Tome 3', number: 3 })]
+    const paires = ciblesAMettreDeCote(oeuvre({ elements }), true, 'Kana')
+    expect(paires.map((p) => p.element.label)).toEqual(['Tome 3'])
+    expect(paires[0].cible).toEqual({ entityId: 'e', volumeNumber: 3, edition: 'Kana' })
+  })
+})
+
+describe('the copies a removal deletes', () => {
+  it('removes every copy of a whole work, a game owned on two consoles', () => {
+    const copies = [
+      { ...possession({ entityId: 'e', console: 'Console A' }), id: 'a' },
+      { ...possession({ entityId: 'e', console: 'Console B' }), id: 'b' },
+      possession({ entityId: 'e', variantId: 'v1' }),
+      { ...possession({ entityId: 'e', statut: 'SOLD' }), id: 'c' },
+    ]
+    const oeuvreEntiere = element({ key: 'work', state: 'OWNED', ownershipId: 'a' })
+    expect(copiesARetirer(oeuvreEntiere, copies).map((c) => c.id)).toEqual(['a', 'b'])
+  })
+
+  it('finds nothing to remove here for a copy that lives on another entity', () => {
+    const derive = element({ key: 'expansion-1', state: 'OWNED', ownershipId: 'ailleurs' })
+    expect(copiesARetirer(derive, [possession({ entityId: 'e' })])).toEqual([])
   })
 })

@@ -64,29 +64,52 @@ function grille(work: WorkDto, props: Partial<Parameters<typeof GrilleElements>[
 describe('the panel of a work', () => {
   it('shows the count over the known total and what is missing', () => {
     const work = oeuvre()
-    render(<PanneauOeuvre work={work} consultation={false} total={null} grille={grille(work)} />)
+    render(<PanneauOeuvre avecGeste work={work} consultation={false} total={null} grille={grille(work)} />)
     expect(screen.getByText('1 / 6')).toBeInTheDocument()
     expect(screen.getByText('Il t’en manque 5')).toBeInTheDocument()
+  })
+
+  it('says the count in words for a screen reader, never "1 slash 6"', () => {
+    const work = oeuvre()
+    render(<PanneauOeuvre avecGeste work={work} consultation={false} total={null} grille={grille(work)} />)
+    expect(screen.getByText('1 possédé sur 6')).toBeInTheDocument()
+    expect(screen.getByText('1 / 6')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('invites no click when no element can be owned in one click', () => {
+    const work = oeuvre()
+    render(
+      <PanneauOeuvre
+        avecGeste={false}
+        work={work}
+        consultation={false}
+        total={null}
+        grille={grille(work, { gesteDe: () => null })}
+      />,
+    )
+    expect(screen.queryByText(/Clique/)).not.toBeInTheDocument()
   })
 
   it('never guesses a total nobody knows', () => {
     const work = oeuvre({ totalCount: null, totalKnown: false, missingCount: 0 })
     render(
       <PanneauOeuvre
+        avecGeste
         work={work}
         consultation={false}
         total={<TotalOeuvre total={null} provenance={null} editable={false} enCours={false} erreur={null} onEnregistrer={async () => undefined} />}
         grille={grille(work)}
       />,
     )
-    expect(screen.getByText('1', { selector: 'p' })).toBeInTheDocument()
+    expect(screen.getByText('1', { selector: 'p > span' })).toBeInTheDocument()
+    expect(screen.getByText('1 possédé, total inconnu')).toBeInTheDocument()
     expect(screen.queryByText(/\d+ \/ \d+/)).not.toBeInTheDocument()
     expect(screen.getByText('total inconnu')).toBeInTheDocument()
   })
 
   it('stops counting what is missing once paused, but still draws it', () => {
     const work = oeuvre({ collectorStatus: 'PAUSED', missingCount: 0 })
-    render(<PanneauOeuvre work={work} consultation={false} total={null} grille={grille(work)} />)
+    render(<PanneauOeuvre avecGeste work={work} consultation={false} total={null} grille={grille(work)} />)
     expect(screen.queryByText(/Il t’en manque/)).not.toBeInTheDocument()
     expect(screen.getByText('En pause : ce qui manque ne compte plus')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: "Tome 2 : je l'ai" })).toBeInTheDocument()
@@ -96,13 +119,13 @@ describe('the panel of a work', () => {
     const work = oeuvre({
       nextRelease: { date: '2026-12-04', precision: 'DAY', label: 'Tome 7', volumeNumber: 7, price: null },
     })
-    render(<PanneauOeuvre work={work} consultation={false} total={null} grille={grille(work)} />)
+    render(<PanneauOeuvre avecGeste work={work} consultation={false} total={null} grille={grille(work)} />)
     expect(screen.getByText('Tome 7 · vendredi 4 décembre')).toBeInTheDocument()
   })
 
   it('shows a visitor the catalog, with no count of a collection', () => {
     const work = oeuvre({ ownedCount: 0 })
-    render(<PanneauOeuvre work={work} consultation total={null} grille={grille(work, { consultation: true })} />)
+    render(<PanneauOeuvre avecGeste work={work} consultation total={null} grille={grille(work, { consultation: true })} />)
     expect(screen.getByText('6 au catalogue')).toBeInTheDocument()
     expect(screen.queryByText(/manque/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
@@ -134,6 +157,14 @@ describe('the grid of the elements', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tome 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Retirer Tome 1' }))
     expect(onRetirer).toHaveBeenCalledWith(expect.objectContaining({ key: 'volume-1' }))
+  })
+
+  it('offers no removal of an owned element whose copy lives elsewhere', () => {
+    const onRetirer = vi.fn()
+    render(grille(oeuvre(), { onRetirer, peutRetirer: () => false }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tome 1' }))
+    expect(screen.queryByRole('button', { name: 'Retirer Tome 1' })).not.toBeInTheDocument()
+    expect(onRetirer).not.toHaveBeenCalled()
   })
 
   it('offers no click on a missing element that nothing can own', () => {

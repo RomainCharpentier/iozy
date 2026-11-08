@@ -60,14 +60,21 @@ import { animerEntreeFiche } from './entreeFiche'
 import { plageDeTomes } from './etages'
 import { RELEASE_DATE_ATTRIBUTE_KEY } from '@/common/lib/releaseDate'
 import type { CollectorStatus, QuickAddResponse, WorkElementDto } from '@/common/types/api'
-import type { WishlistTarget } from '@/common/api/wishlist'
 import { fetchWork, ownWorkElement, setCollectorStatus } from '@/common/api/works'
 import { setEditionTotal } from '@/common/api/editionTotal'
 import { Jaquette } from '@/common/components/Jaquette'
 import { GrilleElements } from './GrilleElements'
 import { PanneauOeuvre, StatutCollection, TotalOeuvre } from './PanneauOeuvre'
 import { VoletFiche } from './VoletFiche'
-import { editionComptee, elementsAMettreDeCote, gesteJeLAi, provenanceDuTotal } from './elementsOeuvre'
+import { AjoutDirect } from './AjoutDirect'
+import {
+  CLE_OEUVRE_ENTIERE,
+  ciblesAMettreDeCote,
+  copiesARetirer,
+  editionComptee,
+  gesteJeLAi,
+  provenanceDuTotal,
+} from './elementsOeuvre'
 import { faitsDeLOeuvre, type Fait } from './faitsDeLOeuvre'
 import { ConsoleExemplaire } from './ConsoleExemplaire'
 
@@ -149,6 +156,8 @@ export function EntityDetailPage() {
   const fermerVolet = useCallback(() => setVoletOuvert(false), [])
   /** The elements whose "je l'ai" or removal is on its way: a second click waits. */
   const [elementsEnCours, setElementsEnCours] = useState<ReadonlySet<string>>(new Set())
+  /** The whole work waits for its console: the source lists several, only the owner knows which. */
+  const [consoleDemandee, setConsoleDemandee] = useState(false)
 
   // The work as the collection sees it: its elements, its counts, its next release.
   const workQuery = useQuery({ queryKey: queryKeys.works.detail(entityId), queryFn: () => fetchWork(entityId) })
@@ -723,14 +732,9 @@ export function EntityDetailPage() {
 
   // "Mettre de côté": the missing elements that can be wished - by their
   // catalog variant, or by their number in the edition the work is counted in.
-  const aMettreDeCote = work ? elementsAMettreDeCote(work) : []
-  const ciblesDeCote: WishlistTarget[] = aMettreDeCote.flatMap((element): WishlistTarget[] =>
-    element.variantId
-      ? [{ entityId, variantId: element.variantId }]
-      : compteParEditions && element.number !== null
-        ? [{ entityId, volumeNumber: element.number, edition: editionDuTotal?.editionName || undefined }]
-        : [],
-  )
+  const ciblesDeCote = work
+    ? ciblesAMettreDeCote(work, compteParEditions, editionDuTotal?.editionName || undefined)
+    : []
 
   function attendre(cle: string, enCours: boolean) {
     setElementsEnCours((avant) => {
@@ -751,19 +755,30 @@ export function EntityDetailPage() {
       attendre(element.key, true)
       possederElement.mutate(element, { onSettled: () => attendre(element.key, false) })
     } else if (geste === 'oeuvre') {
-      attendre(element.key, true)
-      ajoutOeuvre.mutate(undefined, { onSettled: () => attendre(element.key, false) })
+      // Several consoles: ask which one, in place. One: it is that one.
+      if (consolesDeLOeuvre(entity!.attributes).length > 1) {
+        setConsoleDemandee(true)
+        return
+      }
+      ajouterOeuvre(consolesDeLOeuvre(entity!.attributes)[0])
     }
+  }
+
+  function ajouterOeuvre(console?: string) {
+    attendre(CLE_OEUVRE_ENTIERE, true)
+    ajoutOeuvre.mutate(console, {
+      onSuccess: () => setConsoleDemandee(false),
+      onSettled: () => attendre(CLE_OEUVRE_ENTIERE, false),
+    })
   }
 
   /** The second click of a removal (the tile asked first): every active copy of that element. */
   function retirer(element: WorkElementDto) {
-    const retires = ownerships.filter(
-      (o) =>
-        o.status === 'OWNED' &&
-        (element.variantId ? o.variantId === element.variantId : o.id === element.ownershipId),
-    )
-    if (retires.length === 0) return
+    const retires = copiesARetirer(element, ownerships)
+    if (retires.length === 0) {
+      toast(`${element.label} ne se retire pas d’ici`)
+      return
+    }
     attendre(element.key, true)
     retraitTome.mutate(
       { retires, libelle: element.label, edition: editionDuTotal?.editionName || undefined },
@@ -808,6 +823,24 @@ export function EntityDetailPage() {
             <PanneauOeuvre
               work={work}
               consultation={estInvite}
+              avecGeste={work.elements.some((element) => gesteJeLAi(element, compteParEditions) !== null)}
+              question={
+                consoleDemandee && !estInvite ? (
+                  <AjoutDirect
+                    libelle="Je l'ai"
+                    consoles={consolesDeLOeuvre(entity.attributes)}
+                    onAjouter={(console) => ajouterOeuvre(console)}
+                    enCours={ajoutOeuvre.isPending}
+                    attente={false}
+                    erreur={null}
+                    apres={
+                      <button type="button" onClick={() => setConsoleDemandee(false)} className="btn-secondaire">
+                        Annuler
+                      </button>
+                    }
+                  />
+                ) : undefined
+              }
               total={
                 <TotalOeuvre
                   total={work.totalCount}
@@ -832,11 +865,11 @@ export function EntityDetailPage() {
                   <button
                     type="button"
                     disabled={wishlist.isPending}
-                    onClick={() => wishlist.addMany(ciblesDeCote)}
+                    onClick={() => wishlist.addMany(ciblesDeCote.map((paire) => paire.cible))}
                     className="iozy-teinte min-h-12 rounded-full bg-vive px-5 text-[15px] font-bold text-encreVive disabled:opacity-60"
                   >
                     {ciblesDeCote.length === 1
-                      ? `Mettre ${aMettreDeCote[0].label} de côté`
+                      ? `Mettre ${ciblesDeCote[0].element.label} de côté`
                       : `Mettre les ${ciblesDeCote.length} manquants de côté`}
                   </button>
                 ) : undefined
@@ -849,6 +882,7 @@ export function EntityDetailPage() {
                   gesteDe={(element) => gesteJeLAi(element, compteParEditions)}
                   onJeLAi={jeLAi}
                   onRetirer={estInvite ? undefined : retirer}
+                  peutRetirer={(element) => copiesARetirer(element, ownerships).length > 0}
                   immobile={work.collectorStatus !== 'ONGOING'}
                   consultation={estInvite}
                   enCours={elementsEnCours}

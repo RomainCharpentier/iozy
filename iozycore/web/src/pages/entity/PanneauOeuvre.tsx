@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import type { CollectorStatus, WorkDto } from '@/common/types/api'
 import { AnneauProgression } from './AnneauProgression'
-import { LIBELLES_STATUT, phraseDesManques, phraseProchaineSortie } from './elementsOeuvre'
+import { LIBELLES_STATUT, phraseDesManques, phraseDuCompte, phraseProchaineSortie } from './elementsOeuvre'
 
 /**
  * The glass panel of the entity page (lot 213, mock-up "A · plein cadre"):
@@ -20,6 +20,8 @@ export function PanneauOeuvre({
   statut,
   miseDeCote,
   grille,
+  avecGeste,
+  question,
 }: {
   work: WorkDto
   consultation: boolean
@@ -29,6 +31,10 @@ export function PanneauOeuvre({
   /** The "mettre de côté" gesture, when there is something to set aside. */
   miseDeCote?: ReactNode
   grille: ReactNode
+  /** At least one element not owned can be owned in one click: only then the hint invites to click. */
+  avecGeste: boolean
+  /** A question the last gesture asks before it runs (which console), in place. */
+  question?: ReactNode
 }) {
   const totalConnu = work.totalCount !== null
   return (
@@ -42,7 +48,9 @@ export function PanneauOeuvre({
           {totalConnu && <AnneauProgression possedes={work.ownedCount} total={work.totalCount!} />}
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <p className="font-display text-6xl leading-[0.9] font-bold tracking-[-0.04em] text-textPrimary md:text-7xl">
-              {totalConnu ? `${work.ownedCount} / ${work.totalCount}` : `${work.ownedCount}`}
+              {/* "1 / 6" is read "1 slash 6": the figures are for the eye, the phrase for the ear. */}
+              <span aria-hidden="true">{totalConnu ? `${work.ownedCount} / ${work.totalCount}` : `${work.ownedCount}`}</span>
+              <span className="sr-only">{phraseDuCompte(work)}</span>
             </p>
             {total}
             <p className="font-display text-xl font-bold text-textPrimary">{phraseDesManques(work)}</p>
@@ -58,7 +66,8 @@ export function PanneauOeuvre({
       )}
       {statut}
       {grille}
-      {!consultation && work.elements.some((e) => e.state !== 'OWNED') && (
+      {question}
+      {!consultation && avecGeste && work.elements.some((e) => e.state !== 'OWNED') && (
         <p className="text-[13px] text-textDim">
           {work.collectorStatus === 'ONGOING'
             ? 'Ce qui respire te manque. Clique-le quand tu l’as.'

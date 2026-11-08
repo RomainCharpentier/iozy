@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { serieAvecEdition } from './amorcage'
+import { jetonCsrf, serieAvecEdition } from './amorcage'
 
 /**
  * <b>"X / Y", and the gesture that makes it move.</b>
@@ -33,6 +33,8 @@ test('read the progress of an edition, then tick a missing volume', async ({ pag
 
   // --- The count, and what is missing: the total comes from the edition, never guessed.
   await expect(page.getByText('1 / 6')).toBeVisible()
+  // Read aloud in words, not "1 slash 6".
+  await expect(page.getByText('1 possédé sur 6')).toBeAttached()
   await expect(page.getByText('Il t’en manque 5')).toBeVisible()
 
   // --- The grid: an owned volume is named by itself, a missing one by what a click does.
@@ -85,4 +87,73 @@ test('a paused series keeps its gaps drawn, but no longer counts them', async ({
   // Back to "en cours": the gaps count again.
   await page.getByRole('radio', { name: 'En cours' }).click()
   await expect(page.getByText('Il t’en manque 3')).toBeVisible()
+})
+
+test('set every missing volume aside in one click', async ({ page }) => {
+  const titre = `Dorohedoro ${Date.now()}`
+  const { entityId } = await serieAvecEdition(page, { titre, edition: 'Standard', totalVolumes: 3, tomePossede: 1 })
+
+  await page.goto(`/entity/${entityId}`)
+  await page.getByRole('button', { name: 'Mettre les 2 manquants de côté' }).click()
+
+  await expect
+    .poll(async () => {
+      const envies = (await (await page.request.get('/api/wishlist')).json()) as { entityId: string }[]
+      return envies.filter((envie) => envie.entityId === entityId).length
+    })
+    .toBe(2)
+  // Wished now: nothing is left to set aside.
+  await expect(page.getByRole('button', { name: /de côté$/ })).toHaveCount(0)
+})
+
+/**
+ * "Je l'ai" on a whole game keeps its console: the only one the source lists,
+ * or the one picked in place when it lists several. Without it, every game
+ * waited under "Console à préciser".
+ */
+test('own a whole game on its console', async ({ page }) => {
+  await page.goto('/')
+  const types = (await (await page.request.get('/api/entity-types')).json()) as { id: string; code: string }[]
+  const jeuVideo = types.find((type) => type.code === 'VIDEO_GAME')
+  expect(jeuVideo).toBeDefined()
+
+  async function jeuNonPossede(titre: string, platforms: string): Promise<string> {
+    const csrf = { 'X-XSRF-TOKEN': await jetonCsrf(page) }
+    const ajout = await page.request.post('/api/entities/quick-add', {
+      headers: csrf,
+      data: { entityTypeId: jeuVideo?.id, title: titre, condition: 'NEW', attributes: { platforms } },
+    })
+    expect(ajout.ok()).toBe(true)
+    const { entityId } = (await ajout.json()) as { entityId: string }
+    const copies = (await (await page.request.get(`/api/ownerships?entityId=${entityId}`)).json()) as { id: string }[]
+    for (const copie of copies) {
+      expect((await page.request.delete(`/api/ownerships/${copie.id}`, { headers: csrf })).ok()).toBe(true)
+    }
+    return entityId
+  }
+
+  async function consoleDe(entityId: string) {
+    const copies = (await (await page.request.get(`/api/ownerships?entityId=${entityId}`)).json()) as {
+      platform: string | null
+      status: string
+    }[]
+    return copies.find((copie) => copie.status === 'OWNED')?.platform
+  }
+
+  // --- One console: it is that one, no question.
+  const seul = `Jeu seul ${Date.now()}`
+  const idSeul = await jeuNonPossede(seul, 'Console A')
+  await page.goto(`/entity/${idSeul}`)
+  await page.getByRole('button', { name: `${seul} : je l'ai` }).click()
+  await expect.poll(() => consoleDe(idSeul)).toBe('Console A')
+
+  // --- Several: the page asks which one, in place, before adding.
+  const double = `Jeu double ${Date.now()}`
+  const idDouble = await jeuNonPossede(double, 'Console A, Console B')
+  await page.goto(`/entity/${idDouble}`)
+  await page.getByRole('button', { name: `${double} : je l'ai` }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.getByRole('radio', { name: 'Console B' }).click()
+  await page.getByRole('button', { name: "Je l'ai", exact: true }).click()
+  await expect.poll(() => consoleDe(idDouble)).toBe('Console B')
 })

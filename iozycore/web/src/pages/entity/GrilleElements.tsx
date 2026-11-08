@@ -31,6 +31,7 @@ export function GrilleElements({
   gesteDe,
   onJeLAi,
   onRetirer,
+  peutRetirer = () => true,
   immobile,
   consultation,
   enCours,
@@ -44,6 +45,8 @@ export function GrilleElements({
   onJeLAi: (element: WorkElementDto) => void
   /** Absent: owned elements are not removable here (a visitor). */
   onRetirer?: (element: WorkElementDto) => void
+  /** Whether a copy of this owned element lives here and can be removed (not one derived from another entity). */
+  peutRetirer?: (element: WorkElementDto) => boolean
   /** Paused or dropped: what is missing does not breathe. */
   immobile: boolean
   /** A visitor: elements of the catalog, nobody's collection - no state at all. */
@@ -86,20 +89,21 @@ export function GrilleElements({
 
         if (element.state === 'OWNED') {
           const armeeIci = armee === element.key
+          const retirable = !!onRetirer && peutRetirer(element)
           return (
             <li key={element.key} className="relative">
               <button
                 type="button"
                 aria-label={element.label}
                 title={element.label}
-                aria-expanded={onRetirer ? armeeIci : undefined}
-                disabled={!onRetirer}
+                aria-expanded={retirable ? armeeIci : undefined}
+                disabled={!retirable}
                 onClick={() => setArmee(armeeIci ? null : element.key)}
                 className="block w-full rounded-xl text-left transition-transform duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 motion-reduce:transform-none disabled:cursor-default disabled:hover:translate-y-0"
               >
                 {tuile}
               </button>
-              {armeeIci && onRetirer && (
+              {armeeIci && retirable && (
                 <div className="iozy-verre iozy-verre--fort absolute inset-x-1 bottom-1 flex flex-col gap-1 rounded-lg p-1.5">
                   <button
                     type="button"
@@ -107,7 +111,7 @@ export function GrilleElements({
                     disabled={enCours.has(element.key)}
                     onClick={() => {
                       setArmee(null)
-                      onRetirer(element)
+                      onRetirer?.(element)
                     }}
                     className="min-h-11 rounded-md bg-danger px-2 text-xs font-semibold text-dangerInk disabled:opacity-60"
                   >

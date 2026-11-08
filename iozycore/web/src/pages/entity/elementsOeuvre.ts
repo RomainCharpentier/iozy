@@ -1,4 +1,12 @@
-import type { CollectorStatus, EditionProgressDto, WorkDto, WorkElementDto, WorkNextReleaseDto } from '@/common/types/api'
+import type {
+  CollectorStatus,
+  EditionProgressDto,
+  OwnershipResponse,
+  WorkDto,
+  WorkElementDto,
+  WorkNextReleaseDto,
+} from '@/common/types/api'
+import type { WishlistTarget } from '@/common/api/wishlist'
 import { libelleJour, libelleMois, parseReleaseDate } from '@/common/lib/releaseDate'
 import { formaterEuros } from '@/common/lib/formats'
 
@@ -29,7 +37,8 @@ export type GesteJeLAi = 'numero' | 'element' | 'oeuvre' | null
 
 export function gesteJeLAi(element: WorkElementDto, compteParEditions: boolean): GesteJeLAi {
   if (element.state === 'OWNED') return null
-  if (element.ownable) return 'element'
+  // Lot 211's route owns what is missing, never what is still to come.
+  if (element.ownable && element.state === 'MISSING') return 'element'
   if (element.key === CLE_OEUVRE_ENTIERE) return 'oeuvre'
   if (compteParEditions && element.number !== null) return 'numero'
   return null
@@ -53,6 +62,12 @@ export function phraseDesManques(work: WorkDto): string {
   if (work.missingCount > 0) return `Il t’en manque ${work.missingCount}`
   if (work.totalKnown && work.totalCount !== null && work.ownedCount >= work.totalCount) return 'Complet'
   return 'Rien ne manque à ce qui est connu'
+}
+
+/** The count said in words: "1 possédé sur 6", "3 possédés, total inconnu". */
+export function phraseDuCompte(work: WorkDto): string {
+  const possedes = `${work.ownedCount} ${work.ownedCount > 1 ? 'possédés' : 'possédé'}`
+  return work.totalCount !== null ? `${possedes} sur ${work.totalCount}` : `${possedes}, total inconnu`
 }
 
 /** "Tome 15 · vendredi 4 décembre · 7,95 €", or "Sort en décembre 2026" for the work itself. */
@@ -106,4 +121,39 @@ export function provenanceDuTotal(edition: EditionProgressDto | null): string | 
 export function elementsAMettreDeCote(work: WorkDto): WorkElementDto[] {
   if (work.collectorStatus !== 'ONGOING') return []
   return work.elements.filter((e) => e.state === 'MISSING' && e.countedAsMissing)
+}
+
+/**
+ * Each element "mettre de côté" can really wish, with its wish: by its catalog
+ * variant, or by its number in the edition the work is counted in. An element
+ * with neither is left out, so the label always names an element that is sent.
+ */
+export function ciblesAMettreDeCote(
+  work: WorkDto,
+  compteParEditions: boolean,
+  edition: string | undefined,
+): { element: WorkElementDto; cible: WishlistTarget }[] {
+  return elementsAMettreDeCote(work).flatMap((element): { element: WorkElementDto; cible: WishlistTarget }[] =>
+    element.variantId
+      ? [{ element, cible: { entityId: work.entityId, variantId: element.variantId } }]
+      : compteParEditions && element.number !== null
+        ? [{ element, cible: { entityId: work.entityId, volumeNumber: element.number, edition } }]
+        : [],
+  )
+}
+
+/**
+ * The copies a removal of this element deletes, among the copies of this
+ * entity: every active copy of its variant, or every active copy of the whole
+ * work (a game owned on two consoles). Empty when the copy lives elsewhere
+ * (an element derived from another entity): then nothing here can remove it.
+ */
+export function copiesARetirer(element: WorkElementDto, copies: OwnershipResponse[]): OwnershipResponse[] {
+  if (element.state !== 'OWNED') return []
+  return copies.filter((copie) => {
+    if (copie.status !== 'OWNED') return false
+    if (element.variantId) return copie.variantId === element.variantId
+    if (element.key === CLE_OEUVRE_ENTIERE) return !copie.variantId
+    return copie.id === element.ownershipId
+  })
 }
