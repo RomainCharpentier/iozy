@@ -78,6 +78,20 @@ describe('add a missing volume', () => {
     expect(onRetirer).not.toHaveBeenCalled()
   })
 
+  it('a wished missing volume says so to screen readers, not only with its heart', () => {
+    render(
+      <GrilleVolumes
+        volumes={[{ ...volume(4, false), voulu: true }]}
+        mode="navigation"
+        onActiver={vi.fn()}
+        filtre="tous"
+        onFiltre={() => {}}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: "Tome 4, dans mes envies : je l'ai" })).toBeInTheDocument()
+  })
+
   it('without "onRetirer", the owned tile keeps its previous gesture (selection mode or screen without removal)', () => {
     const onActiver = vi.fn()
     render(

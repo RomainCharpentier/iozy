@@ -382,7 +382,7 @@ function TuileVolume({
     return (
       <div className="group relative">
         <ElementManquant
-          libelle={`Tome ${volume.numero}`}
+          libelle={`Tome ${volume.numero}${volume.voulu ? ', dans mes envies' : ''}`}
           onJeLAi={onActiver}
           className="aspect-[2/3] w-full rounded-lg text-[17px]"
         >
