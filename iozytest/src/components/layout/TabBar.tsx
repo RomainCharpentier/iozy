@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { IOZYTEST_ITEM, SITE_ITEMS } from '@/components/layout/navItems'
+import { IOZYTEST_ITEM, siteItemsPour } from '@/components/layout/navItems'
+import { useIozyAccount } from '@/lib/account/IozyAccount'
 import styles from '@/components/layout/AppShell.module.scss'
 
 const standalone = import.meta.env.BASE_URL === '/'
@@ -9,10 +10,11 @@ const standalone = import.meta.env.BASE_URL === '/'
  *  Seule à la racine, l'app n'en a pas d'autre qu'elle-même. */
 export default function TabBar() {
   const Icone = IOZYTEST_ITEM.icon
+  const connecte = useIozyAccount() !== null
   return (
     <nav className={`iozy-verre iozy-onglets ${styles.tabBar}`} aria-label="Navigation principale">
       {!standalone &&
-        SITE_ITEMS.map(({ href, label, icon: Icon }) => (
+        siteItemsPour(connecte).map(({ href, label, icon: Icon }) => (
           <a key={href} href={href} className="iozy-onglets__onglet">
             <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
             <span>{label}</span>

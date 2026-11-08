@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
-import { IOZYTEST_ITEM, SITE_ITEMS } from '@/components/layout/navItems'
+import { IOZYTEST_ITEM, siteItemsPour } from '@/components/layout/navItems'
+import { useIozyAccount } from '@/lib/account/IozyAccount'
 import HeaderShortcuts from '@/components/layout/HeaderShortcuts'
 import Wordmark from '@/components/layout/Wordmark'
 import styles from '@/components/layout/AppShell.module.scss'
@@ -21,6 +22,7 @@ const standalone = import.meta.env.BASE_URL === '/'
  * vers une app qui n'est pas là.
  */
 export default function DesktopHeader() {
+  const connecte = useIozyAccount() !== null
   return (
     <header className={`iozy-barre iozy-barre--eclatee ${styles.header}`}>
       <div className="iozy-verre iozy-barre__pilule">
@@ -33,7 +35,7 @@ export default function DesktopHeader() {
         )}
         <nav className="iozy-barre__nav" aria-label="Navigation principale">
           {!standalone &&
-            SITE_ITEMS.map(({ href, label }) => (
+            siteItemsPour(connecte).map(({ href, label }) => (
               <a key={href} href={href} className="iozy-barre__lien">
                 {label}
               </a>

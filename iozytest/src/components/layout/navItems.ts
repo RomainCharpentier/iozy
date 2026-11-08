@@ -47,6 +47,9 @@ export interface SiteItem {
   href: string
   label: string
   icon: LucideIcon
+  /** Page d'IozyCore réservée aux comptes (voir son accesInvite.ts) : sans
+   *  compte, le lien renverrait à la connexion, donc on ne le montre pas. */
+  pourComptes: boolean
 }
 
 /**
@@ -55,14 +58,21 @@ export interface SiteItem {
  * le même ordre. Les quatre premières vivent dans IozyCore, sous /core/ ;
  * la cinquième, IozyTest, est cette app, donc la destination courante.
  * « À acheter » et « Partager » pointent pour l'instant là où IozyCore les
- * tient aujourd'hui (l'analyse d'achat, le partage du profil).
+ * tient aujourd'hui (l'analyse d'achat, le partage du profil) ; `#partage`
+ * fait défiler le profil jusqu'au partage.
  */
 export const SITE_ITEMS: SiteItem[] = [
-  { href: '/core/', label: 'Accueil', icon: House },
-  { href: '/core/releases', label: 'Sorties', icon: CalendarDays },
-  { href: '/core/purchase-analysis', label: 'À acheter', icon: ShoppingBag },
-  { href: '/core/profile', label: 'Partager', icon: Share2 },
+  { href: '/core/', label: 'Accueil', icon: House, pourComptes: true },
+  { href: '/core/releases', label: 'Sorties', icon: CalendarDays, pourComptes: false },
+  { href: '/core/purchase-analysis', label: 'À acheter', icon: ShoppingBag, pourComptes: true },
+  { href: '/core/profile#partage', label: 'Partager', icon: Share2, pourComptes: true },
 ]
+
+/** Les destinations du site à montrer : sans compte, seulement celles qui
+ *  s'ouvrent sans compte (même règle que `destinationsPour` d'IozyCore). */
+export function siteItemsPour(connecte: boolean): SiteItem[] {
+  return connecte ? SITE_ITEMS : SITE_ITEMS.filter((item) => !item.pourComptes)
+}
 
 /** L'entrée de cette app dans la barre du site. */
 export const IOZYTEST_ITEM = { to: '/', label: 'IozyTest', icon: Gamepad2 }
