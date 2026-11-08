@@ -103,12 +103,12 @@
 }
 
 .iconDanger {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-error);
+  background: var(--error-alpha);
+  color: var(--error-text);
 }
 
 .iconWarning {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--warning-alpha);
   color: var(--color-warning);
 }
 

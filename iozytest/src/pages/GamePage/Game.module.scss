@@ -464,7 +464,7 @@
   background: color-mix(in srgb, var(--bg-secondary) 85%, var(--accent-primary) 6%);
   border: var(--border-width-thin) solid
     color-mix(in srgb, var(--border-color) 80%, var(--accent-primary));
-  color: var(--accent-ink);
+  color: var(--accent-text);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
@@ -506,11 +506,11 @@
 }
 
 .gameInterfaceActionBtnDanger {
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .gameInterfaceActionBtnDanger:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: var(--error-alpha);
   border-color: var(--error);
 }
 
@@ -580,8 +580,8 @@
 
 .gameInterfaceSidebarCount {
   font-size: 0.68rem;
-  color: var(--accent-ink);
-  background: color-mix(in srgb, var(--accent-primary) 40%, var(--bg-secondary));
+  color: var(--accent-text);
+  background: var(--accent-alpha-1);
   min-width: 22px;
   height: 22px;
   display: inline-flex;
@@ -626,17 +626,17 @@
 
 .gameInterfacePlayerCorrect {
   border-color: var(--success);
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--success-alpha);
 }
 
 .gameInterfacePlayerIncorrect {
   border-color: var(--error);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--error-alpha);
 }
 
 .gameInterfacePlayerSkipRequesting {
   border-color: var(--warning);
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--warning-alpha);
 }
 
 .gameInterfacePlayerRank {
@@ -963,11 +963,11 @@
 .gameInterfaceEndBtnDanger {
   background: transparent;
   border-color: color-mix(in srgb, var(--error) 55%, var(--border-color));
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .gameInterfaceEndBtnDanger:hover {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--error-alpha);
   border-color: var(--error);
 }
 
@@ -1233,6 +1233,12 @@
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+}
+
+/* outline: none plus haut masque le focus du kit : on le rend visible au clavier. */
+.timerSlider:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .timerSlider::-webkit-slider-thumb {
