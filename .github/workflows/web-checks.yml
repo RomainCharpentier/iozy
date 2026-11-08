@@ -1,0 +1,53 @@
+name: IozyCore web
+
+# The gate for BRANCHES that touch the IozyCore web client, like
+# backend-tests.yml for the backend and iozytest-checks.yml for IozyTest.
+# Without it, a pull request that only touches iozycore/web got no check at
+# all: the same steps ran only on `main`, in deploiement.yml.
+# The web client uses the charter as a local dependency (`file:../../iozykit`),
+# so a charter change runs these checks too.
+on:
+  pull_request:
+    paths:
+      - "iozycore/web/**"
+      - "iozykit/**"
+      - ".github/workflows/web-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Contrôles web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iozycore/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: iozycore/web/package-lock.json
+
+      - run: npm ci
+
+      # `tsc -b --noEmit` and not `npx tsc --noEmit`: this folder is in
+      # TypeScript project mode, and the second form checks nothing.
+      - name: Types
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm test
+
+      - name: Contrast
+        run: npm run check:contrast
+
+      - name: Build
+        run: npm run build
