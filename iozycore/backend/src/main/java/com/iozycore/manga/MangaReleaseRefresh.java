@@ -51,9 +51,20 @@ import java.util.stream.Collectors;
  * may be re-read for nothing; this is the price of a night job that
  * crosses no door.
  *
+ * <h2>Which series (lot 208)</h2>
+ * Those that can still announce a volume ({@link SeriesStatus#mayAnnounceVolumes}:
+ * ongoing, on hiatus, not started). A finished series is not re-read: it has
+ * nothing left to announce. The author is no longer required: a series whose
+ * author is unknown is searched by its title, and the calendar reads the result
+ * by (title, "").
+ *
  * <h2>An outage costs nothing</h2>
- * A silent provider stops the night without erasing anything: see
- * {@link TomeSearchService#refreshUnlessUnavailable}.
+ * A silent provider erases nothing: see {@link TomeSearchService#refreshUnlessUnavailable}.
+ * It no longer ends the pass at the first series: another series, or another
+ * provider, may still answer. The pass stops after {@code max-silent-series-in-a-row}
+ * series in a row with no answer at all (a spent quota), waits
+ * {@code pause-between-series-ms} between two series, and never reads more
+ * than {@code series-per-run}.
  */
 @Component
 public class MangaReleaseRefresh implements ReleaseRefreshSource {
@@ -68,20 +79,33 @@ public class MangaReleaseRefresh implements ReleaseRefreshSource {
     private final int seriesPerRun;
     private final Duration staleAfter;
     private final Clock clock;
+    private final Duration pauseBetweenSeries;
+    private final int maxSilentInARow;
 
     @Autowired
     public MangaReleaseRefresh(EntityTypeRepository entityTypeRepository, EntityRepository entityRepository,
                                VolumeSearchCacheRepository volumeSearchCacheRepository, TomeSearchService tomeSearchService,
                                RelatedSeriesService relatedSeriesService,
                                @Value("${iozycore.releases.refresh.series-per-run:10}") int seriesPerRun,
-                               @Value("${iozycore.releases.refresh.stale-after-days:7}") int staleAfterDays) {
+                               @Value("${iozycore.releases.refresh.stale-after-days:7}") int staleAfterDays,
+                               @Value("${iozycore.releases.refresh.pause-between-series-ms:2000}") long pauseMs,
+                               @Value("${iozycore.releases.refresh.max-silent-series-in-a-row:3}") int maxSilentInARow) {
         this(entityTypeRepository, entityRepository, volumeSearchCacheRepository, tomeSearchService, relatedSeriesService,
-                seriesPerRun, Duration.ofDays(staleAfterDays), Clock.systemUTC());
+                seriesPerRun, Duration.ofDays(staleAfterDays), Clock.systemUTC(), Duration.ofMillis(pauseMs),
+                maxSilentInARow);
     }
 
     MangaReleaseRefresh(EntityTypeRepository entityTypeRepository, EntityRepository entityRepository,
                         VolumeSearchCacheRepository volumeSearchCacheRepository, TomeSearchService tomeSearchService,
                         RelatedSeriesService relatedSeriesService, int seriesPerRun, Duration staleAfter, Clock clock) {
+        this(entityTypeRepository, entityRepository, volumeSearchCacheRepository, tomeSearchService, relatedSeriesService,
+                seriesPerRun, staleAfter, clock, Duration.ZERO, 3);
+    }
+
+    MangaReleaseRefresh(EntityTypeRepository entityTypeRepository, EntityRepository entityRepository,
+                        VolumeSearchCacheRepository volumeSearchCacheRepository, TomeSearchService tomeSearchService,
+                        RelatedSeriesService relatedSeriesService, int seriesPerRun, Duration staleAfter, Clock clock,
+                        Duration pauseBetweenSeries, int maxSilentInARow) {
         this.entityTypeRepository = entityTypeRepository;
         this.entityRepository = entityRepository;
         this.volumeSearchCacheRepository = volumeSearchCacheRepository;
@@ -90,6 +114,8 @@ public class MangaReleaseRefresh implements ReleaseRefreshSource {
         this.seriesPerRun = seriesPerRun;
         this.staleAfter = staleAfter;
         this.clock = clock;
+        this.pauseBetweenSeries = pauseBetweenSeries;
+        this.maxSilentInARow = Math.max(1, maxSilentInARow);
     }
 
     @Override
@@ -106,10 +132,10 @@ public class MangaReleaseRefresh implements ReleaseRefreshSource {
         // One series per key (title, author): two homonym pages share the same stored result.
         Map<String, Entity> ongoingByKey = new LinkedHashMap<>();
         for (Entity entity : entityRepository.findAllByType(type.id())) {
-            String author = TexteRecherche.normaliser(authorOf(entity));
-            if (!SeriesStatus.isOngoing(entity.attributes().get("seriesStatus")) || author.isBlank()) {
+            if (!SeriesStatus.mayAnnounceVolumes(entity.attributes().get("seriesStatus"))) {
                 continue;
             }
+            String author = TexteRecherche.normaliser(authorOf(entity));
             ongoingByKey.putIfAbsent(StoredVolumeSearch.key(TexteRecherche.normaliser(entity.title()), author), entity);
         }
         List<Map.Entry<String, Entity>> stale = ongoingByKey.entrySet().stream()
@@ -123,19 +149,47 @@ public class MangaReleaseRefresh implements ReleaseRefreshSource {
                 .toList();
 
         int refreshed = 0;
+        int silentInARow = 0;
+        boolean providerSilent = false;
         List<Entity> batch = new ArrayList<>(stale.stream().map(Map.Entry::getValue).limit(seriesPerRun).toList());
-        for (Entity entity : batch) {
+        for (int i = 0; i < batch.size(); i++) {
+            if (i > 0 && !pause()) {
+                break;
+            }
+            Entity entity = batch.get(i);
             List<String> excluded = relatedSeriesService.findExcludedTitleFragments(type, textOf(entity, "malId"),
                     Optional.ofNullable(textOf(entity, "titleEnglish")).orElse(textOf(entity, "originalTitle")),
                     textOf(entity, "titleRomaji"));
-            boolean done = tomeSearchService.refreshUnlessUnavailable(type, entity.title(), authorOf(entity), excluded,
-                    totalVolumesOf(entity));
-            if (!done) {
-                return new Result(stale.size(), refreshed, true);
+            TomeSearchService.CalendarRefresh outcome = tomeSearchService.refreshUnlessUnavailable(type, entity.title(),
+                    authorOf(entity), excluded, totalVolumesOf(entity));
+            if (outcome == TomeSearchService.CalendarRefresh.SILENT) {
+                providerSilent = true;
+                silentInARow++;
+                if (silentInARow >= maxSilentInARow) {
+                    // Most likely a spent quota: stop asking until the next pass.
+                    break;
+                }
+                continue;
             }
+            providerSilent |= outcome == TomeSearchService.CalendarRefresh.MERGED;
+            silentInARow = 0;
             refreshed++;
         }
-        return new Result(stale.size(), refreshed, false);
+        return new Result(stale.size(), refreshed, providerSilent);
+    }
+
+    /** Waits between two series. False when the pass was interrupted (given up as stuck). */
+    private boolean pause() {
+        if (pauseBetweenSeries.isZero() || pauseBetweenSeries.isNegative()) {
+            return !Thread.currentThread().isInterrupted();
+        }
+        try {
+            Thread.sleep(pauseBetweenSeries.toMillis());
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
     private static String authorOf(Entity entity) {

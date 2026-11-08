@@ -91,6 +91,11 @@ public class TomeSearchService {
 
     /** The stored volumes of this key, only if the row can still be served (see {@link #isFresh}). */
     private Optional<List<VolumeCandidate>> findFresh(EntityType entityType, String normalizedTitle, String normalizedAuthor) {
+        if (normalizedAuthor.isBlank()) {
+            // A row without author is written only for the calendar (lot 208); it may be
+            // a homonym, so it is never served here (Batch 126).
+            return Optional.empty();
+        }
         return volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor)
                 .filter(TomeSearchService::isFresh)
                 .map(StoredVolumeSearch::volumes);
@@ -295,23 +300,55 @@ public class TomeSearchService {
      * a Google Books outage must not empty one by one the series
      * read again until it passes.
      *
-     * @return true when the re-read succeeded and replaced the stored result
+     * <p>One exception (lot 208): when a provider is silent but another one
+     * answered, and a row of the current chain is already stored, the new
+     * volumes are MERGED into it - nothing stored is lost, and a volume newly
+     * announced at the provider that answered enters the calendar. Without a
+     * stored row, a partial result is never frozen as complete.
+     *
+     * <p>Without an author, the row is still written: the calendar reads it by
+     * (title, ""). The detail page never serves such a row (see {@link #findFresh},
+     * Batch 126), so a homonym is never shown there.
+     *
+     * @return what the re-read did
      */
-    public boolean refreshUnlessUnavailable(EntityType entityType, String seriesTitle, String author,
-                                            List<String> excludedTitleFragments, Integer totalVolumes) {
+    public CalendarRefresh refreshUnlessUnavailable(EntityType entityType, String seriesTitle, String author,
+                                                    List<String> excludedTitleFragments, Integer totalVolumes) {
         String normalizedTitle = normalize(seriesTitle);
         String normalizedAuthor = normalize(author == null ? "" : author);
-        QueryOutcome outcome = queryProviders(entityType, seriesTitle, author, excludedTitleFragments, totalVolumes);
-        if (outcome.providerUnavailable()) {
-            return false;
-        }
-        List<VolumeCandidate> result = finaliser(outcome.volumes());
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
-        volumeSearchCache.put(cacheKey, result);
-        if (!normalizedAuthor.isBlank()) {
+        QueryOutcome outcome = queryProviders(entityType, seriesTitle, author, excludedTitleFragments, totalVolumes);
+        if (!outcome.providerUnavailable()) {
+            List<VolumeCandidate> result = finaliser(outcome.volumes());
+            if (!normalizedAuthor.isBlank()) {
+                volumeSearchCache.put(cacheKey, result);
+            }
             volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result, CHAIN_VERSION);
+            return CalendarRefresh.REFRESHED;
         }
-        return true;
+        if (outcome.volumes().isEmpty()) {
+            return CalendarRefresh.SILENT;
+        }
+        Optional<StoredVolumeSearch> stored = volumeSearchCacheRepository
+                .find(entityType.id(), normalizedTitle, normalizedAuthor)
+                .filter(row -> row.chainVersion() == CHAIN_VERSION);
+        if (stored.isEmpty()) {
+            return CalendarRefresh.SILENT;
+        }
+        List<VolumeCandidate> merged = finaliser(mergeVolumes(stored.get().volumes(), finaliser(outcome.volumes())));
+        volumeSearchCache.invalidate(cacheKey);
+        volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged, CHAIN_VERSION);
+        return CalendarRefresh.MERGED;
+    }
+
+    /** What {@link #refreshUnlessUnavailable} did for one series. */
+    public enum CalendarRefresh {
+        /** Every provider answered: the stored result was replaced. */
+        REFRESHED,
+        /** A provider was silent, another answered: its volumes were added to the stored result. */
+        MERGED,
+        /** Nothing usable came back: the stored result was left untouched. */
+        SILENT
     }
 
     /**
