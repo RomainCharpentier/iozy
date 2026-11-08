@@ -55,6 +55,6 @@ test('read the progress of an edition, then tick a missing volume', async ({ pag
   await expect(page.getByText('2 / 6')).toBeVisible()
 
   // --- And Ma collection knows it too, without a manual reload
-  await page.goto('/')
+  await page.goto('/collection')
   await expect(page.getByRole('button', { name: new RegExp(`${titre}.*2/6 tomes`) })).toBeVisible()
 })

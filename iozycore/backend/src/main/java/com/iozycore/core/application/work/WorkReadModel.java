@@ -151,6 +151,21 @@ public class WorkReadModel {
         Set<UUID> ids = new LinkedHashSet<>();
         ownerships.stream().filter(Ownership::isActive).forEach(o -> ids.add(o.entityId()));
         wishes.forEach(w -> ids.add(w.entityId()));
+        return viewsSorted(ids, ownerships, wishes);
+    }
+
+    /**
+     * Some works of the catalog, owned or not, read in one batch like {@link #works()}
+     * (a work followed but neither owned nor wished, for the home page). An unknown id is skipped.
+     */
+    public List<WorkView> works(Set<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return viewsSorted(new LinkedHashSet<>(ids), ownershipRepository.findAll(), wishlistEntryRepository.findAll());
+    }
+
+    private List<WorkView> viewsSorted(Set<UUID> ids, List<Ownership> ownerships, List<WishlistEntry> wishes) {
         if (ids.isEmpty()) {
             return List.of();
         }

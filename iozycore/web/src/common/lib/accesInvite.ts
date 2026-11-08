@@ -64,9 +64,19 @@ const RESERVEES_AUX_COMPTES = [
 ]
 
 /**
+ * Reserved as such, not as a prefix: `/collection` is the whole personal
+ * collection since the home page became "ta semaine" (lot 212), while the
+ * category pages under it stay open to a visitor, as the catalog of a type.
+ */
+const RESERVEES_TELLES_QUELLES = ['/collection']
+
+/**
  * Compares by SEGMENT prefix: `/types` covers `/types/new`, without ever
  * catching a `/typesomething` that would have nothing to do with it.
  */
 export function estReserveeAuxComptes(chemin: string): boolean {
+  // React Router matches `/collection/` to `/collection`: so must this gate.
+  const normalized = chemin.replace(/\/+$/, '') || '/'
+  if (RESERVEES_TELLES_QUELLES.includes(normalized)) return true
   return RESERVEES_AUX_COMPTES.some((route) => chemin === route || chemin.startsWith(`${route}/`))
 }

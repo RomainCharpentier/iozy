@@ -73,7 +73,7 @@ test('create a universe, add a work to it, and find it again rather than duplica
   //     what it thinks it checks.
   //     And since the "Suivre" batch (e4dd418), the count of the "Tout" view
   //     says "N titres" plainly - "suivis" became a separate filter.
-  await page.goto('/')
+  await page.goto('/collection')
   await expect(page.getByText(/\d+ titres?( ·|$)/)).toBeVisible()
   const salle = page.getByRole('region', { name: univers })
   await expect(salle.getByRole('link', { name: /^Tout voir/ })).toBeVisible()

@@ -32,8 +32,8 @@ setup('create the first account of this instance', async ({ page }) => {
 
   // Creating logs in with the same gesture: we arrive in the application, not
   // on a login screen that would ask again for what we just typed.
-  await expect(page.getByRole('heading', { name: 'Ma collection' })).toBeVisible()
-  await expect(page.getByText("Rien ici pour l'instant.")).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ta semaine' })).toBeVisible()
+  await expect(page.getByText('Ta semaine commence ici.')).toBeVisible()
 
   // And the header says in whose name: the avatar carries the initials of the
   // username, not those of the application.

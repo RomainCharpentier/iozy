@@ -2,7 +2,7 @@ import { Suspense, lazy, type ComponentType, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { PageIntrouvable } from '@/pages/not-found/PageIntrouvable'
 import { AppShell } from '@/common/components/layout/AppShell'
-import { ShelfPage } from '@/pages/collection/ShelfPage'
+import { HomePage } from '@/pages/home/HomePage'
 import { AuthPage } from '@/pages/auth/AuthPage'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { useAuth } from '@/common/hooks/useAuth'
@@ -22,7 +22,7 @@ import { definirPreferencesCollection } from '@/common/lib/preferencesCollection
  */
 function RedirectionEnvies() {
   definirPreferencesCollection({ filtre: 'envies' })
-  return <Navigate to="/" replace />
+  return <Navigate to="/collection" replace />
 }
 
 /**
@@ -40,9 +40,10 @@ function page<M extends Record<string, unknown>, K extends keyof M>(
   return lazy(() => charger().then((m) => ({ default: m[nom] as ComponentType })))
 }
 
-// Loaded on demand. Only ShelfPage stays in the initial bundle: it is the
+// Loaded on demand. Only HomePage stays in the initial bundle: it is the
 // home page, and loading it later would only add a wait
 // where there is nothing to save.
+const ShelfPage = page(() => import('@/pages/collection/ShelfPage'), 'ShelfPage')
 const SearchPage = page(() => import('@/pages/add/SearchPage'), 'SearchPage')
 const EntityDetailPage = page(() => import('@/pages/entity/EntityDetailPage'), 'EntityDetailPage')
 const ApercuOeuvrePage = page(() => import('@/pages/entity/apercu/ApercuOeuvrePage'), 'ApercuOeuvrePage')
@@ -212,7 +213,9 @@ export default function App() {
               <Suspense fallback={<EnAttente />}>
                 <PorteDeVisite>
                 <Routes>
-                  <Route path="/" element={<ShelfPage />} />
+                  <Route path="/" element={<HomePage />} />
+                  {/* My collection, every work (lot 212): the home page became "ta semaine". */}
+                  <Route path="/collection" element={<ShelfPage />} />
                   <Route path="/add" element={<SearchPage />} />
                   <Route path="/entity/:id" element={<EntityDetailPage />} />
                   {/* The preview of a work that is not owned: the same page,

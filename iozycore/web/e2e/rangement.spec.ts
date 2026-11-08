@@ -25,7 +25,7 @@ test('say the console of a game on its detail page, then find it on its shelf', 
   const { entityId } = (await ajout.json()) as { entityId: string }
 
   // --- Not said yet: the game waits, nothing is guessed
-  await page.goto('/')
+  await page.goto('/collection')
   const salle = page.getByRole('region', { name: 'Jeu vidéo' })
   await expect(salle.getByRole('heading', { name: 'Console à préciser' })).toBeVisible()
 
@@ -41,7 +41,7 @@ test('say the console of a game on its detail page, then find it on its shelf', 
     .toBe('Console B')
 
   // --- And on the shelf, in its place
-  await page.goto('/')
+  await page.goto('/collection')
   await expect(salle.getByRole('heading', { name: 'Console B' })).toBeVisible()
   await expect(salle.getByRole('heading', { name: 'Éditeur de test' })).toBeVisible()
   await expect(salle.getByRole('button', { name: new RegExp(titre) })).toBeVisible()
@@ -50,7 +50,7 @@ test('say the console of a game on its detail page, then find it on its shelf', 
   await salle.getByRole('button', { name: new RegExp(titre) }).click()
   await expect(page.getByRole('heading', { name: titre })).toBeVisible()
   await page.getByRole('button', { name: 'Ma collection' }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/collection$/)
   await expect(salle.getByRole('button', { name: new RegExp(titre) })).toBeVisible()
 
   // --- "Tout voir" opens the same room, and the way back names it

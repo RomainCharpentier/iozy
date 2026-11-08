@@ -45,8 +45,8 @@ async function creerLeCompteB(browser: Browser) {
   await page.getByLabel('Pseudo').fill(COMPTE_B.pseudo)
   await page.getByLabel('Code d’invitation').fill(CODE_INVITATION)
   await page.getByRole('button', { name: 'Créer mon compte' }).click()
-  await expect(page.getByRole('heading', { name: 'Ma collection' })).toBeVisible()
-  await expect(page.getByText("Rien ici pour l'instant.")).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ta semaine' })).toBeVisible()
+  await expect(page.getByText('Ta semaine commence ici.')).toBeVisible()
   return { contexte, page }
 }
 
@@ -70,7 +70,7 @@ test('export one\'s collection, lose one\'s account, restore it', async ({ page,
     data: { platform: 'Console du test' },
   })
   expect(console_.ok()).toBe(true)
-  await avant.page.goto('/')
+  await avant.page.goto('/collection')
   await expect(avant.page.getByRole('button', { name: new RegExp(`${titre}.*2/4 tomes`) })).toBeVisible()
 
   // --- Take away: the file is the button's one, not a separate API call
@@ -124,7 +124,7 @@ test('export one\'s collection, lose one\'s account, restore it', async ({ page,
 
   // The collection is back as it was: the two volumes, and the progress that
   // assumes that each volume found its edition again.
-  await apres.page.goto('/')
+  await apres.page.goto('/collection')
   await expect(apres.page.getByRole('button', { name: new RegExp(`${titre}.*2/4 tomes`) })).toBeVisible()
   await apres.page.getByRole('button', { name: new RegExp(titre) }).click()
   await expect(apres.page.getByRole('heading', { name: titre })).toBeVisible()
