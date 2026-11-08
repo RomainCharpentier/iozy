@@ -33,7 +33,7 @@ import java.util.UUID;
 public class JdbcDonneesParProprietaire implements DonneesParProprietaire {
 
     /**
-     * The eleven tables isolated by owner, children first.
+     * The twelve tables isolated by owner, children first.
      * <p>
      * {@code tier_list_item} before {@code tier_list}: it is the only foreign
      * key between two tables of this list. The rest is independent.
@@ -49,7 +49,8 @@ public class JdbcDonneesParProprietaire implements DonneesParProprietaire {
             "collector_preferences",
             "share_settings",
             "purchase_analysis",
-            "market_price_observation");
+            "market_price_observation",
+            "work_collector_status");
 
     /**
      * Five counts, one single query.

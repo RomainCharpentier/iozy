@@ -149,14 +149,25 @@ public class ReleaseCalendarService {
                     activeOwnerships.stream().filter(o -> entityIds.contains(o.entityId())).toList(),
                     wishlist.stream().filter(w -> entityIds.contains(w.entityId())).toList());
 
-            entries.addAll(manualReleases(context));
-            for (ReleaseSource source : sources) {
-                if (source.supports(entityType)) {
-                    entries.addAll(source.releasesBetween(context));
-                }
-            }
+            entries.addAll(releasesOf(context));
         }
         entries.sort(CALENDAR_ORDER);
+        return entries;
+    }
+
+    /**
+     * The releases of the works of one context: the dates typed by hand, then
+     * what the universe that covers the type knows. For a caller that has
+     * already read the works, ownerships and wishes (the works read model), so
+     * that nothing is read twice. Not sorted.
+     */
+    public List<ReleaseEntry> releasesOf(ReleaseContext context) {
+        List<ReleaseEntry> entries = new ArrayList<>(manualReleases(context));
+        for (ReleaseSource source : sources) {
+            if (source.supports(context.entityType())) {
+                entries.addAll(source.releasesBetween(context));
+            }
+        }
         return entries;
     }
 

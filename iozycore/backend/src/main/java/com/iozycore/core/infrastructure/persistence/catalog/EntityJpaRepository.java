@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,6 +14,16 @@ public interface EntityJpaRepository extends JpaRepository<EntityJpaEntity, UUID
     Optional<EntityJpaEntity> findByEntityTypeIdAndTitleIgnoreCase(UUID entityTypeId, String title);
     List<EntityJpaEntity> findByEntityTypeId(UUID entityTypeId);
     boolean existsByEntityTypeId(UUID entityTypeId);
+
+    /** Only the id and the last change: the works read model needs no attribute here. */
+    @Query("SELECT e.id AS id, e.updatedAt AS updatedAt FROM EntityJpaEntity e WHERE e.id IN :ids")
+    List<UpdatedAt> findUpdatedAt(@Param("ids") Collection<UUID> ids);
+
+    interface UpdatedAt {
+        UUID getId();
+
+        Instant getUpdatedAt();
+    }
 
     /**
      * The scope of a cross-type search (UC4): type and tag, each
