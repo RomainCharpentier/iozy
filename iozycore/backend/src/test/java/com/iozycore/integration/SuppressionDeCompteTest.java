@@ -19,6 +19,10 @@ import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.domain.work.CollectorStatus;
 import com.iozycore.core.domain.purchase.MonthlyBudget;
 import com.iozycore.core.domain.purchase.MonthlyBudgetRepository;
+import com.iozycore.core.domain.share.GiftLink;
+import com.iozycore.core.domain.share.GiftLinkRepository;
+import com.iozycore.core.domain.share.PinnedWorks;
+import com.iozycore.core.domain.share.PinnedWorksRepository;
 import com.iozycore.core.domain.work.WorkCollectorStatus;
 import com.iozycore.core.domain.work.WorkCollectorStatusRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -72,6 +76,8 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     @Autowired private FollowedWorkRepository suivies;
     @Autowired private WorkCollectorStatusRepository statuts;
     @Autowired private MonthlyBudgetRepository budgets;
+    @Autowired private GiftLinkRepository giftLinks;
+    @Autowired private PinnedWorksRepository pins;
     @Autowired private JdbcTemplate jdbc;
 
     private final List<UUID> oeuvresCreees = new ArrayList<>();
@@ -152,6 +158,8 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         suivies.save(FollowedWork.follow(serie.id(), LocalDate.now()));
         statuts.save(WorkCollectorStatus.create(serie.id(), CollectorStatus.PAUSED, Instant.now()));
         budgets.save(MonthlyBudget.create(new BigDecimal("150"), Instant.now()));
+        giftLinks.save(GiftLink.issue(bob.id(), Instant.now()));
+        pins.replace(new PinnedWorks(List.of(serie.id())));
 
         connecte(DefaultOwner.ID);
         gestion.supprimer(bob.id(), DefaultOwner.ID);
@@ -159,6 +167,8 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         assertThat(lignesDe("followed_work", bob.id())).isZero();
         assertThat(lignesDe("work_collector_status", bob.id())).isZero();
         assertThat(lignesDe("purchase_budget", bob.id())).isZero();
+        assertThat(lignesDe("gift_link", bob.id())).isZero();
+        assertThat(lignesDe("share_pin", bob.id())).isZero();
     }
 
     @Test

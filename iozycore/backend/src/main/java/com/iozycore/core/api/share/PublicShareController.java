@@ -1,5 +1,6 @@
 package com.iozycore.core.api.share;
 
+import com.iozycore.core.application.share.ShareLinkExpiredException;
 import com.iozycore.core.application.share.SharedSpace;
 import com.iozycore.core.application.share.SharedSpaceQuery;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,10 +29,17 @@ public class PublicShareController {
 
     @Operation(summary = "Read-only shared space through a token. 404 if the link does not exist or was "
             + "deleted. A section that is not shared is null in the response, never an empty list: "
-            + "[] would say \"shared but nothing in it\", null says \"no access\".")
+            + "[] would say \"shared but nothing in it\", null says \"no access\". A gift list link answers "
+            + "410 once its 30 days are over.")
     @GetMapping("/{token}")
     public SharedSpace shared(@PathVariable String token) {
-        return sharedSpaceQuery.read(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lien introuvable"));
+        try {
+            return sharedSpaceQuery.read(token)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lien introuvable"));
+        } catch (ShareLinkExpiredException expired) {
+            // 410, not 404: the link was really sent by its owner, and "expired"
+            // tells the visitor to ask for a new one (lot 217, gift list).
+            throw new ResponseStatusException(HttpStatus.GONE, expired.getMessage());
+        }
     }
 }

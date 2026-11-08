@@ -29,13 +29,19 @@ import java.util.UUID;
  * with the rest without being asked for separately.
  */
 public record ShareSettings(UUID ownerId, String token, boolean shareCollection, boolean shareWishlist,
-                             boolean includeTierLists) {
+                             boolean includeTierLists, boolean showValue) {
 
     public ShareSettings {
         if (token != null && !shareCollection && !shareWishlist) {
             throw new IllegalArgumentException(
                     "Un lien actif doit exposer au moins une section - sinon il faut le supprimer");
         }
+    }
+
+    /** Without the value of the collection: off unless the owner turns it on (lot 217). */
+    public ShareSettings(UUID ownerId, String token, boolean shareCollection, boolean shareWishlist,
+                         boolean includeTierLists) {
+        this(ownerId, token, shareCollection, shareWishlist, includeTierLists, false);
     }
 
     /** No link. The sections stay at their most open value for the next link created. */
@@ -62,12 +68,21 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
      * @throws IllegalArgumentException if both sections are unchecked while a link is active
      */
     public ShareSettings withSections(boolean shareCollection, boolean shareWishlist) {
-        return new ShareSettings(ownerId, token, shareCollection, shareWishlist, includeTierLists);
+        return new ShareSettings(ownerId, token, shareCollection, shareWishlist, includeTierLists, showValue);
     }
 
     /** Switches the Tier Lists without breaking the link already handed out. */
     public ShareSettings withTierLists(boolean includeTierLists) {
-        return new ShareSettings(ownerId, token, shareCollection, shareWishlist, includeTierLists);
+        return new ShareSettings(ownerId, token, shareCollection, shareWishlist, includeTierLists, showValue);
+    }
+
+    /**
+     * Switches the value of the collection on the public page, without breaking
+     * the link. Even on, it only comes out when it rests on enough prices
+     * ({@link ValueDisclosure}).
+     */
+    public ShareSettings withShowValue(boolean showValue) {
+        return new ShareSettings(ownerId, token, shareCollection, shareWishlist, includeTierLists, showValue);
     }
 
 
@@ -93,5 +108,10 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
     /** The rankings go with the collection: without it, they do not come out. */
     public boolean sharesTierLists() {
         return sharesCollection() && includeTierLists;
+    }
+
+    /** The value goes with the collection too: it is a fact about what is owned. */
+    public boolean sharesValue() {
+        return sharesCollection() && showValue;
     }
 }

@@ -35,16 +35,20 @@ class ShareSettingsJpaEntity {
     @Column(name = "include_tier_lists", nullable = false)
     private boolean includeTierLists;
 
+    @Column(name = "show_value", nullable = false)
+    private boolean showValue;
+
     protected ShareSettingsJpaEntity() {
     }
 
     ShareSettingsJpaEntity(UUID ownerId, String token, boolean shareCollection, boolean shareWishlist,
-                            boolean includeTierLists) {
+                            boolean includeTierLists, boolean showValue) {
         this.ownerId = ownerId;
         this.token = token;
         this.shareCollection = shareCollection;
         this.shareWishlist = shareWishlist;
         this.includeTierLists = includeTierLists;
+        this.showValue = showValue;
     }
 
     UUID getOwnerId() { return ownerId; }
@@ -52,6 +56,7 @@ class ShareSettingsJpaEntity {
     boolean isShareCollection() { return shareCollection; }
     boolean isShareWishlist() { return shareWishlist; }
     boolean isIncludeTierLists() { return includeTierLists; }
+    boolean isShowValue() { return showValue; }
 }
 
 interface ShareSettingsJpaRepository extends JpaRepository<ShareSettingsJpaEntity, UUID> {
@@ -80,7 +85,7 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
     public ShareSettings save(ShareSettings settings) {
         return toDomain(jpaRepository.save(new ShareSettingsJpaEntity(
                 utilisateurCourant.proprietaire(), settings.token(), settings.shareCollection(), settings.shareWishlist(),
-                settings.includeTierLists())));
+                settings.includeTierLists(), settings.showValue())));
     }
 
     @Override
@@ -97,6 +102,6 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
 
     private static ShareSettings toDomain(ShareSettingsJpaEntity jpa) {
         return new ShareSettings(jpa.getOwnerId(), jpa.getToken(), jpa.isShareCollection(),
-                jpa.isShareWishlist(), jpa.isIncludeTierLists());
+                jpa.isShareWishlist(), jpa.isIncludeTierLists(), jpa.isShowValue());
     }
 }

@@ -1,5 +1,7 @@
 package com.iozycore.core.application.share;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -17,9 +19,34 @@ import java.util.List;
  * history, no purchase analysis, no recorded price, no account information.
  * These records are built field by field from the domain, never an internal
  * model serialized as is. Any addition here must redo this reasoning.
+ *
+ * <h2>Lot 217</h2>
+ * The pinned works add titles and counts, like the collection. The value is a
+ * single total, opt-in and held back below a threshold of prices. A gift list
+ * ({@code giftList}) carries the wishes only, and says until when it answers
+ * ({@code expiresAt}, null for the share link, which does not expire).
  */
 public record SharedSpace(List<SharedUniverse> collection, List<SharedWishlistItem> wishlist,
-                          SharedTierLists tierLists) {
+                          SharedTierLists tierLists, List<SharedPinnedWork> pinned, SharedValue value,
+                          boolean giftList, Instant expiresAt) {
+
+    /**
+     * "Mes 4 incontournables" (lot 217), in the order chosen: only works really
+     * owned, and only when the collection is shared ({@code null} otherwise).
+     *
+     * @param totalCount known total of the work, null if unknown (never guessed)
+     */
+    public record SharedPinnedWork(String title, String coverImageUrl, int ownedCount, Integer totalCount) {
+    }
+
+    /**
+     * The value of the collection (lot 217): only when the owner turned it on
+     * AND it rests on enough prices ({@link com.iozycore.core.domain.share.ValueDisclosure}).
+     * {@code null} otherwise - never a total built on two prices. The two counts
+     * say what the number rests on; no single price ever comes out.
+     */
+    public record SharedValue(BigDecimal totalKnownValue, long pricedCount, long totalCount) {
+    }
 
     public record SharedUniverse(String label, List<SharedCollectionItem> items) {
     }

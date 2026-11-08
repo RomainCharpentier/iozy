@@ -18,10 +18,20 @@ import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.domain.insights.CollectionProgress;
 import com.iozycore.core.application.insights.SeriesProgressGateway;
+import com.iozycore.core.application.insights.StatsService;
+import com.iozycore.core.application.work.WorkReadModel;
+import com.iozycore.core.domain.insights.CollectionValue;
+import com.iozycore.core.domain.share.GiftLink;
+import com.iozycore.core.domain.share.GiftLinkRepository;
+import com.iozycore.core.domain.share.PinnedWorksRepository;
+import com.iozycore.core.domain.share.ValueDisclosure;
+import com.iozycore.core.domain.work.WorkView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +51,12 @@ import java.util.stream.Collectors;
  * Each call reads the collection and the wishes again as they are now. The
  * collection only shows what is REALLY owned (active Ownership); the wishes show
  * the wished works, <b>including those that are not owned</b>.
+ *
+ * <h2>Two kinds of link (lot 217)</h2>
+ * The share link ({@link ShareSettings}) shows the sections the owner chose and
+ * never expires. The gift link ({@link GiftLink}) shows the wishes only, and
+ * answers {@link ShareLinkExpiredException} once its thirty days are over. Both
+ * are read through {@link #read(String)}, so one public address serves both.
  */
 @Service
 @RequiredArgsConstructor
@@ -57,19 +73,105 @@ public class SharedSpaceQuery {
     private final TierListService tierListService;
     private final SeriesProgressGateway progressService;
     private final ReadOnBehalfOf readOnBehalfOf;
+    private final PinnedWorksRepository pinnedWorksRepository;
+    private final GiftLinkRepository giftLinkRepository;
+    private final WorkReadModel workReadModel;
+    private final StatsService statsService;
 
-    /** Empty when the link does not exist or was deleted. */
+    /**
+     * Empty when the link does not exist or was deleted.
+     *
+     * @throws ShareLinkExpiredException a gift link whose thirty days are over
+     */
     public Optional<SharedSpace> read(String token) {
-        return shareSettingsRepository.findByToken(token).map(this::readFor);
+        Optional<SharedSpace> space = shareSettingsRepository.findByToken(token).map(this::readFor);
+        if (space.isPresent()) {
+            return space;
+        }
+        return giftLinkRepository.findByToken(token).map(this::readGift);
+    }
+
+    /**
+     * The page as visitors see it, from the owner's current choices (the
+     * "Partager" page). Without a link yet, it shows what a new link would show
+     * with these choices. Owner side: read as the current account.
+     */
+    public SharedSpace preview() {
+        ShareSettings settings = shareSettingsRepository.find();
+        return space(settings.shareCollection(), settings.shareWishlist(),
+                settings.shareCollection() && settings.includeTierLists(),
+                settings.shareCollection() && settings.showValue());
+    }
+
+    /** What the gift link shows, for the owner's preview: the wishes only. */
+    public SharedSpace giftPreview() {
+        Instant expiresAt = giftLinkRepository.find().map(GiftLink::expiresAt).orElse(null);
+        return new SharedSpace(null, sharedWishlist(), null, null, null, true, expiresAt);
+    }
+
+    /** The value of the current owner's collection, or empty when too few prices back it (the shared image). */
+    public Optional<SharedSpace.SharedValue> soundValue() {
+        return Optional.ofNullable(soundValueOf(statsService.computeCollectionValue()));
     }
 
     private SharedSpace readFor(ShareSettings settings) {
         // The recipient of a link has no account: the isolation cannot come
         // from the session. It comes from the TOKEN, which names its owner.
-        return readOnBehalfOf.run(settings.ownerId(), () -> new SharedSpace(
-                settings.sharesCollection() ? sharedCollection() : null,
-                settings.sharesWishlist() ? sharedWishlist() : null,
-                settings.sharesTierLists() ? sharedTierLists() : null));
+        return readOnBehalfOf.run(settings.ownerId(), () -> space(settings.sharesCollection(),
+                settings.sharesWishlist(), settings.sharesTierLists(), settings.sharesValue()));
+    }
+
+    /** The wishes, and nothing else: no collection, no pins, no ranking, no value. */
+    private SharedSpace readGift(GiftLink link) {
+        if (link.isExpiredAt(Instant.now())) {
+            throw new ShareLinkExpiredException();
+        }
+        return readOnBehalfOf.run(link.ownerId(),
+                () -> new SharedSpace(null, sharedWishlist(), null, null, null, true, link.expiresAt()));
+    }
+
+    private SharedSpace space(boolean collection, boolean wishlist, boolean tierLists, boolean value) {
+        return new SharedSpace(
+                collection ? sharedCollection() : null,
+                wishlist ? sharedWishlist() : null,
+                tierLists ? sharedTierLists() : null,
+                collection ? pinnedWorks() : null,
+                value ? soundValueOf(statsService.computeCollectionValue()) : null,
+                false, null);
+    }
+
+    /**
+     * The value, only when it rests on enough prices. Below the threshold the
+     * answer is null, not a smaller number: a visitor cannot see the caveat.
+     */
+    static SharedSpace.SharedValue soundValueOf(CollectionValue value) {
+        if (value == null || value.totalKnownValue() == null
+                || !ValueDisclosure.isSound(value.pricedOwnershipCount(), value.totalActiveOwnershipCount())) {
+            return null;
+        }
+        return new SharedSpace.SharedValue(value.totalKnownValue(), value.pricedOwnershipCount(),
+                value.totalActiveOwnershipCount());
+    }
+
+    /**
+     * The pinned works in the order chosen, read in one batch. A pin whose work
+     * is no longer owned (sold, given away) is skipped: the page shows what is
+     * owned, and a pinned wish would leak the wishes into a collection share.
+     */
+    private List<SharedSpace.SharedPinnedWork> pinnedWorks() {
+        List<UUID> ids = pinnedWorksRepository.find().entityIds();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, WorkView> views = workReadModel.works(new LinkedHashSet<>(ids)).stream()
+                .collect(Collectors.toMap(WorkView::entityId, Function.identity(), (a, b) -> a));
+        return ids.stream()
+                .map(views::get)
+                .filter(Objects::nonNull)
+                .filter(view -> view.ownedCount() > 0)
+                .map(view -> new SharedSpace.SharedPinnedWork(view.title(), view.coverImageUrl(),
+                        view.ownedCount(), view.totalCount()))
+                .collect(Collectors.toList());
     }
 
     /** What is really owned, grouped by universe - never the plain catalog. */

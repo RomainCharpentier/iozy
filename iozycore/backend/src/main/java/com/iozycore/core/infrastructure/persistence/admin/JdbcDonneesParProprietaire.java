@@ -49,6 +49,8 @@ public class JdbcDonneesParProprietaire implements DonneesParProprietaire {
             "followed_work",
             "collector_preferences",
             "share_settings",
+            "share_pin",
+            "gift_link",
             "purchase_analysis",
             "market_price_observation",
             "work_collector_status",
