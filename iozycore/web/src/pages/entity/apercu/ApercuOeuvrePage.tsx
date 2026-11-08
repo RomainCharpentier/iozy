@@ -9,7 +9,7 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/coverImage'
 import { creatorFrom } from '@/common/lib/creatorInfo'
 import { avecDetails, identifiantsSource } from '@/pages/entity/rechargerSource'
-import { isSeriesOngoing } from '@/pages/entity/seriesInfo'
+import { isSeriesOngoing, statutAffiche } from '@/pages/entity/seriesInfo'
 import { useTeinteJaquette } from '@/pages/entity/useTeinteJaquette'
 import { resolvePrimaryTitle, useTitleComposition } from '@/common/lib/titleLanguage'
 import { gradientFor } from '@/common/theme/gradient'
@@ -142,8 +142,9 @@ export function ApercuOeuvrePage() {
     : {}
 
   const couvertureUrl = coverImageUrlFrom(attributs)
-  const teinte = useTeinteJaquette(couvertureUrl)
+  const { principale: teinte, seconde: teinteSeconde } = useTeinteJaquette(couvertureUrl)
   const ongoing = isSeriesOngoing(attributs)
+  const statut = statutAffiche(attributs)
   const startYear = typeof attributs.startYear === 'string' ? attributs.startYear : null
   const endYear = typeof attributs.endYear === 'string' ? attributs.endYear : null
 
@@ -187,16 +188,11 @@ export function ApercuOeuvrePage() {
       <FicheHero
         colleEnHaut={false}
         teinte={teinte}
+        teinteSeconde={teinteSeconde}
         kicker={type?.label ?? null}
         titre={titre}
         auteur={creatorFrom(attributs)}
-        statut={
-          ongoing === null
-            ? null
-            : ongoing
-              ? { libelle: 'En cours', couleur: 'var(--color-warning)' }
-              : { libelle: 'Terminée', couleur: 'var(--color-ok)' }
-        }
+        statut={statut}
         annees={startYear ? (endYear ? `${startYear} → ${endYear}` : ongoing ? `Depuis ${startYear}` : startYear) : null}
         couvertureUrl={couvertureUrl}
         repliCouverture={
@@ -236,8 +232,8 @@ export function ApercuOeuvrePage() {
                   {creatorFrom(attributs)}
                 </RangeeInspecteur>
               )}
-              {ongoing !== null && (
-                <RangeeInspecteur libelle="Statut">{ongoing ? 'En cours' : 'Terminée'}</RangeeInspecteur>
+              {statut && (
+                <RangeeInspecteur libelle="Statut">{statut.libelle}</RangeeInspecteur>
               )}
               {startYear && <RangeeInspecteur libelle="Année de début">{startYear}</RangeeInspecteur>}
             </div>
