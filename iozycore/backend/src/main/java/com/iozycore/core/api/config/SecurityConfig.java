@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -31,8 +32,10 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * The door of the application.
@@ -80,6 +83,8 @@ import java.io.IOException;
  * read (some exist: analyze a listing, read a link) falls under the same
  * refusal, and that is fine: these are precisely the costly, outgoing or
  * billed calls that a door open to the whole Internet must not offer.
+ * The few {@code GET} routes that also call a provider are closed to them
+ * by path, for the same reason.
  *
  * <h2>A session is only valid as long as its account exists</h2>
  * The session keeps the principal written at sign-in, and nothing read it again
@@ -149,6 +154,20 @@ public class SecurityConfig {
 
         private static final String SORTIE = "/api/auth/logout";
 
+        /**
+         * Read-only routes that still call an external provider (book and
+         * anime sources, IGDB, BoardGameGeek, Gemini). They are GETs, so the
+         * method rule lets them through, but each call spends the quota of
+         * the owner's keys. A visit session costs nothing to open: a script
+         * could loop on it and use up those quotas. A visitor reads the
+         * shared catalog, which lives in our database, and needs none of these.
+         */
+        static final List<String> OUTGOING_CALL_PREFIXES = List.of(
+                "/api/metadata",
+                "/api/wishlist/lookup",
+                "/api/listing-metadata",
+                "/api/purchase-analysis");
+
         @Override
         protected void doFilterInternal(HttpServletRequest requete, HttpServletResponse reponse, FilterChain chaine)
                 throws ServletException, IOException {
@@ -159,14 +178,29 @@ public class SecurityConfig {
                 return;
             }
             if (!"GET".equals(requete.getMethod())) {
-                reponse.setStatus(HttpStatus.FORBIDDEN.value());
-                reponse.setContentType("application/json;charset=UTF-8");
-                reponse.getWriter().write(
-                        "{\"error\":\"Tu consultes le catalogue en lecture seule. "
-                                + "Il faut un compte pour enregistrer quoi que ce soit.\"}");
+                refuser(reponse, "Tu consultes le catalogue en lecture seule. "
+                        + "Il faut un compte pour enregistrer quoi que ce soit.");
+                return;
+            }
+            // The decoded path, as the router sees it: the raw URI keeps
+            // "%6D" for "m" and would let "/api/%6Detadata/search" through.
+            if (callsAProvider(UrlPathHelper.defaultInstance.getPathWithinApplication(requete))) {
+                refuser(reponse, "Tu consultes le catalogue en lecture seule. "
+                        + "Il faut un compte pour chercher chez les fournisseurs externes.");
                 return;
             }
             chaine.doFilter(requete, reponse);
+        }
+
+        static boolean callsAProvider(String path) {
+            return OUTGOING_CALL_PREFIXES.stream()
+                    .anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"));
+        }
+
+        private static void refuser(HttpServletResponse reponse, String message) throws IOException {
+            reponse.setStatus(HttpStatus.FORBIDDEN.value());
+            reponse.setContentType("application/json;charset=UTF-8");
+            reponse.getWriter().write("{\"error\":\"" + message + "\"}");
         }
 
         private static boolean estUnVisiteur() {
@@ -257,12 +291,32 @@ public class SecurityConfig {
         return new org.springframework.security.authentication.ProviderManager(fournisseur);
     }
 
+    /**
+     * The CSRF cookie follows the same {@code Secure} setting as the session
+     * cookie ({@code SESSION_COOKIE_SECURE}).
+     *
+     * <p>Without this, the repository marks the cookie {@code Secure} only when
+     * {@code request.isSecure()}. Behind a TLS proxy that talks plain HTTP to
+     * nginx, that depends on a forwarded header that may say "http": the
+     * session cookie was {@code Secure} and the token cookie was not. When the
+     * setting is off, the request still decides, as before.
+     */
+    static CookieCsrfTokenRepository csrfTokenRepository(boolean secureCookies) {
+        CookieCsrfTokenRepository depot = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        if (secureCookies) {
+            depot.setCookieCustomizer(cookie -> cookie.secure(true));
+        }
+        return depot;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository contextes,
-                                           AppUserRepository comptes) throws Exception {
+                                           AppUserRepository comptes,
+                                           @Value("${server.servlet.session.cookie.secure:false}") boolean secureCookies)
+            throws Exception {
         http
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRepository(csrfTokenRepository(secureCookies))
                         // The DEFAULT handler masks the token (BREACH
                         // protection): it expects back the masked value that it
                         // exposed in the page, not the one of the cookie. A client that
@@ -297,10 +351,9 @@ public class SecurityConfig {
                         // replay this redirect, said 404.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/etat").permitAll()
-                        // Entering without an account, when someone opened their
-                        // collection to visitors. Closed by default, and the
-                        // controller refuses when nobody opened anything -
-                        // "permitAll" opens the route, not the door.
+                        // Entering without an account: always open, and the
+                        // session it gives can only read the shared catalog
+                        // (see LectureSeuleInvite).
                         .requestMatchers("/api/auth/visite").permitAll()
                         // The share links: their recipient has no account.
                         .requestMatchers("/api/public/**").permitAll()
