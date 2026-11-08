@@ -18,15 +18,26 @@ const CONFIG: Record<Verdict, { label: string; icon: typeof Check; className: st
   AVOID: { label: 'À éviter', icon: X, className: 'bg-danger text-dangerInk' },
 }
 
-/** `score` null: the score of this analysis is unknown (see scoreAffichable) - the badge says so. */
+/**
+ * `score` null: the score of this analysis is unknown (see scoreAffichable).
+ * Its verdict was computed from that same false score, so the badge shows no
+ * verdict word either: a neutral badge that says why.
+ */
 export function VerdictBadge({ verdict, score }: { verdict: Verdict; score?: number | null }) {
+  if (score === null) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-surface2 px-4 py-2 text-sm font-semibold text-textPrimary">
+        <Minus size={18} strokeWidth={2.5} />
+        Sans verdict<span className="font-normal opacity-80">· {NOTE_SCORE_INDISPONIBLE}</span>
+      </span>
+    )
+  }
   const { label, icon: Icon, className } = CONFIG[verdict]
   return (
     <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap ${className}`}>
       <Icon size={18} strokeWidth={2.5} />
       {label}
       {score != null && <span className="font-normal opacity-80">· {score}/100</span>}
-      {score === null && <span className="font-normal opacity-80">· {NOTE_SCORE_INDISPONIBLE}</span>}
     </span>
   )
 }

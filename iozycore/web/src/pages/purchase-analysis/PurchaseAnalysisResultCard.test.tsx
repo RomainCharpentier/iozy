@@ -184,6 +184,10 @@ describe('the purchase analysis result', () => {
 
     expect(screen.getByText(/score indisponible pour cette ancienne analyse/)).toBeInTheDocument()
     expect(screen.queryByText(/50\/100/)).not.toBeInTheDocument()
+    // The verdict came from the same false 50: no verdict word either.
+    for (const mot of ['Excellente affaire', 'Bonne affaire', 'Prix correct', 'Cher', 'À éviter']) {
+      expect(screen.queryByText(mot)).not.toBeInTheDocument()
+    }
   })
 
   it('says the lot completes the edition when the owned volumes fill the rest', () => {
