@@ -107,6 +107,14 @@ auth:
   # account exists - missing configuration closes the door, it does not open
   # it. See AuthService.
   invite-code: ${IOZYCORE_INVITE_CODE:}
+  # Brake on guessing: after max-failures wrong passwords (per address and IP)
+  # or wrong invitation codes (per IP) inside the window, the route answers
+  # 429 until the window ends. In memory, bounded to max-keys counters.
+  # See FailedAttemptThrottle.
+  throttle:
+    max-failures: 5
+    window: PT15M
+    max-keys: 10000
 
 web:
   # Origins allowed for POST/PATCH/DELETE requests of the web client
