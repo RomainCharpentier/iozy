@@ -301,10 +301,12 @@ public class TomeSearchService {
      * read again until it passes.
      *
      * <p>One exception (lot 208): when a provider is silent but another one
-     * answered, and a row of the current chain is already stored, the new
+     * answered, and a FRESH row is already stored (see {@link #isFresh}), the new
      * volumes are MERGED into it - nothing stored is lost, and a volume newly
-     * announced at the provider that answered enters the calendar. Without a
-     * stored row, a partial result is never frozen as complete.
+     * announced at the provider that answered enters the calendar. The row keeps
+     * its age: a merge is not a full re-read, so it never makes an expired row
+     * fresh again. Without a fresh row, a partial result is never frozen as
+     * complete.
      *
      * <p>Without an author, the row is still written: the calendar reads it by
      * (title, ""). The detail page never serves such a row (see {@link #findFresh},
@@ -331,13 +333,15 @@ public class TomeSearchService {
         }
         Optional<StoredVolumeSearch> stored = volumeSearchCacheRepository
                 .find(entityType.id(), normalizedTitle, normalizedAuthor)
-                .filter(row -> row.chainVersion() == CHAIN_VERSION);
+                .filter(TomeSearchService::isFresh);
         if (stored.isEmpty()) {
-            return CalendarRefresh.SILENT;
+            return CalendarRefresh.ANSWERED_NOT_STORED;
         }
         List<VolumeCandidate> merged = finaliser(mergeVolumes(stored.get().volumes(), finaliser(outcome.volumes())));
         volumeSearchCache.invalidate(cacheKey);
-        volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged, CHAIN_VERSION);
+        // The original date stays: an expired row must not come back as fresh through a partial answer.
+        volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged, CHAIN_VERSION,
+                stored.get().fetchedAt());
         return CalendarRefresh.MERGED;
     }
 
@@ -345,8 +349,13 @@ public class TomeSearchService {
     public enum CalendarRefresh {
         /** Every provider answered: the stored result was replaced. */
         REFRESHED,
-        /** A provider was silent, another answered: its volumes were added to the stored result. */
+        /** A provider was silent, another answered: its volumes were added to the fresh stored result. */
         MERGED,
+        /**
+         * A provider was silent, another answered, but there was no fresh stored result to add to:
+         * nothing was written. Not a spent quota, since a provider answered.
+         */
+        ANSWERED_NOT_STORED,
         /** Nothing usable came back: the stored result was left untouched. */
         SILENT
     }

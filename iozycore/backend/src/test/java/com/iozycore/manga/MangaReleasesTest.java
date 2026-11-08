@@ -126,16 +126,41 @@ class MangaReleasesTest {
     }
 
     @Test
-    void says_nothing_for_a_series_without_stored_result_or_without_author() {
+    void says_nothing_for_a_series_without_stored_result() {
         Entity unknown = serie("Inconnue", "Auteur, Quelconque");
+
+        List<ReleaseEntry> entries = releases.releasesBetween(context(List.of(unknown),
+                List.of(owned(unknown, null)), List.of()));
+
+        assertThat(entries).isEmpty();
+    }
+
+    @Test
+    void a_row_stored_without_author_never_guesses_the_edition() {
+        // Batch 126: a title alone may be a homonym. Without an edition the collector chose,
+        // its volumes would show up as "to buy" for a series that may not be this one.
         Entity noAuthor = serie("Sans auteur", null);
         cache.store("sans auteur", "", tome("Kana", 1, "2026-10-14", null));
 
-        List<ReleaseEntry> entries = releases.releasesBetween(context(List.of(unknown, noAuthor),
-                List.of(owned(unknown, null), owned(noAuthor, null)), List.of()));
+        List<ReleaseEntry> entries = releases.releasesBetween(context(List.of(noAuthor),
+                List.of(owned(noAuthor, null)), List.of()));
 
-        // "Sans auteur" does have a row stored under an empty author: it is read as it is.
-        assertThat(entries).extracting(ReleaseEntry::entityTitle).containsExactly("Sans auteur");
+        assertThat(entries).isEmpty();
+    }
+
+    @Test
+    void a_row_stored_without_author_shows_the_edition_the_collector_owns() {
+        Entity noAuthor = serie("Sans auteur", null);
+        Variant tome1 = noAuthor.addVariant("Tome 1", Map.of("edition", "Kana", "volumeNumber", 1));
+        cache.store("sans auteur", "",
+                tome("Kana", 2, "2026-10-14", null),
+                tome("Homonyme", 5, "2026-10-14", null),
+                tome("Homonyme", 6, "2026-10-21", null));
+
+        List<ReleaseEntry> entries = releases.releasesBetween(context(List.of(noAuthor),
+                List.of(owned(noAuthor, tome1)), List.of()));
+
+        assertThat(entries).extracting(ReleaseEntry::label).containsExactly("Tome 2 · Kana");
     }
 
     @Test
@@ -220,8 +245,9 @@ class MangaReleasesTest {
         }
 
         @Override
-        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion) {
-            store(seriesTitle, author, volumes.toArray(VolumeCandidate[]::new));
+        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion,
+                         java.time.Instant fetchedAt) {
+            storeRow(seriesTitle, author, fetchedAt, chainVersion, volumes.toArray(VolumeCandidate[]::new));
         }
 
         @Override

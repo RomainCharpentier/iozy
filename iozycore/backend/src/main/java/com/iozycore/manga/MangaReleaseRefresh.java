@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -62,9 +63,16 @@ import java.util.stream.Collectors;
  * A silent provider erases nothing: see {@link TomeSearchService#refreshUnlessUnavailable}.
  * It no longer ends the pass at the first series: another series, or another
  * provider, may still answer. The pass stops after {@code max-silent-series-in-a-row}
- * series in a row with no answer at all (a spent quota), waits
+ * series in a row with no answer at all (a spent quota); a series where one provider
+ * answered does not count, even when nothing could be written. It waits
  * {@code pause-between-series-ms} between two series, and never reads more
  * than {@code series-per-run}.
+ *
+ * <h2>A series that could not be written waits its turn</h2>
+ * A series read without being written keeps its old date (or has none), so it would
+ * come first again at every pass and take the place of the others. The time of that
+ * attempt is remembered, in memory, and counts as its date for the order: it goes
+ * behind the series not tried yet. A restart forgets it, which costs one more try.
  */
 @Component
 public class MangaReleaseRefresh implements ReleaseRefreshSource {
@@ -81,6 +89,8 @@ public class MangaReleaseRefresh implements ReleaseRefreshSource {
     private final Clock clock;
     private final Duration pauseBetweenSeries;
     private final int maxSilentInARow;
+    /** When a series was last read without being written (see the class comment). */
+    private final Map<String, Instant> lastUnwrittenAttempt = new ConcurrentHashMap<>();
 
     @Autowired
     public MangaReleaseRefresh(EntityTypeRepository entityTypeRepository, EntityRepository entityRepository,
@@ -143,27 +153,33 @@ public class MangaReleaseRefresh implements ReleaseRefreshSource {
                     Instant fetchedAt = fetchedAtByKey.get(entry.getKey());
                     return fetchedAt == null || fetchedAt.isBefore(threshold);
                 })
-                // Never re-read first, then the oldest.
-                .sorted(Comparator.comparing((Map.Entry<String, Entity> entry) ->
-                        Optional.ofNullable(fetchedAtByKey.get(entry.getKey())).orElse(Instant.MIN)))
+                // Never re-read first, then the oldest; a recent attempt that wrote nothing counts as a date.
+                .sorted(Comparator.comparing((Map.Entry<String, Entity> entry) -> orderDate(entry.getKey(), fetchedAtByKey)))
                 .toList();
 
         int refreshed = 0;
         int silentInARow = 0;
         boolean providerSilent = false;
-        List<Entity> batch = new ArrayList<>(stale.stream().map(Map.Entry::getValue).limit(seriesPerRun).toList());
+        List<Map.Entry<String, Entity>> batch = new ArrayList<>(stale.stream().limit(seriesPerRun).toList());
         for (int i = 0; i < batch.size(); i++) {
-            if (i > 0 && !pause()) {
+            // A pass given up as stuck is interrupted: it must not start another series.
+            if (Thread.currentThread().isInterrupted() || (i > 0 && !pause())) {
                 break;
             }
-            Entity entity = batch.get(i);
+            String key = batch.get(i).getKey();
+            Entity entity = batch.get(i).getValue();
             List<String> excluded = relatedSeriesService.findExcludedTitleFragments(type, textOf(entity, "malId"),
                     Optional.ofNullable(textOf(entity, "titleEnglish")).orElse(textOf(entity, "originalTitle")),
                     textOf(entity, "titleRomaji"));
             TomeSearchService.CalendarRefresh outcome = tomeSearchService.refreshUnlessUnavailable(type, entity.title(),
                     authorOf(entity), excluded, totalVolumesOf(entity));
-            if (outcome == TomeSearchService.CalendarRefresh.SILENT) {
+            if (outcome == TomeSearchService.CalendarRefresh.REFRESHED) {
+                lastUnwrittenAttempt.remove(key);
+            } else {
+                lastUnwrittenAttempt.put(key, clock.instant());
                 providerSilent = true;
+            }
+            if (outcome == TomeSearchService.CalendarRefresh.SILENT) {
                 silentInARow++;
                 if (silentInARow >= maxSilentInARow) {
                     // Most likely a spent quota: stop asking until the next pass.
@@ -171,11 +187,20 @@ public class MangaReleaseRefresh implements ReleaseRefreshSource {
                 }
                 continue;
             }
-            providerSilent |= outcome == TomeSearchService.CalendarRefresh.MERGED;
+            // A provider answered: the quota is not spent.
             silentInARow = 0;
-            refreshed++;
+            if (outcome != TomeSearchService.CalendarRefresh.ANSWERED_NOT_STORED) {
+                refreshed++;
+            }
         }
         return new Result(stale.size(), refreshed, providerSilent);
+    }
+
+    /** The date that orders a series: its stored date or its last unwritten attempt, whichever is later. */
+    private Instant orderDate(String key, Map<String, Instant> fetchedAtByKey) {
+        Instant fetchedAt = fetchedAtByKey.getOrDefault(key, Instant.MIN);
+        Instant attempt = lastUnwrittenAttempt.getOrDefault(key, Instant.MIN);
+        return attempt.isAfter(fetchedAt) ? attempt : fetchedAt;
     }
 
     /** Waits between two series. False when the pass was interrupted (given up as stuck). */

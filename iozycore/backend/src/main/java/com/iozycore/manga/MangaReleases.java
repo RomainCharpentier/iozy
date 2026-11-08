@@ -107,8 +107,11 @@ public class MangaReleases implements ReleaseSource {
                     .collect(Collectors.toMap(Variant::id, v -> v, (a, b) -> a));
             Set<String> ownedKeys = keysOf(ownedVariants.get(entity.id()), variantsById);
             Set<String> wantedKeys = keysOf(wantedVariants.get(entity.id()), variantsById);
+            // A row stored without author (lot 208) may be a homonym (Batch 126): its volumes are shown
+            // only in an edition the collector chose (followed or owned), never in a guessed one.
+            boolean mayGuessEdition = !stored.author().isBlank();
             Set<String> editions = editionsToShow(followedEditionByEntity.get(entity.id()),
-                    ownedVariants.get(entity.id()), variantsById, stored.volumes());
+                    ownedVariants.get(entity.id()), variantsById, stored.volumes(), mayGuessEdition);
 
             for (VolumeCandidate candidate : stored.volumes()) {
                 Optional<ReleaseDate> date = ReleaseDate.parse(candidate.releaseDate())
@@ -131,9 +134,13 @@ public class MangaReleases implements ReleaseSource {
         return entries;
     }
 
-    /** The followed edition, otherwise the ones owned, otherwise the fullest of the result - normalised. */
+    /**
+     * The followed edition, otherwise the ones owned, otherwise the fullest of the result - normalised.
+     * Without {@code mayGuess}, the last step is skipped and nothing is shown.
+     */
     private static Set<String> editionsToShow(String followedEdition, Set<UUID> ownedVariantIds,
-                                              Map<UUID, Variant> variantsById, List<VolumeCandidate> candidates) {
+                                              Map<UUID, Variant> variantsById, List<VolumeCandidate> candidates,
+                                              boolean mayGuess) {
         if (followedEdition != null && !followedEdition.isBlank()) {
             return Set.of(TexteRecherche.normaliser(followedEdition));
         }
@@ -146,7 +153,7 @@ public class MangaReleases implements ReleaseSource {
                 }
             }
         }
-        if (!owned.isEmpty()) {
+        if (!owned.isEmpty() || !mayGuess) {
             return owned;
         }
         Map<String, Integer> sizes = new HashMap<>();

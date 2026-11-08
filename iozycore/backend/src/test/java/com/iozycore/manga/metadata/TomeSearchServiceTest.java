@@ -510,8 +510,9 @@ class TomeSearchServiceTest {
         }
 
         @Override
-        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion) {
-            storeRow(entityTypeId, seriesTitle, author, volumes, java.time.Instant.now(), chainVersion);
+        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes, int chainVersion,
+                         java.time.Instant fetchedAt) {
+            storeRow(entityTypeId, seriesTitle, author, volumes, fetchedAt, chainVersion);
         }
 
         @Override
