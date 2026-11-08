@@ -53,7 +53,7 @@ class WorkReadModelTest {
     private final InMemoryWishlistEntryRepository wishes = new InMemoryWishlistEntryRepository();
     private final InMemoryWorkCollectorStatusRepository statuses = new InMemoryWorkCollectorStatusRepository();
     private final ReleaseCalendarService calendar = new ReleaseCalendarService(types, entities, ownerships, wishes,
-            new InMemoryFollowedWorkRepository(), List.of());
+            new InMemoryFollowedWorkRepository(), statuses, List.of());
 
     private WorkReadModel readModel(WorkElementsSource... sources) {
         return readModel(Clock.fixed(NOW, ZoneOffset.UTC), sources);

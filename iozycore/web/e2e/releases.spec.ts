@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * <b>Date a work on its detail page, and find it again in the release
- * calendar.</b>
+ * <b>Date a work on its detail page, and find it again in Sorties and in
+ * the agenda subscription.</b>
  *
  * <p>The calendar has two data inputs: the sources of the universes (Google
  * Books, IGDB - which a throwaway stack without a key cannot exercise) and the
@@ -27,7 +27,7 @@ function libelle(options: Intl.DateTimeFormatOptions): string {
   )
 }
 
-test('date a work on its detail page, then find it again in the calendar and on Découvrir', async ({ page }) => {
+test('date a work on its detail page, then find it again in Sorties, in the agenda feed and on Découvrir', async ({ page, playwright }) => {
   const univers = `Vinyle ${Date.now()}`
   const oeuvre = `Random Access Memories ${Date.now()}`
 
@@ -62,31 +62,38 @@ test('date a work on its detail page, then find it again in the calendar and on 
   const dateLisible = libelle({ day: 'numeric', month: 'long', year: 'numeric' })
   await expect(page.getByText(dateLisible)).toBeVisible()
 
-  // --- 3. The calendar puts it in its cell, and the agenda under its day, with what it is for the collection
-  const mois = iso(SORTIE).slice(0, 7)
-  await page.goto(`/releases?mois=${mois}`)
-  const titreDuMois = libelle({ month: 'long', year: 'numeric' })
-  //     Level 2 only: the "À venir" list next to the grid also titles its months (level 3, under its own h2).
-  await expect(page.getByRole('heading', { level: 2, name: titreDuMois.charAt(0).toUpperCase() + titreDuMois.slice(1) })).toBeVisible()
-  const jour = libelle({ weekday: 'long', day: 'numeric', month: 'long' })
-  await expect(page.getByRole('heading', { level: 3, name: jour })).toBeVisible()
-  const ligne = page.getByRole('link', { name: new RegExp(oeuvre) })
-  await expect(ligne).toContainText(univers)
-  await expect(ligne).toContainText('Possédé')
+  // --- 3. Sorties counts down to it: the only release of the year is the next one
+  await page.goto('/releases')
+  //     Other specs may date works of their own universes on the same account: the
+  //     universe made here gets its chip (filters come from the data), and keeps only this work.
+  await expect(page.getByRole('heading', { level: 2, name: 'À venir' })).toBeVisible()
+  const filtres = page.getByRole('group', { name: 'Filtrer par catégorie' })
+  if (await filtres.isVisible()) await filtres.getByRole('button', { name: new RegExp(univers) }).click()
+  await expect(page.getByRole('heading', { level: 2, name: oeuvre })).toBeVisible()
+  await expect(page.getByText('Dans 20 jours')).toBeVisible()
+  //     Owned: nothing to pre-order, the hero leads to its detail page.
+  await expect(page.getByRole('button', { name: "Je l'ai précommandé" })).toHaveCount(0)
+  await expect(page.locator('section', { has: page.getByRole('heading', { level: 2, name: oeuvre }) })).toContainText(univers)
 
-  //     Its cell in the grid says how many; choosing it keeps only that day, "Tout le mois" reopens the agenda.
-  await page.getByRole('button', { name: `${jour}, 1 sortie` }).click()
-  await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
-  await page.getByRole('button', { name: 'Tout le mois' }).click()
+  // --- 3b. The agenda subscription: a secret link, read with no session, cut by "Nouveau lien"
+  await page.getByRole('button', { name: "S'abonner dans mon agenda" }).click()
+  const champ = page.getByRole('textbox', { name: 'Lien https://' })
+  await expect(champ).toHaveValue(/\/api\/public\/calendar\/[A-Za-z0-9_-]{43}\.ics$/)
+  const lien = await champ.inputValue()
+  await expect(page.getByRole('textbox', { name: 'Lien webcal://' })).toHaveValue(lien.replace(/^https?:\/\//, 'webcal://'))
 
-  //     The list of everything upcoming, next to the grid, knows it too: choosing it brings the grid back to its day.
-  await page.getByRole('complementary', { name: 'À venir' }).getByRole('button', { name: new RegExp(oeuvre) }).click()
-  await expect(page.getByRole('heading', { level: 3, name: jour })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Tout le mois' })).toBeVisible()
+  //     A fresh context: no cookie, as an agenda app reads it.
+  const agenda = await playwright.request.newContext()
+  const flux = await agenda.get(lien)
+  expect(flux.status()).toBe(200)
+  expect(flux.headers()['content-type']).toContain('text/calendar')
+  //     Long lines are folded (RFC 5545): unfold before reading the title.
+  expect((await flux.text()).replace(/\r\n[ \t]/g, '')).toContain(`SUMMARY:${oeuvre}`)
 
-  //     The previous month does not show it, and says so.
-  await page.getByRole('button', { name: 'Mois précédent' }).click()
-  await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Nouveau lien' }).click()
+  await expect(champ).not.toHaveValue(lien)
+  expect((await agenda.get(lien)).status()).toBe(404)
+  await agenda.dispose()
 
   // --- 4. Découvrir announces it among the next releases, and "Tout voir" brings back here
   await page.goto('/discover')

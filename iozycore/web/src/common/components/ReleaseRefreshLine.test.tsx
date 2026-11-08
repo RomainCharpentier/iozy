@@ -103,12 +103,12 @@ describe('the release refresh line', () => {
     )
     render(<ReleaseRefreshLine />, { wrapper: enrobage })
 
+    // One line: the next automatic pass closes the same sentence.
     expect(
       await screen.findByText(
-        "Les sources de sorties n'ont pas encore répondu · une source ne répond pas : dates de la dernière lecture · 3 séries restent à relire",
+        "Les sources de sorties n'ont pas encore répondu · une source ne répond pas : dates de la dernière lecture · 3 séries restent à relire · prochaine mise à jour automatique demain à 04:30",
       ),
     ).toBeInTheDocument()
-    expect(screen.getByText('Prochaine mise à jour automatique demain à 04:30')).toBeInTheDocument()
     expect(screen.queryByText(/Sorties mises à jour/)).not.toBeInTheDocument()
   })
 })

@@ -1,0 +1,166 @@
+import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { CalendarPlus, Check, Copy, RefreshCw, X } from 'lucide-react'
+import { revokeCalendarSubscription, subscribeToCalendar } from '@/common/api/calendar'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
+import type { CalendarSubscriptionDto } from '@/common/types/api'
+import { liensAbonnement } from './releaseCalendar'
+
+/**
+ * "S'abonner dans mon agenda" (lot 215): replaces the .ics file of before.
+ * A file was a copy, frozen the day it was saved; a subscription is read
+ * again by the agenda app, so a moved release moves there too.
+ *
+ * <p>The link is secret: whoever holds it reads the releases, nothing else.
+ * "Nouveau lien" revokes it and draws another one - the agendas that used the
+ * old one stop receiving releases, so it asks once more before acting. Once the
+ * old link is revoked it leaves the screen at once: if drawing the new one
+ * fails, nothing dead is left to copy, and "Réessayer" asks again.
+ */
+export function AbonnementAgenda() {
+  const [ouvert, setOuvert] = useState(false)
+  const [copie, setCopie] = useState<string | null>(null)
+
+  const [confirmation, setConfirmation] = useState(false)
+  const [lien, setLien] = useState<CalendarSubscriptionDto | null>(null)
+  const abonnement = useMutation({ mutationFn: subscribeToCalendar, onSuccess: setLien })
+  const renouveler = useMutation({
+    mutationFn: async () => {
+      await revokeCalendarSubscription()
+      // The old link is dead from here on: never leave it on screen.
+      setLien(null)
+      return subscribeToCalendar()
+    },
+    onSuccess: setLien,
+  })
+
+  function ouvrir() {
+    setOuvert(true)
+    if (!lien && !abonnement.isPending) abonnement.mutate()
+  }
+
+  async function copier(texte: string, quoi: string) {
+    try {
+      await navigator.clipboard.writeText(texte)
+      setCopie(quoi)
+      setTimeout(() => setCopie(null), 2000)
+    } catch {
+      // Refused outside a secure context: the link stays shown and selectable,
+      // no copy is announced that did not take place.
+    }
+  }
+
+  if (!ouvert) {
+    return (
+      <button type="button" onClick={ouvrir} className="btn-secondaire flex items-center gap-2 self-start">
+        <CalendarPlus size={16} aria-hidden="true" />
+        S'abonner dans mon agenda
+      </button>
+    )
+  }
+
+  const liens = lien ? liensAbonnement(lien.feedPath, window.location.origin) : null
+  const erreur = abonnement.error ?? renouveler.error
+  const enCours = abonnement.isPending || renouveler.isPending
+
+  function reessayer() {
+    if (lien) {
+      // The revoke itself failed: the shown link still works, try the renewal again.
+      renouveler.mutate()
+    } else {
+      renouveler.reset()
+      abonnement.mutate()
+    }
+  }
+
+  function couperLAncien() {
+    setConfirmation(false)
+    renouveler.mutate()
+  }
+
+  return (
+    <section aria-labelledby="abonnement-titre" className="iozy-verre flex flex-col gap-3 rounded-[20px] p-4 md:max-w-xl">
+      <div className="flex items-start justify-between gap-3">
+        <h2 id="abonnement-titre" className="font-display text-lg font-bold tracking-[-0.02em] text-textPrimary">
+          S'abonner dans mon agenda
+        </h2>
+        <button
+          type="button"
+          onClick={() => setOuvert(false)}
+          aria-label="Fermer"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textDim"
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
+      </div>
+
+      {erreur && !enCours && (
+        <>
+          <ErrorBanner message={erreur.message} />
+          <button type="button" onClick={reessayer} className="btn-secondaire flex items-center gap-2 self-start">
+            <RefreshCw size={16} aria-hidden="true" />
+            Réessayer
+          </button>
+        </>
+      )}
+      {!liens && (enCours || !erreur) && <p className="text-sm text-textDim">Création du lien…</p>}
+
+      {liens && (
+        <>
+          <LigneLien libelle="Lien webcal://" valeur={liens.webcal} copie={copie === 'webcal'} onCopier={() => copier(liens.webcal, 'webcal')} />
+          <LigneLien libelle="Lien https://" valeur={liens.https} copie={copie === 'https'} onCopier={() => copier(liens.https, 'https')} />
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-textDim">
+            <li>Google Agenda : « Autres agendas », « + », « À partir de l'URL », puis colle le lien https://.</li>
+            <li>Apple Calendrier : ouvre le lien webcal:// sur ton iPhone ou ton Mac, puis « S'abonner ».</li>
+            <li>Ton agenda relit le lien de lui-même : une date qui change change aussi chez lui, à son rythme.</li>
+          </ul>
+          <p className="text-sm text-textDim">
+            Ce lien est secret : qui l'a voit tes sorties. Un nouveau lien coupe l'ancien.
+          </p>
+          {confirmation ? (
+            <div role="group" aria-label="Couper l'ancien lien ?" className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-textPrimary">Couper l'ancien lien ?</p>
+              <button type="button" onClick={couperLAncien} className="btn-primaire">
+                Oui, couper l'ancien lien
+              </button>
+              <button type="button" onClick={() => setConfirmation(false)} className="btn-secondaire">
+                Annuler
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmation(true)}
+              disabled={enCours}
+              className="btn-secondaire flex items-center gap-2 self-start"
+            >
+              <RefreshCw size={16} aria-hidden="true" />
+              Nouveau lien
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
+function LigneLien({ libelle, valeur, copie, onCopier }: { libelle: string; valeur: string; copie: boolean; onCopier: () => void }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-semibold text-textDim">{libelle}</span>
+      <div className="flex items-center gap-2">
+        <input
+          readOnly
+          value={valeur}
+          aria-label={libelle}
+          onFocus={(e) => e.currentTarget.select()}
+          className="min-h-11 min-w-0 flex-1 rounded-xl bg-surface px-3 text-sm text-textPrimary"
+        />
+        <button type="button" onClick={onCopier} className="btn-secondaire flex shrink-0 items-center gap-1.5" aria-label={`Copier le ${libelle}`}>
+          {copie ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+          {copie ? 'Copié' : 'Copier'}
+        </button>
+      </div>
+    </div>
+  )
+}
