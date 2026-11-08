@@ -383,12 +383,19 @@ export interface LatestReleasesDto {
   entries: ReleaseEntryDto[]
 }
 
-/** One pass of the refresh of the release dates (the night job, or a manual launch). */
+/**
+ * How a pass of the release refresh ended: every provider answered (COMPLETED), one was
+ * silent but some series were re-read (PARTIAL) or none (PROVIDER_SILENT), a source threw
+ * (FAILED), the night slot found a pass running (SKIPPED), or it ran too long (TIMED_OUT).
+ */
+export type ReleaseRefreshOutcome = 'COMPLETED' | 'PARTIAL' | 'PROVIDER_SILENT' | 'FAILED' | 'SKIPPED' | 'TIMED_OUT'
+
+/** One pass of the refresh of the release dates (the night job, the catch-up after a missed night, or a manual launch). */
 export interface ReleaseRefreshRunDto {
   /** ISO instants. */
   startedAt: string
   finishedAt: string
-  origin: 'SCHEDULED' | 'MANUAL'
+  origin: 'SCHEDULED' | 'CATCH_UP' | 'MANUAL'
   /** Series that were due for a re-read at the start of the pass. */
   stale: number
   refreshed: number
@@ -398,13 +405,23 @@ export interface ReleaseRefreshRunDto {
   stoppedOnUnavailableProvider: boolean
   /** What went wrong when the pass failed, otherwise null. */
   error: string | null
+  outcome: ReleaseRefreshOutcome
 }
 
 export interface ReleaseRefreshStatusDto {
   /** False when no universe can refresh its dates: nothing to launch. */
   available: boolean
   running: boolean
+  /** The pass that ended last, or null if there never was one. */
   lastRun: ReleaseRefreshRunDto | null
+  /** ISO instant: when the last pass that moved the calendar forward ended, or null if none did. */
+  lastSuccessAt: string | null
+  /** ISO instant: when the next pass should start on its own, or null when nothing runs on its own. */
+  nextPlannedAt: string | null
+  /** The last pass found a provider silent: the calendar shows what was read before. */
+  sourceSilent: boolean
+  /** The night pass and the catch-up are on. */
+  scheduled: boolean
 }
 
 export interface ReleaseCalendarDto {

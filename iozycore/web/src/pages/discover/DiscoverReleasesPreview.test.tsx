@@ -52,12 +52,22 @@ function passe(surcharge: Partial<ReleaseRefreshRunDto> = {}): ReleaseRefreshRun
     remaining: 0,
     stoppedOnUnavailableProvider: false,
     error: null,
+    outcome: 'COMPLETED',
     ...surcharge,
   }
 }
 
 function etat(surcharge: Partial<ReleaseRefreshStatusDto> = {}): ReleaseRefreshStatusDto {
-  return { available: true, running: false, lastRun: passe(), ...surcharge }
+  return {
+    available: true,
+    running: false,
+    lastRun: passe(),
+    lastSuccessAt: '2026-10-04T11:00:00Z',
+    nextPlannedAt: null,
+    sourceSilent: false,
+    scheduled: true,
+    ...surcharge,
+  }
 }
 
 function enrobage({ children }: { children: ReactNode }) {
@@ -131,15 +141,20 @@ describe('DiscoverReleasesPreview - the refresh of the dates', () => {
 
   it('says how many series are still waiting, and when a source went silent or the pass failed', async () => {
     insights.getReleaseRefreshStatus.mockResolvedValue(
-      etat({ lastRun: passe({ stale: 25, refreshed: 10, remaining: 15, stoppedOnUnavailableProvider: true }) }),
+      etat({
+        lastRun: passe({ stale: 25, refreshed: 10, remaining: 15, stoppedOnUnavailableProvider: true, outcome: 'PARTIAL' }),
+        sourceSilent: true,
+      }),
     )
     const { unmount } = render(<DiscoverReleasesPreview />, { wrapper: enrobage })
     expect(
-      await screen.findByText('Sorties mises à jour il y a 3 jours · interrompue : une source ne répond plus · 15 séries restent à relire'),
+      await screen.findByText(
+        'Sorties mises à jour il y a 3 jours · une source ne répond pas : dates de la dernière lecture · 15 séries restent à relire',
+      ),
     ).toBeInTheDocument()
     unmount()
 
-    insights.getReleaseRefreshStatus.mockResolvedValue(etat({ lastRun: passe({ error: 'boom', remaining: 1 }) }))
+    insights.getReleaseRefreshStatus.mockResolvedValue(etat({ lastRun: passe({ error: 'boom', remaining: 1, outcome: 'FAILED' }) }))
     render(<DiscoverReleasesPreview />, { wrapper: enrobage })
     expect(
       await screen.findByText('Sorties mises à jour il y a 3 jours · la dernière mise à jour a échoué · 1 série reste à relire'),

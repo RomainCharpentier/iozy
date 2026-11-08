@@ -155,3 +155,19 @@ export function libelleIlYA(isoInstant: string, now: Date): string {
   const jours = Math.floor(heures / 24)
   return jours === 1 ? 'hier' : `il y a ${jours} jours`
 }
+
+/**
+ * "dans quelques minutes", "dans 20 min", "aujourd'hui à 16:30", "demain à 04:30",
+ * "le 12 nov. à 04:30" - when an instant to come will be, in local time.
+ */
+export function libelleProchainement(isoInstant: string, now: Date): string {
+  const quand = new Date(isoInstant)
+  const minutes = Math.floor((quand.getTime() - now.getTime()) / 60_000)
+  if (minutes < 1) return 'dans quelques minutes'
+  if (minutes < 60) return `dans ${minutes} min`
+  const heure = quand.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  if (isoLocal(quand) === isoLocal(now)) return `aujourd'hui à ${heure}`
+  const demain = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  if (isoLocal(quand) === isoLocal(demain)) return `demain à ${heure}`
+  return `le ${quand.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} à ${heure}`
+}

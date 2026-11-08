@@ -1,18 +1,42 @@
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { useAuth } from '@/common/hooks/useAuth'
 import { useNow } from '@/common/hooks/useNow'
-import { libelleIlYA } from '@/common/lib/releaseDate'
-import type { ReleaseRefreshRunDto } from '@/common/types/api'
+import { libelleIlYA, libelleProchainement } from '@/common/lib/releaseDate'
+import type { ReleaseRefreshOutcome, ReleaseRefreshStatusDto } from '@/common/types/api'
 import { useReleaseRefresh } from '@/common/hooks/useReleaseRefresh'
 
-/** What the last pass left behind, said in one line - nothing is promised that the pass did not do. */
-function resume(run: ReleaseRefreshRunDto | null, now: Date): string {
+/** What the last pass did when it did not simply re-read everything; null when there is nothing to add. */
+function issue(outcome: ReleaseRefreshOutcome, sourceSilent: boolean): string | null {
+  switch (outcome) {
+    case 'FAILED':
+      return 'la dernière mise à jour a échoué'
+    case 'TIMED_OUT':
+      return 'la dernière mise à jour a été abandonnée, trop longue'
+    case 'SKIPPED':
+      return 'la mise à jour de nuit a été sautée : une autre tournait déjà'
+    default:
+      // The fallback is said: a silent source leaves the dates of the last reading on screen.
+      return sourceSilent ? 'une source ne répond pas : dates de la dernière lecture' : null
+  }
+}
+
+/**
+ * What the passes left behind, said in one line - nothing is promised that a pass did not do.
+ * "mises à jour il y a" counts from the last pass that moved the calendar forward, not
+ * from the last pass: a skipped or silent pass updated nothing.
+ */
+function resume(status: ReleaseRefreshStatusDto, now: Date): string {
+  const run = status.lastRun
   // "jamais été mises à jour" sat above a listed release (a date typed on a
   // detail page): it is the SOURCES that were never read, not the calendar.
   if (!run) return "Les sources de sorties n'ont pas encore été consultées."
-  const parties = [`Sorties mises à jour ${libelleIlYA(run.startedAt, now)}`]
-  if (run.error) parties.push('la dernière mise à jour a échoué')
-  else if (run.stoppedOnUnavailableProvider) parties.push('interrompue : une source ne répond plus')
+  const parties = [
+    status.lastSuccessAt
+      ? `Sorties mises à jour ${libelleIlYA(status.lastSuccessAt, now)}`
+      : "Les sources de sorties n'ont pas encore répondu",
+  ]
+  const detail = issue(run.outcome, status.sourceSilent)
+  if (detail) parties.push(detail)
   if (run.remaining > 0) parties.push(`${run.remaining} ${run.remaining === 1 ? 'série reste' : 'séries restent'} à relire`)
   return parties.join(' · ')
 }
@@ -35,9 +59,16 @@ export function ReleaseRefreshLine() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <p className="min-w-0 text-sm text-textDim" role="status">
-          {enCours ? 'Mise à jour des sorties en cours…' : resume(status.lastRun, now)}
-        </p>
+        <div className="flex min-w-0 flex-col">
+          <p className="text-sm text-textDim" role="status">
+            {enCours ? 'Mise à jour des sorties en cours…' : resume(status, now)}
+          </p>
+          {!enCours && status.nextPlannedAt && (
+            <p className="text-xs text-textDim">
+              Prochaine mise à jour automatique {libelleProchainement(status.nextPlannedAt, now)}
+            </p>
+          )}
+        </div>
         {!estInvite && (
           <button
             type="button"
