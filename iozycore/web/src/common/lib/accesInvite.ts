@@ -61,6 +61,8 @@ const RESERVEES_AUX_COMPTES = [
   '/recap',
   '/suggestions',
   '/wishlist',
+  // What to buy, this month's spending and the budget (batch 216).
+  '/to-buy',
 ]
 
 /**

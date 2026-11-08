@@ -53,11 +53,13 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     cle: 'acheter',
-    to: '/purchase-analysis',
+    to: '/to-buy',
     label: 'À acheter',
     labelCourt: 'À acheter',
     icon: ShoppingBag,
-    activeWhen: (p) => p.startsWith('/purchase-analysis'),
+    // The listing analysis opens in a side panel of the page, and keeps its
+    // own address too: both are "to buy".
+    activeWhen: (p) => p.startsWith('/to-buy') || p.startsWith('/purchase-analysis'),
   },
   {
     cle: 'partager',

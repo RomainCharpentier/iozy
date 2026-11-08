@@ -70,6 +70,12 @@ export const queryKeys = {
   entityTypes: {
     all: ['entityTypes'] as const,
   },
+  /** The to-buy page (batch 216): the list, the month spent and the budget. */
+  purchases: {
+    all: ['purchases'] as const,
+    toBuy: ['purchases', 'toBuy'] as const,
+    month: ['purchases', 'month'] as const,
+  },
   purchaseAnalysis: {
     history: ['purchaseAnalysis', 'history'] as const,
     detail: (id: string) => ['purchaseAnalysis', 'history', id] as const,

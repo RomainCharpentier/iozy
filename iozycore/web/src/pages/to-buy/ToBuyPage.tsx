@@ -1,0 +1,118 @@
+import { Suspense } from 'react'
+import { Link, useNavigate, useOutlet } from 'react-router-dom'
+import { ScanSearch, ShoppingBag } from 'lucide-react'
+import { useAcheter, cleLigne } from './useAcheter'
+import { BlocBudget } from './BlocBudget'
+import { LigneAAcheter } from './LigneAAcheter'
+import { PanneauLateral } from './PanneauLateral'
+import { detailDepense, libelleMoisDepense } from './libelles'
+import { usePleinCadre } from '@/common/components/pleinCadre/usePleinCadre'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
+import { EtatVide } from '@/common/components/EtatVide'
+import { Squelette, SqueletteListe } from '@/common/components/Squelette'
+import { formaterEuros } from '@/common/lib/formats'
+
+/**
+ * "À acheter" (lot 216): the third goal of the owner, managing purchases.
+ *
+ * <h2>Three things, one screen</h2>
+ * <ul>
+ *   <li>the month spent, in a huge number: the prices of the copies bought
+ *       this month, by purchase date (see MonthSpending on the server);</li>
+ *   <li>the optional budget, a ring in the vivid tone when it is set;</li>
+ *   <li>ONE list of what to buy: releases ahead, what completes an ongoing
+ *       work, wishes - soonest release first, then the work closest to
+ *       complete. "Je l'ai" acts in place, at once, with "Annuler".</li>
+ * </ul>
+ *
+ * <h2>The listing analysis opens beside it</h2>
+ * "Analyser une annonce" opens the existing analysis in a side panel, at
+ * `/to-buy/analyse` (a child route: the router renders it in the outlet,
+ * and this page draws the panel). `/purchase-analysis` keeps working on its
+ * own.
+ *
+ * <h2>The backdrop</h2>
+ * The cover of the first thing to buy: what the page is about right now.
+ */
+export function ToBuyPage() {
+  const { liste, mois, jeLAi, budget } = useAcheter()
+  const panneau = useOutlet()
+  const navigate = useNavigate()
+  const lignes = liste.data ?? []
+  const premiere = lignes[0]
+  usePleinCadre(premiere ? (premiere.elements[0]?.coverImageUrl ?? premiere.coverImageUrl) : null)
+
+  const nombre = lignes.length
+  return (
+    <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-7">
+      <section aria-labelledby="titre-depense" className="flex flex-col gap-3 lg:pt-5">
+        <h1 id="titre-depense" className="iozy-teinte text-[13px] font-semibold tracking-[0.16em] text-accentText uppercase">
+          {mois.data ? libelleMoisDepense(mois.data.month) : 'Dépensé ce mois-ci'}
+        </h1>
+        {mois.isPending ? (
+          <Squelette lignes={2} />
+        ) : mois.isError ? (
+          <ErrorBanner message={mois.error.message} />
+        ) : (
+          <>
+            <p className="font-display text-[clamp(56px,14vw,104px)] leading-[0.85] font-bold tracking-[-0.045em] text-textPrimary">
+              {formaterEuros(mois.data.spent)}
+            </p>
+            <p className="text-base text-textDim">{detailDepense(mois.data.pricedCount, mois.data.unpricedCount)}</p>
+            <div className="mt-3">
+              <BlocBudget
+                depense={mois.data.spent}
+                budget={mois.data.monthlyBudget}
+                enregistrement={budget.isPending}
+                onEnregistrer={(montant) => budget.mutate(montant)}
+              />
+            </div>
+          </>
+        )}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link to="analyse" className="btn-secondaire">
+            <ScanSearch size={16} />
+            Analyser une annonce
+          </Link>
+        </div>
+      </section>
+
+      <section aria-labelledby="titre-liste" className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-3 px-1">
+          <h2 id="titre-liste" className="font-display text-xl font-bold text-textPrimary">
+            À acheter
+          </h2>
+          {nombre > 0 && (
+            <p className="text-sm text-textDim">
+              {nombre} ligne{nombre > 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+        {liste.isPending ? (
+          <SqueletteListe lignes={5} />
+        ) : liste.isError ? (
+          <ErrorBanner message={liste.error.message} />
+        ) : nombre === 0 ? (
+          <EtatVide
+            icone={ShoppingBag}
+            titre="Rien à acheter pour l’instant."
+            detail="Tes envies, ce qui manque à tes séries en cours et les sorties à venir arriveront ici."
+          />
+        ) : (
+          <ul className="iozy-verre iozy-verre--fort flex flex-col rounded-[28px] px-4 py-1.5 sm:px-6">
+            {lignes.map((ligne) => (
+              <LigneAAcheter key={cleLigne(ligne)} ligne={ligne} onJeLAi={() => jeLAi.mutate(ligne)} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {panneau && (
+        <PanneauLateral titre="Analyser une annonce" onFermer={() => navigate('/to-buy')}>
+          {/* The analysis loads on demand: only the panel waits, not the page. */}
+          <Suspense fallback={<Squelette lignes={6} />}>{panneau}</Suspense>
+        </PanneauLateral>
+      )}
+    </div>
+  )
+}
