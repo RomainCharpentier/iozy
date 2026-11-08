@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useOutlet } from 'react-router-dom'
 import { ScanSearch, ShoppingBag } from 'lucide-react'
 import { useAcheter, cleLigne } from './useAcheter'
@@ -11,6 +12,8 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EtatVide } from '@/common/components/EtatVide'
 import { Squelette, SqueletteListe } from '@/common/components/Squelette'
 import { formaterEuros } from '@/common/lib/formats'
+import { listEntityTypes } from '@/common/api/entityTypes'
+import { queryKeys } from '@/common/lib/queryKeys'
 
 /**
  * "À acheter" (lot 216): the third goal of the owner, managing purchases.
@@ -38,6 +41,7 @@ export function ToBuyPage() {
   const { liste, mois, jeLAi, budget } = useAcheter()
   const panneau = useOutlet()
   const navigate = useNavigate()
+  const types = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const lignes = liste.data ?? []
   const premiere = lignes[0]
   usePleinCadre(premiere ? (premiere.elements[0]?.coverImageUrl ?? premiere.coverImageUrl) : null)
@@ -45,17 +49,19 @@ export function ToBuyPage() {
   const nombre = lignes.length
   return (
     <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-7">
-      <section aria-labelledby="titre-depense" className="flex flex-col gap-3 lg:pt-5">
-        <h1 id="titre-depense" className="iozy-teinte text-[13px] font-semibold tracking-[0.16em] text-accentText uppercase">
+      {/* The page name for screen readers; the eye reads it from the nav and the list title. */}
+      <h1 className="sr-only lg:col-span-2">À acheter</h1>
+      <section aria-labelledby="titre-depense" className="flex min-w-0 flex-col gap-3 lg:pt-5">
+        <h2 id="titre-depense" className="iozy-teinte text-[13px] font-semibold tracking-[0.16em] text-accentText uppercase">
           {mois.data ? libelleMoisDepense(mois.data.month) : 'Dépensé ce mois-ci'}
-        </h1>
+        </h2>
         {mois.isPending ? (
           <Squelette lignes={2} />
         ) : mois.isError ? (
           <ErrorBanner message={mois.error.message} />
         ) : (
           <>
-            <p className="font-display text-[clamp(56px,14vw,104px)] leading-[0.85] font-bold tracking-[-0.045em] text-textPrimary">
+            <p className="font-display text-[clamp(40px,13vw,104px)] leading-[0.85] font-bold tracking-[-0.045em] [overflow-wrap:anywhere] text-textPrimary">
               {formaterEuros(mois.data.spent)}
             </p>
             <p className="text-base text-textDim">{detailDepense(mois.data.pricedCount, mois.data.unpricedCount)}</p>
@@ -64,7 +70,7 @@ export function ToBuyPage() {
                 depense={mois.data.spent}
                 budget={mois.data.monthlyBudget}
                 enregistrement={budget.isPending}
-                onEnregistrer={(montant) => budget.mutate(montant)}
+                onEnregistrer={(montant) => budget.mutateAsync(montant)}
               />
             </div>
           </>
@@ -77,10 +83,10 @@ export function ToBuyPage() {
         </div>
       </section>
 
-      <section aria-labelledby="titre-liste" className="flex flex-col gap-3">
+      <section aria-labelledby="titre-liste" className="flex min-w-0 flex-col gap-3">
         <div className="flex items-baseline justify-between gap-3 px-1">
           <h2 id="titre-liste" className="font-display text-xl font-bold text-textPrimary">
-            À acheter
+            Ta liste
           </h2>
           {nombre > 0 && (
             <p className="text-sm text-textDim">
@@ -96,12 +102,17 @@ export function ToBuyPage() {
           <EtatVide
             icone={ShoppingBag}
             titre="Rien à acheter pour l’instant."
-            detail="Tes envies, ce qui manque à tes séries en cours et les sorties à venir arriveront ici."
+            detail="Tes envies, ce qui manque à tes collections en cours et les sorties à venir arriveront ici."
           />
         ) : (
           <ul className="iozy-verre iozy-verre--fort flex flex-col rounded-[28px] px-4 py-1.5 sm:px-6">
             {lignes.map((ligne) => (
-              <LigneAAcheter key={cleLigne(ligne)} ligne={ligne} onJeLAi={() => jeLAi.mutate(ligne)} />
+              <LigneAAcheter
+                key={cleLigne(ligne)}
+                ligne={ligne}
+                type={types.data?.find((t) => t.id === ligne.entityTypeId)}
+                onJeLAi={() => jeLAi.mutate(ligne)}
+              />
             ))}
           </ul>
         )}

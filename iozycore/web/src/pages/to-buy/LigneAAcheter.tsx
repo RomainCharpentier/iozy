@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Jaquette } from '@/common/components/Jaquette'
-import type { ToBuyLineDto } from '@/common/types/api'
+import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
+import type { EntityTypeDto, ToBuyLineDto } from '@/common/types/api'
 import { nomJeLAi, sousTitreLigne, titreLigne } from './libelles'
 
 /**
@@ -8,9 +9,21 @@ import { nomJeLAi, sousTitreLigne, titreLigne } from './libelles'
  * No state label under it: the line itself is what is missing, and its
  * outline in the vivid tone says so (lot 210).
  */
-export function LigneAAcheter({ ligne, onJeLAi }: { ligne: ToBuyLineDto; onJeLAi: () => void }) {
+export function LigneAAcheter({
+  ligne,
+  type,
+  onJeLAi,
+}: {
+  ligne: ToBuyLineDto
+  /** The type of the work: its `aspectKey` gives the shape of the cover. Unknown while loading. */
+  type: EntityTypeDto | undefined
+  onJeLAi: () => void
+}) {
   const couverture = ligne.elements[0]?.coverImageUrl ?? ligne.coverImageUrl
   const titre = titreLigne(ligne)
+  // Same height for every line; the width follows the shape of the type
+  // (a book is tall, a board game box is square).
+  const forme = `h-[74px] max-w-[132px] shrink-0 rounded-lg ${getEntityTypeVisual(type).aspectClassName}`
   return (
     <li className="flex items-center gap-3 border-b border-ligneVerre py-2.5 last:border-b-0 sm:gap-4">
       <Link
@@ -20,11 +33,11 @@ export function LigneAAcheter({ ligne, onJeLAi }: { ligne: ToBuyLineDto; onJeLAi
       >
         <Jaquette
           src={couverture}
-          className="h-[74px] w-[52px] shrink-0 rounded-lg object-cover"
+          className={`${forme} object-cover`}
           repli={
             <span
               aria-hidden="true"
-              className="flex h-[74px] w-[52px] shrink-0 items-center justify-center rounded-lg bg-surface2 font-display text-lg font-bold text-textDim"
+              className={`${forme} flex items-center justify-center bg-surface2 font-display text-lg font-bold text-textDim`}
             >
               {ligne.title.charAt(0).toUpperCase()}
             </span>

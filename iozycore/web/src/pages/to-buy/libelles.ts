@@ -37,11 +37,16 @@ function oeuvreEntiere(ligne: ToBuyLineDto): boolean {
   return ligne.elements.length === 1 && ligne.elements[0].key === 'work'
 }
 
-/** "Vinland Saga, tome 15" - the title of the line. */
+/**
+ * "Vinland Saga, tome 15" - the title of the line. Only the "Tome"/"Tomes"
+ * this page writes itself goes lower case after the comma; a label that
+ * comes from the catalog ("Switch", "Marins") is kept as it is written.
+ */
 export function titreLigne(ligne: ToBuyLineDto): string {
   if (oeuvreEntiere(ligne)) return ligne.title
   const quoi = libelleElements(ligne.elements)
-  return `${ligne.title}, ${quoi.charAt(0).toLowerCase()}${quoi.slice(1)}`
+  const queDesTomes = ligne.elements.every((e) => TOME.test(e.label) && e.number != null)
+  return `${ligne.title}, ${queDesTomes ? quoi.replace(/^Tome/, 'tome') : quoi}`
 }
 
 /** "vendredi 13 novembre", "en novembre 2026". */
@@ -59,7 +64,7 @@ export function libelleSortie(date: string): string {
 export function sousTitreLigne(ligne: ToBuyLineDto): string {
   if (ligne.kind === 'UPCOMING' && ligne.releaseDate) {
     const voulu = ligne.elements[0]?.state === 'WANTED'
-    return `${libelleSortie(ligne.releaseDate)} · ${voulu ? 'dans tes envies' : 'ta série en cours'}`
+    return `${libelleSortie(ligne.releaseDate)} · ${voulu ? 'dans tes envies' : 'à suivre dans ta collection'}`
   }
   if (ligne.kind === 'WISH') return 'dans tes envies'
   const n = ligne.elements.length
@@ -97,4 +102,13 @@ export function etatBudget(depense: number, budget: number): { ligne: string; re
     reste: ecart >= 0 ? `Il te reste ${formaterEuros(ecart)}` : `Dépassé de ${formaterEuros(-ecart)}`,
     part,
   }
+}
+
+/** The amount typed, in cents as the server keeps it; null when it is no budget (0, rounds to 0, too high). */
+export function montantSaisi(saisie: string): number | null {
+  if (saisie.trim() === '') return null
+  const montant = Number(saisie.replace(',', '.').replace(/\s/g, ''))
+  if (!Number.isFinite(montant)) return null
+  const centimes = Math.round(montant * 100) / 100
+  return centimes > 0 && centimes <= 100000 ? centimes : null
 }

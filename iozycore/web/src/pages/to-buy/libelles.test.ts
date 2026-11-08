@@ -41,9 +41,16 @@ describe('the words of the to-buy page', () => {
     expect(titreLigne(entiere)).toBe('Catan')
   })
 
+  it('keeps a label from the catalog as it is written', () => {
+    const switchVersion = { ...tome(0), key: 'variant-s', label: 'Switch', number: null }
+    expect(titreLigne(ligne({ title: 'Mario Kart', elements: [switchVersion] }))).toBe('Mario Kart, Switch')
+    const marins = { ...tome(0), key: 'variant-a', label: 'Marins', number: null }
+    expect(titreLigne(ligne({ title: 'Catan', elements: [marins, tome(2)] }))).toBe('Catan, Marins et Tome 2')
+  })
+
   it('says why the line is there', () => {
     const sortie = ligne({ kind: 'UPCOMING', releaseDate: '2026-11-13', releasePrecision: 'DAY', elements: [tome(15, 'UPCOMING')] })
-    expect(sousTitreLigne(sortie)).toBe('vendredi 13 novembre · ta série en cours')
+    expect(sousTitreLigne(sortie)).toBe('vendredi 13 novembre · à suivre dans ta collection')
     const precommande = ligne({ kind: 'UPCOMING', releaseDate: '2026-12', releasePrecision: 'MONTH', elements: [tome(4, 'WANTED')] })
     expect(sousTitreLigne(precommande)).toBe('en décembre 2026 · dans tes envies')
     expect(sousTitreLigne(ligne({ kind: 'WISH', elements: [tome(3, 'WANTED')] }))).toBe('dans tes envies')

@@ -28,6 +28,7 @@ const envies = vi.hoisted(() => ({ addToWishlist: vi.fn() }))
 vi.mock('@/common/api/purchases', () => api)
 vi.mock('@/common/api/ownerships', () => possessions)
 vi.mock('@/common/api/wishlist', () => envies)
+vi.mock('@/common/api/entityTypes', () => ({ listEntityTypes: vi.fn().mockResolvedValue([]) }))
 
 const messages: { texte: string; action?: ToastAction }[] = []
 
@@ -110,6 +111,45 @@ describe('the to-buy page', () => {
     await userEvent.type(screen.getByLabelText('Budget du mois (€)'), '120')
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
     await waitFor(() => expect(api.setBudget).toHaveBeenCalledWith(120))
+  })
+
+  it('names the page "À acheter" as its main heading', async () => {
+    afficher()
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'À acheter' })).toBeInTheDocument()
+  })
+
+  it('refuses a budget that rounds to zero cents', async () => {
+    api.fetchMonthSpending.mockResolvedValue(mois({ monthlyBudget: null }))
+    afficher()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Fixer un budget' }))
+    await userEvent.type(screen.getByLabelText('Budget du mois (€)'), '0,004')
+    expect(screen.getByText('Un montant positif, jusqu’à 100 000 €.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeDisabled()
+    expect(api.setBudget).not.toHaveBeenCalled()
+  })
+
+  it('moves the focus into the budget field, and back to its button on "Annuler"', async () => {
+    api.fetchMonthSpending.mockResolvedValue(mois({ monthlyBudget: null }))
+    afficher()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Fixer un budget' }))
+    expect(screen.getByLabelText('Budget du mois (€)')).toHaveFocus()
+    await userEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+    expect(screen.getByRole('button', { name: 'Fixer un budget' })).toHaveFocus()
+  })
+
+  it('keeps the amount typed when the budget is refused', async () => {
+    api.fetchMonthSpending.mockResolvedValue(mois({ monthlyBudget: null }))
+    api.setBudget.mockRejectedValue(new Error('Le serveur ne répond pas'))
+    afficher()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Fixer un budget' }))
+    await userEvent.type(screen.getByLabelText('Budget du mois (€)'), '120')
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(messages.at(-1)?.texte).toBe("Impossible d'enregistrer le budget : Le serveur ne répond pas"))
+    expect(screen.getByLabelText('Budget du mois (€)')).toHaveValue('120')
   })
 
   it('lists what to buy, each line with what it is and why', async () => {
