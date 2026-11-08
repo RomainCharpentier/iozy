@@ -60,6 +60,6 @@ test('fill in the number of volumes of an edition, and see "X/Y" appear', async 
   //     server in a single call for the whole collection; if its cache is not
   //     invalidated, this screen shows 2/18 while the other one still counts
   //     volumes with no total.
-  await page.goto('/')
+  await page.goto('/collection')
   await expect(page.getByRole('button', { name: new RegExp(`${titre}.*2/18 tomes`) })).toBeVisible()
 })

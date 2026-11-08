@@ -20,7 +20,7 @@ test('without an account, nothing of the collection is displayed', async ({ page
   await expect(page.getByRole('heading', { name: 'Se connecter' })).toBeVisible()
   // No navigation, no counter, no work title: the door replaces the screen,
   // it is not laid over it.
-  await expect(page.getByRole('heading', { name: 'Ma collection' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Ta semaine' })).toHaveCount(0)
 })
 
 test('one more account requires the invitation code, and a wrong code is refused', async ({ page }) => {
@@ -37,7 +37,7 @@ test('one more account requires the invitation code, and a wrong code is refused
   await page.getByRole('button', { name: 'Créer mon compte' }).click()
 
   await expect(page.getByText("Code d'invitation invalide.")).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Ma collection' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Ta semaine' })).toHaveCount(0)
 })
 
 test('a wrong password does not say whether the address exists', async ({ page }) => {
@@ -55,7 +55,7 @@ test('a wrong password does not say whether the address exists', async ({ page }
   // The same message, word for word: telling them apart would offer an
   // account existence test to whoever has none.
   await expect(page.getByText('Adresse ou mot de passe incorrect.')).toHaveText(refusMotDePasse ?? '')
-  await expect(page.getByRole('heading', { name: 'Ma collection' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Ta semaine' })).toHaveCount(0)
 })
 
 test('logging in then logging out really closes', async ({ page }) => {
@@ -63,7 +63,7 @@ test('logging in then logging out really closes', async ({ page }) => {
   await page.getByLabel('Adresse e-mail').fill(COMPTE.email)
   await page.getByLabel('Mot de passe').fill(COMPTE.motDePasse)
   await page.getByRole('button', { name: 'Se connecter' }).click()
-  await expect(page.getByRole('heading', { name: 'Ma collection' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ta semaine' })).toBeVisible()
 
   // By the PATH, not by the URL: avatar ▸ Profil, where "Mon compte" is read
   // directly (batch 140: no more Paramètres subscreen), and the exit is in the
