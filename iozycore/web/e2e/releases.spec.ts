@@ -47,6 +47,8 @@ test('date a work on its detail page, then find it again in the calendar and on 
   //     The work is only owned, not followed: owning is enough to put it in the calendar.
 
   // --- 2. The date is entered with the rest of the detail page, in a single "Éditer"
+  //     (in the side panel since lot 213)
+  await page.getByRole('button', { name: 'Notes, tags et outils' }).click()
   await page.getByRole('button', { name: 'Éditer', exact: true }).click()
   await page.getByLabel('Date de sortie').fill(iso(SORTIE))
   await page.getByRole('button', { name: 'Enregistrer la fiche' }).click()

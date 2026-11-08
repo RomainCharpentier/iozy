@@ -60,20 +60,23 @@ test('visit without an account: the catalog, nothing personal, and no write', as
   await expect(pageVisiteur).toHaveURL(new RegExp(`/entity/${entityId}$`))
   await expect(pageVisiteur.getByRole('heading', { name: titre })).toBeVisible()
   // Volume 1 is the account's one. The visitor sees the three volumes of the
-  // edition on the shelf, neither owned nor MISSING: a visitor has no
-  // collection, so nothing can be missing from it. A spine is named by its
-  // number alone (an account's spine says "Tome 2, manquant").
+  // edition, neither owned nor MISSING: a visitor has no collection, so
+  // nothing can be missing from it - no count, no outline, no gesture.
   for (const numero of [1, 2, 3]) {
-    await expect(pageVisiteur.getByRole('button', { name: `Tome ${numero}`, exact: true })).toBeVisible()
+    await expect(pageVisiteur.getByText(`Tome ${numero}`, { exact: true })).toBeAttached()
   }
-  await expect(pageVisiteur.getByText(/manquant|possédé/i)).toHaveCount(0)
-  await expect(pageVisiteur.getByRole('radiogroup', { name: 'Filtrer les tomes' })).toHaveCount(0)
-  // The edition card says what the edition is, with no progress gauge.
+  await expect(pageVisiteur.getByText('3 au catalogue')).toBeVisible()
+  await expect(pageVisiteur.getByText(/manquant|possédé|manque/i)).toHaveCount(0)
+  await expect(pageVisiteur.getByRole('radiogroup', { name: 'Où j’en suis' })).toHaveCount(0)
+  // No gesture that a visitor could not finish: no "Je l'ai", no "Mettre de côté".
+  await expect(pageVisiteur.getByRole('button', { name: /je l'ai/i })).toHaveCount(0)
+  await expect(pageVisiteur.getByRole('button', { name: /de côté/ })).toHaveCount(0)
+
+  // The side panel says what the edition is, with no progress gauge, and no "Éditer".
+  await pageVisiteur.getByRole('button', { name: 'Notes, tags et outils' }).click()
   await expect(pageVisiteur.getByText('3 tomes')).toBeVisible()
-  // No gesture that a visitor could not finish: no "Je l'ai", no "Je le veux".
-  await expect(pageVisiteur.getByTitle("J'ai le tome 2")).toHaveCount(0)
-  await expect(pageVisiteur.getByTitle('Je veux le tome 2')).toHaveCount(0)
   await expect(pageVisiteur.getByRole('button', { name: 'Éditer' })).toHaveCount(0)
+  await pageVisiteur.getByRole('button', { name: 'Fermer le volet' }).click()
 
   // The help asks about the work, never about a collection.
   await pageVisiteur.getByRole('button', { name: 'Aide' }).click()

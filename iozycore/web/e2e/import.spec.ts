@@ -129,8 +129,8 @@ test('export one\'s collection, lose one\'s account, restore it', async ({ page,
   await apres.page.getByRole('button', { name: new RegExp(titre) }).click()
   await expect(apres.page.getByRole('heading', { name: titre })).toBeVisible()
   await expect(apres.page.getByText('2 / 4')).toBeVisible()
-  await expect(apres.page.getByRole('button', { name: 'Tome 2, possédé' })).toBeVisible()
-  await expect(apres.page.getByRole('button', { name: 'Tome 3, manquant' })).toBeVisible()
+  await expect(apres.page.getByRole('button', { name: 'Tome 2', exact: true })).toBeVisible()
+  await expect(apres.page.getByRole('button', { name: "Tome 3 : je l'ai" })).toBeVisible()
   const retrouvees = (await (await apres.page.request.get('/api/ownerships')).json()) as { platform: string | null }[]
   expect(retrouvees.map((o) => o.platform)).toContain('Console du test')
 
