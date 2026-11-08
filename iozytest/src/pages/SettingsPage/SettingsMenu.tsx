@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom'
 import { Moon, RotateCcw, Sun, Volume2 } from 'lucide-react'
 import { settingsService, UserSettings } from '@/services/settingsService'
 import { soundManager } from '@/utils/sounds'
+import { AVATAR_CHOICES, DEFAULT_AVATAR, isAvatarChoice } from '@/utils/playerAvatar'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import BackLink from '@/components/common/BackLink'
 import SectionHeader from '@/components/common/SectionHeader'
@@ -21,6 +22,8 @@ export default function SettingsMenu() {
   const account = useIozyAccount()
   const [settings, setSettings] = useState<UserSettings>(settingsService.getSettings())
   const [showResetDialog, setShowResetDialog] = useState(false)
+  // Même règle que getLocalPlayerAvatar : rien de choisi = l'avatar par défaut.
+  const currentAvatar = isAvatarChoice(settings.avatar) ? settings.avatar : DEFAULT_AVATAR
 
   const handleSettingChange = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     const newSettings = { ...settings, [key]: value }
@@ -83,6 +86,33 @@ export default function SettingsMenu() {
             Pour le changer : <a href={PROFILE_URL}>ton profil sur IozyCore</a>.
           </p>
         )}
+        <div className={styles.field}>
+          <span id="settings-avatar" className={styles.label}>
+            Avatar
+          </span>
+          {/* L'avatar s'affiche dans la liste des joueurs ; il part avec la
+              prochaine partie créée ou rejointe. */}
+          <div role="radiogroup" aria-labelledby="settings-avatar" className={styles.avatarGrid}>
+            {AVATAR_CHOICES.map(({ emoji, label }) => {
+              const selected = emoji === currentAvatar
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={label}
+                  title={label}
+                  className={`${ds.chip} ${selected ? ds.chipActive : ''} ${styles.avatarChoice}`}
+                  onClick={() => handleSettingChange('avatar', emoji)}
+                >
+                  <span aria-hidden="true">{emoji}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className={styles.hint}>Visible des autres joueurs à ta prochaine partie.</p>
+        </div>
       </section>
 
       <section className={`${ds.card} ${styles.card}`} aria-labelledby="settings-sound">
@@ -178,7 +208,7 @@ export default function SettingsMenu() {
       <section className={styles.dangerZone} aria-labelledby="settings-reset">
         <SectionHeader
           title={<span id="settings-reset">Réinitialiser</span>}
-          subtitle="Remet le nom, le son et le thème à leurs valeurs d'origine."
+          subtitle="Remet le nom, l'avatar, le son et le thème à leurs valeurs d'origine."
           action={
             <button
               type="button"

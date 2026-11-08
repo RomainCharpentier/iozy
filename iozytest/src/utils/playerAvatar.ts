@@ -1,12 +1,39 @@
-// Avatar des joueurs : aucun choix d'avatar n'existe encore dans l'UI,
-// on envoie donc l'avatar par défaut (identique à DEFAULT_AVATAR côté serveur)
+import { settingsService } from '@/services/settingsService'
+
+// Avatar par défaut (identique à DEFAULT_AVATAR côté serveur)
 export const DEFAULT_AVATAR = '🎮'
 
 /**
- * Avatar envoyé au serveur dans room:create / room:join
+ * Les avatars proposés dans les réglages. Des emojis simples (un seul
+ * caractère affiché, sans jointure) : le serveur refuse au-delà de 16 unités.
+ */
+export const AVATAR_CHOICES: readonly { emoji: string; label: string }[] = [
+  { emoji: '🎮', label: 'Manette' },
+  { emoji: '🎧', label: 'Casque' },
+  { emoji: '🎤', label: 'Micro' },
+  { emoji: '🎸', label: 'Guitare' },
+  { emoji: '🎬', label: 'Clap de cinéma' },
+  { emoji: '📺', label: 'Télévision' },
+  { emoji: '🤖', label: 'Robot' },
+  { emoji: '👾', label: 'Monstre' },
+  { emoji: '🐱', label: 'Chat' },
+  { emoji: '🦊', label: 'Renard' },
+  { emoji: '🐼', label: 'Panda' },
+  { emoji: '🐉', label: 'Dragon' },
+]
+
+/** Vrai si l'avatar fait partie de ceux proposés dans les réglages */
+export function isAvatarChoice(avatar: string): boolean {
+  return AVATAR_CHOICES.some((choice) => choice.emoji === avatar)
+}
+
+/**
+ * Avatar envoyé au serveur dans room:create / room:join : celui choisi dans
+ * les réglages, sinon l'avatar par défaut (rien de choisi, ou valeur inconnue).
  */
 export function getLocalPlayerAvatar(): string {
-  return DEFAULT_AVATAR
+  const chosen = settingsService.getSetting('avatar')
+  return typeof chosen === 'string' && isAvatarChoice(chosen) ? chosen : DEFAULT_AVATAR
 }
 
 /**
