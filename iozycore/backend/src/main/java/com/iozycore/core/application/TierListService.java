@@ -127,12 +127,17 @@ public class TierListService {
      * "General rank: visually dominant", custom lists
      * only show there what is actually ranked). */
     public List<CustomRankEntry> customRanksFor(UUID entityId) {
-        List<TierListItem> items = tierListItemRepository.findByEntityId(entityId);
+        List<TierListItem> rankedItems = tierListItemRepository.findByEntityId(entityId).stream()
+                .filter(item -> item.rank().isPresent())
+                .toList();
+        Map<UUID, TierList> listById = tierListRepository
+                .findAllById(rankedItems.stream().map(TierListItem::tierListId).collect(Collectors.toSet()))
+                .stream()
+                .collect(Collectors.toMap(TierList::id, list -> list));
         List<CustomRankEntry> entries = new ArrayList<>();
-        for (TierListItem item : items) {
-            if (item.rank().isEmpty()) continue;
-            tierListRepository.findById(item.tierListId())
-                    .ifPresent(list -> entries.add(new CustomRankEntry(list, item.rank().get())));
+        for (TierListItem item : rankedItems) {
+            TierList list = listById.get(item.tierListId());
+            if (list != null) entries.add(new CustomRankEntry(list, item.rank().get()));
         }
         return entries;
     }
@@ -140,12 +145,18 @@ public class TierListService {
     /** Items of a custom Tier List, enriched with the Entity - silently
      *  leaves out the items whose Entity has disappeared: a ranking must not
      *  make the reading of a list fail because a work was
-     *  deleted in the meantime. */
+     *  deleted in the meantime. The works are loaded in one batch, not one
+     *  query per item; the items keep their order. */
     public List<Map.Entry<TierListItem, Entity>> enrichedItems(UUID tierListId) {
         List<TierListItem> items = tierListItemRepository.findByTierListId(tierListId);
+        Map<UUID, Entity> entityById = entityRepository
+                .findAllById(items.stream().map(TierListItem::entityId).collect(Collectors.toSet()))
+                .stream()
+                .collect(Collectors.toMap(Entity::id, entity -> entity));
         List<Map.Entry<TierListItem, Entity>> result = new ArrayList<>();
         for (TierListItem item : items) {
-            entityRepository.findById(item.entityId()).ifPresent(entity -> result.add(Map.entry(item, entity)));
+            Entity entity = entityById.get(item.entityId());
+            if (entity != null) result.add(Map.entry(item, entity));
         }
         return result;
     }

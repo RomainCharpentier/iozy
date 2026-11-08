@@ -1,5 +1,6 @@
 package com.iozycore.core.domain.catalog;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +15,15 @@ public interface EntityRepository {
     Entity save(Entity entity);
 
     Optional<Entity> findById(UUID id);
+
+    /**
+     * Loads several works at once. Unknown ids are left out, and the order
+     * of the result is not defined. The default calls findById once per id:
+     * the real adapter overrides it with one query.
+     */
+    default List<Entity> findAllById(Collection<UUID> ids) {
+        return ids.stream().distinct().map(this::findById).flatMap(Optional::stream).toList();
+    }
 
     /**
      * Used by the deduplication of quick add (UC1, step 6):
