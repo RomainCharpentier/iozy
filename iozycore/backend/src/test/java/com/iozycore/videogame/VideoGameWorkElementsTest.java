@@ -1,5 +1,7 @@
 package com.iozycore.videogame;
 
+import com.iozycore.core.application.CatalogEntityResolver;
+import com.iozycore.core.application.work.ElementAcquisition;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.ownership.Ownership;
@@ -47,8 +49,11 @@ class VideoGameWorkElementsTest {
             throw new AssertionError("a page never asks IGDB");
         }
     };
+    private final ElementAcquisition acquisition = new ElementAcquisition(entities, ownerships, wishes,
+            new CatalogEntityResolver(entities), event -> {
+    });
     private final VideoGameWorkElements source =
-            new VideoGameWorkElements(cache, igdb, entities, ownerships, wishes, null);
+            new VideoGameWorkElements(cache, igdb, entities, ownerships, wishes, acquisition);
 
     @Test
     void the_games_of_the_licence_on_the_console_follow_the_game_and_are_optional_with_one_owned() {
@@ -64,7 +69,9 @@ class VideoGameWorkElementsTest {
         assertThat(elements.elements()).extracting(WorkElement::state).containsExactly(WorkElement.State.OWNED,
                 WorkElement.State.MISSING, WorkElement.State.MISSING, WorkElement.State.UPCOMING);
         assertThat(elements.elements()).extracting(WorkElement::optional).containsExactly(false, true, true, true);
-        assertThat(elements.totalCount()).isEqualTo(4);
+        // The optional games are shown, but one Zelda on Switch is 1 of 1, not 1 of 4.
+        assertThat(elements.totalCount()).isEqualTo(1);
+        assertThat(view(elements).ownedCount()).isEqualTo(1);
         assertThat(elements.origin().groupName()).isEqualTo("The Legend of Zelda");
         assertThat(elements.origin().scope()).isEqualTo(SWITCH);
         assertThat(view(elements).missingCount()).isZero();
@@ -84,8 +91,117 @@ class VideoGameWorkElementsTest {
         assertThat(tears.ownershipId()).isEqualTo(totkCopy.id());
         assertThat(tears.linkedEntityId()).isEqualTo(totk.id());
         assertThat(elements.elements()).extracting(WorkElement::optional).containsOnly(false);
+        assertThat(elements.totalCount()).isEqualTo(4);
         // Link's Awakening counts; Echoes is not out yet.
         assertThat(view(elements).missingCount()).isEqualTo(1);
+    }
+
+    @Test
+    void in_a_list_a_game_stands_alone_so_a_missing_game_of_the_licence_is_never_counted_twice() {
+        Entity botw = entities.save(game("Breath of the Wild", "1"));
+        Entity totk = entities.save(game("Tears of the Kingdom", "2"));
+        Ownership botwCopy = ownerships.save(copy(botw, SWITCH));
+        Ownership totkCopy = ownerships.save(copy(totk, SWITCH));
+        zelda();
+
+        List<WorkElements> list = source.elementsOf(new WorkElementsContext(EntityTypeFixtures.VIDEO_GAME,
+                List.of(botw, totk), List.of(botwCopy, totkCopy), List.of(), List.of(), TODAY, true));
+
+        assertThat(list).allSatisfy(work -> {
+            assertThat(work.elements()).extracting(WorkElement::key).containsExactly("work");
+            assertThat(work.totalCount()).isEqualTo(1);
+        });
+        assertThat(list.stream().mapToInt(work -> view(work).missingCount()).sum()).isZero();
+        // The page of one game still lists its licence, with Link's Awakening missing once.
+        assertThat(only(botw, List.of(botwCopy)).elements()).hasSize(4);
+    }
+
+    @Test
+    void a_console_typed_by_hand_is_the_console_igdb_names() {
+        Entity botw = game("Breath of the Wild", "1");
+        zelda();
+
+        WorkElements elements = only(botw, List.of(copy(botw, "Switch")));
+
+        assertThat(elements.elements()).extracting(WorkElement::label)
+                .containsExactly("Breath of the Wild", "Link's Awakening", "Tears of the Kingdom",
+                        "Echoes of Wisdom");
+        assertThat(elements.origin().fallback()).isFalse();
+        assertThat(elements.origin().scope()).isEqualTo("Switch");
+        // A Switch is not a Switch 2, and a PS4 is not a PS5.
+        assertThat(Consoles.canonical("Switch")).isEqualTo(Consoles.canonical("Nintendo Switch"));
+        assertThat(Consoles.canonical("Switch")).isNotEqualTo(Consoles.canonical("Nintendo Switch 2"));
+        assertThat(Consoles.canonical("PS5")).isEqualTo(Consoles.canonical("PlayStation 5"));
+        assertThat(Consoles.canonical("PS4")).isNotEqualTo(Consoles.canonical("PlayStation 5"));
+        assertThat(Consoles.canonical("PC")).isEqualTo(Consoles.canonical("PC (Microsoft Windows)"));
+    }
+
+    @Test
+    void with_no_game_of_the_licence_on_the_console_the_page_says_so() {
+        Entity botw = game("Breath of the Wild", "1");
+        zelda();
+
+        WorkElements elements = only(botw, List.of(copy(botw, "Xbox One")));
+
+        assertThat(elements.elements()).extracting(WorkElement::key).containsExactly("work");
+        assertThat(elements.origin().fallback()).isTrue();
+        assertThat(elements.origin().note()).isEqualTo("Aucun autre jeu de la licence sur cette console");
+    }
+
+    @Test
+    void a_game_owned_on_two_consoles_follows_the_licence_console_by_console() {
+        Entity botw = game("Breath of the Wild", "1");
+        Entity awakening = entities.save(game("Link's Awakening", "3"));
+        ownerships.save(copy(awakening, "Game Boy"));
+        zelda();
+
+        // Owned on Game Boy too (a fiction of the test): Link's Awakening is on Game Boy, the first console.
+        WorkElements elements = only(botw, List.of(copy(botw, "Game Boy"), copy(botw, SWITCH)));
+
+        WorkElement links = elements.elements().stream().filter(e -> e.label().equals("Link's Awakening"))
+                .findFirst().orElseThrow();
+        assertThat(links.state()).isEqualTo(WorkElement.State.OWNED);
+        // Two games on Game Boy: followed there. Tears of the Kingdom is on Switch only, where one game is owned.
+        WorkElement tears = elements.elements().stream().filter(e -> e.label().equals("Tears of the Kingdom"))
+                .findFirst().orElseThrow();
+        assertThat(tears.optional()).isTrue();
+        assertThat(view(elements).missingCount()).isZero();
+    }
+
+    @Test
+    void je_l_ai_on_a_game_of_the_licence_creates_it_on_the_console_it_exists_on() {
+        Entity botw = entities.save(game("Breath of the Wild", "1"));
+        ownerships.save(copy(botw, "PS4"));
+        ownerships.save(copy(botw, SWITCH));
+        zelda();
+        WorkElement tears = only(botw, ownerships.findByEntityId(botw.id())).elements().stream()
+                .filter(e -> e.key().equals("igdb-2")).findFirst().orElseThrow();
+
+        assertThat(source.own(EntityTypeFixtures.VIDEO_GAME, botw, tears)).isTrue();
+
+        Entity created = entities.findAllByType(EntityTypeFixtures.VIDEO_GAME.id()).stream()
+                .filter(e -> e.title().equals("Tears of the Kingdom")).findFirst().orElseThrow();
+        assertThat(created.attributes().get("igdbId")).isEqualTo("2");
+        // Tears of the Kingdom is a Switch game: never a copy on PS4.
+        assertThat(ownerships.findByEntityId(created.id())).extracting(o -> o.platform().orElse(null))
+                .containsExactly(SWITCH);
+    }
+
+    @Test
+    void je_l_ai_on_a_game_of_the_licence_owns_the_catalog_game_with_its_igdb_id() {
+        Entity botw = entities.save(game("Breath of the Wild", "1"));
+        ownerships.save(copy(botw, SWITCH));
+        Entity inCatalog = entities.save(game("Zelda: Tears of the Kingdom", "2"));
+        zelda();
+        WorkElement tears = only(botw, ownerships.findByEntityId(botw.id())).elements().stream()
+                .filter(e -> e.key().equals("igdb-2")).findFirst().orElseThrow();
+
+        source.own(EntityTypeFixtures.VIDEO_GAME, botw, tears);
+        source.own(EntityTypeFixtures.VIDEO_GAME, botw, tears);
+
+        assertThat(ownerships.findByEntityId(inCatalog.id())).extracting(o -> o.platform().orElse(null))
+                .containsExactly(SWITCH);
+        assertThat(entities.findAllByType(EntityTypeFixtures.VIDEO_GAME.id())).hasSize(2);
     }
 
     @Test

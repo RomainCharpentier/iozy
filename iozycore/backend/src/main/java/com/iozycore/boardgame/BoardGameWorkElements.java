@@ -52,7 +52,12 @@ import java.util.UUID;
  * would make every board game look unfinished. So the expansions are listed,
  * but they count as missing only once the collector owns at least one
  * expansion of that game - then they follow its expansions. Until then they
- * are optional.
+ * are optional, and out of the total: Catan alone is 1 of 1, not 1 of 31.
+ *
+ * <h2>In a list</h2>
+ * An expansion owned or wished as a game of its own is a work of the list
+ * already: it is left out of the base game there, so the counts of the list
+ * can be summed ({@link WorkElementsContext#list()}). The page shows it.
  *
  * <h2>Without BGG</h2>
  * A game with no BGG id, or not read yet, keeps its catalog elements, and the
@@ -143,8 +148,10 @@ public class BoardGameWorkElements implements WorkElementsSource {
         boolean followsExpansions = expansions.stream().anyMatch(e -> e.state() == WorkElement.State.OWNED);
         List<WorkElement> elements = new ArrayList<>();
         elements.add(DefaultWorkElements.wholeWork(game, baseCopies, wished, releases, context.today()));
-        expansions.forEach(element -> elements.add(element.withOptional(!followsExpansions)));
-        return new WorkElements(game.id(), elements, elements.size(), originOf(game, row));
+        expansions.stream()
+                .filter(element -> !context.list() || element.linkedEntityId() == null)
+                .forEach(element -> elements.add(element.withOptional(!followsExpansions)));
+        return new WorkElements(game.id(), elements, WorkElements.followedCount(elements), originOf(game, row));
     }
 
     private static WorkElement derived(Entity game, BoardGameExpansion expansion, AccountGames account) {
@@ -219,7 +226,7 @@ public class BoardGameWorkElements implements WorkElementsSource {
         if (expansion.yearPublished() != null) {
             attributes.put("yearPublished", expansion.yearPublished());
         }
-        acquisition.ownVariant(work.id(), shortName(work.title(), expansion.name()), attributes);
+        acquisition.ownVariant(work.id(), shortName(work.title(), expansion.name()), attributes, BGG_ID);
         return true;
     }
 

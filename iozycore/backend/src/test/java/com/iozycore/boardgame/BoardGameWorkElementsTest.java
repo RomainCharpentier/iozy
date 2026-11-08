@@ -1,6 +1,8 @@
 package com.iozycore.boardgame;
 
 import com.iozycore.boardgame.expansion.BoardGameExpansion;
+import com.iozycore.core.application.CatalogEntityResolver;
+import com.iozycore.core.application.work.ElementAcquisition;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.catalog.Variant;
@@ -34,7 +36,11 @@ class BoardGameWorkElementsTest {
     private final InMemoryEntityRepository entities = new InMemoryEntityRepository();
     private final InMemoryOwnershipRepository ownerships = new InMemoryOwnershipRepository();
     private final InMemoryWishlistEntryRepository wishes = new InMemoryWishlistEntryRepository();
-    private final BoardGameWorkElements source = new BoardGameWorkElements(cache, entities, ownerships, wishes, null);
+    private final ElementAcquisition acquisition = new ElementAcquisition(entities, ownerships, wishes,
+            new CatalogEntityResolver(entities), event -> {
+    });
+    private final BoardGameWorkElements source =
+            new BoardGameWorkElements(cache, entities, ownerships, wishes, acquisition);
 
     @Test
     void today_a_game_without_expansions_is_its_base_game() {
@@ -75,9 +81,62 @@ class BoardGameWorkElementsTest {
                 .containsExactly("Catan", "Seafarers", "Cities & Knights");
         assertThat(elements.elements().get(1).coverImageUrl()).isEqualTo("https://cf.geekdo-images.com/sea.jpg");
         assertThat(elements.elements()).extracting(WorkElement::optional).containsExactly(false, true, true);
-        assertThat(elements.totalCount()).isEqualTo(3);
+        // Optional expansions are shown, out of the total: Catan alone is 1 of 1.
+        assertThat(elements.totalCount()).isEqualTo(1);
         assertThat(elements.origin().fallback()).isFalse();
         assertThat(view(elements).missingCount()).isZero();
+    }
+
+    @Test
+    void a_base_game_with_three_optional_expansions_is_complete() {
+        Entity game = catan();
+        cache.save("13", List.of(expansion("325", "Catan: Seafarers", null),
+                expansion("926", "Catan: Cities & Knights", null), expansion("927", "Catan: Traders", null)), READ_AT);
+
+        WorkView view = view(only(game, List.of(baseCopy(game))));
+
+        assertThat(view.elements()).hasSize(4);
+        assertThat(view.ownedCount()).isEqualTo(1);
+        assertThat(view.totalCount()).isEqualTo(1);
+        assertThat(view.missingCount()).isZero();
+    }
+
+    @Test
+    void in_a_list_an_expansion_owned_as_a_game_of_its_own_is_counted_once() {
+        Entity game = entities.save(catan());
+        Ownership base = ownerships.save(baseCopy(game));
+        Entity seafarers = entities.save(Entity.create(EntityTypeFixtures.BOARD_GAME.id(), "Catan: Seafarers"));
+        Ownership seafarersCopy = ownerships.save(baseCopy(seafarers));
+        cache.save("13", List.of(expansion("325", "Catan: Seafarers", null),
+                expansion("926", "Catan: Cities & Knights", null)), READ_AT);
+
+        List<WorkElements> list = source.elementsOf(new WorkElementsContext(EntityTypeFixtures.BOARD_GAME,
+                List.of(game, seafarers), List.of(base, seafarersCopy), List.of(), List.of(), TODAY, true));
+
+        // Seafarers is a work of the list: not an element of Catan there. Cities & Knights still lacks.
+        assertThat(list.get(0).elements()).extracting(WorkElement::key).containsExactly("work", "bgg-926");
+        assertThat(list.stream().mapToInt(work -> view(work).ownedCount()).sum()).isEqualTo(2);
+        assertThat(list.stream().mapToInt(work -> view(work).missingCount()).sum()).isEqualTo(1);
+        // The page of Catan shows it.
+        assertThat(only(game, List.of(base)).elements()).extracting(WorkElement::key)
+                .containsExactly("work", "bgg-325", "bgg-926");
+    }
+
+    @Test
+    void je_l_ai_on_two_expansions_with_the_same_short_name_gives_each_its_own_variant() {
+        Entity game = entities.save(catan());
+        Ownership base = ownerships.save(baseCopy(game));
+        cache.save("13", List.of(expansion("500", "Catan: Promo", null), expansion("501", "Catan – Promo", null)),
+                READ_AT);
+        WorkElements before = only(game, List.of(base));
+
+        source.own(EntityTypeFixtures.BOARD_GAME, game, before.elements().get(1));
+        source.own(EntityTypeFixtures.BOARD_GAME, game, before.elements().get(2));
+
+        Entity saved = entities.findById(game.id()).orElseThrow();
+        assertThat(saved.variants()).hasSize(2);
+        WorkElements after = only(saved, ownerships.findByEntityId(game.id()));
+        assertThat(after.elements()).extracting(WorkElement::state).containsOnly(WorkElement.State.OWNED);
     }
 
     @Test

@@ -21,9 +21,18 @@ import java.util.stream.Collectors;
  * <p>Read once per type and passed as is: a universe that reread the ownerships
  * work by work would cost one query per work (the same rule as
  * {@link com.iozycore.core.domain.insights.ReleaseContext}).
+ *
+ * <h2>One page or a list</h2>
+ * {@code list} is true when the works are read side by side (the list of the
+ * collector, the home page, the "to buy" page). A list sums the counts of its
+ * works, so an object must belong to one work only there: a source leaves out
+ * the derived elements that stand for another work (another game of the
+ * licence, an expansion owned as a game of its own). The page of one work
+ * ({@code list} false) shows them all.
  */
 public record WorkElementsContext(EntityType entityType, List<Entity> works, List<Ownership> activeOwnerships,
-                                  List<WishlistEntry> wishlist, List<ReleaseEntry> releases, LocalDate today) {
+                                  List<WishlistEntry> wishlist, List<ReleaseEntry> releases, LocalDate today,
+                                  boolean list) {
 
     private static final String COVER_IMAGE_URL = "coverImageUrl";
 
@@ -32,6 +41,12 @@ public record WorkElementsContext(EntityType entityType, List<Entity> works, Lis
         activeOwnerships = List.copyOf(activeOwnerships);
         wishlist = List.copyOf(wishlist);
         releases = List.copyOf(releases);
+    }
+
+    /** The context of the page of one work (or of works that are not summed). */
+    public WorkElementsContext(EntityType entityType, List<Entity> works, List<Ownership> activeOwnerships,
+                               List<WishlistEntry> wishlist, List<ReleaseEntry> releases, LocalDate today) {
+        this(entityType, works, activeOwnerships, wishlist, releases, today, false);
     }
 
     public Map<UUID, List<Ownership>> ownershipsByWork() {

@@ -20,7 +20,7 @@ import java.util.UUID;
  * @param variantId     the catalog variant behind the element, or {@code null} (a known gap in a series, the work itself)
  * @param ownershipId   the active ownership of the element, or {@code null}
  * @param optional      a derived element (an expansion, another game of the licence) that the collector
- *                      does not follow yet: listed, never counted as missing
+ *                      does not follow yet: listed, out of the total, never counted as missing
  * @param linkedEntityId the work of the catalog behind the element when it is another work (a game of the
  *                      licence the collector owns), or {@code null}
  */

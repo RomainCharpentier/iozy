@@ -60,7 +60,8 @@ class WorkElementsHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.elements[1].state").value("MISSING"))
                 .andExpect(jsonPath("$.elements[1].optional").value(true))
                 .andExpect(jsonPath("$.elements[1].countedAsMissing").value(false))
-                .andExpect(jsonPath("$.totalCount").value(3))
+                // Optional expansions are out of the total: the base game alone is 1 of 1.
+                .andExpect(jsonPath("$.totalCount").value(1))
                 .andExpect(jsonPath("$.missingCount").value(0))
                 .andReturn().getResponse().getContentAsString();
         System.out.println("GET /api/works/{id} (board game) -> " + body);
@@ -75,6 +76,7 @@ class WorkElementsHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.elements[1].coverImageUrl").value("https://cf.geekdo-images.com/s.jpg"))
                 // One expansion owned: the others now count.
                 .andExpect(jsonPath("$.elements[2].optional").value(false))
+                .andExpect(jsonPath("$.totalCount").value(3))
                 .andExpect(jsonPath("$.missingCount").value(1))
                 .andReturn().getResponse().getContentAsString();
         System.out.println("POST /api/works/{id}/elements/{key}/own -> " + owned);

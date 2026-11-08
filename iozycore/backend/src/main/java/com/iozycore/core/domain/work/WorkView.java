@@ -21,7 +21,7 @@ import java.util.UUID;
  *   <li><b>total</b>: from the universe, {@code null} when unknown - never guessed.</li>
  * </ul>
  * An optional element (an expansion, another game of the licence the collector does not follow) is
- * listed and part of the total, but never counted as missing.
+ * listed, but neither part of the total nor counted as missing ({@link WorkElements#followedCount}).
  *
  * @param elementsOrigin where the derived elements come from, or {@code null} (see {@link WorkElementsOrigin})
  */

@@ -462,7 +462,9 @@ export interface WorkElementDto {
   /** True when it counts in missingCount: lacking, published, and the work is ONGOING. */
   countedAsMissing: boolean
   /** A derived element the collector does not follow yet (an expansion, another game of the
-   *  licence): listed, never counted as missing. Never true for an owned element. */
+   *  licence): listed, out of totalCount, never counted as missing. Never true for an owned element.
+   *  GET /api/works leaves out the elements that stand for another work of the list (linkedEntityId,
+   *  games of a licence): only GET /api/works/{id} shows them, so the list can be summed. */
   optional: boolean
   /** The other work behind the element (a game of the licence in the catalog), or null. */
   linkedEntityId: UUID | null

@@ -85,16 +85,22 @@ public class ElementAcquisition {
     }
 
     /**
-     * Owns a variant of a work, added to the work when no variant has this label
+     * Owns a variant of a work, added to the work when no variant stands for it
      * yet (an expansion read from a provider becomes a variant of its base game).
      *
+     * <p>A variant stands for it when it carries the same provider id
+     * ({@code idAttribute}, "bggId"), or when it has the same label and no
+     * provider id of its own. Two expansions may share a short label (promos
+     * often do): the second one must get its own variant, not the first one's.
+     *
+     * @param idAttribute the attribute that holds the provider id in {@code attributes}, or {@code null}
      * @throws NotFoundException the work does not exist
      */
     @Transactional
-    public UUID ownVariant(UUID entityId, String label, Map<String, Object> attributes) {
+    public UUID ownVariant(UUID entityId, String label, Map<String, Object> attributes, String idAttribute) {
         Entity work = entityRepository.findById(entityId)
                 .orElseThrow(() -> new NotFoundException("Œuvre introuvable : " + entityId));
-        Variant variant = work.findVariantByLabel(label).orElse(null);
+        Variant variant = variantFor(work, label, attributes, idAttribute).orElse(null);
         if (variant == null) {
             variant = work.addVariant(label, attributes);
             entityRepository.save(work);
@@ -102,5 +108,31 @@ public class ElementAcquisition {
         }
         own(entityId, variant.id(), null);
         return variant.id();
+    }
+
+    static Optional<Variant> variantFor(Entity work, String label, Map<String, Object> attributes,
+                                        String idAttribute) {
+        String id = idAttribute == null ? null : textOf(attributes.get(idAttribute));
+        if (id == null) {
+            return work.findVariantByLabel(label);
+        }
+        Optional<Variant> sameId = work.variants().stream()
+                .filter(v -> id.equals(textOf(v.attributes() == null ? null : v.attributes().get(idAttribute))))
+                .findFirst();
+        if (sameId.isPresent()) {
+            return sameId;
+        }
+        return work.variants().stream()
+                .filter(v -> v.label().equalsIgnoreCase(label))
+                .filter(v -> v.attributes() == null || textOf(v.attributes().get(idAttribute)) == null)
+                .findFirst();
+    }
+
+    private static String textOf(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString().trim();
+        return text.isEmpty() ? null : text;
     }
 }
