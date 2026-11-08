@@ -64,12 +64,16 @@ export default function Podium({
     </>
   )
 
+  // Le nom lu par un lecteur d'écran : « (toi) » remplace la marque « · toi », masquée.
+  const spokenName = (player: Player) =>
+    player.id === selfId ? `${player.name} (toi)` : player.name
+
   const renderStep = (step: PodiumStep) => (
     <li
       key={step.rank}
       className={styles.step}
       data-rank={Math.min(step.rank, 3)}
-      aria-label={`${rankLabel(step.rank)} : ${step.players.map((p) => p.name).join(', ')}, ${points(step.score)}`}
+      aria-label={`${rankLabel(step.rank)} : ${step.players.map(spokenName).join(', ')}, ${points(step.score)}`}
     >
       <div className={styles.stepPlayers} aria-hidden="true">
         {step.players.map((player) => (
@@ -111,7 +115,10 @@ export default function Podium({
               <span className={styles.restAvatar} aria-hidden="true">
                 {getPlayerAvatarLabel(player)}
               </span>
-              <span className={styles.restName}>{nameOf(player)}</span>
+              <span className={styles.restName} aria-hidden="true">
+                {nameOf(player)}
+              </span>
+              <span className="iozy-sr-only">{spokenName(player)}</span>
               <span className={styles.restScore}>
                 {player.score}
                 {totalQuestions > 0 && (

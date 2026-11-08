@@ -715,10 +715,14 @@ describe('Écran de fin : le podium', () => {
     const labels = Array.from(steps.querySelectorAll('li')).map((li) =>
       li.getAttribute('aria-label')
     )
-    expect(labels).toEqual(['1er : Max, 4 points', '2e : Moi, 3 points', '3e : Julien, 1 point'])
+    expect(labels).toEqual([
+      '1er : Max, 4 points',
+      '2e : Moi (toi), 3 points',
+      '3e : Julien, 1 point',
+    ])
     // À zéro point, Léa reste dans la suite du classement
     const rest = screen.getByRole('list', { name: 'Suite du classement' })
-    expect(rest.textContent).toBe('4eLLéa0 / 5')
+    expect(rest.textContent).toBe('4eLLéaLéa0 / 5')
   })
 
   it('égalité en tête : une marche pour deux, le suivant est 3e', () => {
@@ -732,7 +736,18 @@ describe('Écran de fin : le podium', () => {
     const labels = Array.from(steps.querySelectorAll('li')).map((li) =>
       li.getAttribute('aria-label')
     )
-    expect(labels).toEqual(['1er : Autre, Moi, 2 points', '3e : Zoé, 1 point'])
+    expect(labels).toEqual(['1er : Autre, Moi (toi), 2 points', '3e : Zoé, 1 point'])
+  })
+
+  it('suite du classement : le lecteur d’écran sait quelle ligne est la sienne', () => {
+    renderEnd(false, [
+      { id: 'a', name: 'Max', score: 4 },
+      { id: 'b', name: 'Léa', score: 3 },
+      { id: 'c', name: 'Zoé', score: 2 },
+      { id: 'me', name: 'Moi', score: 1 },
+    ])
+    const rest = screen.getByRole('list', { name: 'Suite du classement' })
+    expect(rest.textContent).toContain('Moi (toi)')
   })
 
   it('personne n’a marqué : pas de podium, tout le monde en liste', () => {
