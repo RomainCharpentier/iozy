@@ -15,6 +15,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -87,6 +88,32 @@ class OwnershipHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(get("/api/ownerships").param("entityId", MALFORME))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").isNotEmpty());
+    }
+
+    // ============================================ the console of a copy
+
+    @Test
+    void the_console_of_a_copy_is_said_read_back_and_cleared() throws Exception {
+        Ownership exemplaire = unExemplaire();
+
+        mockMvc.perform(patch("/api/ownerships/{id}/platform", exemplaire.id())
+                        .contentType("application/json").content(json(Map.of("platform", " Nintendo Switch "))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.platform").value("Nintendo Switch"));
+        mockMvc.perform(get("/api/ownerships").param("entityId", exemplaire.entityId().toString()))
+                .andExpect(jsonPath("$[0].platform").value("Nintendo Switch"));
+
+        mockMvc.perform(patch("/api/ownerships/{id}/platform", exemplaire.id())
+                        .contentType("application/json").content(json(Map.of("platform", "  "))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.platform").doesNotExist());
+    }
+
+    @Test
+    void the_console_of_an_unknown_copy_is_a_404() throws Exception {
+        mockMvc.perform(patch("/api/ownerships/{id}/platform", ABSENT)
+                        .contentType("application/json").content(json(Map.of("platform", "PC"))))
+                .andExpect(status().isNotFound());
     }
 
     // ============================================ sell / lose / restore

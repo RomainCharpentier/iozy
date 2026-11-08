@@ -70,12 +70,13 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
                 ownership.status().name(),
                 ownership.acquiredAt(),
                 ownership.note(),
-                ownership.purchasePrice().orElse(null)
+                ownership.purchasePrice().orElse(null),
+                ownership.platform().orElse(null)
         );
     }
 
     private static Ownership toDomain(OwnershipJpaEntity jpaEntity) {
-        return Ownership.reconstitute(
+        Ownership ownership = Ownership.reconstitute(
                 jpaEntity.getId(),
                 jpaEntity.getEntityId(),
                 jpaEntity.getVariantId(),
@@ -86,5 +87,7 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
                 jpaEntity.getNote(),
                 jpaEntity.getPurchasePrice()
         );
+        ownership.updatePlatform(jpaEntity.getPlatform());
+        return ownership;
     }
 }

@@ -72,6 +72,7 @@ export function possession(options: {
   variantId?: string
   statut?: OwnershipResponse['status']
   acquiseLe?: string
+  console?: string
 }): OwnershipResponse {
   return {
     id: `possession-${options.variantId ?? options.entityId}`,
@@ -82,6 +83,7 @@ export function possession(options: {
     acquiredAt: options.acquiseLe ?? '2026-01-15',
     note: null,
     purchasePrice: null,
+    platform: options.console ?? null,
   }
 }
 

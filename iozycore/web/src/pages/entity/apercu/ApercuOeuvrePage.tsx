@@ -16,6 +16,7 @@ import { gradientFor } from '@/common/theme/gradient'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { ColonneSource, InspecteurFiche, RangeeInspecteur } from '@/pages/entity/InspecteurFiche'
 import type { MetadataCandidateDto } from '@/common/types/api'
+import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import { FicheHero } from '@/pages/entity/FicheHero'
 import { retourDepuis } from '@/common/lib/retour'
 import { useCollecteParTome } from '@/common/lib/typeDeCollection'
@@ -142,7 +143,7 @@ export function ApercuOeuvrePage() {
     : {}
 
   const couvertureUrl = coverImageUrlFrom(attributs)
-  const { principale: teinte, seconde: teinteSeconde } = useTeinteJaquette(couvertureUrl)
+  const { principale: teinte, seconde: teinteSeconde, connue: teinteConnue } = useTeinteJaquette(couvertureUrl)
   const ongoing = isSeriesOngoing(attributs)
   const statut = statutAffiche(attributs)
   const startYear = typeof attributs.startYear === 'string' ? attributs.startYear : null
@@ -186,9 +187,11 @@ export function ApercuOeuvrePage() {
       </Link>
 
       <FicheHero
-        colleEnHaut={false}
+        aspectClassName={getEntityTypeVisual(type).aspectClassName}
+        grandeJaquette={!parTome}
         teinte={teinte}
         teinteSeconde={teinteSeconde}
+        teinteConnue={teinteConnue}
         kicker={type?.label ?? null}
         titre={titre}
         auteur={creatorFrom(attributs)}
@@ -199,7 +202,7 @@ export function ApercuOeuvrePage() {
           <div className="absolute inset-0" style={{ background: gradientFor(titre) }} aria-hidden="true" />
         }
         editions={proposition.cartesEditions}
-      />
+      >
 
       {rechercheQuery.isError && <ErrorBanner message={rechercheQuery.error.message} />}
 
@@ -241,6 +244,7 @@ export function ApercuOeuvrePage() {
           source={<ColonneSource attributs={attributs} />}
         />
       </div>
+      </FicheHero>
     </>
   )
 }

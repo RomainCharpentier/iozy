@@ -77,7 +77,6 @@ export function GrilleVolumes({
   onVue,
   teinte,
   jaquetteSerie,
-  edition,
 }: {
   volumes: VolumeAffiche[]
   /** `consultation`: the catalog seen by a visitor. The volumes of the
@@ -119,8 +118,6 @@ export function GrilleVolumes({
   teinte?: [number, number, number]
   /** The cover of the series, for the spine of an owned volume without a cover. */
   jaquetteSerie?: string | null
-  /** Named under the volume picked on the shelf. */
-  edition?: string
 }) {
   // On `volumes` and not on `visibles`: a counter that only counted what
   // is already on screen would always say the total of the current view.
@@ -137,16 +134,50 @@ export function GrilleVolumes({
   const consultation = mode === 'consultation'
   const surEtagere = vue === 'etagere' && mode !== 'selection'
   const visibles = volumes.filter((volume) => {
-    if (consultation) return true
+    // The shelf shows the whole series: a missing volume is a hole in it, not a filter.
+    if (consultation || surEtagere) return true
     if (filtre === 'possedes') return volume.possede
     if (filtre === 'manquants') return !volume.possede
     return true
   })
 
+  // Shelf or grid: two readings of the same volumes, remembered on this device
+  // (see vueTomes). Not in selection mode, where the tiles carry the checks.
+  const reglageVue = (
+    <>
+{onVue && mode !== 'selection' && (
+          <div role="radiogroup" aria-label="Affichage des tomes" className="flex items-center gap-0.5 rounded-xl bg-softBtn p-0.5">
+            {(
+              [
+                { cle: 'etagere', libelle: 'Étagère', Icone: Library },
+                { cle: 'grille', libelle: 'Grille', Icone: LayoutGrid },
+              ] as const
+            ).map(({ cle, libelle, Icone }) => (
+              <button
+                key={cle}
+                type="button"
+                role="radio"
+                aria-checked={vue === cle}
+                aria-label={libelle}
+                title={libelle}
+                onClick={() => onVue(cle)}
+                className={`flex h-11 w-11 items-center justify-center rounded-[10px] transition-colors ${
+                  vue === cle ? 'bg-surface text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
+                }`}
+              >
+                <Icone size={16} />
+              </button>
+            ))}
+          </div>
+        )}
+    </>
+  )
+
   return (
     <div className="flex flex-col gap-3">
       {/* A single row: what is looked at on the left, how it is filtered on the
           right. It folds by itself when there is not enough room. */}
+      {(!surEtagere || enTete) && (
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         {enTete}
         {/* TEXT, not pills in a container: three labels
@@ -162,7 +193,7 @@ export function GrilleVolumes({
             390 px on a series of 110: "Tous 110 · Manquants 80 · Possédés
             30" plus the switch pushed the page to 396 px). */}
         <div className="flex min-w-0 flex-wrap items-center gap-3">
-        {!consultation && (
+        {!consultation && !surEtagere && (
         <div
           role="radiogroup"
           aria-label="Filtrer les tomes"
@@ -198,36 +229,10 @@ export function GrilleVolumes({
           })}
         </div>
         )}
-        {/* Shelf or grid: two readings of the same volumes, remembered on
-            this device (see vueTomes). Not in selection mode, where the
-            tiles carry the checks. */}
-        {onVue && mode !== 'selection' && (
-          <div role="radiogroup" aria-label="Affichage des tomes" className="flex items-center gap-0.5 rounded-xl bg-softBtn p-0.5">
-            {(
-              [
-                { cle: 'etagere', libelle: 'Étagère', Icone: Library },
-                { cle: 'grille', libelle: 'Grille', Icone: LayoutGrid },
-              ] as const
-            ).map(({ cle, libelle, Icone }) => (
-              <button
-                key={cle}
-                type="button"
-                role="radio"
-                aria-checked={vue === cle}
-                aria-label={libelle}
-                title={libelle}
-                onClick={() => onVue(cle)}
-                className={`flex h-11 w-11 items-center justify-center rounded-[10px] transition-colors ${
-                  vue === cle ? 'bg-surface text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
-                }`}
-              >
-                <Icone size={16} />
-              </button>
-            ))}
-          </div>
-        )}
+        {!surEtagere && reglageVue}
         </div>
       </div>
+      )}
 
       {surEtagere && visibles.length > 0 ? (
         <Etagere
@@ -235,13 +240,13 @@ export function GrilleVolumes({
           mode={consultation ? 'consultation' : 'navigation'}
           teinte={teinte}
           jaquetteSerie={jaquetteSerie}
-          edition={edition}
           onJeLAi={consultation ? undefined : onJeLAi}
           onJeLesAi={consultation ? undefined : onJeLesAi}
           onJeLeVeux={consultation ? undefined : onJeLeVeux}
           onJeLesVeux={consultation ? undefined : onJeLesVeux}
           onRetirer={consultation ? undefined : onRetirer}
           action={action}
+          reglage={reglageVue}
         />
       ) : visibles.length === 0 ? (
         <p className="py-6 text-sm text-faint">

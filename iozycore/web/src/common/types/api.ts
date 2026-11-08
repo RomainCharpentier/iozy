@@ -23,6 +23,8 @@ export interface QuickAddRequest {
   volumeImageUrl?: string
   // Optional, never guessed - stays editable afterwards (see ownerships.ts updatePurchasePrice).
   purchasePrice?: number
+  /** The console of this copy, when its owner chose one. */
+  platform?: string
   /** One single use: canceling the removal of a volume by giving back its
    *  original date rather than replacing it with today (see EntityDetailPage).
    *  Absent = today, like any add. */
@@ -69,6 +71,8 @@ export interface OwnershipResponse {
   acquiredAt: LocalDateString
   note: string | null
   purchasePrice: number | null
+  /** The console of this copy; null until its owner says it, never guessed. */
+  platform: string | null
 }
 
 // --- Experience ---

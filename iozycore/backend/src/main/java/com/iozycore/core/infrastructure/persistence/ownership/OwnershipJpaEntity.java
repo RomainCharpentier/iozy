@@ -47,8 +47,12 @@ public class OwnershipJpaEntity {
     @Column(name = "purchase_price")
     private BigDecimal purchasePrice;
 
+    @Column(name = "platform")
+    private String platform;
+
     public OwnershipJpaEntity(UUID id, UUID entityId, UUID variantId, UUID ownerId, String condition,
-                               String status, LocalDate acquiredAt, String note, BigDecimal purchasePrice) {
+                               String status, LocalDate acquiredAt, String note, BigDecimal purchasePrice,
+                               String platform) {
         this.id = id;
         this.entityId = entityId;
         this.variantId = variantId;
@@ -58,5 +62,6 @@ public class OwnershipJpaEntity {
         this.acquiredAt = acquiredAt;
         this.note = note;
         this.purchasePrice = purchasePrice;
+        this.platform = platform;
     }
 }

@@ -187,7 +187,7 @@ class CatalogUseCasesTest {
         @Test
         void quick_add_refuses_an_unknown_type() {
             assertThatThrownBy(() -> service.quickAdd(new EntityService.QuickAdd(UUID.randomUUID(), "Berserk",
-                    OwnershipCondition.NEW, null, null, null, null, null, null)))
+                    OwnershipCondition.NEW, null, null, null, null, null, null, null)))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 

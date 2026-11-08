@@ -4,6 +4,7 @@ import com.iozycore.core.metadata.MetadataCandidate;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,5 +49,46 @@ class IgdbMetadataProviderTest {
         List<MetadataCandidate> candidates = provider.parse("[]");
 
         assertThat(candidates).isEmpty();
+    }
+
+    /** Trimmed from what IGDB answered for Celeste on 2026-11-06. */
+    private static final String CELESTE = """
+            [{"id": 26226, "name": "Celeste",
+              "platforms": [{"name": "Google Stadia"}, {"name": "PlayStation 4"}, {"name": "Nintendo Switch"}],
+              "involved_companies": [
+                {"publisher": false, "developer": true, "company": {"name": "Extremely OK Games"}},
+                {"publisher": true, "developer": false, "company": {"name": "Maddy Makes Games"}},
+                {"publisher": false, "developer": false, "company": {"name": "Sickhead Games"}}]}]
+            """;
+
+    @Test
+    void keeps_every_console_and_reads_the_companies_by_their_role() throws Exception {
+        Map<String, Object> attributes = new IgdbMetadataProvider(null).parse(CELESTE).get(0).attributes();
+
+        assertThat(attributes).containsEntry("platforms", "Google Stadia, PlayStation 4, Nintendo Switch");
+        assertThat(attributes).containsEntry("publisher", "Maddy Makes Games");
+        assertThat(attributes).containsEntry("studio", "Extremely OK Games");
+    }
+
+    @Test
+    void the_details_only_say_what_a_former_add_could_not_keep() throws Exception {
+        Map<String, Object> details = new IgdbMetadataProvider(null).parseDetails(CELESTE);
+
+        assertThat(details).containsOnlyKeys("platforms", "publisher");
+    }
+
+    @Test
+    void a_game_without_a_known_publisher_has_none_rather_than_the_first_company() throws Exception {
+        String body = """
+                [{"id": 1, "name": "X", "involved_companies": [{"developer": true, "company": {"name": "Studio"}}]}]
+                """;
+
+        assertThat(new IgdbMetadataProvider(null).parse(body).get(0).attributes()).doesNotContainKey("publisher");
+    }
+
+    @Test
+    void the_details_ask_nothing_without_a_numeric_id() {
+        assertThat(new IgdbMetadataProvider(null).details(Map.of("igdbId", "1; fields *"))).isEmpty();
+        assertThat(new IgdbMetadataProvider(null).details(Map.of())).isEmpty();
     }
 }

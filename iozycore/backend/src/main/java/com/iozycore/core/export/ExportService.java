@@ -167,7 +167,7 @@ public class ExportService {
                 entity != null ? entity.title() : null, variantId,
                 variantId != null ? variantLabelsById.get(variantId) : null,
                 ownership.condition().name(), ownership.status().name(), ownership.acquiredAt(), ownership.note(),
-                ownership.purchasePrice().orElse(null));
+                ownership.purchasePrice().orElse(null), ownership.platform().orElse(null));
     }
 
     private static ExportDocument.ExperienceExport toExperienceExport(Experience experience, Map<UUID, Entity> entitiesById,

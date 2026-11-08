@@ -142,6 +142,15 @@ public class QuickAddService {
                                                       Map<String, Object> prefilledAttributes,
                                                       Integer volumeNumber, String edition, String volumeImageUrl,
                                                       BigDecimal purchasePrice, LocalDate acquiredAt) {
+        return addNewEntityWithOwnership(entityTypeId, title, condition, prefilledAttributes, volumeNumber, edition,
+                volumeImageUrl, purchasePrice, acquiredAt, null);
+    }
+
+    /** Full variant with the console of this copy, when its owner said it. */
+    public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
+                                                      Map<String, Object> prefilledAttributes,
+                                                      Integer volumeNumber, String edition, String volumeImageUrl,
+                                                      BigDecimal purchasePrice, LocalDate acquiredAt, String platform) {
         // "Make the catalog page exist" is now extracted into
         // CatalogEntityResolver, shared with the Wishes path: the
         // deduplication rule (type + title) and the attribute merge live in only
@@ -179,6 +188,7 @@ public class QuickAddService {
         if (purchasePrice != null) {
             ownership.updatePurchasePrice(purchasePrice);
         }
+        ownership.updatePlatform(platform);
 
         entityRepository.save(entity);
         ownershipRepository.save(ownership);

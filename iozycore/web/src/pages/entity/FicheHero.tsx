@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { Heart, Pencil, Scale, CalendarCheck, CalendarPlus } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '@/common/components/layout/AppShell'
@@ -22,9 +22,14 @@ import { tonDe } from './useTeinteJaquette'
  * a frequent case - the brand terracotta is used, and the band stays
  * exactly the one of the mockup.
  */
+/** Large enough to be looked at, and it stays in sight along the shelves. */
+const CLASSE_JAQUETTE =
+  'relative w-[56%] overflow-hidden rounded-xl shadow-token-elevated md:sticky md:top-20 md:w-full'
+
 export function FicheHero({
   teinte,
   teinteSeconde = teinte,
+  teinteConnue = true,
   kicker,
   titre,
   auteur,
@@ -40,11 +45,17 @@ export function FicheHero({
   modeEdition = false,
   onBasculerMode,
   editions,
-  colleEnHaut = true,
+  aspectClassName = 'aspect-[2/3]',
+  grandeJaquette = false,
+  faits,
+  refJaquette,
+  children,
 }: {
   teinte: [number, number, number]
   /** A second color of the cover, for the other side of the band. */
   teinteSeconde?: [number, number, number]
+  /** False until the cover has answered: no color rather than a wrong one. */
+  teinteConnue?: boolean
   /** The collection type in small caps above the title. */
   kicker: string | null
   titre: string
@@ -87,19 +98,24 @@ export function FicheHero({
   /** The "ÉDITIONS · n" row (see CartesEditions), absent for a type
    *  that has no editions. */
   editions?: ReactNode
-  /** The band goes up under the header by cancelling the `pt-6` of `<main>`, so
-   *  that no background band comes in between. Set to false when something
-   *  comes before it in the page (a back link): otherwise it would
-   *  go over it. */
-  colleEnHaut?: boolean
+  /** The format of the type: a game box is not a manga. */
+  aspectClassName?: string
+  /** A work without volumes: its cover and its facts are the page. */
+  grandeJaquette?: boolean
+  /** What stands under the title: the count of volumes, or the facts of a game. */
+  faits?: ReactNode
+  refJaquette?: RefObject<HTMLElement | null>
+  /** The rest of the page, in the column next to the cover. */
+  children?: ReactNode
 }) {
   return (
-    // `isolate`: the band is its own stacking context, so its `-z-10` layers
-    // paint just under its content, not under the background of the page.
+    // No stacking context here: the dialogs of the page live in this band and
+    // must still cover the header. The background comes first in the DOM and
+    // the content is positioned, which is enough to paint it on top.
     // `[&~*]:relative`: the background runs on under the next blocks, which
     // must paint above it. A block that is not positioned paints under a
     // positioned band. `.fixed` keeps its own position.
-    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative isolate [&~*:not(.fixed)]:relative ${colleEnHaut ? '-mt-6' : ''}`}>
+    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative [&~*:not(.fixed)]:relative`}>
       {/* The colors of the series, side to side, fading down into the color of
           the page in both themes (the mask ends on the page itself, so no edge
           shows). A blurred cover was tried here: its dark areas left gray
@@ -107,27 +123,46 @@ export function FicheHero({
           color, for the text above it to stay readable. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -bottom-[300px] -z-10 opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)] [[data-theme=dark]_&]:opacity-40"
-        style={{ background: `linear-gradient(90deg, ${tonDe(teinte, 100, 0.05)}, ${tonDe(teinteSeconde, 100, 0.05)})` }}
+        data-teinte-fiche=""
+        className={`fiche-teinte pointer-events-none absolute inset-x-0 -top-[68px] h-[760px] transition-opacity duration-300 ${
+          teinteConnue ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={
+          { '--t1': `rgb(${teinte.join(' ')})`, '--t2': `rgb(${teinteSeconde.join(' ')})` } as React.CSSProperties
+        }
       />
 
-      <div className={`${CLASSE_CONTENU_BANDE} flex flex-wrap items-start gap-5 pt-6 md:gap-9`}>
+      <div
+        className={`${CLASSE_CONTENU_BANDE} relative grid grid-cols-1 items-start gap-5 pt-3 md:gap-8 ${
+          grandeJaquette
+            ? 'md:grid-cols-[clamp(240px,36vw,520px)_minmax(0,1fr)]'
+            : 'md:grid-cols-[clamp(220px,25vw,340px)_minmax(0,1fr)]'
+        }`}
+      >
         {onCouverture ? (
           <button
             type="button"
             onClick={onCouverture}
             aria-label="Modifier la couverture de la série"
-            className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated"
+            data-cible-vol=""
+            ref={refJaquette as RefObject<HTMLButtonElement | null>}
+            className={`${CLASSE_JAQUETTE} ${aspectClassName}`}
+            style={{ boxShadow: `0 26px 60px -18px ${tonDe(teinte, 80, 0.2)}` }}
           >
             <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
           </button>
         ) : (
-          <div className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated">
+          <div
+            data-cible-vol=""
+            ref={refJaquette as RefObject<HTMLDivElement | null>}
+            className={`${CLASSE_JAQUETTE} ${aspectClassName}`}
+            style={{ boxShadow: `0 26px 60px -18px ${tonDe(teinte, 80, 0.2)}` }}
+          >
             <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
           </div>
         )}
 
-        <div className="flex min-w-[280px] flex-1 flex-col gap-5">
+        <div data-colonne-fiche="" className="flex min-w-0 flex-col gap-4">
           <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
             <div className="flex min-w-0 flex-col gap-[7px]">
               {kicker && (
@@ -136,9 +171,9 @@ export function FicheHero({
               <h1 className="font-display text-[clamp(1.9rem,4.4vw,3.125rem)] leading-[1.06] font-semibold tracking-[-0.045em] break-words text-textPrimary">
                 {titre}
               </h1>
-              {auteur && <span className="text-[15px] text-textPrimary">{auteur}</span>}
-              {(etat || statut || annees) && (
-                <div className="flex flex-wrap items-center gap-4 text-[13.5px]">
+              {(etat || statut || annees || auteur) && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-textDim">
+                  {auteur && <span>{auteur}</span>}
                   {etat && (
                     <span
                       className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold"
@@ -157,7 +192,7 @@ export function FicheHero({
                       {statut.libelle}
                     </span>
                   )}
-                  {annees && <span className="text-textPrimary">{annees}</span>}
+                  {annees && <span>{annees}</span>}
                 </div>
               )}
             </div>
@@ -198,7 +233,9 @@ export function FicheHero({
             )}
           </div>
 
+          {faits}
           {editions}
+          {children}
         </div>
       </div>
     </section>
@@ -257,11 +294,12 @@ export function BoutonSuivreHero({
       aria-label={libelle}
       aria-pressed={suivie}
       title={libelle}
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50 ${
-        suivie ? 'bg-accentTint text-accentText' : 'bg-surface text-textDim shadow-token-sm hover:text-accentText'
+      className={`flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold transition-colors disabled:opacity-50 ${
+        suivie ? 'bg-accentTint text-accentText' : 'bg-surface text-textPrimary shadow-token-sm hover:text-accentText'
       }`}
     >
-      {suivie ? <CalendarCheck size={17} /> : <CalendarPlus size={17} />}
+      {suivie ? <CalendarCheck size={14} /> : <CalendarPlus size={14} />}
+      {suivie ? 'Suivie' : 'Suivre'}
     </button>
   )
 }

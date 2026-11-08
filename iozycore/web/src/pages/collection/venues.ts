@@ -1,5 +1,4 @@
 import type { EntityResponse, OwnershipResponse, WishlistEntryResponse } from '@/common/types/api'
-import type { TriCollection } from '@/common/lib/preferencesCollection'
 
 /**
  * "Since when" each object is here - what the "Récents
@@ -58,10 +57,12 @@ function derniereVenue(entity: EntityResponse, venues: Venues): string {
   return derniere
 }
 
-/** The sort of the WORKS, common to My collection and to the category view. */
-export function trierOeuvres(entities: EntityResponse[], tri: TriCollection, venues: Venues): EntityResponse[] {
-  if (tri === 'titre') {
-    return [...entities].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
-  }
-  return [...entities].sort((a, b) => derniereVenue(b, venues).localeCompare(derniereVenue(a, venues)))
+/**
+ * What moved last: the works of a room of My collection. A date has no hour, so the
+ * works of one day stand by title - the same order at every opening.
+ */
+export function plusRecentes(entities: EntityResponse[], venues: Venues, nombre: number): EntityResponse[] {
+  return [...entities]
+    .sort((a, b) => derniereVenue(b, venues).localeCompare(derniereVenue(a, venues)) || a.title.localeCompare(b.title, 'fr'))
+    .slice(0, nombre)
 }

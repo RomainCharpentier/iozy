@@ -1,5 +1,6 @@
 package com.iozycore.core.api.ownership;
 
+import com.iozycore.core.api.dto.OwnershipDtos;
 import com.iozycore.core.api.dto.OwnershipDtos.OwnershipResponse;
 import com.iozycore.core.application.OwnershipDeletionService;
 import com.iozycore.core.application.OwnershipService;
@@ -31,6 +32,13 @@ public class OwnershipController {
         return ownershipService.list(entityId).stream()
                 .map(OwnershipResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    @Operation(summary = "Say or correct the console of a copy. A blank value clears it.")
+    @PatchMapping("/{id}/platform")
+    public OwnershipResponse updatePlatform(@PathVariable UUID id,
+                                            @RequestBody OwnershipDtos.UpdatePlatformRequest request) {
+        return OwnershipResponse.from(ownershipService.updatePlatform(id, request.platform()));
     }
 
     @Operation(summary = "Mark an Ownership as sold")

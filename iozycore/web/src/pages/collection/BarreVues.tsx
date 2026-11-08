@@ -3,7 +3,7 @@ import type { FiltreCollection } from '@/common/lib/preferencesCollection'
 
 const FILTRES: { cle: FiltreCollection; libelle: string }[] = [
   { cle: 'tout', libelle: 'Tout' },
-  { cle: 'possedes', libelle: 'Possédés' },
+  { cle: 'completer', libelle: 'À compléter' },
   { cle: 'suivies', libelle: 'Suivies' },
   { cle: 'envies', libelle: 'Envies' },
 ]
@@ -34,6 +34,7 @@ export function BarreVues({
   filtre,
   onFiltre,
   comptes,
+  avecCompleter = true,
 }: {
   filtre: FiltreCollection
   onFiltre: (filtre: FiltreCollection) => void
@@ -44,6 +45,8 @@ export function BarreVues({
    *  waiting means claiming an empty collection to someone who has one.
    *  A missing number reads as "not known yet", a zero as a fact. */
   comptes: Record<FiltreCollection, number> | null
+  /** "À compléter" only speaks to what has volumes: a collection of games never sees it. */
+  avecCompleter?: boolean
 }) {
   return (
     <div
@@ -51,7 +54,7 @@ export function BarreVues({
       aria-label="Filtrer ma collection"
       className="flex w-full items-center gap-1 rounded-full bg-softBtn p-1 sm:w-auto"
     >
-      {FILTRES.map(({ cle, libelle }) => {
+      {FILTRES.filter(({ cle }) => avecCompleter || cle !== 'completer').map(({ cle, libelle }) => {
         const actif = cle === filtre
         return (
           <button

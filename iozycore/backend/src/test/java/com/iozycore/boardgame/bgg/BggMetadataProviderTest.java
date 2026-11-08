@@ -49,10 +49,13 @@ class BggMetadataProviderTest {
     void details_put_the_cover_under_the_shared_key_and_players_under_the_type_keys() {
         CountingThingFetcher fetcher = new CountingThingFetcher(new BggThing(
                 "https://cf.geekdo-images.com/original/pic.png", "2000", 2, 5, 45,
-                List.of("Klaus-Jürgen Wrede", "Someone Else"), java.util.Set.of("Medieval")));
+                List.of("Klaus-Jürgen Wrede", "Someone Else"), java.util.Set.of("Medieval"),
+                List.of("Hans im Glück", "999 Games")));
 
         java.util.Map<String, Object> details = new BggMetadataProvider(fetcher)
                 .details(java.util.Map.of("bggId", "822", "yearPublished", "2000"));
+
+        assertThat(details).containsEntry("publisher", "Hans im Glück");
 
         assertThat(fetcher.askedIds).containsExactly("822");
         assertThat(details)

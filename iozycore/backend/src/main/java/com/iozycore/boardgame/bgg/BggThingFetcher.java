@@ -116,6 +116,7 @@ public class BggThingFetcher {
 
             List<String> designers = new ArrayList<>();
             Set<String> categoriesAndMechanics = new LinkedHashSet<>();
+            List<String> publishers = new ArrayList<>();
             NodeList links = item.getElementsByTagName("link");
             for (int i = 0; i < links.getLength(); i++) {
                 Element link = (Element) links.item(i);
@@ -128,6 +129,9 @@ public class BggThingFetcher {
                     categoriesAndMechanics.add(value);
                 } else if ("boardgamedesigner".equals(type) && !"(Uncredited)".equals(value)) {
                     designers.add(value);
+                } else if ("boardgamepublisher".equals(type) && !value.startsWith("(")) {
+                    // "(Self-Published)", "(Web published)", "(Public Domain)": not a publisher one can shelve under.
+                    publishers.add(value);
                 }
             }
 
@@ -138,7 +142,8 @@ public class BggThingFetcher {
                     positiveNumber(childValue(item, "maxplayers")),
                     positiveNumber(childValue(item, "playingtime")),
                     List.copyOf(designers),
-                    categoriesAndMechanics);
+                    categoriesAndMechanics,
+                    List.copyOf(publishers));
         } catch (Exception e) {
             log.warn("Unreadable BGG /thing response: {}", e.getMessage());
             return emptyThing();
@@ -146,7 +151,7 @@ public class BggThingFetcher {
     }
 
     private static BggThing emptyThing() {
-        return new BggThing(null, null, null, null, null, List.of(), Set.of());
+        return new BggThing(null, null, null, null, null, List.of(), Set.of(), List.of());
     }
 
     /** The text of a direct child, like {@code <image>url</image>}. */

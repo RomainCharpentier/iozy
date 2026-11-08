@@ -28,15 +28,10 @@ function panneau(props: Partial<Parameters<typeof CollectionFilters>[0]> = {}) {
   const onTagChange = vi.fn()
   const onStatusChange = vi.fn()
   const onReset = vi.fn()
-  const onVue = vi.fn()
   render(
     <CollectionFilters
       open
       onClose={vi.fn()}
-      vue="groupee"
-      onVue={onVue}
-      tri="recent"
-      onTri={vi.fn()}
       status="ALL"
       onStatusChange={onStatusChange}
       tags={[LU, A_RELIRE]}
@@ -46,7 +41,7 @@ function panneau(props: Partial<Parameters<typeof CollectionFilters>[0]> = {}) {
       {...props}
     />,
   )
-  return { onTagChange, onStatusChange, onReset, onVue }
+  return { onTagChange, onStatusChange, onReset }
 }
 
 describe('the Tag section', () => {
@@ -118,13 +113,3 @@ describe('"Réinitialiser"', () => {
 
 // Grouping left the toolbar for this panel (UI review of 2026-10-13): if the
 // panel stops offering it, the shelf can no longer be ungrouped from anywhere.
-describe('the Regrouper section', () => {
-  it('switches the shelf to one item per tile', async () => {
-    const { onVue } = panneau()
-
-    expect(screen.getByRole('radio', { name: 'Groupés' })).toHaveAttribute('aria-checked', 'true')
-    await userEvent.click(screen.getByRole('radio', { name: 'Un par un' }))
-
-    expect(onVue).toHaveBeenCalledWith('plate')
-  })
-})

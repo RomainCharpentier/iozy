@@ -53,7 +53,7 @@ public class EntityService {
 
     public record QuickAdd(UUID entityTypeId, String title, OwnershipCondition condition,
                            Map<String, Object> attributes, Integer volumeNumber, String edition,
-                           String volumeImageUrl, BigDecimal purchasePrice, LocalDate acquiredAt) {
+                           String volumeImageUrl, BigDecimal purchasePrice, LocalDate acquiredAt, String platform) {
     }
 
     /**
@@ -68,7 +68,7 @@ public class EntityService {
         return quickAddService.addNewEntityWithOwnership(
                 command.entityTypeId(), command.title(), command.condition(), attributes,
                 command.volumeNumber(), command.edition(), command.volumeImageUrl(), command.purchasePrice(),
-                command.acquiredAt());
+                command.acquiredAt(), command.platform());
     }
 
     public Entity get(UUID id) {
