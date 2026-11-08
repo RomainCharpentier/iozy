@@ -72,7 +72,7 @@ describe('add a missing volume', () => {
   it('stays a single gesture - it destroys nothing', () => {
     const { onActiver, onRetirer } = rendre()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Tome 3, manquant' }))
+    fireEvent.click(screen.getByRole('button', { name: "Tome 3 : je l'ai" }))
 
     expect(onActiver).toHaveBeenCalledWith('3')
     expect(onRetirer).not.toHaveBeenCalled()
