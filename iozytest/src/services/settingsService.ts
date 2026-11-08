@@ -1,5 +1,7 @@
 // Service pour gérer les préférences utilisateur (localStorage)
 
+import { soundManager } from '@/utils/sounds'
+
 export interface UserSettings {
   // Compte
   username: string
@@ -84,6 +86,10 @@ class SettingsService {
 
   // Appliquer les settings à l'application
   private applySettings(): void {
+    // Appliquer le son dès le démarrage, pas seulement à l'ouverture de /settings
+    soundManager.setEnabled(this.settings.soundEnabled)
+    soundManager.setVolume(this.settings.soundVolume)
+
     // Appliquer le thème
     if (this.settings.theme === 'dark') {
       document.documentElement.classList.remove('light-theme')

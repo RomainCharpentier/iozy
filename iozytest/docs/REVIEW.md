@@ -37,7 +37,7 @@
 - [ ] Closures figées : `handleGameReveal` (`Game.tsx:912`), handlers non branchés si socket pas connecté au montage (`:572-585`), callbacks YouTube capturés à la création (`YouTubePlayer.tsx:117`).
 - [ ] `RoomCreator.handleStartGame` ne remet pas `isStartingGame` à false sur plusieurs chemins d'erreur.
 - [x] Lien `/editor/import-video` vers une route inexistante (`QuestionEditor.tsx:823`).
-- [ ] Les réglages son ne sont appliqués qu'après ouverture de `/settings` (`SettingsMenu.tsx:16`).
+- [x] Les réglages son ne sont appliqués qu'après ouverture de `/settings` (`SettingsMenu.tsx:16`).
 - [ ] Le service worker peut recharger la page en pleine partie (`serviceWorker.ts:85`, `UpdateNotification.tsx:15`).
 
 ## P1 — Sécurité / triche
