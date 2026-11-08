@@ -131,6 +131,16 @@ describe('couvertureDuMoment', () => {
     expect(couvertureDuMoment([vinland, sansJaquette], venues)).toBe('https://covers.example/vinland.jpg')
   })
 
+  it('never wears the cover of a catalogue work that is not in the collection', () => {
+    const venues = indexerVenues(
+      [possession({ entityId: sansJaquette.id, variantId: 'tome-2', acquiseLe: '2026-11-01' })],
+      [],
+    )
+
+    expect(couvertureDuMoment([vinland, sansJaquette], venues)).toBeNull()
+    expect(couvertureDuMoment([frieren], indexerVenues([], []))).toBeNull()
+  })
+
   it('has none when no work has a cover: the brand tones apply', () => {
     expect(couvertureDuMoment([sansJaquette], indexerVenues([], []))).toBeNull()
   })
