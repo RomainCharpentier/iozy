@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,11 +19,12 @@ class EditionTotalRuleTest {
 
     private static final Instant NOW = Instant.parse("2026-11-08T10:00:00Z");
     private static final Duration WEEK = Duration.ofDays(7);
+    private static final LocalDate TODAY = LocalDate.of(2026, 11, 8);
 
     @Test
     void an_ongoing_series_gets_the_highest_french_volume_and_no_finished_flag() {
         Optional<EditionTotalRule.Found> found = EditionTotalRule.fromCandidates("Kana",
-                List.of(candidate("Kana", 1), candidate("kana", 12), candidate("Kana", 7)), 3, 20, false);
+                List.of(candidate("Kana", 1), candidate("kana", 12), candidate("Kana", 7)), 3, 20, false, TODAY);
 
         assertThat(found).contains(new EditionTotalRule.Found(12, false));
     }
@@ -31,27 +33,27 @@ class EditionTotalRuleTest {
     void a_finished_series_is_finished_in_france_only_when_the_french_list_reaches_its_count() {
         List<VolumeCandidate> twelve = List.of(candidate("Kana", 1), candidate("Kana", 12));
 
-        assertThat(EditionTotalRule.fromCandidates("Kana", twelve, 1, 12, true))
+        assertThat(EditionTotalRule.fromCandidates("Kana", twelve, 1, 12, true, TODAY))
                 .contains(new EditionTotalRule.Found(12, true));
         // French run behind the original: the count is what came out so far.
-        assertThat(EditionTotalRule.fromCandidates("Kana", twelve, 1, 20, true))
+        assertThat(EditionTotalRule.fromCandidates("Kana", twelve, 1, 20, true, TODAY))
                 .contains(new EditionTotalRule.Found(12, false));
         // The original count alone is never a French total, nor a finished run.
-        assertThat(EditionTotalRule.fromCandidates("Kana", twelve, 1, 12, false))
+        assertThat(EditionTotalRule.fromCandidates("Kana", twelve, 1, 12, false, TODAY))
                 .contains(new EditionTotalRule.Found(12, false));
-        assertThat(EditionTotalRule.fromCandidates("Kana", List.of(), 1, 12, true)).isEmpty();
+        assertThat(EditionTotalRule.fromCandidates("Kana", List.of(), 1, 12, true, TODAY)).isEmpty();
     }
 
     @Test
     void never_guesses_from_another_edition_or_a_list_shorter_than_the_catalogue() {
         List<VolumeCandidate> candidates = List.of(candidate("Kana", 10), candidate("Perfect Edition", 6));
 
-        assertThat(EditionTotalRule.fromCandidates("Deluxe", candidates, 1, null, false)).isEmpty();
+        assertThat(EditionTotalRule.fromCandidates("Deluxe", candidates, 1, null, false, TODAY)).isEmpty();
         // Accents and case folded, as in the volume search.
-        assertThat(EditionTotalRule.fromCandidates("perfect édition", candidates, 2, null, false))
+        assertThat(EditionTotalRule.fromCandidates("perfect édition", candidates, 2, null, false, TODAY))
                 .contains(new EditionTotalRule.Found(6, false));
         // The catalogue already holds volume 8 of the Perfect: the list does not know the whole edition.
-        assertThat(EditionTotalRule.fromCandidates("Perfect Edition", candidates, 8, null, false)).isEmpty();
+        assertThat(EditionTotalRule.fromCandidates("Perfect Edition", candidates, 8, null, false, TODAY)).isEmpty();
     }
 
     @Test
@@ -80,6 +82,36 @@ class EditionTotalRuleTest {
         MangaEdition shorterList = EditionTotalRule.apply(grown, Optional.of(new EditionTotalRule.Found(9, true)), NOW);
         assertThat(shorterList.totalVolumes()).isEqualTo(13);
         assertThat(shorterList.frenchRunFinished()).isFalse();
+    }
+
+    @Test
+    void a_volume_announced_for_later_is_not_counted_and_does_not_close_the_run() {
+        // Google Books lists the pre-order of the last volume, out next month.
+        List<VolumeCandidate> withPreOrder = List.of(dated("Kana", 1, "2025-03-12"), dated("Kana", 11, "2026-10-14"),
+                dated("Kana", 12, "2026-12-03"));
+
+        assertThat(EditionTotalRule.fromCandidates("Kana", withPreOrder, 1, 12, true, TODAY))
+                .contains(new EditionTotalRule.Found(11, false));
+        // Out today: counted, and the run is over.
+        assertThat(EditionTotalRule.fromCandidates("Kana", withPreOrder, 1, 12, true, LocalDate.of(2026, 12, 3)))
+                .contains(new EditionTotalRule.Found(12, true));
+        // A partial date counts once its month or year has come; no date counts as out.
+        assertThat(EditionTotalRule.isOut("2026-11", TODAY)).isTrue();
+        assertThat(EditionTotalRule.isOut("2026-12", TODAY)).isFalse();
+        assertThat(EditionTotalRule.isOut("2026", TODAY)).isTrue();
+        assertThat(EditionTotalRule.isOut("2027", TODAY)).isFalse();
+        assertThat(EditionTotalRule.isOut(null, TODAY)).isTrue();
+    }
+
+    @Test
+    void a_partial_answer_writes_the_total_but_keeps_the_edition_due() {
+        MangaEdition partial = EditionTotalRule.apply(edition(null),
+                Optional.of(new EditionTotalRule.Found(7, false)), NOW, false);
+
+        assertThat(partial.totalVolumes()).isEqualTo(7);
+        assertThat(partial.totalSource()).isEqualTo(TotalSource.PROVIDER);
+        assertThat(partial.totalCheckedAt()).isNull();
+        assertThat(EditionTotalRule.isDue(partial, NOW, WEEK)).isTrue();
     }
 
     @Test
@@ -138,6 +170,10 @@ class EditionTotalRuleTest {
 
     private static MangaEdition edition(Integer total) {
         return MangaEdition.create("Pluto", "Kana", EditionTier.STANDARD, null, total, null, false, false, null);
+    }
+
+    private static VolumeCandidate dated(String edition, int number, String releaseDate) {
+        return new VolumeCandidate(edition, number, null, "Tome " + number, null, null, releaseDate);
     }
 
     private static VolumeCandidate candidate(String edition, int number) {

@@ -43,9 +43,12 @@ class EditionTotalBackfillTest {
     private final InMemoryMangaEditionRepository editions = new InMemoryMangaEditionRepository();
     private final ScriptedProvider provider = new ScriptedProvider();
 
-    private EditionTotalBackfill backfill(int seriesPerRun) {
+    private EditionTotalBackfill backfill(int seriesPerRun, VolumeSearchProvider... others) {
+        List<VolumeSearchProvider> providers = new ArrayList<>();
+        providers.add(provider);
+        providers.addAll(List.of(others));
         return new EditionTotalBackfill(new InMemoryEntityTypeRepository(EntityTypeFixtures.MANGA), entities, editions,
-                new MangaEditionLinker(editions), new TomeSearchService(List.of(provider), new FakeCache()),
+                new MangaEditionLinker(editions), new TomeSearchService(providers, new FakeCache()),
                 new RelatedSeriesService(List.of()), true, seriesPerRun, Duration.ZERO, Duration.ofDays(7),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
@@ -109,7 +112,7 @@ class EditionTotalBackfillTest {
     }
 
     @Test
-    void a_silent_provider_changes_nothing_throws_nothing_and_stops_the_run() {
+    void a_silent_provider_changes_nothing_throws_nothing_and_sends_the_series_to_the_back() {
         Entity a = serie("A");
         tome(a, 1, "Kana");
         entities.save(a);
@@ -124,9 +127,53 @@ class EditionTotalBackfillTest {
         EditionTotalBackfill.Result result = backfill.run();
 
         assertThat(result).isEqualTo(new EditionTotalBackfill.Result(1, 0, true));
-        assertThat(provider.titles).containsExactly("A");
+        // A was tried by the first run: B goes first, so a series that keeps failing blocks no other.
+        assertThat(provider.titles).containsExactly("B");
         // Not even a row or a check time: the next run tries again.
         assertThat(editions.findAll()).isEmpty();
+    }
+
+    @Test
+    void a_partial_answer_writes_what_it_found_but_keeps_every_edition_due() {
+        Entity monster = serie("Monster");
+        tome(monster, 1, "Kana");
+        tome(monster, 1, "Perfect");
+        entities.save(monster);
+        provider.answers.put("Monster", candidates("Kana", 18));
+
+        EditionTotalBackfill.Result result = backfill(10, new SilentProvider()).run();
+
+        assertThat(result).isEqualTo(new EditionTotalBackfill.Result(1, 1, false));
+        MangaEdition kana = editions.findByEntityIdAndEditionName(monster.id(), "Kana").orElseThrow();
+        assertThat(kana.totalVolumes()).isEqualTo(18);
+        assertThat(kana.totalSource()).isEqualTo(TotalSource.PROVIDER);
+        // The silent source may list more: no check time, the next run reads it again.
+        assertThat(kana.totalCheckedAt()).isNull();
+        // The silent source may hold the Perfect: no row, no check time.
+        assertThat(editions.findByEntityIdAndEditionName(monster.id(), "Perfect")).isEmpty();
+        provider.titles.clear();
+        backfill(10, new SilentProvider()).run();
+        assertThat(provider.titles).containsExactly("Monster");
+    }
+
+    @Test
+    void never_writes_on_the_edition_of_a_homonym_series() {
+        Entity first = serie("Doubt");
+        tome(first, 1, "Ki-oon");
+        entities.save(first);
+        MangaEdition theirs = editions.save(MangaEdition.create(first.id(), "Doubt", "Ki-oon", EditionTier.STANDARD,
+                null, null, null, false, false, null).withTotalChecked(NOW));
+        Entity homonym = serie("Doubt");
+        tome(homonym, 1, "Ki-oon");
+        entities.save(homonym);
+        provider.answers.put("Doubt", candidates("Ki-oon", 4));
+
+        backfill(10).run();
+
+        MangaEdition after = editions.findById(theirs.id()).orElseThrow();
+        assertThat(after.totalVolumes()).isNull();
+        assertThat(after.totalCheckedAt()).isEqualTo(NOW);
+        assertThat(editions.findByEntityIdAndEditionName(homonym.id(), "Ki-oon")).isEmpty();
     }
 
     @Test
@@ -205,6 +252,19 @@ class EditionTotalBackfillTest {
                 throw new QuotaExceededException("quota dépassé");
             }
             return answers.getOrDefault(seriesTitle, List.of());
+        }
+    }
+
+    /** A source that never answers (quota, outage). */
+    private static class SilentProvider implements VolumeSearchProvider {
+        @Override
+        public boolean supports(EntityType entityType) {
+            return true;
+        }
+
+        @Override
+        public List<VolumeCandidate> searchVolumes(String seriesTitle, String author, List<String> excludedTitleFragments) {
+            throw new QuotaExceededException("quota dépassé");
         }
     }
 

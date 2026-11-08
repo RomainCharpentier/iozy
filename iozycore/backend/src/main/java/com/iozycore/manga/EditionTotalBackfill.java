@@ -21,10 +21,17 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Fills the volume count of the French editions, by itself (lot 207).
@@ -57,13 +64,29 @@ import java.util.Optional;
  * the run stops at the first series that gets nothing while a provider is
  * silent: nothing is written for it, not even the check time, so the next run
  * tries again. A partial answer (one source silent, volumes found) writes
- * what it found but does not mark the other editions as checked.
+ * what it found but marks nothing as checked: the next run reads it again.
+ *
+ * <h2>No series stuck at the head</h2>
+ * The due series are taken in order: the ones this job has never tried
+ * first, then the least recently tried, then the one whose editions were read
+ * the longest ago (never read first). A series the job tried goes to the back
+ * of the queue, even when nothing was written for it (silent provider), so a
+ * series that keeps failing does not block the others. The attempts are kept
+ * in memory: after a restart the queue starts again from the oldest check.
+ *
+ * <h2>An edition of another series</h2>
+ * The linker can find a row by title alone, and the reference holds one row
+ * per (title, edition): a homonym series may already own it. Such a row is
+ * left alone - writing a total there would give one series the count of
+ * another.
  */
 @Component
 @Slf4j
 public class EditionTotalBackfill {
 
     private static final String MANGA = "MANGA";
+    /** French editions: "out today" is read on the French calendar. */
+    private static final ZoneId FRANCE = ZoneId.of("Europe/Paris");
 
     private final EntityTypeRepository entityTypeRepository;
     private final EntityRepository entityRepository;
@@ -76,6 +99,8 @@ public class EditionTotalBackfill {
     private final Duration pause;
     private final Duration recheckAfter;
     private final Clock clock;
+    /** When this job last searched each series (see "No series stuck at the head"). */
+    private final Map<UUID, Instant> lastAttempts = new HashMap<>();
 
     @Autowired
     public EditionTotalBackfill(EntityTypeRepository entityTypeRepository, EntityRepository entityRepository,
@@ -136,6 +161,7 @@ public class EditionTotalBackfill {
         }
         EntityType type = manga.get();
         Instant now = clock.instant();
+        LocalDate today = LocalDate.ofInstant(now, FRANCE);
         int searched = 0;
         int set = 0;
         // All the editions in one read: a run with nothing due stays a few queries.
@@ -145,12 +171,7 @@ public class EditionTotalBackfill {
                 known.put(CollectionProgress.editionKey(edition.entityId(), edition.editionName()), edition);
             }
         }
-        for (Entity entity : entityRepository.findAllByType(type.id())) {
-            Map<String, Integer> editions = CataloguedEditions.of(entity);
-            Map<String, MangaEdition> due = dueEditions(entity, editions, known, now);
-            if (due.isEmpty()) {
-                continue;
-            }
+        for (DueSeries series : dueSeries(type, known, now)) {
             if (searched >= seriesPerRun) {
                 break;
             }
@@ -158,18 +179,21 @@ public class EditionTotalBackfill {
                 waitBetweenSeries();
             }
             searched++;
+            Entity entity = series.entity();
+            lastAttempts.put(entity.id(), now);
             VolumeSearchResult result = search(type, entity);
             if (result.providerUnavailable() && result.volumes().isEmpty()) {
                 // Silence is not an answer: nothing is written, the next run tries again.
                 return new Result(searched, set, true);
             }
+            boolean answeredInFull = !result.providerUnavailable();
             Integer originalTotal = positiveNumber(entity.attributes().get("totalVolumes"));
             boolean originalFinished = SeriesStatus.isFinished(entity.attributes().get("seriesStatus"));
-            for (Map.Entry<String, MangaEdition> entry : due.entrySet()) {
+            for (Map.Entry<String, MangaEdition> entry : series.due().entrySet()) {
                 String name = entry.getKey();
                 Optional<EditionTotalRule.Found> found = EditionTotalRule.fromCandidates(name, result.volumes(),
-                        editions.get(name), originalTotal, originalFinished);
-                if (found.isEmpty() && result.providerUnavailable()) {
+                        series.editions().get(name), originalTotal, originalFinished, today);
+                if (found.isEmpty() && !answeredInFull) {
                     // A silent source may hold this edition: do not mark it as checked.
                     continue;
                 }
@@ -177,14 +201,49 @@ public class EditionTotalBackfill {
                 if (edition == null) {
                     continue;
                 }
-                MangaEdition updated = EditionTotalRule.apply(edition, found, now);
+                MangaEdition updated = EditionTotalRule.apply(edition, found, now, answeredInFull);
                 mangaEditionRepository.save(updated);
-                if (found.isPresent() && !updated.totalVolumes().equals(edition.totalVolumes())) {
+                if (found.isPresent() && !Objects.equals(updated.totalVolumes(), edition.totalVolumes())) {
                     set++;
                 }
             }
         }
         return new Result(searched, set, false);
+    }
+
+    /** A series with at least one edition to read again: name -> highest volume, and the due rows. */
+    private record DueSeries(Entity entity, Map<String, Integer> editions, Map<String, MangaEdition> due) {
+
+        /** The oldest check among the due editions; null when one was never checked. */
+        Instant oldestCheck() {
+            Instant oldest = Instant.MAX;
+            for (MangaEdition edition : due.values()) {
+                if (edition == null || edition.totalCheckedAt() == null) {
+                    return null;
+                }
+                if (edition.totalCheckedAt().isBefore(oldest)) {
+                    oldest = edition.totalCheckedAt();
+                }
+            }
+            return oldest;
+        }
+    }
+
+    /** The due series: never tried first, then the least recently tried, then the oldest check. */
+    private List<DueSeries> dueSeries(EntityType type, Map<String, MangaEdition> known, Instant now) {
+        List<DueSeries> queue = new ArrayList<>();
+        for (Entity entity : entityRepository.findAllByType(type.id())) {
+            Map<String, Integer> editions = CataloguedEditions.of(entity);
+            Map<String, MangaEdition> due = dueEditions(entity, editions, known, now);
+            if (!due.isEmpty()) {
+                queue.add(new DueSeries(entity, editions, due));
+            }
+        }
+        queue.sort(Comparator
+                .comparing((DueSeries series) -> lastAttempts.get(series.entity().id()),
+                        Comparator.nullsFirst(Comparator.<Instant>naturalOrder()))
+                .thenComparing(DueSeries::oldestCheck, Comparator.nullsFirst(Comparator.<Instant>naturalOrder())));
+        return queue;
     }
 
     /** The named editions of this series that the job should read again: name -> row, or null when none yet. */
@@ -211,9 +270,16 @@ public class EditionTotalBackfill {
 
     /** Through the linker, like a volume added by hand; the row it found or created. */
     private MangaEdition createEdition(Entity entity, String name) {
-        return mangaEditionLinker.editionIdPour(entity, name)
+        MangaEdition edition = mangaEditionLinker.editionIdPour(entity, name)
                 .flatMap(mangaEditionRepository::findById)
                 .orElse(null);
+        if (edition != null && !entity.id().equals(edition.entityId())) {
+            // A homonym series owns this row (same title, same edition name): not ours to fill.
+            log.info("Edition total backfill: edition \"{}\" of \"{}\" belongs to another series, left alone",
+                    name, entity.title());
+            return null;
+        }
+        return edition;
     }
 
     private void waitBetweenSeries() {
