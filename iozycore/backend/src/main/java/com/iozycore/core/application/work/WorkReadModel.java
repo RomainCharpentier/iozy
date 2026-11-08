@@ -134,10 +134,17 @@ public class WorkReadModel {
         Map<UUID, CollectorStatus> statuses = statusRepository.findByEntityId(entityId)
                 .map(status -> Map.of(status.entityId(), status.status()))
                 .orElse(Map.of());
-        return viewsOf(Map.of(type, List.of(work)), ownerships, wishes, statuses).get(0);
+        return viewsOf(Map.of(type, List.of(work)), ownerships, wishes, statuses, false).get(0);
     }
 
-    /** Every work the account owns (an active copy) or wishes, most recently moved first. */
+    /**
+     * Every work the account owns (an active copy) or wishes, most recently moved first.
+     *
+     * <p>The counts of a list can be summed: each object belongs to one work only. The derived
+     * elements that stand for another work (another game of a licence, an expansion owned as a
+     * game of its own) are left out here and shown on the page of the work only
+     * ({@link WorkElementsContext#list()}).
+     */
     public List<WorkView> works() {
         List<Ownership> ownerships = ownershipRepository.findAll();
         List<WishlistEntry> wishes = wishlistEntryRepository.findAll();
@@ -158,7 +165,7 @@ public class WorkReadModel {
         }
         Map<UUID, CollectorStatus> statuses = statusRepository.findAll().stream()
                 .collect(Collectors.toMap(WorkCollectorStatus::entityId, WorkCollectorStatus::status, (a, b) -> a));
-        List<WorkView> views = new ArrayList<>(viewsOf(worksByType, ownerships, wishes, statuses));
+        List<WorkView> views = new ArrayList<>(viewsOf(worksByType, ownerships, wishes, statuses, true));
         views.sort(Comparator.comparing(WorkView::lastMovedAt, Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(view -> view.title().toLowerCase()));
         return views;
@@ -224,7 +231,8 @@ public class WorkReadModel {
     }
 
     private List<WorkView> viewsOf(Map<EntityType, List<Entity>> worksByType, List<Ownership> ownerships,
-                                   List<WishlistEntry> wishes, Map<UUID, CollectorStatus> statuses) {
+                                   List<WishlistEntry> wishes, Map<UUID, CollectorStatus> statuses,
+                                   boolean list) {
         LocalDate today = LocalDate.now(clock);
         List<Ownership> active = ownerships.stream().filter(Ownership::isActive).toList();
         Map<UUID, List<Ownership>> allOwnershipsByWork = ownerships.stream()
@@ -243,7 +251,7 @@ public class WorkReadModel {
             List<ReleaseEntry> releases = releaseCalendar.releasesOf(new ReleaseContext(type, today,
                     today.plusDays(RELEASE_HORIZON_DAYS), works, activeOfType, wishesOfType));
             WorkElementsContext context = new WorkElementsContext(type, works, activeOfType, wishesOfType,
-                    releases, today);
+                    releases, today, list);
             Map<UUID, WorkElements> elements = elementsOf(context);
             Map<UUID, List<ReleaseEntry>> releasesByWork = context.releasesByWork();
 
@@ -274,7 +282,8 @@ public class WorkReadModel {
         List<Entity> leftOut = context.works().stream().filter(work -> !result.containsKey(work.id())).toList();
         if (!leftOut.isEmpty()) {
             WorkElementsContext rest = new WorkElementsContext(context.entityType(), leftOut,
-                    context.activeOwnerships(), context.wishlist(), context.releases(), context.today());
+                    context.activeOwnerships(), context.wishlist(), context.releases(), context.today(),
+                    context.list());
             DefaultWorkElements.of(rest).forEach(elements -> result.put(elements.entityId(), elements));
         }
         return result;

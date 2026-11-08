@@ -1,6 +1,8 @@
 package com.iozycore.core.application.work;
 
+import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.work.WorkElement;
 import com.iozycore.core.domain.work.WorkElements;
 import com.iozycore.core.domain.work.WorkElementsContext;
 
@@ -27,4 +29,17 @@ public interface WorkElementsSource {
 
     /** One answer per work of the context; a work left out gets the core default. */
     List<WorkElements> elementsOf(WorkElementsContext context);
+
+    /**
+     * Turns a lacking element of a work into an owned one ("je l'ai"), for the
+     * elements only this universe knows how to add: an expansion read from a
+     * provider, another game of the licence. Through {@link ElementAcquisition},
+     * the same path as the add field.
+     *
+     * @return true when this source added it; false lets the core default try
+     *         (the work itself, one of its variants)
+     */
+    default boolean own(EntityType entityType, Entity work, WorkElement element) {
+        return false;
+    }
 }

@@ -56,6 +56,9 @@ services:
       RELEASES_REFRESH_ENABLED: "false"
       # Same for the volume counts of the editions (lot 207): no provider here.
       EDITION_TOTALS_BACKFILL_ENABLED: "false"
+      # Same for the expansions and the licences (lot 211): no provider here.
+      BOARD_GAME_EXPANSIONS_BACKFILL_ENABLED: "false"
+      VIDEO_GAME_FRANCHISES_BACKFILL_ENABLED: "false"
     ports:
       # 8090 and not 8080: the development stack can run at the same time.
       - "8090:8080"
