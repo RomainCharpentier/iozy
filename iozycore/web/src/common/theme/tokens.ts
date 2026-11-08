@@ -10,12 +10,13 @@
 // saturated neon next to the accent. Content colors, not interface roles, so
 // they are not kit tokens. See gradient.ts for the selection algorithm
 // (deterministic by title). `check:contrast` reads this list: each pair must
-// carry white or black initials at 4.5:1.
+// carry white or black initials at 4.5:1, and plain white text at 4.5:1 on the
+// first stop (the yearly recap card writes white text from the top left).
 export const gradientPalettes: readonly [string, string][] = [
   ['C2492F', '5E1F14'],
   ['8A6A3A', '33251A'],
   ['4A4658', '16151C'],
   ['5C4A52', '1D1518'],
   ['7A6A6A', '241D1D'],
-  ['6B7D5A', '242D1D'],
+  ['687A57', '242D1D'],
 ]

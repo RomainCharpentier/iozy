@@ -180,6 +180,20 @@ for (const fond of AVATARS) {
   }
 }
 
+// ──────────────────────────────────────── The yearly recap card
+//
+// CollectionRecapPage draws a 135deg gradient from one of these pairs and
+// writes FIXED white text on it, starting at the top left, where the first
+// stop is. No ink is chosen there: plain white must reach 4.5:1 on every first
+// stop. The second stop is darker on each pair, so the first one is the worst
+// case.
+for (const fond of AVATARS) {
+  const ratio = rapport(fond, '#ffffff')
+  if (ratio < SEUIL) {
+    echecs.push(`  recap card white text on ${fond} : ${ratio.toFixed(2)}:1`)
+  }
+}
+
 // ─────────────────────────────────────────────────────── Report
 
 const compte = TEXTES.length * FONDS.length + ENCRES.length + RANGS.length
@@ -201,5 +215,5 @@ if (echecs.length > 0) {
 
 console.log(
   `AA contrast: ${compte * 2} combinations checked on both themes plus ${AVATARS.length} avatar ` +
-    `badges, none under ${SEUIL}:1.`,
+    `badges and ${AVATARS.length} recap card backgrounds, none under ${SEUIL}:1.`,
 )
