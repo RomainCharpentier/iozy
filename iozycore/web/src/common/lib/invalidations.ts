@@ -37,6 +37,8 @@ export function invaliderApresPossession(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.nearCompleteSuggestions })
   // A work, its elements, the list and the summary all count what we own.
   queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
+  // What to buy and what was spent this month (batch 216).
+  queryClient.invalidateQueries({ queryKey: queryKeys.purchases.all })
 }
 
 /**
@@ -55,6 +57,8 @@ export function invaliderApresEnvie(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
   // A wished element changes state, and the list holds the wished works.
   queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
+  // A wish is a line to buy (batch 216).
+  queryClient.invalidateQueries({ queryKey: queryKeys.purchases.toBuy })
 }
 
 /**
@@ -88,6 +92,8 @@ export function invaliderApresSuivi(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ['insights', 'releases'] })
   // Following removes the wish for the work: its wished count and its place in the list change.
   queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
+  // The removed wish was a line to buy.
+  queryClient.invalidateQueries({ queryKey: queryKeys.purchases.toBuy })
 }
 
 /**
@@ -97,4 +103,6 @@ export function invaliderApresSuivi(queryClient: QueryClient) {
  */
 export function invalidateAfterCollectorStatus(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.works.all })
+  // A paused or dropped work no longer counts in what to buy.
+  queryClient.invalidateQueries({ queryKey: queryKeys.purchases.toBuy })
 }

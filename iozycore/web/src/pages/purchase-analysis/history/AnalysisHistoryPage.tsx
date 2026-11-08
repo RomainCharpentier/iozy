@@ -6,6 +6,7 @@ import { deleteAnalysis, listAnalysisHistory } from '@/common/api/purchaseAnalys
 import { queryKeys } from '@/common/lib/queryKeys'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { VerdictBadge } from '@/pages/purchase-analysis/VerdictBadge'
+import { scoreAffichable } from '@/pages/purchase-analysis/scoreAffichable'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { formaterEuros } from '@/common/lib/formats'
@@ -69,7 +70,7 @@ export function AnalysisHistoryPage() {
                   )}
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <VerdictBadge verdict={analysis.verdict} score={analysis.verdictScore} />
+                  <VerdictBadge verdict={analysis.verdict} score={scoreAffichable(analysis.verdictScore, analysis.createdAt)} />
                   <span className="shrink-0 text-sm text-textDim">
                     {formaterEuros(analysis.totalRealCost)} · {new Date(analysis.createdAt).toLocaleDateString('fr-FR')}
                   </span>

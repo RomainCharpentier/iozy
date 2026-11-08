@@ -15,6 +15,8 @@ const ROUTES: [chemin: string, destination: string][] = [
   ['/entity/berserk', 'accueil'],
   ['/collection/type-manga', 'accueil'],
   ['/releases', 'sorties'],
+  ['/to-buy', 'acheter'],
+  ['/to-buy/analyse', 'acheter'],
   ['/purchase-analysis', 'acheter'],
   ['/purchase-analysis/history', 'acheter'],
   ['/purchase-analysis/history/42', 'acheter'],

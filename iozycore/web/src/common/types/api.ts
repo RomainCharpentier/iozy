@@ -572,3 +572,55 @@ export interface CalendarSubscriptionDto {
   /** ISO instant. */
   createdAt: string
 }
+
+// --- To buy (batch 216) ---
+/** UPCOMING announced, not out yet; COMPLETE what an ongoing work lacks; WISH only wishes. */
+export type ToBuyKind = 'UPCOMING' | 'COMPLETE' | 'WISH'
+
+export interface ToBuyElementDto {
+  /** The key of the element in GET /api/works/{entityId}. */
+  key: string
+  label: string
+  number: number | null
+  coverImageUrl: string | null
+  state: WorkElementState
+  releaseDate: string | null
+}
+
+/** GET /api/purchases/to-buy: one line. "Je l'ai" acts on `elements[0]`. */
+export interface ToBuyLineDto {
+  entityId: UUID
+  entityTypeId: UUID
+  title: string
+  coverImageUrl: string | null
+  kind: ToBuyKind
+  collectorStatus: CollectorStatus
+  /** The release ahead of an UPCOMING line ("2026-11-13" or "2026-11"), else null. */
+  releaseDate: string | null
+  releasePrecision: 'DAY' | 'MONTH' | null
+  elements: ToBuyElementDto[]
+}
+
+/** GET /api/purchases/month: spent this month by purchase date (acquiredAt), Paris time. */
+export interface MonthSpendingDto {
+  /** "2026-11" */
+  month: string
+  spent: number
+  pricedCount: number
+  /** Copies bought this month without a price: not in `spent`. */
+  unpricedCount: number
+  /** Null: the account has no budget. */
+  monthlyBudget: number | null
+}
+
+export interface BudgetDto {
+  monthlyBudget: number | null
+}
+
+/** POST /api/purchases/acquire: what "Je l'ai" created, to undo it. */
+export interface AcquiredDto {
+  ownershipId: UUID
+  entityId: UUID
+  variantId: UUID | null
+  wishRemoved: boolean
+}

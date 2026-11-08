@@ -86,7 +86,15 @@ function parseVolumes(text: string): number[] {
  * What is computed afterwards does not change one bit: the link feeds the
  * draft, it does not duplicate any analysis logic.
  */
-export function PurchaseAnalysisPage() {
+/**
+ * The same analysis in the side panel of "À acheter" (lot 216): the panel
+ * carries the close button, so no back link, and its heading is the panel's.
+ */
+export function PurchaseAnalysisPanel() {
+  return <PurchaseAnalysisPage enPanneau />
+}
+
+export function PurchaseAnalysisPage({ enPanneau = false }: { enPanneau?: boolean } = {}) {
   // Optional context passed by the detail page of a series (see EntityDetailPage) -
   // missing when we arrive through Search, through Profil, or by direct URL.
   const fromEntity = useLocation().state as { seriesTitle?: string; editionName?: string } | null
@@ -475,7 +483,7 @@ export function PurchaseAnalysisPage() {
   if (analyzeMutation.isSuccess) {
     return (
       <div className="flex flex-col gap-5">
-        <LienRetour parDefaut={RETOUR_PAR_DEFAUT} />
+        {!enPanneau && <LienRetour parDefaut={RETOUR_PAR_DEFAUT} />}
         <div className="flex items-center justify-between gap-2">
           <EnTeteSection niveau={1} titre="Analyser une annonce" />
           <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">
@@ -490,7 +498,7 @@ export function PurchaseAnalysisPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <LienRetour parDefaut={RETOUR_PAR_DEFAUT} />
+      {!enPanneau && <LienRetour parDefaut={RETOUR_PAR_DEFAUT} />}
       <div className="flex items-center justify-between gap-2">
         <EnTeteSection niveau={1} titre="Analyser une annonce" />
         <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">

@@ -52,7 +52,8 @@ public class JdbcDonneesParProprietaire implements DonneesParProprietaire {
             "purchase_analysis",
             "market_price_observation",
             "work_collector_status",
-            "calendar_subscription");
+            "calendar_subscription",
+            "purchase_budget");
 
     /**
      * Five counts, one single query.

@@ -4,6 +4,7 @@ import { Copy, ExternalLink, Heart, History, Scale, TriangleAlert, Info, CircleX
 import { useWishlist } from '@/common/hooks/useWishlist'
 import type { WishlistTarget } from '@/common/api/wishlist'
 import { VerdictBadge } from './VerdictBadge'
+import { NOTE_SCORE_INDISPONIBLE, scoreAffichable } from './scoreAffichable'
 import { ListingAssessmentCard } from './ListingAssessmentCard'
 import { SeriesBreakdownItem } from './SeriesBreakdownItem'
 import { LISTING_PLATFORM_LABELS } from '@/common/types/purchaseAnalysis'
@@ -75,6 +76,7 @@ export function PurchaseAnalysisResultCard({
   const [showOfferText, setShowOfferText] = useState(false)
   const [copied, setCopied] = useState(false)
   const { listing, negotiation } = analysis
+  const score = scoreAffichable(analysis.verdictScore, analysis.requestedAt)
 
   /**
    * The VOLUMES of the batch that can already be attached to a detail page - not the series.
@@ -137,12 +139,16 @@ export function PurchaseAnalysisResultCard({
             assessment present, the score stays, as a note, without a price word. An old
             analysis with no assessment keeps its badge: it was its only verdict. */}
         {analysis.assessment ? (
-          <p className="text-sm text-textPrimary">
-            Note globale <span className="font-semibold">{analysis.verdictScore}/100</span>
-            <span className="text-textDim"> · prix, état, édition et complétude réunis</span>
-          </p>
+          score === null ? (
+            <p className="text-sm text-textDim">Note globale : {NOTE_SCORE_INDISPONIBLE}</p>
+          ) : (
+            <p className="text-sm text-textPrimary">
+              Note globale <span className="font-semibold">{score}/100</span>
+              <span className="text-textDim"> · prix, état, édition et complétude réunis</span>
+            </p>
+          )
         ) : (
-          <VerdictBadge verdict={analysis.verdict} score={analysis.verdictScore} />
+          <VerdictBadge verdict={analysis.verdict} score={score} />
         )}
         <p className="text-xs text-textDim">
           Confiance {CONFIDENCE_LABELS[analysis.overallConfidence]} · basée sur {Object.keys(analysis.factorBreakdown).length}/10

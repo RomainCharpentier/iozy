@@ -19,6 +19,7 @@ describe('what a visit cannot reach', () => {
     // provider or to a model: a door open to the whole Internet must not
     // offer that.
     expect(estReserveeAuxComptes('/purchase-analysis')).toBe(true)
+    expect(estReserveeAuxComptes('/to-buy')).toBe(true)
     expect(estReserveeAuxComptes('/purchase-analysis/history')).toBe(true)
   })
 

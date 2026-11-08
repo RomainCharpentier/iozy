@@ -53,6 +53,8 @@ const GeneralTierBoardPage = page(() => import('@/pages/tier-lists/board/General
 const CustomTierBoardPage = page(() => import('@/pages/tier-lists/board/CustomTierBoardPage'), 'CustomTierBoardPage')
 const CategoryPage = page(() => import('@/pages/collection/category/CategoryPage'), 'CategoryPage')
 const PurchaseAnalysisPage = page(() => import('@/pages/purchase-analysis/PurchaseAnalysisPage'), 'PurchaseAnalysisPage')
+const PurchaseAnalysisPanel = page(() => import('@/pages/purchase-analysis/PurchaseAnalysisPage'), 'PurchaseAnalysisPanel')
+const ToBuyPage = page(() => import('@/pages/to-buy/ToBuyPage'), 'ToBuyPage')
 const AnalysisHistoryPage = page(() => import('@/pages/purchase-analysis/history/AnalysisHistoryPage'), 'AnalysisHistoryPage')
 const AnalysisHistoryDetailPage = page(
   () => import('@/pages/purchase-analysis/history/AnalysisHistoryDetailPage'), 'AnalysisHistoryDetailPage')
@@ -226,6 +228,9 @@ export default function App() {
                   <Route path="/tier-lists/general/:entityTypeId" element={<GeneralTierBoardPage />} />
                   <Route path="/tier-lists/:id" element={<CustomTierBoardPage />} />
                   <Route path="/collection/:entityTypeId" element={<CategoryPage />} />
+                  <Route path="/to-buy" element={<ToBuyPage />}>
+                    <Route path="analyse" element={<PurchaseAnalysisPanel />} />
+                  </Route>
                   <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
                   <Route path="/purchase-analysis/history" element={<AnalysisHistoryPage />} />
                   <Route path="/purchase-analysis/history/:id" element={<AnalysisHistoryDetailPage />} />

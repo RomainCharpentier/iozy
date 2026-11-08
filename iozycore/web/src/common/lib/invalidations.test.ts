@@ -50,6 +50,7 @@ describe('after an ownership', () => {
       'insights',
       'purchaseAnalysis/nearCompleteSuggestions',
       'works',
+      'purchases',
     ])
     expect(queryKeys.insights.value.slice(0, 1)).toEqual(['insights'])
     expect(queryKeys.insights.stats.slice(0, 1)).toEqual(['insights'])
@@ -74,6 +75,7 @@ describe('after a wish', () => {
       'entities',
       'insights/progress',
       'works',
+      'purchases/toBuy',
     ])
   })
 })
@@ -97,7 +99,7 @@ describe('after a follow', () => {
   it('invalidates the follow, the wish it may have removed, the catalog and the calendar', () => {
     const { client, prefixes } = clientEspion()
     invaliderApresSuivi(client)
-    expect(prefixes()).toEqual(['followedWorks', 'wishlist', 'entities', 'insights/releases', 'works'])
+    expect(prefixes()).toEqual(['followedWorks', 'wishlist', 'entities', 'insights/releases', 'works', 'purchases/toBuy'])
   })
 })
 
@@ -139,6 +141,6 @@ describe('after a collector status', () => {
 
     invalidateAfterCollectorStatus(client)
 
-    expect(prefixes()).toEqual(['works'])
+    expect(prefixes()).toEqual(['works', 'purchases/toBuy'])
   })
 })
