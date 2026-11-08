@@ -23,7 +23,7 @@ const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
  * border), Découvertes full width below - no more tabs at this
  * stage (see DS v1.1, source comment "Plus d'onglets à ce stade").
  * One single markup: the switch is purely CSS (`hidden`/`min-[1100px]:flex`,
- * same principle as TabBar/DesktopHeader with NAV_BREAKPOINT_PX), never
+ * same principle as BarreOnglets/BarreDuHaut with NAV_BREAKPOINT_PX), never
  * content duplicated between the two layouts.
  *
  * <p>The core screen (batch 142): Tier Lists work for any universe, the

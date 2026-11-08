@@ -10,7 +10,8 @@ import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/cover
 import { creatorFrom } from '@/common/lib/creatorInfo'
 import { avecDetails, identifiantsSource } from '@/pages/entity/rechargerSource'
 import { isSeriesOngoing, statutAffiche } from '@/pages/entity/seriesInfo'
-import { useTeinteJaquette } from '@/pages/entity/useTeinteJaquette'
+import { useTeinteJaquette } from '@/common/lib/teinte/useTeinteJaquette'
+import { usePleinCadre } from '@/common/components/pleinCadre/usePleinCadre'
 import { resolvePrimaryTitle, useTitleComposition } from '@/common/lib/titleLanguage'
 import { gradientFor } from '@/common/theme/gradient'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
@@ -143,7 +144,9 @@ export function ApercuOeuvrePage() {
     : {}
 
   const couvertureUrl = coverImageUrlFrom(attributs)
-  const { principale: teinte, seconde: teinteSeconde, connue: teinteConnue } = useTeinteJaquette(couvertureUrl)
+  const { principale: teinte } = useTeinteJaquette(couvertureUrl)
+  // The cover fills the screen behind the page, blurred, and lends it its colors.
+  usePleinCadre(couvertureUrl)
   const ongoing = isSeriesOngoing(attributs)
   const statut = statutAffiche(attributs)
   const startYear = typeof attributs.startYear === 'string' ? attributs.startYear : null
@@ -190,8 +193,6 @@ export function ApercuOeuvrePage() {
         aspectClassName={getEntityTypeVisual(type).aspectClassName}
         grandeJaquette={!parTome}
         teinte={teinte}
-        teinteSeconde={teinteSeconde}
-        teinteConnue={teinteConnue}
         kicker={type?.label ?? null}
         titre={titre}
         auteur={creatorFrom(attributs)}

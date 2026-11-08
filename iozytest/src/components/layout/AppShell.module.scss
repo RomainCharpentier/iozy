@@ -1,8 +1,9 @@
 /* La coquille IozyTest, calquée sur l'AppShell d'IozyCore : barres « verre »
    (translucides, floutées, une ligne), mot-marque en texte, pastilles de
    navigation, grille de page à trois colonnes, pied de page, barre d'onglets
-   au pouce sous 768 px. Jamais les deux navigations en même temps : le point
-   de bascule est le même partout (768 px), sans état JS. */
+   au pouce sous 1024 px. Jamais les deux navigations en même temps : le point
+   de bascule est le même partout (1024 px depuis le lot 210 : la barre du
+   site ne tient pas en 768 px), sans état JS. */
 
 .shell {
   min-height: 100vh;
@@ -10,42 +11,44 @@
   flex-direction: column;
 }
 
-/* Verre : la barre d'IozyKit (surface à 85 %, floutée et saturée). */
-.glass {
-  composes: iozy-glass from global;
-}
-
-/* ---- En-tête bureau (≥ 768 px) ---- */
+/* ---- En-tête bureau (≥ 1024 px) ---- */
+/* Depuis le lot 210, la barre est celle du site : `.iozy-barre--eclatee`
+   d'IozyKit (trois pièces de verre flottantes). Ici, seulement sa bascule :
+   cachée sous 1024 px, et au-dessus des écrans. */
 .header {
-  display: none;
-  position: sticky;
-  top: 0;
+  display: none !important;
   z-index: var(--z-sticky);
-  height: 4rem;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
 }
 
-.headerInner {
-  margin: 0 auto;
-  width: min(100% - 48px, 1400px);
-  height: 100%;
+/* Le champ de recherche se resserre avant que la barre ne déborde. */
+.search {
+  min-width: 0;
+  width: auto;
+  flex: 1;
+  max-width: 300px;
+}
+
+/* Le thème, l'éditeur et les réglages partagent une capsule de verre. */
+.shortcutGroup {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2px;
+  height: 52px;
+  padding: 0 4px;
+  border-radius: var(--iozy-radius-pill);
 }
 
-/* ---- En-tête mobile (< 768 px) : le nom et les raccourcis, rien d'autre ---- */
+/* ---- En-tête mobile (< 1024 px) : le nom et les raccourcis, rien d'autre ---- */
 .mobileHeader {
   display: flex;
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  height: 3.5rem;
+  height: 4.25rem;
   align-items: center;
   gap: 0.75rem;
-  padding: 0 1rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1rem 0;
 }
 
 /* « Iozy » en encre, « Test » en accent : la marque porte l'accent dans son
@@ -70,53 +73,11 @@
   color: var(--accent-primary);
 }
 
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  height: 100%;
-}
-
-/* La destination courante est une pastille SURÉLEVÉE (surface + ombre + ligne),
-   pas un aplat teinté doublé d'un trait. */
-.navPill {
-  display: flex;
-  height: 46px;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0 1rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.navPill:hover {
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
-  color: var(--text-primary);
-}
-
-.navPillActive,
-.navPillActive:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--border);
-  box-shadow: var(--shadow-sm);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
 .shortcuts {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.75rem;
 }
 
 /* Bouton-icône de l'en-tête : 40 px au bureau, 44 px au pouce. */
@@ -128,7 +89,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--iozy-radius-pill);
   background: transparent;
   color: var(--text-secondary);
   text-decoration: none;
@@ -184,68 +145,20 @@
   color: var(--text-secondary);
 }
 
-/* ---- Barre d'onglets au pouce (< 768 px) ---- */
+/* ---- Barre d'onglets au pouce (< 1024 px) ---- */
+/* La capsule de verre d'IozyKit (`.iozy-onglets`) ; ici, la bascule seule. */
 .tabBar {
-  position: fixed;
-  inset-inline: 0;
-  bottom: 0;
   z-index: var(--z-sticky);
-  display: flex;
-  align-items: stretch;
-  gap: 0.25rem;
-  border-top: 1px solid var(--border);
-  padding: 0.375rem 0.5rem max(0.5rem, env(safe-area-inset-bottom));
 }
 
-.tab {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  align-items: stretch;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.tabInner {
-  display: flex;
-  min-height: 54px;
-  width: 100%;
-  max-width: 84px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  padding: 0 0.125rem;
-  border-radius: var(--radius-lg);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.tabActive .tabInner {
-  background: var(--accent-alpha-2);
-  color: var(--accent-text);
-}
-
-.tabLabel {
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
-}
-
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .header {
-    display: block;
+    display: flex !important;
   }
 
   .mobileHeader,
   .tabBar {
-    display: none;
+    display: none !important;
   }
 
   .main {

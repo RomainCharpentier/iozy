@@ -3,8 +3,10 @@ import { Wrench } from 'lucide-react'
 import { initiales } from '@/common/lib/initiales'
 import { BoutonSortie } from '@/common/components/BoutonSortie'
 import { BoutonTheme } from '@/common/components/BoutonTheme'
-import { couleurDuPseudo } from '@/common/theme/avatar'
 import { useAuth } from '@/common/hooks/useAuth'
+
+/** The theme, administration and exit buttons share one glass capsule. */
+const GROUPE = 'iozy-verre flex h-[52px] items-center gap-0.5 rounded-full px-1'
 
 /**
  * The two header accesses: <b>administration</b>, and the profile.
@@ -63,7 +65,12 @@ import { useAuth } from '@/common/hooks/useAuth'
  * instance with several people, two accounts are no longer told apart only by
  * two letters one reads, but by a color one recognizes without reading.
  *
- * <p>The fallback stays "IO", <b>without color</b>, and it is reachable: this
+ * <h2>A ring in the color of the cover (lot 210)</h2>
+ * The avatar is now the round glass piece of the top bar: the initials in the
+ * text color, ringed by the vivid tone of the cover on screen. The color of
+ * the pseudo gave way: one accent at a time, and it is the cover's.
+ *
+ * <p>The fallback stays "IO", and it is reachable: this
  * component lives in the {@code AppShell}, which only renders when signed in, but the
  * account arrives through a request - so there is a moment, at first
  * load, when it is not there yet. A color that would appear then would
@@ -78,10 +85,14 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
   // exit, in the same place as for everyone - it is even the only
   // place from which they can leave.
   if (estInvite) {
+    // The same nesting as below: the theme button keeps its node when the
+    // account turns out to be a visit.
     return (
-      <div className="flex items-center gap-2">
-        <BoutonTheme compact={compact} />
-        <BoutonSortie compact={compact} />
+      <div className="flex items-center gap-3">
+        <div className={GROUPE}>
+          <BoutonTheme compact={compact} />
+          <BoutonSortie compact={compact} />
+        </div>
       </div>
     )
   }
@@ -91,11 +102,11 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
   // The pseudo is SAID, not only drawn: "RO" read aloud by a
   // screen reader tells nobody anything.
   const intitule = compte ? `Mon profil — ${compte.pseudo}` : 'Mon profil'
-  const couleur = couleurDuPseudo(compte?.pseudo ?? '')
   const surAdministration = pathname.startsWith('/administration')
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
+      <div className={GROUPE}>
       <BoutonTheme compact={compact} />
 
       {/* The tooling of the application, on its own button. An icon only:
@@ -109,9 +120,9 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
         title="Administration"
         aria-label="Administration"
         aria-current={surAdministration ? 'page' : undefined}
-        className={`flex ${taille} shrink-0 items-center justify-center rounded-xl transition-colors ${
+        className={`flex ${taille} shrink-0 items-center justify-center rounded-full transition-colors ${
           surAdministration
-            ? 'bg-surface text-textPrimary shadow-token-sm'
+            ? 'bg-textPrimary text-background'
             : 'text-textDim hover:bg-rowHover hover:text-textPrimary'
         }`}
       >
@@ -119,19 +130,14 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
       </Link>
 
       <BoutonSortie compact={compact} />
+      </div>
 
       <Link
         to="/profile"
         title={intitule}
         aria-label={intitule}
         aria-current={pathname === '/profile' ? 'page' : undefined}
-        // The color is set in INLINE style, not in a class: it comes
-        // from data (the pseudo), not from an interface state. Tailwind only
-        // generates the classes that it sees written.
-        style={couleur ? { background: couleur.fond, color: couleur.encre } : undefined}
-        className={`flex ${taille} shrink-0 items-center justify-center rounded-xl font-display text-xs font-semibold shadow-token-sm transition-colors ${
-          couleur ? '' : 'bg-surface text-textDim hover:text-textPrimary'
-        }`}
+        className={`iozy-verre iozy-avatar iozy-teinte ${compact ? '!h-11 !w-11 !text-sm' : ''}`}
       >
         {marque}
       </Link>

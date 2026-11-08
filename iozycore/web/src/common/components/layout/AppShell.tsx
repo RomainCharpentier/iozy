@@ -1,18 +1,21 @@
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { BandeauVisite } from './BandeauVisite'
-import { DesktopHeader } from './DesktopHeader'
-import { MobileHeader } from './MobileHeader'
+import { BarreDuHaut } from './BarreDuHaut'
+import { BarreOnglets } from './BarreOnglets'
+import { EnTeteMobile } from './EnTeteMobile'
 import { PiedDePage } from './PiedDePage'
-import { TabBar } from './TabBar'
+import { FondPleinCadre, PleinCadreProvider } from '@/common/components/pleinCadre/PleinCadre'
 import { useRefusDeVisite } from '@/common/hooks/useRefusDeVisite'
 
-/** Single switch point between mobile navigation (TabBar, at the bottom, fixed) and
- * desktop navigation (DesktopHeader, at the top, sticky) - see TabBar.tsx
- * (`md:hidden`) and DesktopHeader.tsx (`hidden md:block`), which each apply
- * this same Tailwind value (`md` = 768px) independently: the two
- * are never visible at the same time, without depending on a JS state. */
-const NAV_BREAKPOINT_PX = 768
+/** Single switch point between the thumb bar (BarreOnglets, at the bottom,
+ * fixed) and the top bar (BarreDuHaut, floating at the top) - see
+ * BarreOnglets.tsx (`lg:!hidden`) and BarreDuHaut.tsx (`max-lg:!hidden`),
+ * which each apply this same Tailwind value (`lg` = 1024px) independently:
+ * the two are never visible at the same time, without depending on a JS
+ * state. 1024 and no longer 768 since lot 210: the five destinations, the
+ * search field and the avatar of the glass bar do not fit in 768 px. */
+const NAV_BREAKPOINT_PX = 1024
 
 /** Three named content widths rather than scattered route tests
  * in the JSX (see the requested layout rework - "explicit notion" rather than
@@ -115,9 +118,9 @@ function contentWidthFor(pathname: string): ContentWidth {
   return 'narrow'
 }
 
-/** Root layout: scrollable content + navigation, mobile (TabBar,
- * fixed at the bottom) or desktop (DesktopHeader, sticky at the top) depending on the width -
- * never both (see NAV_BREAKPOINT_PX). The clearance for the TabBar
+/** Root layout: scrollable content + navigation, mobile (BarreOnglets,
+ * fixed at the bottom) or desktop (BarreDuHaut, floating at the top) depending on the width -
+ * never both (see NAV_BREAKPOINT_PX). The clearance for the thumb bar
  * (height of the bar + bottom safe-area) is carried by the FOOTER and
  * not by `<main>`: the footer is what ends the page, and the space must be
  * under it so that the version is not read behind the fixed bar. On
@@ -129,9 +132,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   // private screens: a visit refusal must be explained wherever it comes from.
   useRefusDeVisite()
   return (
-    <div className="min-h-screen bg-background">
-      <DesktopHeader />
-      <MobileHeader />
+    // No background here: the page is painted by the full-screen backdrop
+    // (FondPleinCadre, fixed under everything), the cover of the moment.
+    <PleinCadreProvider>
+    <div className="min-h-screen">
+      <FondPleinCadre />
+      <BarreDuHaut />
+      <EnTeteMobile />
       {/* Below the headers and outside `<main>`: it is information about the
           SESSION, not about the page - it must neither scroll with the content nor
           enter the grid that lays it out. Renders nothing outside a visit. */}
@@ -152,8 +159,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           be UNDER it - otherwise the version would be read behind the fixed bar. The
           total document bottom does not change. */}
       <PiedDePage />
-      <TabBar />
+      <BarreOnglets />
     </div>
+    </PleinCadreProvider>
   )
 }
 

@@ -89,7 +89,19 @@ function retourVersRecherche(search: string): EtatRetour {
   return { retour: { to: `/add${search}`, libelle: 'Catalogue' } }
 }
 
+/**
+ * The search of the top bar ("Chercher ou ajouter") lands here with a new
+ * `q` and a fresh `recherche` mark in the router state. The screen keeps its
+ * typing in a local state, so a second search from the bar while already on
+ * this page starts the screen afresh rather than letting the URL sync write
+ * the old title back.
+ */
 export function SearchPage() {
+  const etat = useLocation().state as { recherche?: number } | null
+  return <SearchPageContenu key={etat?.recherche ?? 'ecran'} />
+}
+
+function SearchPageContenu() {
   const navigate = useNavigate()
   const { search } = useLocation()
   const titleComposition = useTitleComposition()

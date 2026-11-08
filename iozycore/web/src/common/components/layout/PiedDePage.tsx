@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { VERSION_INTERFACE, estUneLivraison, lireVersionServeur, versionCourte } from '@/common/api/version'
 import { queryKeys } from '@/common/lib/queryKeys'
+import { NotePleinCadre } from '@/common/components/pleinCadre/PleinCadre'
 
 /**
  * Which release is running - small, at the bottom of every page.
@@ -89,7 +90,7 @@ export function PiedDePage({ sansSession = false }: { sansSession?: boolean } = 
     // the centered form up by 96 px.
     <footer
       className={
-        sansSession ? 'text-center text-xs text-textDim' : 'pb-24 text-center text-xs text-textDim md:pb-10'
+        sansSession ? 'text-center text-xs text-textDim' : 'pb-28 text-center text-xs text-textDim lg:pb-10'
       }
     >
       {/* A plain link, not a router one: the home page is the root of the
@@ -109,6 +110,9 @@ export function PiedDePage({ sansSession = false }: { sansSession?: boolean } = 
           </>
         )}
       </span>
+      {/* Why the page wears the brand colors instead of the cover's, when the
+          image host refused to let them be read: one line, never a banner. */}
+      <NotePleinCadre />
     </footer>
   )
 }

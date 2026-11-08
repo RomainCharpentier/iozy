@@ -2,7 +2,7 @@ import type { ReactNode, RefObject } from 'react'
 import { Heart, Pencil, Scale, CalendarCheck, CalendarPlus } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '@/common/components/layout/AppShell'
-import { tonDe } from './useTeinteJaquette'
+import { tonDe } from '@/common/lib/teinte/useTeinteJaquette'
 
 /**
  * The top of the detail page, after the mockup "Fiche série - multi-éditions":
@@ -28,8 +28,6 @@ const CLASSE_JAQUETTE =
 
 export function FicheHero({
   teinte,
-  teinteSeconde = teinte,
-  teinteConnue = true,
   kicker,
   titre,
   auteur,
@@ -51,11 +49,8 @@ export function FicheHero({
   refJaquette,
   children,
 }: {
+  /** The color of the cover, for the shadow under it. */
   teinte: [number, number, number]
-  /** A second color of the cover, for the other side of the band. */
-  teinteSeconde?: [number, number, number]
-  /** False until the cover has answered: no color rather than a wrong one. */
-  teinteConnue?: boolean
   /** The collection type in small caps above the title. */
   kicker: string | null
   titre: string
@@ -116,21 +111,9 @@ export function FicheHero({
     // must paint above it. A block that is not positioned paints under a
     // positioned band. `.fixed` keeps its own position.
     <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative [&~*:not(.fixed)]:relative`}>
-      {/* The colors of the series, side to side, fading down into the color of
-          the page in both themes (the mask ends on the page itself, so no edge
-          shows). A blurred cover was tried here: its dark areas left gray
-          patches, on a white page above all. The dark theme takes less of the
-          color, for the text above it to stay readable. */}
-      <div
-        aria-hidden="true"
-        data-teinte-fiche=""
-        className={`fiche-teinte pointer-events-none absolute inset-x-0 -top-[68px] h-[760px] transition-opacity duration-300 ${
-          teinteConnue ? 'opacity-100' : 'opacity-0'
-        }`}
-        style={
-          { '--t1': `rgb(${teinte.join(' ')})`, '--t2': `rgb(${teinteSeconde.join(' ')})` } as React.CSSProperties
-        }
-      />
+      {/* The background of the page is the cover itself, blurred over the whole
+          screen (see pleinCadre, declared by the page): the two-gradient band
+          that stood here gave way to it in lot 210. */}
 
       <div
         className={`${CLASSE_CONTENU_BANDE} relative grid grid-cols-1 items-start gap-5 pt-3 md:gap-8 ${

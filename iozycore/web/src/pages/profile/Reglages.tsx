@@ -179,7 +179,7 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
 
       {/* Anchored: "Langue des titres" of the Catalog arrives here, not at the top
           of a profile that one would then have to scroll. */}
-      <div ref={appareilRef} className="scroll-mt-4">
+      <div ref={appareilRef} className="scroll-mt-4 lg:scroll-mt-24">
         <h2 id="section-cet-appareil" className="font-display text-lg font-semibold text-textPrimary">
           Cet appareil
         </h2>

@@ -47,7 +47,7 @@ export function BoutonSortie({ compact = false }: { compact?: boolean }) {
       disabled={deconnexion.isPending}
       title={mot}
       aria-label={mot}
-      className={`flex ${taille} shrink-0 items-center justify-center rounded-xl text-textDim transition-colors hover:bg-rowHover hover:text-textPrimary disabled:opacity-50`}
+      className={`flex ${taille} shrink-0 items-center justify-center rounded-full text-textDim transition-colors hover:bg-rowHover hover:text-textPrimary disabled:opacity-50`}
     >
       <LogOut size={17} />
     </button>

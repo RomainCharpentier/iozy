@@ -28,7 +28,8 @@ import { numeroDe, variantLabel } from '@/common/lib/attributsTome'
 import type { OwnershipResponse } from '@/common/types/api'
 import { attributsARecharger, avecDetails, candidatCorrespondant, identifiantsSource } from './rechargerSource'
 import { usePropositionTomes } from './usePropositionTomes'
-import { useTeinteJaquette } from './useTeinteJaquette'
+import { useTeinteJaquette } from '@/common/lib/teinte/useTeinteJaquette'
+import { usePleinCadre } from '@/common/components/pleinCadre/usePleinCadre'
 import { TierBadge } from '@/common/components/TierBadge'
 import { BoutonEnviesHero, BoutonSuivreHero, FicheHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
@@ -417,7 +418,9 @@ export function EntityDetailPage() {
   const entityType = entityTypesQuery.data?.find((t) => t.id === entity?.entityTypeId)
   const isManga = entityType?.code === 'MANGA'
   const couvertureUrl = entity ? coverImageUrlFrom(entity.attributes) : null
-  const { principale: teinte, seconde: teinteSeconde, connue: teinteConnue } = useTeinteJaquette(couvertureUrl)
+  const { principale: teinte } = useTeinteJaquette(couvertureUrl)
+  // The cover fills the screen behind the page, blurred, and lends it its colors.
+  usePleinCadre(couvertureUrl)
 
   /**
    * "X volumes owned out of Y", asked from the server.
@@ -686,8 +689,6 @@ export function EntityDetailPage() {
           ) : null
         }
         teinte={teinte}
-        teinteSeconde={teinteSeconde}
-        teinteConnue={teinteConnue}
         kicker={null}
         titre={entity.title}
         auteur={avecTomes || modeEdition ? auteur : null}

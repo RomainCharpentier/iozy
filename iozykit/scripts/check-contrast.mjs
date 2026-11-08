@@ -39,6 +39,27 @@ const TEINTES = [
 const SEUIL_NON_TEXTE = 3
 const NON_TEXTES = ['accent', 'field-border']
 
+/**
+ * Le verre et le fond plein cadre. Sous le verre, il n'y a plus un fond du
+ * thème mais une jaquette floutée, qu'on ne connaît pas d'avance : on prend
+ * les deux pires, une jaquette noire et une jaquette blanche. Chacune passe
+ * par le filtre du fond (`backdrop-brightness`), puis le voile
+ * (`backdrop-veil`), puis, le cas échéant, le verre lui-même. Le texte doit
+ * tenir sur les trois couches :
+ * - à même le fond voilé : tous les textes du thème ;
+ * - sur le verre léger (barre, pastilles) : le texte et le texte secondaire ;
+ * - sur le verre fort (panneaux, cartes) : tous les textes, plus l'accent écrit.
+ */
+const PIRES_JAQUETTES = [
+  ['noire', { r: 0, g: 0, b: 0, a: 1 }],
+  ['blanche', { r: 255, g: 255, b: 255, a: 1 }],
+]
+const COUCHES_VERRE = [
+  [null, ['text', 'text-dim', 'text-muted', 'text-faint']],
+  ['glass-surface', ['text', 'text-dim']],
+  ['glass-surface-strong', ['text', 'text-dim', 'text-muted', 'text-faint', 'accent-text']],
+]
+
 function parse(couleur) {
   const hex = couleur.match(/^#([0-9a-f]{6})$/i)
   if (hex) {
@@ -100,6 +121,16 @@ for (const [nom, t] of Object.entries(themes)) {
   for (const role of NON_TEXTES) {
     for (const fond of FONDS) {
       verifier(nom, `${role} sur ${fond}`, poser(c(role), c(fond)), c(fond), SEUIL_NON_TEXTE)
+    }
+  }
+  const eclat = Number(t['backdrop-brightness'])
+  for (const [jaquette, pixel] of PIRES_JAQUETTES) {
+    const filtre = { r: Math.min(255, pixel.r * eclat), g: Math.min(255, pixel.g * eclat), b: Math.min(255, pixel.b * eclat), a: 1 }
+    const voile = poser(c('backdrop-veil'), filtre)
+    for (const [verre, textes] of COUCHES_VERRE) {
+      const fond = verre ? poser(c(verre), voile) : voile
+      const ou = verre ? `${verre} sur jaquette ${jaquette} voilée` : `jaquette ${jaquette} voilée`
+      for (const texte of textes) verifier(nom, `${texte} sur ${ou}`, c(texte), fond)
     }
   }
 }

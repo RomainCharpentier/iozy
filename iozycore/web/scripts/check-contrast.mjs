@@ -49,7 +49,7 @@ const SEUIL = 4.5
  */
 const TEXTES = [
   'textPrimary', 'textDim', 'muted', 'faint',
-  'accentText', 'dangerText', 'ok', 'warning',
+  'accentText', 'vive', 'dangerText', 'ok', 'warning',
   'universeManga', 'universeVideoGame', 'universeBoardGame', 'universeBook',
   'universeViolet', 'universeRose', 'universeCyan', 'universeArdoise',
 ]
@@ -65,6 +65,8 @@ const ENCRES = [
   { encre: 'accentInk', fonds: ['accent'] },
   { encre: 'dangerInk', fonds: ['danger'] },
   { encre: 'warningInk', fonds: ['warning'] },
+  // The primary button since lot 210 (btn-primaire): the ink of the cover tone on its vivid fill.
+  { encre: 'encreVive', fonds: ['vive'] },
 ]
 
 /**
@@ -81,11 +83,12 @@ const ENCRE_RANG = { clair: '#ffffff', sombre: '#231e19' }
 /** The solid colors of a block of CSS, by app name: a hex value as written,
  * or the kit value of the theme behind a `var(--iozy-*)` alias. Tints and
  * lines are translucent and take part in no ratio, so they are left out. */
-function tokensDe(texte, kit) {
+function tokensDe(texte, kit, teintes = {}) {
   const trouves = {}
-  const regle = /--color-([A-Za-z0-9-]+)\s*:\s*(?:(#[0-9a-fA-F]{6})|var\(--iozy-([a-z0-9-]+)\))\s*;/g
+  const regle =
+    /--color-([A-Za-z0-9-]+)\s*:\s*(?:(#[0-9a-fA-F]{6})|var\(--iozy-([a-z0-9-]+)\)|var\(--teinte-([a-z]+)\))\s*;/g
   for (const m of texte.matchAll(regle)) {
-    const valeur = m[2] ?? kit[m[3]]
+    const valeur = m[2] ?? (m[3] ? kit[m[3]] : teintes[m[4]])
     if (/^#[0-9a-fA-F]{6}$/.test(valeur ?? '')) trouves[m[1]] = valeur
   }
   return trouves
@@ -100,12 +103,32 @@ if (debutSombre < 0) {
   process.exit(2)
 }
 
-const clair = tokensDe(CSS.slice(0, debutSombre), KIT.light)
+// The tones of the cover (lot 210): `--color-accent` and its friends point at
+// `--teinte-*`, which the shell writes from the cover on screen. Their default
+// values (the terracotta derivation) are written in index.css, one block per
+// theme marked `/* teinte - … theme */`: those are the ones checked here. The
+// tones of any other cover are proven by lib/teinte/derivation.test.ts.
+function teintesDe(theme) {
+  const bloc = CSS.match(new RegExp(`\\{\\s*/\\* teinte - ${theme} theme \\*/([^}]*)\\}`))
+  if (!bloc) {
+    console.error(`No "/* teinte - ${theme} theme */" block found in index.css`)
+    process.exit(2)
+  }
+  const teintes = {}
+  for (const m of bloc[1].matchAll(/--teinte-([a-z]+):\s*rgb\((\d+) (\d+) (\d+)\)\s*;/g)) {
+    teintes[m[1]] = `#${[m[2], m[3], m[4]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`
+  }
+  return teintes
+}
+const TEINTES_CLAIRES = teintesDe('light')
+const TEINTES_SOMBRES = teintesDe('dark')
+
+const clair = tokensDe(CSS.slice(0, debutSombre), KIT.light, TEINTES_CLAIRES)
 // The aliases resolve to the dark kit values; the dark rules of index.css
 // then override the roles of the app.
-const sombre = tokensDe(CSS.slice(0, debutSombre), KIT.dark)
+const sombre = tokensDe(CSS.slice(0, debutSombre), KIT.dark, TEINTES_SOMBRES)
 for (const m of CSS.matchAll(/^\[data-theme="dark"\]\s*\{([\s\S]*?)^\}/gm)) {
-  Object.assign(sombre, tokensDe(m[1], KIT.dark))
+  Object.assign(sombre, tokensDe(m[1], KIT.dark, TEINTES_SOMBRES))
 }
 
 // ─────────────────────────────────────────────────────── Contrast

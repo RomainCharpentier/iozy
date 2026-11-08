@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Check, CheckCheck, Heart, LayoutGrid, Library, Plus, Trash2, X } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
+import { ElementManquant } from '@/common/components/ElementManquant'
 import { Etagere } from './Etagere'
 import type { VueTomes } from './vueTomes'
 
@@ -277,7 +278,6 @@ export function GrilleVolumes({
                 setArmee(null)
                 onActiver(volume.cle)
               }}
-              onJeLAi={onJeLAi ? () => onJeLAi(volume.cle) : undefined}
               onJeLeVeux={onJeLeVeux ? () => onJeLeVeux(volume.cle) : undefined}
               armee={armee === volume.cle}
               onRetirer={
@@ -341,7 +341,6 @@ function TuileVolume({
   volume,
   mode,
   onActiver,
-  onJeLAi,
   onJeLeVeux,
   armee = false,
   onRetirer,
@@ -350,7 +349,6 @@ function TuileVolume({
   volume: VolumeAffiche
   mode: 'navigation' | 'selection'
   onActiver: () => void
-  onJeLAi?: () => void
   onJeLeVeux?: () => void
   /** The tile asks its question "Retirer ?" (see the block at the bottom). */
   armee?: boolean
@@ -376,6 +374,46 @@ function TuileVolume({
     ? `border-[1.5px] border-dashed ${volume.voulu ? 'border-accent' : 'border-lineStrong'}`
     : 'bg-surface2 ring-1 ring-lineStrong ring-inset shadow-token-sm'
   const couleurNumero = !enCreux ? 'text-textPrimary' : volume.voulu ? 'text-accentText' : 'text-faint'
+
+  // A missing volume in browse mode is the shared missing element (lot 210):
+  // the breathing outline in the vivid tone, its number, and one click that
+  // says "je l'ai". No "manquant" written anywhere: the shape says it.
+  if (!selection && !volume.possede) {
+    return (
+      <div className="group relative">
+        <ElementManquant
+          libelle={`Tome ${volume.numero}${volume.voulu ? ', dans mes envies' : ''}`}
+          onJeLAi={onActiver}
+          className="aspect-[2/3] w-full rounded-lg text-[17px]"
+        >
+          {String(volume.numero).padStart(2, '0')}
+          {volume.voulu && (
+            <span
+              title="Dans mes envies"
+              className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentInk shadow-token-sm"
+            >
+              <Heart size={11} className="fill-current" />
+            </span>
+          )}
+        </ElementManquant>
+        {/* Wanting it stays a mouse shortcut on the lower half of the tile;
+            the shelf view carries the same gesture for keyboard and touch. */}
+        {onJeLeVeux && (
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden="true"
+            onClick={onJeLeVeux}
+            title={volume.voulu ? `Retirer le tome ${volume.numero} de mes envies` : `Je veux le tome ${volume.numero}`}
+            className="pointer-events-none absolute inset-x-0 bottom-0 flex h-1/3 items-center justify-center gap-1 rounded-b-lg bg-scrim text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 hover:bg-accent hover:text-accentInk"
+          >
+            <Heart size={12} className={volume.voulu ? 'fill-current' : undefined} />
+            {volume.voulu ? 'Retirer' : 'Je le veux'}
+          </button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="group relative">
@@ -445,57 +483,6 @@ function TuileVolume({
           </span>
         )}
       </button>
-
-      {/* The menu of the volume: the two possible gestures on the object really
-          concerned. Nothing at all on an ALREADY OWNED volume - wanting what one has
-          makes no sense (the backend refuses it with a 409), and having it neither.
-          The guard applies to the whole overlay and not only to its buttons:
-          empty, it still covered the tile and swallowed on hover the click
-          meant for it (found when checking live).
-
-          Mouse only, and inert outside hover: these buttons must neither
-          intercept a click meant for the tile, nor get into the tab
-          order. Keyboard and touch go through the tile: a missing
-          volume is added in one gesture, an owned volume arms its question
-          "Retirer ?" (see the block at the bottom). */}
-      {!selection && !volume.possede && (onJeLAi || onJeLeVeux) && (
-        <div
-          className={`pointer-events-none absolute inset-0 grid overflow-hidden rounded-lg opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 ${
-            onJeLAi && onJeLeVeux ? 'grid-rows-2' : 'grid-rows-1'
-          }`}
-        >
-          {onJeLAi && (
-            <button
-              type="button"
-              tabIndex={-1}
-              aria-hidden="true"
-              onClick={onJeLAi}
-              title={`J'ai le tome ${volume.numero}`}
-              className="flex items-center justify-center gap-1 bg-scrim text-[11px] font-medium text-white hover:bg-ok hover:text-background"
-            >
-              <Check size={13} strokeWidth={2.5} />
-              Je l&apos;ai
-            </button>
-          )}
-          {onJeLeVeux && (
-            <button
-              type="button"
-              tabIndex={-1}
-              aria-hidden="true"
-              onClick={onJeLeVeux}
-              title={
-                volume.voulu
-                  ? `Retirer le tome ${volume.numero} de mes envies`
-                  : `Je veux le tome ${volume.numero}`
-              }
-              className="flex items-center justify-center gap-1 border-t border-white/25 bg-scrim text-[11px] font-medium text-white hover:bg-accent hover:text-accentInk"
-            >
-              <Heart size={12} className={volume.voulu ? 'fill-current' : undefined} />
-              {volume.voulu ? 'Retirer' : 'Je le veux'}
-            </button>
-          )}
-        </div>
-      )}
 
       {/* The question of an owned volume, asked on the tile itself. A tap
           used to remove a copy at once - its acquisition date with it -
