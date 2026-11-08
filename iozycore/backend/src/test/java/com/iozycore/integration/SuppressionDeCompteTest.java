@@ -6,6 +6,8 @@ import com.iozycore.core.application.auth.AppUserDetailsService;
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.follow.FollowedWork;
+import com.iozycore.core.domain.follow.FollowedWorkRepository;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
@@ -64,6 +66,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     @Autowired private OwnershipRepository possessions;
     @Autowired private WishlistEntryRepository envies;
     @Autowired private EntityRepository catalogue;
+    @Autowired private FollowedWorkRepository suivies;
     @Autowired private WorkCollectorStatusRepository statuts;
     @Autowired private JdbcTemplate jdbc;
 
@@ -73,7 +76,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     @AfterEach
     void nettoyer() {
         for (UUID oeuvre : oeuvresCreees) {
-            for (String table : List.of("ownership", "wishlist_entry", "work_collector_status")) {
+            for (String table : List.of("ownership", "wishlist_entry", "followed_work", "work_collector_status")) {
                 jdbc.update("DELETE FROM " + table + " WHERE entity_id = ?", oeuvre);
             }
             jdbc.update("DELETE FROM entity WHERE id = ?", oeuvre);
@@ -136,17 +139,19 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void the_collector_statuses_go_with_the_account() {
+    void the_followed_works_and_the_collector_statuses_go_with_the_account() {
         AppUser bob = compte("bob");
         Entity serie = catalogue.save(Entity.create(EntityTypeFixtures.MANGA.id(), "Dorohedoro " + UUID.randomUUID()));
         oeuvresCreees.add(serie.id());
 
         connecte(bob.id());
+        suivies.save(FollowedWork.follow(serie.id(), LocalDate.now()));
         statuts.save(WorkCollectorStatus.create(serie.id(), CollectorStatus.PAUSED, Instant.now()));
 
         connecte(DefaultOwner.ID);
         gestion.supprimer(bob.id(), DefaultOwner.ID);
 
+        assertThat(lignesDe("followed_work", bob.id())).isZero();
         assertThat(lignesDe("work_collector_status", bob.id())).isZero();
     }
 
