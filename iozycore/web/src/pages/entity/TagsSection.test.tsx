@@ -10,10 +10,11 @@
  * (a capability that disappears).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { TagsSection } from './TagsSection'
+import { attachTag, detachTag } from '@/common/api/tags'
 
 vi.mock('@/common/api/tags', () => ({ attachTag: vi.fn(), createTag: vi.fn(), detachTag: vi.fn() }))
 
@@ -60,5 +61,28 @@ describe('an administrator', () => {
     expect(screen.getByRole('button', { name: '+ shonen' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ajouter ce tag' })).toBeInTheDocument()
     expect(screen.queryByText(/seul un administrateur les pose/)).not.toBeInTheDocument()
+  })
+})
+
+describe('a failed write', () => {
+  it('is said on screen instead of leaving the chip still', async () => {
+    vi.mocked(attachTag).mockRejectedValue(new Error('Serveur injoignable'))
+    ecranPour(true)
+
+    fireEvent.click(screen.getByRole('button', { name: '+ shonen' }))
+
+    expect(await screen.findByText('Serveur injoignable')).toBeInTheDocument()
+  })
+
+  it('leaves the screen once a later write succeeds', async () => {
+    vi.mocked(attachTag).mockRejectedValue(new Error('Serveur injoignable'))
+    vi.mocked(detachTag).mockResolvedValue(undefined)
+    ecranPour(true)
+
+    fireEvent.click(screen.getByRole('button', { name: '+ shonen' }))
+    await screen.findByText('Serveur injoignable')
+    fireEvent.click(screen.getByRole('button', { name: 'seinen' }))
+
+    await waitFor(() => expect(screen.queryByText('Serveur injoignable')).not.toBeInTheDocument())
   })
 })

@@ -110,6 +110,10 @@ export function ListingUrlField({
   }, [toResolve, urlPlausible, alreadyRead, declencher])
 
   const enCours = resolveMutation.isPending
+  // A transport failure (5xx, offline) leaves no reading: without this, the field
+  // showed the idle detection line as if nothing had been tried, and the effect
+  // above never fires again for the same link.
+  const transportFailed = resolveMutation.isError && resolveMutation.variables === toResolve && !preview
   const reussite = preview && (preview.status === 'SUCCESS' || preview.status === 'PARTIAL')
   const echec = preview && !reussite
 
@@ -131,7 +135,7 @@ export function ListingUrlField({
       {/* Clearly invalid link: said locally, without calling the server. */}
       {lienInvalide && <p className="text-xs text-dangerText">Lien invalide.</p>}
 
-      {source && !enCours && !preview && (
+      {source && !enCours && !preview && !transportFailed && (
         <p className="flex items-center gap-1.5 text-xs text-textDim">
           <Link2 size={12} className="shrink-0" />
           Détection : {LISTING_PLATFORM_LABELS.VINTED}
@@ -174,6 +178,15 @@ export function ListingUrlField({
         <p className="rounded-lg bg-surface2 px-2.5 py-2 text-xs text-textDim">
           {MESSAGES_ECHEC[preview.status] ?? MESSAGES_ECHEC.UNAVAILABLE}
         </p>
+      )}
+
+      {transportFailed && !enCours && (
+        <div className="flex flex-col items-start gap-2 rounded-lg bg-surface2 px-2.5 py-2 text-xs text-textDim">
+          <p role="alert">{MESSAGES_ECHEC.UNAVAILABLE}</p>
+          <button type="button" onClick={() => declencher(toResolve)} className="btn-secondaire">
+            Réessayer
+          </button>
+        </div>
       )}
     </div>
   )

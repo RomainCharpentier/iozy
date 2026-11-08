@@ -50,6 +50,17 @@ export function ShareSection() {
       appliquer({ token: null, shareCollection: true, shareWishlist: true, includeTierLists: false }),
   })
 
+  // Generate and remove share one error line: starting one clears the error of
+  // the other, so an old failure does not stay under a link that now works.
+  function generate() {
+    removeMutation.reset()
+    generateMutation.mutate()
+  }
+  function remove() {
+    generateMutation.reset()
+    removeMutation.mutate()
+  }
+
 
   async function copierLeLien() {
     if (!url) return
@@ -97,6 +108,8 @@ export function ShareSection() {
       </p>
 
       {shareQuery.isError && <ErrorBanner message={shareQuery.error.message} />}
+      {generateMutation.isError && <ErrorBanner message={generateMutation.error.message} />}
+      {removeMutation.isError && <ErrorBanner message={removeMutation.error.message} />}
 
       {!token ? (
         <>
@@ -106,7 +119,7 @@ export function ShareSection() {
           </p>
           <button
             type="button"
-            onClick={() => generateMutation.mutate()}
+            onClick={generate}
             disabled={generateMutation.isPending}
             className="btn-primaire w-fit"
           >
@@ -183,7 +196,7 @@ export function ShareSection() {
             </button>
             <button
               type="button"
-              onClick={() => generateMutation.mutate()}
+              onClick={generate}
               disabled={generateMutation.isPending}
               title="L'ancien lien cessera de fonctionner."
               className="btn-secondaire"
@@ -193,7 +206,7 @@ export function ShareSection() {
             </button>
             <button
               type="button"
-              onClick={() => removeMutation.mutate()}
+              onClick={remove}
               disabled={removeMutation.isPending}
               className="flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-sm text-textDim disabled:opacity-50"
             >
