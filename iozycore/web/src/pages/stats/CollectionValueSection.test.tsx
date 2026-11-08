@@ -36,3 +36,14 @@ describe('the value by type', () => {
     expect(screen.queryByText(/0,00/)).not.toBeInTheDocument()
   })
 })
+
+describe('a failed value load', () => {
+  it('shows the section with an error instead of leaving it out', async () => {
+    insights.getCollectionValue.mockRejectedValue(new Error('Serveur injoignable'))
+
+    render(<CollectionValueSection />, { wrapper: enrobage })
+
+    expect(await screen.findByText('Valeur indisponible : Serveur injoignable')).toBeInTheDocument()
+    expect(screen.getByText('Valeur de la collection')).toBeInTheDocument()
+  })
+})

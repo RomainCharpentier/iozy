@@ -4,6 +4,7 @@ import { CheckCircle2, CircleDashed } from 'lucide-react'
 import { getCollectionValue, getStats } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { formaterEuros } from '@/common/lib/formats'
+import { ErrorBanner } from '@/common/components/ErrorBanner'
 
 /**
  * "Valeur estimée" hero of Profil (see DS v1.1 section 44: "the value dominates, the
@@ -21,6 +22,15 @@ export function ProfileValueHero() {
   const valueQuery = useQuery({ queryKey: queryKeys.insights.value, queryFn: getCollectionValue })
   const statsQuery = useQuery({ queryKey: queryKeys.insights.stats, queryFn: getStats })
 
+  // A failed load is not "no ownership": say it, instead of dropping the hero.
+  if (valueQuery.isError) {
+    return (
+      <section className="flex w-full flex-col items-start gap-2 rounded-[22px] bg-surface p-6">
+        <h2 className="text-[11px] font-semibold tracking-widest text-textDim uppercase">Valeur de la collection</h2>
+        <ErrorBanner message={`Valeur indisponible : ${valueQuery.error.message}`} />
+      </section>
+    )
+  }
   if (!valueQuery.data || valueQuery.data.totalActiveOwnershipCount === 0) return null
   const { totalKnownValue, pricedOwnershipCount, totalActiveOwnershipCount } = valueQuery.data
 

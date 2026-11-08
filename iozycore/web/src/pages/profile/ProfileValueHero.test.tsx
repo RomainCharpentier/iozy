@@ -45,4 +45,13 @@ describe('the value hero of Profil', () => {
     expect(await screen.findByText('Œuvres au catalogue')).toBeInTheDocument()
     expect(screen.queryByText('Titres')).not.toBeInTheDocument()
   })
+
+  it('says the value failed to load instead of vanishing', async () => {
+    insights.getCollectionValue.mockRejectedValue(new Error('Serveur injoignable'))
+    insights.getStats.mockRejectedValue(new Error('Serveur injoignable'))
+
+    render(<ProfileValueHero />, { wrapper: enrobage })
+
+    expect(await screen.findByText('Valeur indisponible : Serveur injoignable')).toBeInTheDocument()
+  })
 })
