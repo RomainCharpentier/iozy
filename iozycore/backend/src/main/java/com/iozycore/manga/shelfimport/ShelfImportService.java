@@ -166,8 +166,11 @@ public class ShelfImportService {
      *
      * @param photos    the images already validated by {@code UploadedImageReader}
      * @param demandees what the user sent, including what was dropped
+     *
+     * <p>No transaction here on purpose: the vision call and the source
+     * searches can take seconds each, and must not hold a database
+     * connection meanwhile. Each repository read opens its own short one.
      */
-    @Transactional(readOnly = true)
     public ShelfAnalysis analyze(List<RecognitionImage> photos, int demandees) {
         ListingRecognitionService.Analysis analyse = lecture.lire(photos, demandees);
         Optional<EntityType> manga = catalogue.mangaType();
