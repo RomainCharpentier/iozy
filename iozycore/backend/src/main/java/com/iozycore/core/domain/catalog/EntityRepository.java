@@ -1,9 +1,7 @@
 package com.iozycore.core.domain.catalog;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,13 +46,4 @@ public interface EntityRepository {
     List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId);
 
     void deleteById(UUID id);
-
-    /**
-     * When each of these works was last changed in the catalog, in one read.
-     * Unknown ids are left out. The default knows no time: a test double that
-     * does not care gives none, and the reader then relies on its other dates.
-     */
-    default Map<UUID, Instant> updatedAtOf(Collection<UUID> ids) {
-        return Map.of();
-    }
 }

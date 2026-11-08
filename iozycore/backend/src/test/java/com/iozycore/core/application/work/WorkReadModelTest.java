@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -55,8 +56,11 @@ class WorkReadModelTest {
             new InMemoryFollowedWorkRepository(), List.of());
 
     private WorkReadModel readModel(WorkElementsSource... sources) {
-        return new WorkReadModel(entities, types, ownerships, wishes, statuses, calendar, List.of(sources),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+        return readModel(Clock.fixed(NOW, ZoneOffset.UTC), sources);
+    }
+
+    private WorkReadModel readModel(Clock clock, WorkElementsSource... sources) {
+        return new WorkReadModel(entities, types, ownerships, wishes, statuses, calendar, List.of(sources), clock);
     }
 
     @Test
@@ -96,6 +100,52 @@ class WorkReadModelTest {
         assertThat(view.totalCount()).isEqualTo(3);
         assertThat(view.missingCount()).isEqualTo(2);
         assertThat(view.wishedCount()).isEqualTo(1);
+    }
+
+    @Test
+    void a_copy_or_a_wish_on_the_whole_work_is_never_dropped_when_the_work_has_variants() {
+        Entity serie = Entity.create(FIGURINES.id(), "Coffret Ghibli");
+        serie.addVariant("Totoro", Map.of("volumeNumber", 1));
+        serie.addVariant("Jiji", Map.of("volumeNumber", 2));
+        serie.addVariant("Kodama", Map.of("volumeNumber", 3));
+        entities.save(serie);
+        Ownership whole = ownerships.save(Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, TODAY, null));
+        Entity wishedBox = Entity.create(FIGURINES.id(), "Coffret voulu");
+        wishedBox.addVariant("Chihiro", Map.of("volumeNumber", 1));
+        entities.save(wishedBox);
+        wishes.save(WishlistEntry.add(wishedBox.id(), TODAY));
+
+        WorkView view = readModel().work(serie.id());
+
+        assertThat(view.elements()).extracting(c -> c.element().key()).first().isEqualTo("work");
+        assertThat(view.elements().get(0).element().state()).isEqualTo(WorkElement.State.OWNED);
+        assertThat(view.elements().get(0).element().ownershipId()).isEqualTo(whole.id());
+        assertThat(view.ownedCount()).isEqualTo(1);
+        assertThat(view.totalCount()).isEqualTo(4);
+        assertThat(view.missingCount()).isEqualTo(3);
+
+        WorkView wished = readModel().work(wishedBox.id());
+        assertThat(wished.elements()).extracting(c -> c.element().state())
+                .containsExactly(WorkElement.State.WANTED, WorkElement.State.MISSING);
+    }
+
+    @Test
+    void the_month_turns_at_midnight_in_the_collector_zone_not_the_server_zone() {
+        Entity game = entities.save(Entity.create(EntityTypeFixtures.BOARD_GAME.id(), "Jeu"));
+        // 00:30 on December 1st in Paris, 23:30 on November 30th in UTC.
+        Instant justAfterMidnight = Instant.parse("2026-11-30T23:30:00Z");
+        // 23:30 on November 30th in Paris.
+        Instant justBeforeMidnight = Instant.parse("2026-11-30T22:30:00Z");
+        for (Instant created : List.of(justAfterMidnight, justBeforeMidnight)) {
+            ownerships.save(Ownership.reconstitute(UUID.randomUUID(), game.id(), null, null, OwnershipCondition.NEW,
+                    OwnershipStatus.OWNED, LocalDate.of(2026, 11, 30), null, null, created));
+        }
+        Clock paris = Clock.fixed(Instant.parse("2026-11-30T23:45:00Z"), ZoneId.of("Europe/Paris"));
+
+        CollectionSummary summary = readModel(paris).summary();
+
+        assertThat(summary.totalObjects()).isEqualTo(2);
+        assertThat(summary.addedThisMonth()).isEqualTo(1);
     }
 
     @Test

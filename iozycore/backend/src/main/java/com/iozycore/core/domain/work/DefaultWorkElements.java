@@ -23,7 +23,9 @@ import java.util.UUID;
  *       announced or missing on its own);</li>
  *   <li>a work without variants is its own single element.</li>
  * </ul>
- * The total is then what the catalog lists: the variants, or one.
+ * A copy or a wish tied to no variant is never dropped: when a work with
+ * variants has one, the work as a whole comes first as one more element. The
+ * total is then the elements listed.
  *
  * <p>The universes reuse {@link #wholeWork} and {@link #ofVariant} for their own rules.
  */
@@ -50,13 +52,23 @@ public final class DefaultWorkElements {
                         List.of(wholeWork(work, owned, wished, dated, context.today())), 1));
                 continue;
             }
-            List<WorkElement> elements = work.variants().stream()
+            List<WorkElement> elements = new ArrayList<>();
+            List<Ownership> wholeCopies = wholeWorkCopies(owned);
+            if (!wholeCopies.isEmpty() || wished.stream().anyMatch(entry -> entry.variantId().isEmpty())) {
+                elements.add(wholeWork(work, wholeCopies, wished, dated, context.today()));
+            }
+            work.variants().stream()
                     .map(variant -> ofVariant(variant, owned, wished, context.today()))
                     .sorted(DISPLAY_ORDER)
-                    .toList();
+                    .forEach(elements::add);
             result.add(new WorkElements(work.id(), elements, elements.size()));
         }
         return result;
+    }
+
+    /** The copies of the work as a whole: tied to no variant. */
+    public static List<Ownership> wholeWorkCopies(List<Ownership> activeOwnerships) {
+        return activeOwnerships.stream().filter(o -> o.variantId().isEmpty()).toList();
     }
 
     /** Numbered elements first, by number; then by label. */

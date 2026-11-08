@@ -126,6 +126,65 @@ class MangaWorkElementsTest {
                 .allMatch(element -> element.state() == WorkElement.State.MISSING);
     }
 
+    @Test
+    void a_copy_of_the_whole_series_or_of_an_unnumbered_volume_is_never_dropped() {
+        Entity serie = Entity.create(EntityTypeFixtures.MANGA.id(), "Coffret");
+        Variant one = serie.addVariant("Tome 1", Map.of("edition", "Kana", "volumeNumber", 1));
+        Variant artbook = serie.addVariant("Artbook", Map.of("edition", "Kana"));
+        serie.addVariant("Guide", Map.of("edition", "Kana"));
+        entities.save(serie);
+        editions.save(MangaEdition.create(serie.id(), "Coffret", "Kana", EditionTier.STANDARD, "Kana", 2,
+                null, false, false, null));
+        Ownership whole = Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, TODAY, null);
+        Ownership book = Ownership.acquire(serie.id(), artbook.id(), OwnershipCondition.NEW, TODAY, null);
+        Ownership first = Ownership.acquire(serie.id(), one.id(), OwnershipCondition.NEW, TODAY, null);
+
+        WorkElements elements = elementsOf(serie, List.of(whole, book, first), List.of(), List.of());
+
+        // Volumes 1 and 2, then the series as a whole, then the owned artbook; the unowned guide stays out.
+        assertThat(elements.elements()).extracting(WorkElement::label)
+                .containsExactly("Tome 1", "Tome 2", "Coffret", "Artbook");
+        assertThat(elements.elements()).extracting(WorkElement::ownershipId)
+                .containsExactly(first.id(), null, whole.id(), book.id());
+        assertThat(elements.totalCount()).isEqualTo(4);
+    }
+
+    @Test
+    void a_series_with_no_numbered_volume_is_left_to_the_core_default() {
+        Entity serie = Entity.create(EntityTypeFixtures.MANGA.id(), "One shot");
+        entities.save(serie);
+
+        List<WorkElements> result = source.elementsOf(new WorkElementsContext(EntityTypeFixtures.MANGA,
+                List.of(serie), List.of(Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, TODAY, null)),
+                List.of(), List.of(), TODAY));
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void only_the_editions_of_the_works_asked_are_read() {
+        Entity serie = Entity.create(EntityTypeFixtures.MANGA.id(), "Lue seule");
+        serie.addVariant("Tome 1", Map.of("edition", "Kana", "volumeNumber", 1));
+        entities.save(serie);
+        InMemoryMangaEditionRepository noFullScan = new InMemoryMangaEditionRepository() {
+            @Override
+            public List<MangaEdition> findAll() {
+                throw new AssertionError("every edition of the database was read");
+            }
+        };
+        noFullScan.save(MangaEdition.create(serie.id(), "Lue seule", "Kana", EditionTier.STANDARD, "Kana", 3,
+                null, false, false, null));
+        noFullScan.save(MangaEdition.create(UUID.randomUUID(), "Autre", "Kana", EditionTier.STANDARD, "Kana", 9,
+                null, false, false, null));
+        MangaWorkElements scoped = new MangaWorkElements(
+                new CollectionProgressService(entities, ownerships, noFullScan), followed);
+
+        List<WorkElements> result = scoped.elementsOf(new WorkElementsContext(EntityTypeFixtures.MANGA,
+                List.of(serie), List.of(), List.of(), List.of(), TODAY));
+
+        assertThat(result).singleElement().extracting(WorkElements::totalCount).isEqualTo(3);
+    }
+
     private WorkElements elementsOf(Entity serie, List<Ownership> owned, List<WishlistEntry> wished,
                                     List<ReleaseEntry> releases) {
         List<WorkElements> result = source.elementsOf(new WorkElementsContext(EntityTypeFixtures.MANGA,

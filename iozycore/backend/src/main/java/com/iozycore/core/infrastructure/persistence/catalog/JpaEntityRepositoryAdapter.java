@@ -12,7 +12,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -179,20 +178,6 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
                 .map(jpaEntity -> EntityMapper.toDomain(jpaEntity,
                         variantsByEntityId.getOrDefault(jpaEntity.getId(), List.of())))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public Map<UUID, Instant> updatedAtOf(Collection<UUID> ids) {
-        if (ids.isEmpty()) {
-            return Map.of();
-        }
-        Map<UUID, Instant> result = new HashMap<>();
-        for (EntityJpaRepository.UpdatedAt row : entityJpaRepository.findUpdatedAt(Set.copyOf(ids))) {
-            if (row.getUpdatedAt() != null) {
-                result.put(row.getId(), row.getUpdatedAt());
-            }
-        }
-        return result;
     }
 
     @Override

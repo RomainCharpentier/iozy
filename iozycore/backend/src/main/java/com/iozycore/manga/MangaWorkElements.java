@@ -87,10 +87,11 @@ public class MangaWorkElements implements WorkElementsSource {
         for (Entity series : context.works()) {
             Optional<EditionProgress> edition = Optional.ofNullable(progressByWork.get(series.id()))
                     .flatMap(progress -> chosenEdition(progress, followedByWork.get(series.id())));
-            result.add(volumesOf(series, edition.orElse(null),
+            volumesOf(series, edition.orElse(null),
                     ownerships.getOrDefault(series.id(), List.of()),
                     wishes.getOrDefault(series.id(), List.of()),
-                    releases.getOrDefault(series.id(), List.of()), context.today()));
+                    releases.getOrDefault(series.id(), List.of()), context.today())
+                    .ifPresent(result::add);
         }
         return result;
     }
@@ -119,8 +120,16 @@ public class MangaWorkElements implements WorkElementsSource {
         return Optional.of(best);
     }
 
-    private static WorkElements volumesOf(Entity series, EditionProgress edition, List<Ownership> activeOwnerships,
-                                          List<WishlistEntry> wishes, List<ReleaseEntry> releases, LocalDate today) {
+    /**
+     * The volumes of the chosen edition, then what has no volume number: the
+     * series as a whole (a copy or a wish tied to no volume) and an unnumbered
+     * volume that is owned or wished. Nothing the collector has is dropped.
+     * Empty when nothing is numbered and nothing is held: the core default then
+     * says what the series is made of.
+     */
+    private static Optional<WorkElements> volumesOf(Entity series, EditionProgress edition,
+                                                    List<Ownership> activeOwnerships, List<WishlistEntry> wishes,
+                                                    List<ReleaseEntry> releases, LocalDate today) {
         List<String> sourceEditions = edition == null ? List.of() : edition.sourceEditions();
         String editionName = edition == null ? "" : TexteRecherche.normaliser(edition.editionName());
         Integer total = edition == null ? null : edition.totalVolumes();
@@ -175,7 +184,29 @@ public class MangaWorkElements implements WorkElementsSource {
                     variant == null ? null : variant.id(), ownership.map(Ownership::id).orElse(null)));
         }
         elements.sort(Comparator.comparing(WorkElement::number));
-        return new WorkElements(series.id(), elements, total);
+        if (elements.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<WorkElement> unnumbered = new ArrayList<>();
+        List<Ownership> wholeCopies = DefaultWorkElements.wholeWorkCopies(activeOwnerships);
+        if (!wholeCopies.isEmpty() || wishes.stream().anyMatch(w -> w.variantId().isEmpty())) {
+            unnumbered.add(DefaultWorkElements.wholeWork(series, wholeCopies, wishes, releases, today));
+        }
+        series.variants().stream()
+                .filter(variant -> DefaultWorkElements.numberOf(variant.attributes()) == null)
+                .filter(variant -> isHeld(variant, activeOwnerships, wishes))
+                .map(variant -> DefaultWorkElements.ofVariant(variant, activeOwnerships, wishes, today))
+                .sorted(DefaultWorkElements.DISPLAY_ORDER)
+                .forEach(unnumbered::add);
+        elements.addAll(unnumbered);
+        return Optional.of(new WorkElements(series.id(), elements,
+                total == null ? null : total + unnumbered.size()));
+    }
+
+    private static boolean isHeld(Variant variant, List<Ownership> activeOwnerships, List<WishlistEntry> wishes) {
+        return activeOwnerships.stream().anyMatch(o -> o.variantId().filter(variant.id()::equals).isPresent())
+                || wishes.stream().anyMatch(w -> w.variantId().filter(variant.id()::equals).isPresent());
     }
 
     private static String editionOf(Variant variant) {
