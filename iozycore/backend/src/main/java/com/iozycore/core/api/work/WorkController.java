@@ -5,6 +5,7 @@ import com.iozycore.core.api.dto.WorkDtos.CollectorStatusRequest;
 import com.iozycore.core.api.dto.WorkDtos.CollectorStatusResponse;
 import com.iozycore.core.api.dto.WorkDtos.WorkProgressResponse;
 import com.iozycore.core.api.dto.WorkDtos.WorkResponse;
+import com.iozycore.core.application.work.WorkElementOwning;
 import com.iozycore.core.application.work.WorkReadModel;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +30,7 @@ import java.util.UUID;
 public class WorkController {
 
     private final WorkReadModel works;
+    private final WorkElementOwning owning;
 
     @Operation(summary = "Every work the account owns or wishes, with its counts, most recently moved first")
     @GetMapping
@@ -56,5 +59,12 @@ public class WorkController {
                     "Il faut dire où en est la série : ONGOING, PAUSED ou DROPPED");
         }
         return new CollectorStatusResponse(entityId, works.setCollectorStatus(entityId, request.status()));
+    }
+
+    @Operation(summary = "\"Je l'ai\": own one element of a work (a missing volume, expansion or game of the licence) "
+            + "through the add path; idempotent. Returns the work as it now stands")
+    @PostMapping("/{entityId}/elements/{elementKey}/own")
+    public WorkResponse ownElement(@PathVariable UUID entityId, @PathVariable String elementKey) {
+        return WorkResponse.from(owning.own(entityId, elementKey));
     }
 }

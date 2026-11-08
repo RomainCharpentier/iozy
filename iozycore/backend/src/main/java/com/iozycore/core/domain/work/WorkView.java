@@ -20,10 +20,15 @@ import java.util.UUID;
  *   <li><b>wished</b>: the wishes of the account on the work (whole work or element);</li>
  *   <li><b>total</b>: from the universe, {@code null} when unknown - never guessed.</li>
  * </ul>
+ * An optional element (an expansion, another game of the licence the collector does not follow) is
+ * listed and part of the total, but never counted as missing.
+ *
+ * @param elementsOrigin where the derived elements come from, or {@code null} (see {@link WorkElementsOrigin})
  */
 public record WorkView(UUID entityId, UUID entityTypeId, String title, String coverImageUrl,
                        CollectorStatus collectorStatus, int ownedCount, Integer totalCount, int missingCount,
-                       int wishedCount, List<CountedElement> elements, ReleaseEntry nextRelease, Instant lastMovedAt) {
+                       int wishedCount, List<CountedElement> elements, ReleaseEntry nextRelease, Instant lastMovedAt,
+                       WorkElementsOrigin elementsOrigin) {
 
     /** An element and whether it counts in the missing total. */
     public record CountedElement(WorkElement element, boolean countedAsMissing) {
@@ -48,6 +53,7 @@ public record WorkView(UUID entityId, UUID entityTypeId, String title, String co
         int owned = (int) counted.stream().filter(c -> c.element().state() == WorkElement.State.OWNED).count();
         int missing = (int) counted.stream().filter(CountedElement::countedAsMissing).count();
         return new WorkView(entityId, entityTypeId, title, coverImageUrl, effective, owned,
-                workElements.totalCount(), missing, wishedCount, counted, nextRelease, lastMovedAt);
+                workElements.totalCount(), missing, wishedCount, counted, nextRelease, lastMovedAt,
+                workElements.origin());
     }
 }

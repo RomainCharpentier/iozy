@@ -19,9 +19,14 @@ import java.util.UUID;
  * @param releaseDate   its release date when a source or the collector knows it, or {@code null}
  * @param variantId     the catalog variant behind the element, or {@code null} (a known gap in a series, the work itself)
  * @param ownershipId   the active ownership of the element, or {@code null}
+ * @param optional      a derived element (an expansion, another game of the licence) that the collector
+ *                      does not follow yet: listed, never counted as missing
+ * @param linkedEntityId the work of the catalog behind the element when it is another work (a game of the
+ *                      licence the collector owns), or {@code null}
  */
 public record WorkElement(String key, String label, Integer number, String coverImageUrl, State state,
-                          ReleaseDate releaseDate, UUID variantId, UUID ownershipId) {
+                          ReleaseDate releaseDate, UUID variantId, UUID ownershipId, boolean optional,
+                          UUID linkedEntityId) {
 
     public enum State {
         /** In the collection. */
@@ -38,6 +43,18 @@ public record WorkElement(String key, String label, Integer number, String cover
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(state, "state");
         label = label == null ? "" : label;
+    }
+
+    /** An element the work is made of: counted when it lacks, and part of no other work. */
+    public WorkElement(String key, String label, Integer number, String coverImageUrl, State state,
+                       ReleaseDate releaseDate, UUID variantId, UUID ownershipId) {
+        this(key, label, number, coverImageUrl, state, releaseDate, variantId, ownershipId, false, null);
+    }
+
+    /** The same element, optional or not: an owned element is never optional. */
+    public WorkElement withOptional(boolean optional) {
+        return new WorkElement(key, label, number, coverImageUrl, state, releaseDate, variantId, ownershipId,
+                optional && state != State.OWNED, linkedEntityId);
     }
 
     /**
@@ -73,8 +90,8 @@ public record WorkElement(String key, String label, Integer number, String cover
         };
     }
 
-    /** Not in the collection and published: what the collector lacks. */
+    /** Not in the collection and published: what the collector lacks. An optional element never lacks. */
     public boolean isLacking(LocalDate today) {
-        return (state == State.MISSING || state == State.WANTED) && !isUpcoming(releaseDate, today);
+        return !optional && (state == State.MISSING || state == State.WANTED) && !isUpcoming(releaseDate, today);
     }
 }
