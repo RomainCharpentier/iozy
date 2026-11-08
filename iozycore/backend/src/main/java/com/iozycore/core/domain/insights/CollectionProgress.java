@@ -21,10 +21,19 @@ public record CollectionProgress(UUID entityId, String title, List<EditionProgre
      * @param cataloguedVolumeNumbers volume numbers known to the catalog, owned or not
      * @param totalVolumes        total of the reference edition, {@code null} if it is not filled in -
      *                            never guessed from an attribute of the series (see Batch 16)
+     * @param totalSource         where that total comes from: "MANUAL" (typed by a person), "PROVIDER"
+     *                            (read in the French volume lists), {@code null} while the total is unknown
+     * @param frenchRunFinished   true only when a source says the French run of this edition is over
      */
     public record EditionProgress(String editionName, List<String> sourceEditions,
                                    List<Integer> ownedVolumeNumbers, List<Integer> cataloguedVolumeNumbers,
-                                   Integer totalVolumes) {
+                                   Integer totalVolumes, String totalSource, boolean frenchRunFinished) {
+
+        /** Without the provenance of the total (lot 207). */
+        public EditionProgress(String editionName, List<String> sourceEditions, List<Integer> ownedVolumeNumbers,
+                               List<Integer> cataloguedVolumeNumbers, Integer totalVolumes) {
+            this(editionName, sourceEditions, ownedVolumeNumbers, cataloguedVolumeNumbers, totalVolumes, null, false);
+        }
 
         public int ownedCount() {
             return ownedVolumeNumbers.size();

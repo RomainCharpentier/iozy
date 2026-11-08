@@ -265,7 +265,14 @@ export interface EditionProgressDto {
   cataloguedVolumeNumbers: number[]
   /** null as long as the total of the edition is not filled in - never guessed. */
   totalVolumes: number | null
+  /** Where the total comes from: typed by a person, or read in the French volume lists (lot 207). */
+  totalSource?: TotalSource | null
+  /** True only when a source says the French run of this edition is over. */
+  frenchRunFinished?: boolean
 }
+
+/** MANUAL: typed by a person, never touched by the background job. PROVIDER: read in the French volume lists. */
+export type TotalSource = 'MANUAL' | 'PROVIDER'
 
 export interface CollectionProgressDto {
   entityId: UUID

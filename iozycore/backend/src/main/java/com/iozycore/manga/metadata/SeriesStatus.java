@@ -15,6 +15,9 @@ public final class SeriesStatus {
 
     private static final Set<String> ONGOING = Set.of("releasing", "publishing", "currentlypublishing");
 
+    /** AniList {@code FINISHED}, Jikan {@code Finished}, MyAnimeList v2 {@code finished}. */
+    private static final Set<String> FINISHED = Set.of("finished");
+
     private SeriesStatus() {
     }
 
@@ -25,5 +28,14 @@ public final class SeriesStatus {
         }
         String normalized = text.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
         return ONGOING.contains(normalized);
+    }
+
+    /** True only when a source says the series is over; false for all the rest, unknown status included. */
+    public static boolean isFinished(Object attributeValue) {
+        if (!(attributeValue instanceof String text)) {
+            return false;
+        }
+        String normalized = text.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
+        return FINISHED.contains(normalized);
     }
 }

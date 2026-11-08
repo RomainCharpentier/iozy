@@ -54,6 +54,8 @@ services:
       # Nothing to re-read at night on a disposable stack without a provider: the
       # release calendar only shows the dates entered by hand.
       RELEASES_REFRESH_ENABLED: "false"
+      # Same for the volume counts of the editions (lot 207): no provider here.
+      EDITION_TOTALS_BACKFILL_ENABLED: "false"
     ports:
       # 8090 and not 8080: the development stack can run at the same time.
       - "8090:8080"

@@ -57,6 +57,16 @@ public class MangaEditionJpaEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** See V40__edition_total_source.sql. */
+    @Column(name = "total_source")
+    private String totalSource;
+
+    @Column(name = "french_run_finished", nullable = false)
+    private boolean frenchRunFinished;
+
+    @Column(name = "total_checked_at")
+    private Instant totalCheckedAt;
+
     protected MangaEditionJpaEntity() {
         // required by JPA
     }
@@ -64,7 +74,8 @@ public class MangaEditionJpaEntity {
     public MangaEditionJpaEntity(UUID id, UUID entityId, String seriesTitle, String editionName, String editionTier,
                                   String publisher, Integer totalVolumes, BigDecimal retailPriceNewPerVolume,
                                   boolean outOfPrint, boolean betterEditionAnnounced, String betterEditionNote,
-                                  String languageCode, Instant createdAt, Instant updatedAt) {
+                                  String languageCode, Instant createdAt, Instant updatedAt,
+                                  String totalSource, boolean frenchRunFinished, Instant totalCheckedAt) {
         this.id = id;
         this.entityId = entityId;
         this.seriesTitle = seriesTitle;
@@ -79,8 +90,12 @@ public class MangaEditionJpaEntity {
         this.languageCode = languageCode;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.totalSource = totalSource;
+        this.frenchRunFinished = frenchRunFinished;
+        this.totalCheckedAt = totalCheckedAt;
     }
 
     public boolean isOutOfPrint() { return outOfPrint; }
     public boolean isBetterEditionAnnounced() { return betterEditionAnnounced; }
+    public boolean isFrenchRunFinished() { return frenchRunFinished; }
 }
