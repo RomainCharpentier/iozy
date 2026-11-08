@@ -91,6 +91,18 @@ describe('On joue ?', () => {
     expect(lastState?.questions).toHaveLength(13)
     expect([...(lastState?.categories ?? [])].sort()).toEqual(['animes', 'films'])
     expect(lastState?.playerName).toBe('Romain')
+    expect(lastState?.origin).toBe('quick')
+  })
+
+  it('ne compte pas les extraits sans thème, que la partie ne tire jamais', async () => {
+    getAll.mockResolvedValue({
+      films: [q('f1', 'films'), q('f2', 'films')],
+      autres: [q('x', '')],
+    })
+    renderHome()
+    expect(
+      await screen.findByText('2 extraits tirés parmi 2, tous thèmes, rien à régler.')
+    ).toBeTruthy()
   })
 
   it('banque vide : pas de partie rapide, l’éditeur est proposé', async () => {

@@ -5,8 +5,7 @@ import HomeMenu, { type BankSize } from '@/pages/HomePage/HomeMenu'
 import UsernameGuard from '@/components/common/UsernameGuard'
 import { useGameState } from '@/lib/game/GameContext'
 import { settingsService } from '@/services/settingsService'
-import { buildQuickGame, loadQuestionBank } from '@/services/quickGameService'
-import { QuestionService } from '@/services/questionService'
+import { buildQuickGame, loadQuestionBank, playableQuestions } from '@/services/quickGameService'
 import type { Question } from '@/types'
 
 export default function HomePage() {
@@ -64,6 +63,7 @@ export default function HomePage() {
         players: [],
         playerName: name,
         questionCount: setup.questionCount,
+        origin: 'quick',
       })
       navigate('/room/create')
     } finally {
@@ -76,7 +76,7 @@ export default function HomePage() {
       ? undefined
       : bank === null
         ? null
-        : QuestionService.dedupeQuestions(bank).length
+        : playableQuestions(bank).length
 
   return (
     <UsernameGuard>
