@@ -55,20 +55,20 @@ export function ReleaseRefreshLine() {
   if (!status?.available) return null
 
   const enCours = status.running || launch.isPending
+  // ONE line (lot 215): the state of the data is a footnote of the page, not a
+  // block. The next automatic pass closes it.
+  const texte = enCours
+    ? 'Mise à jour des sorties en cours…'
+    : [resume(status, now), status.nextPlannedAt && `prochaine mise à jour automatique ${libelleProchainement(status.nextPlannedAt, now)}`]
+        .filter(Boolean)
+        .join(' · ')
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <div className="flex min-w-0 flex-col">
-          <p className="text-sm text-textDim" role="status">
-            {enCours ? 'Mise à jour des sorties en cours…' : resume(status, now)}
-          </p>
-          {!enCours && status.nextPlannedAt && (
-            <p className="text-xs text-textDim">
-              Prochaine mise à jour automatique {libelleProchainement(status.nextPlannedAt, now)}
-            </p>
-          )}
-        </div>
+        <p className="min-w-0 text-sm text-textDim" role="status">
+          {texte}
+        </p>
         {!estInvite && (
           <button
             type="button"
