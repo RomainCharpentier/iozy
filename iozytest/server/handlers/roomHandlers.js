@@ -26,6 +26,7 @@ import {
 } from '../domain/room.js';
 import { getGameState } from '../domain/game.js';
 import { roomRepository } from '../infrastructure/roomRepository.js';
+import { maybeStartQuestion } from './gameHandlers.js';
 import {
   withPayload,
   sendInvalidPayload,
@@ -286,19 +287,23 @@ export function setupRoomHandlers(socket, io) {
     if (!player) return;
 
     const playerId = player.id;
+    // Lire le rôle avant le retrait : après, le joueur n'est plus dans la liste
+    const wasHost = player.isHost || room.hostPlayerId === playerId;
     removePlayer(room, playerId);
     roomRepository.cancelGracePeriod(roomCode, playerId);
     socket.leave(roomCode);
-    
-    if (isHost(room, socket.id) && room.players.length > 0) {
+
+    if (wasHost && room.players.length > 0) {
       transferHost(room);
     }
-    
+
     if (canDeleteRoom(room)) {
       roomRepository.delete(roomCode);
     } else {
       roomRepository.update(roomCode, room);
       broadcastRoomState(io, roomCode, room);
+      // Les joueurs restants attendaient peut-être seulement celui-ci pour démarrer
+      maybeStartQuestion(io, roomCode, room);
     }
   }));
 
@@ -338,12 +343,15 @@ export function setupRoomHandlers(socket, io) {
           } else {
             roomRepository.update(roomCode, currentRoom);
             broadcastRoomState(io, roomCode, currentRoom);
+            maybeStartQuestion(io, roomCode, currentRoom);
           }
         }
       }, 20000); // 20 secondes de grace period
       
       // Broadcast immédiat de l'état (joueur déconnecté)
       broadcastRoomState(io, roomCode, room);
+      // Un joueur déconnecté ne bloque pas le départ : les autres sont peut-être tous prêts
+      maybeStartQuestion(io, roomCode, room);
     });
   });
 }

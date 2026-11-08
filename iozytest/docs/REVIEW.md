@@ -26,9 +26,9 @@
 
 - [x] `socket.on('reconnect')` jamais déclenché en socket.io v4 (`Game.tsx:1008`, `useRoomSocket.ts:123,250`, `utils/socket.ts:53`) → pas de `room:rejoin` après coupure.
 - [x] Sockets multiples : `connectSocket` recrée un `io()` si pas encore connecté, et l'effet de `useRoomSocket` (`:284`) se relance à chaque render (callback inline `RoomCreator.tsx:63`).
-- [ ] `room:leave` ne transfère jamais l'hôte (`removePlayer` avant `isHost`, `roomHandlers.js:221-227`).
-- [ ] Partie bloquée si un joueur se déconnecte pendant le chargement (pas de re-check « tous prêts », `gameHandlers.js:369-385`) ; `voteSkip` exige aussi les joueurs déconnectés (`game.js:254`).
-- [ ] Double scoring possible : skip unanime avant `game:go` puis `game:ready` tardif (`gameHandlers.js:385-394`, `:468-472`). `storeAnswer` n'a aucun contrôle de phase (`game.js:112`).
+- [x] `room:leave` ne transfère jamais l'hôte (`removePlayer` avant `isHost`, `roomHandlers.js:221-227`).
+- [x] Partie bloquée si un joueur se déconnecte pendant le chargement (pas de re-check « tous prêts », `gameHandlers.js:369-385`) ; `voteSkip` exige aussi les joueurs déconnectés (`game.js:254`).
+- [x] Double scoring possible : skip unanime avant `game:go` puis `game:ready` tardif (`gameHandlers.js:385-394`, `:468-472`). `storeAnswer` n'a aucun contrôle de phase (`game.js:112`).
 - [ ] Collision de code de room non vérifiée (`room.js:10`).
 - [ ] `addQuestion` plante si la catégorie n'existe pas dans le fichier ; `deleteQuestion` sans `category` plante (`questionRepository.js:59,80`).
 - [ ] `room:join` d'un joueur connu en cours de partie n'appelle pas `syncPlayerToGame` (`roomHandlers.js:120-133`).

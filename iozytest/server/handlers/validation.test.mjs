@@ -67,6 +67,7 @@ describe('answerUtils - réponses non-string', () => {
     const room = createRoom(ROOM, 'host-id', 'socket-host', 'Host', [], 20)
     addPlayer(room, 'p1', 'socket-p1', 'P1')
     startGame(room, [{ id: 'q1', answer: 'Song 1' }], 5)
+    room.game.startedAt = Date.now() // « go » donné
     storeAnswer(room, 'socket-host', { evil: true })
     storeAnswer(room, 'socket-p1', 12345)
     const result = validateAnswers(room)
@@ -190,6 +191,7 @@ describe('Handlers - payloads invalides', () => {
     assert.deepStrictEqual(roomRepository.get(ROOM).game.answers, {})
 
     // Une réponse string valide est toujours acceptée
+    roomRepository.get(ROOM).game.startedAt = Date.now() // « go » donné
     playerSocket._trigger('game:answer', { roomCode: ROOM, answer: 'Song' })
     assert.strictEqual(roomRepository.get(ROOM).game.answers.p1, 'Song')
   })
