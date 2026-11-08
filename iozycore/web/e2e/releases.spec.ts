@@ -91,6 +91,7 @@ test('date a work on its detail page, then find it again in Sorties, in the agen
   expect((await flux.text()).replace(/\r\n[ \t]/g, '')).toContain(`SUMMARY:${oeuvre}`)
 
   await page.getByRole('button', { name: 'Nouveau lien' }).click()
+  await page.getByRole('button', { name: "Oui, couper l'ancien lien" }).click()
   await expect(champ).not.toHaveValue(lien)
   expect((await agenda.get(lien)).status()).toBe(404)
   await agenda.dispose()

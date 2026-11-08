@@ -36,7 +36,7 @@ test('type the total of an edition, see "X / Y" appear, then clear it', async ({
   await expect(page.getByRole('heading', { name: titre })).toBeVisible()
 
   // --- Before: what we own, and the admission that the rest is unknown
-  await expect(page.getByText('total inconnu')).toBeVisible()
+  await expect(page.getByText('total inconnu', { exact: true })).toBeVisible()
   await expect(page.getByText(/\d+ \/ \d+/)).toHaveCount(0)
 
   // --- The total, typed in place
@@ -72,6 +72,6 @@ test('type the total of an edition, see "X / Y" appear, then clear it', async ({
   // --- Cleared: the total is unknown again, and nothing is guessed in its place
   await page.goto(`/entity/${entityId}`)
   await page.getByRole('button', { name: 'Effacer le total' }).click()
-  await expect(page.getByText('total inconnu')).toBeVisible()
+  await expect(page.getByText('total inconnu', { exact: true })).toBeVisible()
   await expect(page.getByText('2 / 18')).toHaveCount(0)
 })
