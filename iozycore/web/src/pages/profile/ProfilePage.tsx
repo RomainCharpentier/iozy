@@ -32,13 +32,17 @@ export function ProfilePage() {
   // pointing at anything shortens nothing.
   const partageRef = useRef<HTMLDivElement>(null)
   const appareilRef = useRef<HTMLDivElement>(null)
-  const etat = useLocation().state as { focusPartage?: boolean; focusAppareil?: boolean } | null
-  const focusPartage = etat?.focusPartage
+  // The location key changes on every navigation, so "Partager" clicked again
+  // while already here scrolls again. IozyTest links here with "#partage":
+  // it cannot pass router state across apps.
+  const location = useLocation()
+  const etat = location.state as { focusPartage?: boolean; focusAppareil?: boolean } | null
+  const focusPartage = etat?.focusPartage || location.hash === '#partage'
   const focusAppareil = etat?.focusAppareil
   useEffect(() => {
     if (focusPartage) partageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     if (focusAppareil) appareilRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [focusPartage, focusAppareil])
+  }, [focusPartage, focusAppareil, location.key])
 
   return (
     <div className="flex flex-col gap-5">
