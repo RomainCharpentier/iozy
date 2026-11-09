@@ -7,6 +7,7 @@ import { EnTeteMobile } from './EnTeteMobile'
 import { PiedDePage } from './PiedDePage'
 import { FondPleinCadre, PleinCadreProvider } from '@/common/components/pleinCadre/PleinCadre'
 import { useRefusDeVisite } from '@/common/hooks/useRefusDeVisite'
+import { usePreferencesCompte } from '@/common/hooks/usePreferencesCompte'
 
 /** Single switch point between the thumb bar (BarreOnglets, at the bottom,
  * fixed) and the top bar (BarreDuHaut, floating at the top) - see
@@ -116,6 +117,8 @@ function contentWidthFor(pathname: string): ContentWidth {
   // the list of everything coming during the year (batch 146): two columns that
   // do not fit in 672 px.
   if (pathname.startsWith('/releases')) return 'medium'
+  // The common profile (lot 218): the person on the left, the settings beside.
+  if (pathname === '/profile') return 'medium'
   return 'narrow'
 }
 
@@ -132,6 +135,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Here because it is the only component that wraps ALL the
   // private screens: a visit refusal must be explained wherever it comes from.
   useRefusDeVisite()
+  // The theme, the accent and the title languages follow the account (lot 218).
+  usePreferencesCompte()
   return (
     // No background here: the page is painted by the full-screen backdrop
     // (FondPleinCadre, fixed under everything), the cover of the moment.

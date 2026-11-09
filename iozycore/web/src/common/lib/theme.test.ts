@@ -94,3 +94,38 @@ describe('useTheme', () => {
     expect(second.result.current.theme).toBe('light')
   })
 })
+
+describe('the "Système" preference (lot 218)', () => {
+  function systeme(clair: boolean) {
+    const ecouteurs: (() => void)[] = []
+    const requete = {
+      matches: clair,
+      addEventListener: (_: string, f: () => void) => ecouteurs.push(f),
+      removeEventListener: () => {},
+    }
+    window.matchMedia = ((q: string) =>
+      q.includes('prefers-color-scheme') ? requete : { matches: false }) as unknown as typeof window.matchMedia
+    return {
+      basculer(nouveau: boolean) {
+        requete.matches = nouveau
+        for (const f of ecouteurs) f()
+      },
+    }
+  }
+
+  it('follows the system, and keeps following it', () => {
+    const os = systeme(true)
+    const { result } = renderHook(() => useTheme())
+
+    act(() => result.current.setPreference('system'))
+
+    expect(result.current.preference).toBe('system')
+    expect(result.current.theme).toBe('light')
+    expect(localStorage.getItem(CLE)).toBe('system')
+
+    act(() => os.basculer(false))
+
+    expect(result.current.theme).toBe('dark')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+})

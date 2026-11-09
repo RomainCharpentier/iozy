@@ -1,27 +1,41 @@
 /**
- * <b>"Mon compte" and "Cet appareil" are not the same thing, and the
- * section must say so.</b>
+ * <b>The settings follow the account, apply at once, and say where they live.</b>
  *
- * <p>It is the only place in the application that mixes two kinds of
- * settings: what lives on the server and follows you everywhere, and what lives in
- * the `localStorage` of THIS browser and is lost when changing machine. Nothing
- * tells the two apart by eye - a switch looks like a switch.
- * A "Paramètres" screen until batch 140, a section of Profil since.
- *
- * <p>Two silent defects, then: the sentence that warns disappears (and
- * someone believes a setting was lost when opening the app on their phone),
- * or the export gets lost again in the administration (and taking one's data away
- * becomes a matter of technical configuration again).
+ * <p>Lot 218: one panel for both apps. The silent defects it guards against:
+ * a pseudo refused without its reason (or with the field emptied), a choice
+ * that applies on screen but never reaches the account, a blindtest sound
+ * saved on every step of a drag, a fallback to the device that the panel does
+ * not admit, and the export or the restore lost again somewhere else.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { Reglages } from './Reglages'
+import { applyStoredTheme } from '@/common/lib/theme'
+import { relireAccent } from '@/common/lib/accent'
+import {
+  EVENEMENT_PREFERENCE_CHOISIE,
+  declarerEnregistrement,
+  type ChoixPreference,
+} from '@/common/lib/preferencesCompte'
+import type { Compte } from '@/common/api/auth'
 
 const auth = vi.hoisted(() => ({ useAuth: vi.fn() }))
 vi.mock('@/common/hooks/useAuth', () => auth)
+const api = vi.hoisted(() => ({ modifierCompte: vi.fn() }))
+vi.mock('@/common/api/auth', () => api)
+
+const COMPTE: Compte = {
+  id: 'u1',
+  email: 'romain@iozycore.local',
+  pseudo: 'romain',
+  admin: false,
+  invite: false,
+  preferences: { accent: null, appearance: null, titleComposition: null, blindtestSound: null },
+}
 
 function enrobage({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -32,39 +46,153 @@ function enrobage({ children }: { children: ReactNode }) {
   )
 }
 
-const deconnexion = { mutate: vi.fn(), isPending: false }
+function afficher(compte: Compte = COMPTE) {
+  auth.useAuth.mockReturnValue({ compte })
+  render(<Reglages />, { wrapper: enrobage })
+}
+
+const choix: ChoixPreference[] = []
+const ecoute = (e: Event) => choix.push((e as CustomEvent<ChoixPreference>).detail)
 
 beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
-  auth.useAuth.mockReturnValue({
-    compte: { id: 'u1', email: 'romain@iozycore.local', pseudo: 'romain', admin: true },
-    deconnexion,
-  })
-  render(<Reglages />, { wrapper: enrobage })
+  applyStoredTheme()
+  relireAccent()
+  declarerEnregistrement('repos')
+  choix.length = 0
+  window.addEventListener(EVENEMENT_PREFERENCE_CHOISIE, ecoute)
+  api.modifierCompte.mockImplementation(async (m) => ({ ...COMPTE, ...m }))
 })
 
-describe('"Mon compte"', () => {
-  it('says who you are', () => {
-    const monCompte = screen.getByRole('region', { name: 'Mon compte' })
+afterEach(() => {
+  window.removeEventListener(EVENEMENT_PREFERENCE_CHOISIE, ecoute)
+  vi.useRealTimers()
+})
 
-    expect(within(monCompte).getByText('romain')).toBeInTheDocument()
-    expect(within(monCompte).getByText('romain@iozycore.local')).toBeInTheDocument()
+describe('the pseudo', () => {
+  it('is changed in place and saved on the account', async () => {
+    afficher()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier le pseudo' }))
+    const champ = screen.getByLabelText('Nouveau pseudo')
+    await userEvent.clear(champ)
+    await userEvent.type(champ, 'neo-2')
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(api.modifierCompte).toHaveBeenCalledWith({ pseudo: 'neo-2' })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Modifier le pseudo' })).toHaveFocus())
   })
 
-  it('no longer carries the sign-out, which moved up to the header', () => {
-    // It lived here, three clicks from the avatar (Profil, then Paramètres,
-    // then this section): impossible to find for whoever does not know the path. There
-    // is now only ONE exit button, in the header, the same for an
-    // account and for a visitor (see BoutonSortie).
-    const monCompte = screen.getByRole('region', { name: 'Mon compte' })
+  it('says why the server refuses it, and keeps what was typed', async () => {
+    api.modifierCompte.mockRejectedValue(new Error('Ce pseudo est déjà pris.'))
+    afficher()
 
-    expect(within(monCompte).queryByRole('button', { name: /déconnecter/i })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier le pseudo' }))
+    const champ = screen.getByLabelText('Nouveau pseudo')
+    await userEvent.clear(champ)
+    await userEvent.type(champ, 'pris')
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ce pseudo est déjà pris.')
+    expect(screen.getByLabelText('Nouveau pseudo')).toHaveValue('pris')
+  })
+})
+
+describe('the appearance and the color', () => {
+  it('apply at once and are announced for the account', async () => {
+    afficher()
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Clair' }))
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false)
+    expect(localStorage.getItem('iozycore.theme')).toBe('light')
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Terracotta' }))
+    expect(screen.getByRole('radio', { name: 'Terracotta' })).toBeChecked()
+    expect(screen.getByText('La couleur d’Iozy partout, quelle que soit la jaquette.')).toBeInTheDocument()
+
+    expect(choix).toEqual([{ appearance: 'LIGHT' }, { accent: 'TERRACOTTA' }])
   })
 
-  it('carries the export, which belongs to the account and not to the administration', () => {
-    // Taking one's collection away is the guarantee of being able to leave, not of
-    // technical configuration: it is the account that owns this data.
+  it('offers to follow the system', async () => {
+    afficher()
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Système' }))
+
+    expect(localStorage.getItem('iozycore.theme')).toBe('system')
+    expect(choix).toEqual([{ appearance: 'SYSTEM' }])
+  })
+})
+
+describe('the title languages', () => {
+  it('read in one line, and their order changes with the arrows', async () => {
+    afficher()
+    expect(screen.getByText('Français, puis romaji')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Changer l’ordre' }))
+    const ordre = () =>
+      within(screen.getByRole('list', { name: 'Ordre des langues de titre' }))
+        .getAllByRole('listitem')
+        .map((li) => li.textContent ?? '')
+    expect(screen.getByRole('button', { name: 'Monter Français' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Descendre Français' }))
+
+    expect(ordre()[0]).toContain('Romaji')
+    expect(screen.getByText('Romaji, puis français')).toBeInTheDocument()
+    expect(choix.at(-1)?.titleComposition?.[0]).toEqual({ language: 'ROMAJI', enabled: true })
+  })
+})
+
+describe('the blindtest sound', () => {
+  it('shows IozyTest’s default until the account has one, and says so', () => {
+    afficher()
+
+    expect(screen.getByRole('switch', { name: 'Effets sonores' })).toBeChecked()
+    expect(screen.getByText('70 %')).toBeInTheDocument()
+    expect(screen.getByText(/Pas encore réglé sur ton compte/)).toBeInTheDocument()
+  })
+
+  it('is saved on the account when switched off', async () => {
+    afficher()
+
+    await userEvent.click(screen.getByRole('switch', { name: 'Effets sonores' }))
+
+    expect(api.modifierCompte).toHaveBeenCalledWith({ preferences: { blindtestSound: { enabled: false, volume: 70 } } })
+  })
+
+  it('saves a volume once the slider rests, not at every step', async () => {
+    vi.useFakeTimers()
+    afficher({ ...COMPTE, preferences: { ...COMPTE.preferences!, blindtestSound: { enabled: true, volume: 40 } } })
+    const curseur = screen.getByRole('slider', { name: 'Volume du blindtest' })
+
+    fireEvent.change(curseur, { target: { value: '45' } })
+    fireEvent.change(curseur, { target: { value: '50' } })
+    fireEvent.change(curseur, { target: { value: '55' } })
+    expect(api.modifierCompte).not.toHaveBeenCalled()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500)
+    })
+
+    expect(api.modifierCompte).toHaveBeenCalledTimes(1)
+    expect(api.modifierCompte).toHaveBeenCalledWith({ preferences: { blindtestSound: { enabled: true, volume: 55 } } })
+  })
+})
+
+describe('where a setting lives', () => {
+  it('admits when the account did not answer and the device keeps the choice', () => {
+    afficher()
+    expect(screen.getByRole('status')).toHaveTextContent('Ces réglages suivent ton compte')
+
+    act(() => declarerEnregistrement('appareil'))
+
+    expect(screen.getByRole('status')).toHaveTextContent('ce réglage reste sur cet appareil')
+  })
+})
+
+describe('the data', () => {
+  it('can be taken away and brought back from the account panel', () => {
+    afficher()
     const monCompte = screen.getByRole('region', { name: 'Mon compte' })
 
     expect(within(monCompte).getByRole('link', { name: 'Télécharger en JSON' })).toHaveAttribute(
@@ -75,58 +203,9 @@ describe('"Mon compte"', () => {
       'href',
       '/api/export/csv',
     )
-  })
-})
-
-describe('"Cet appareil"', () => {
-  it('warns that this setting does not follow the account', () => {
-    // The language of the titles lives in the localStorage of this browser. Without
-    // this sentence, nobody can guess it.
-    expect(screen.getByText(/reste sur cet appareil/)).toBeInTheDocument()
-    expect(screen.getByText(/ne suit pas ton compte/)).toBeInTheDocument()
-  })
-
-  it('keeps the language of the titles, and says where the theme went', () => {
-    // The theme switch lived here until batch 138. It is in
-    // the header, one click on the sun or the moon - and this screen says so,
-    // for whoever comes looking for it where they knew it.
-    expect(screen.queryByRole('switch', { name: 'Thème sombre' })).not.toBeInTheDocument()
-    expect(screen.getByText(/soleil ou la lune/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Titre des mangas' })).toBeInTheDocument()
-  })
-})
-
-describe('the administration', () => {
-  it('is no longer a sub-part of the settings', () => {
-    // It lived here until 2026-08-29, at the bottom of the page. Setting one's theme and
-    // declaring the categories of one's collection have nothing in common: they are two
-    // SIBLING screens, both reached from Profil. Nested, it put
-    // the reference editions at three levels of depth.
-    expect(screen.queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
-  })
-
-  it('does not take the settings of this device with it', () => {
-    // The move must empty neither of the two sections.
-    expect(screen.getByRole('region', { name: 'Mon compte' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Titre des mangas' })).toBeInTheDocument()
-  })
-})
-
-describe('the order of the title languages', () => {
-  it('is changed with the arrows, not only with the mouse', () => {
-    // HTML drag and drop does not exist with a finger: on a phone, the order
-    // was impossible to change (batch 148). The arrows work everywhere.
-    const ordre = () => screen.getAllByRole('listitem').map((li) => li.textContent ?? '')
-    expect(ordre()[0]).toContain('Français')
-    expect(screen.getByRole('button', { name: 'Monter Français' })).toBeDisabled()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Descendre Français' }))
-
-    expect(ordre()[0]).toContain('Romaji')
-    expect(ordre()[1]).toContain('Français')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Monter Français' }))
-
-    expect(ordre()[0]).toContain('Français')
+    expect(within(monCompte).getByRole('link', { name: 'Importer un fichier' })).toHaveAttribute(
+      'href',
+      '/profile/import',
+    )
   })
 })

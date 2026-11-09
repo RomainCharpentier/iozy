@@ -1,264 +1,403 @@
-import { useState, type DragEvent, type RefObject } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, ChevronUp, Download, GripVertical, Upload } from 'lucide-react'
+import { Download, Upload, Wrench } from 'lucide-react'
+import type { AccentCompte, Compte } from '@/common/api/auth'
 import { useAuth } from '@/common/hooks/useAuth'
-import {
-  TITLE_LANGUAGE_LABELS,
-  getTitleComposition,
-  setTitleComposition,
-  type TitleComposition,
-} from '@/common/lib/titleLanguage'
+import { useModifierCompte } from '@/common/hooks/usePreferencesCompte'
+import { setAccent, useAccent } from '@/common/lib/accent'
+import { useEtatEnregistrement } from '@/common/lib/preferencesCompte'
+import { useTheme, type PreferenceTheme } from '@/common/lib/theme'
+import { useTitleComposition } from '@/common/lib/titleLanguage'
+import { ChoixTitres } from './ChoixTitres'
+import { resumeTitres } from './resumeTitres'
 
 /**
- * The settings, sorted by <b>what they concern</b> - on the Profil page,
- * in the open.
+ * The common profile, one glass panel (lot 218): the pseudo, the color, the
+ * appearance, the title languages, the blindtest sound, and the data.
  *
- * <h2>No longer a screen, a section (batch 140)</h2>
- * They used to be the "Paramètres" screen, reached from Profil by a link: two
- * screens for the same person, and "ça doit être lisible direct". This
- * component renders both sections under the sharing, on Profil itself; the
- * old `/settings` routes redirect there.
+ * <h2>One place, for both apps</h2>
+ * These settings live on the ACCOUNT: IozyCore and IozyTest read them, on
+ * any browser. Each one applies at once on this device, which keeps a copy:
+ * without an answer from the server, the choice stays here and the panel
+ * says so (see usePreferencesCompte). The pseudo and the sound have no local
+ * copy in this app: they are saved directly, and a refusal is said on their
+ * row.
  *
- * <h2>Two sections, and the border is real</h2>
- * <b>Mon compte</b> follows you everywhere: it lives on the server, and the export is
- * part of it - downloading one's collection is not technical configuration,
- * it is the guarantee of being able to leave. <b>Cet appareil</b> follows
- * nothing: the language of the titles lives in the {@code localStorage} of this
- * browser, and changing machine loses it. The section says so, because
- * nobody can guess it.
- *
- * <p>The light or dark theme lived here too, until batch 138: it is
- * changed from the header, with one click on the sun or the moon (see
- * BoutonTheme). A setting that one changes according to the light of the room does not have to
- * be three clicks away.
- *
- * <p>What is here NEITHER one NOR the other - the collection categories, the
- * reference editions, the import, the accounts - concerns the <b>content</b> of
- * the collection or the <b>instance</b>, and lives in Administration, a
- * SIBLING screen reached from Profil. Not from here: it lived here until
- * 2026-08-29, and setting one's theme has nothing to do with declaring the categories
- * of one's collection - one is not found by looking for the other.
- *
- * <h2>The language of the titles</h2>
- * Only the manga search/add (Jikan/MyAnimeList) is concerned, as neither
- * Jikan nor MAL returns a French title natively. Native drag and drop
- * (HTML5 drag events, no library): the first active language
- * becomes the saved title, the following active ones follow in
- * parentheses in the order chosen here.
+ * <h2>What is not here</h2>
+ * The sign-out is in the header, the same button everywhere. The
+ * administration of the instance is a discreet link under the panel, for an
+ * administrator only.
  */
-export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivElement | null> }) {
-  // Local state reflecting localStorage - setTitleComposition() persists AND
-  // notifies the other consumers (QuickAddPage) through a custom event,
-  // see lib/titleLanguage.ts.
-  const [composition, setComposition] = useState<TitleComposition>(getTitleComposition)
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+export function Reglages({ ouvrirTitres = false }: { ouvrirTitres?: boolean }) {
   const { compte } = useAuth()
+  const etat = useEtatEnregistrement()
 
-
-  function update(next: TitleComposition) {
-    setComposition(next)
-    setTitleComposition(next)
-  }
-
-  function toggleEnabled(index: number) {
-    // At least one language must stay active - otherwise no title would
-    // be resolvable anymore for the quick add (see similar safeguard in
-    // resolvePrimaryTitle, which falls back on candidate.title as a last
-    // resort, but better to prevent it here than to count on it).
-    const next = composition.map((item, i) => (i === index ? { ...item, enabled: !item.enabled } : item))
-    if (!next.some((item) => item.enabled)) return
-    update(next)
-  }
-
-  function reorder(fromIndex: number, toIndex: number) {
-    if (fromIndex === toIndex) return
-    const next = [...composition]
-    const [moved] = next.splice(fromIndex, 1)
-    next.splice(toIndex, 0, moved)
-    update(next)
-  }
-
-  function handleDragStart(index: number) {
-    return (e: DragEvent<HTMLLIElement>) => {
-      setDraggedIndex(index)
-      e.dataTransfer.effectAllowed = 'move'
-    }
-  }
-
-  function handleDragOver(index: number) {
-    return (e: DragEvent<HTMLLIElement>) => {
-      e.preventDefault()
-      if (draggedIndex !== null && draggedIndex !== index) {
-        reorder(draggedIndex, index)
-        setDraggedIndex(index)
-      }
-    }
-  }
-
-  // First ACTIVE item (not necessarily index 0, if the user has disabled
-  // the one above) - it is the one that becomes the saved title, see
-  // resolvePrimaryTitle. Only serves for the "principal" badge below.
-  const primaryIndex = composition.findIndex((item) => item.enabled)
+  if (!compte) return null
 
   return (
-    <div className="flex flex-col gap-5">
-      {compte && (
-        // Named for a screen reader (aria-labelledby): without an accessible
-        // name, a <section> is not a landmark that can be targeted.
-        <section aria-labelledby="section-mon-compte" className="flex flex-col gap-3">
-          <h2 id="section-mon-compte" className="font-display text-lg font-semibold text-textPrimary">
-            Mon compte
-          </h2>
-
-          <div className="flex flex-col gap-3 rounded-xl bg-surface p-4">
-            <div className="flex flex-col gap-0.5">
-              <span className="font-medium text-textPrimary">{compte.pseudo}</span>
-              {/* The username can no longer be the address (see AppUser): the two
-                  lines never repeat each other. */}
-              <span className="text-xs text-textDim">{compte.email}</span>
-            </div>
-          </div>
-
-          {/* The export lived in "Administration avancée", next to the
-              collection categories. It is not configuration:
-              it is what guarantees that one can leave with one's data, and it
-              belongs to the account that owns it. */}
-          <div className="flex flex-col gap-2 rounded-xl bg-surface p-4">
-            <span className="flex items-center gap-2 font-medium text-textPrimary">
-              <Download size={16} className="shrink-0 text-accentText" />
-              Emporter ma collection
-            </span>
-            <p className="text-sm text-textDim">
-              Séries, tomes, possessions, expériences, envies, relations et tags, plus ce que tu as saisi à la main
-              et qu'on ne peut pas recalculer : éditions de référence, classements et Tier Lists. Format ouvert,
-              lisible sans cette app - pour garantir l'absence d'enfermement, même auto-hébergé. Restent dehors,
-              volontairement : l'historique d'analyses d'achat (des instantanés, pas des données saisies) et les
-              jetons de partage, qui sont des secrets.
-            </p>
-            <div className="mt-1 flex flex-wrap gap-2">
-              <a
-                href="/api/export/json"
-                download
-                className="btn-secondaire"
-              >
-                Télécharger en JSON
-              </a>
-              <a
-                href="/api/export/csv"
-                download
-                className="btn-secondaire"
-              >
-                Télécharger en CSV (.zip)
-              </a>
-            </div>
-          </div>
-
-          {/* The way back of the previous block (batch 115). Without it, "emporter"
-              was a one-way trip: changing NAS or starting again from a
-              backup was only possible by restoring the whole PostgreSQL. */}
-          <div className="flex flex-col gap-2 rounded-xl bg-surface p-4">
-            <span className="flex items-center gap-2 font-medium text-textPrimary">
-              <Upload size={16} className="shrink-0 text-accentText" />
-              Restaurer une collection
-            </span>
-            <p className="text-sm text-textDim">
-              Renvoie le fichier JSON téléchargé ci-dessus - depuis une autre installation, ou une sauvegarde. Tu vois
-              d'abord ce que l'import ferait ; ce qui existe déjà est retrouvé, jamais dupliqué ni modifié.
-            </p>
-            <div className="mt-1 flex flex-wrap gap-2">
-              <Link
-                to="/profile/import"
-                className="btn-secondaire"
-              >
-                Importer un fichier
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Anchored: "Langue des titres" of the Catalog arrives here, not at the top
-          of a profile that one would then have to scroll. */}
-      <div ref={appareilRef} className="scroll-mt-4 lg:scroll-mt-24">
-        <h2 id="section-cet-appareil" className="font-display text-lg font-semibold text-textPrimary">
-          Cet appareil
+    <div className="flex flex-col gap-3">
+      <section
+        aria-labelledby="section-mon-compte"
+        className="iozy-verre iozy-verre--fort flex flex-col rounded-[26px] px-5 py-2 sm:px-6"
+      >
+        <h2 id="section-mon-compte" className="sr-only">
+          Mon compte
         </h2>
-      </div>
-      {/* Said once: this setting lives in the localStorage of this browser,
-          not on the account. Without this sentence, someone who opens the app on
-          their phone believes a setting was lost. The theme, also on
-          this device, is changed from the header (batch 138) - and we say so,
-          for whoever comes looking for it here where it used to live. */}
-      <p className="-mt-3 text-sm text-textDim">
-        Ce réglage reste sur cet appareil : il ne suit pas ton compte d'un navigateur à l'autre. Le thème clair ou
-        sombre aussi, et il se change depuis l'en-tête, d'un clic sur le soleil ou la lune.
-      </p>
-
-      <section className="flex flex-col gap-2">
-        <h3 className="font-display text-base font-semibold text-textPrimary">Titre des mangas</h3>
-        {/* Says in three sentences what a six-line paragraph drowned under
-            the names of the providers: what the setting changes, and how it is
-            changed. */}
-        <p className="text-sm text-textDim">
-          La première langue cochée devient le titre enregistré ; les suivantes s'affichent entre parenthèses. Les
-          flèches changent l'ordre. « Français » demande une recherche de plus aux sources, les deux autres non.
-        </p>
-
-        <ul className="mt-2 flex flex-col gap-2">
-          {composition.map((item, index) => (
-            <li
-              key={item.language}
-              draggable
-              onDragStart={handleDragStart(index)}
-              onDragOver={handleDragOver(index)}
-              onDragEnd={() => setDraggedIndex(null)}
-              className={`flex items-center gap-3 rounded-xl bg-surface py-1 pr-1.5 pl-3 text-sm text-textPrimary ${
-                draggedIndex === index ? 'opacity-50' : ''
-              }`}
-            >
-              <GripVertical size={18} className="shrink-0 cursor-grab text-textDim" />
-              <label className="flex flex-1 cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={item.enabled}
-                  onChange={() => toggleEnabled(index)}
-                  className="h-4 w-4 accent-accent"
-                />
-                {TITLE_LANGUAGE_LABELS[item.language]}
-              </label>
-              {index === primaryIndex && (
-                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accentInk">
-                  principal
-                </span>
-              )}
-              {/* The arrows, because HTML drag and drop does not exist with a
-                  finger: on a phone, the order was impossible to change. */}
-              <span className="flex shrink-0 items-center">
-                <button
-                  type="button"
-                  onClick={() => reorder(index, index - 1)}
-                  disabled={index === 0}
-                  aria-label={`Monter ${TITLE_LANGUAGE_LABELS[item.language]}`}
-                  className="flex h-11 w-11 items-center justify-center rounded-lg text-textDim hover:text-textPrimary disabled:opacity-30"
-                >
-                  <ChevronUp size={18} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => reorder(index, index + 1)}
-                  disabled={index === composition.length - 1}
-                  aria-label={`Descendre ${TITLE_LANGUAGE_LABELS[item.language]}`}
-                  className="flex h-11 w-11 items-center justify-center rounded-lg text-textDim hover:text-textPrimary disabled:opacity-30"
-                >
-                  <ChevronDown size={18} />
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
+        <LignePseudo compte={compte} />
+        <LigneCouleur />
+        <LigneApparence />
+        <LigneTitres ouvrir={ouvrirTitres} />
+        <LigneSon compte={compte} />
+        <LigneDonnees />
       </section>
-
+      <p role="status" className="px-2 text-sm text-textDim">
+        {etat === 'en-cours'
+          ? 'Enregistrement sur ton compte…'
+          : etat === 'appareil'
+            ? 'Ton compte n’a pas répondu : ce réglage reste sur cet appareil pour l’instant.'
+            : 'Ces réglages suivent ton compte, sur IozyCore comme sur IozyTest.'}
+      </p>
+      {compte.admin && (
+        <Link to="/administration" className="btn-discret self-start">
+          <Wrench size={15} aria-hidden="true" />
+          Administration de l’instance
+        </Link>
+      )}
     </div>
   )
 }
 
+/** One row of the panel: its name on the left, what it holds on the right. */
+function Ligne({ titre, idTitre, children }: { titre: string; idTitre: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3 border-b border-ligneVerre py-4 last:border-b-0 sm:flex-row sm:items-start sm:gap-6">
+      <h3 id={idTitre} className="shrink-0 pt-2.5 text-base font-semibold text-textPrimary sm:w-44">
+        {titre}
+      </h3>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">{children}</div>
+    </div>
+  )
+}
+
+function messageDe(erreur: unknown): string {
+  return erreur instanceof Error && erreur.message ? erreur.message : 'Ton compte n’a pas répondu.'
+}
+
+/**
+ * The pseudo, changed in place. The rules are the sign-up ones, checked by
+ * the server, which says why it refuses (form, or taken). The avatar of the
+ * top bar follows at once: it reads the same account.
+ */
+function LignePseudo({ compte }: { compte: Compte }) {
+  const [edition, setEdition] = useState(false)
+  const [saisie, setSaisie] = useState(compte.pseudo)
+  const sauvegarde = useModifierCompte()
+  const champ = useRef<HTMLInputElement>(null)
+  const ouvreur = useRef<HTMLButtonElement>(null)
+  const rendreLeFocus = useRef(false)
+  const idAide = useId()
+
+  useEffect(() => {
+    if (edition) champ.current?.select()
+    else if (rendreLeFocus.current) ouvreur.current?.focus()
+  }, [edition])
+
+  function fermer() {
+    rendreLeFocus.current = true
+    sauvegarde.reset()
+    setEdition(false)
+  }
+
+  async function soumettre(event: FormEvent) {
+    event.preventDefault()
+    const pseudo = saisie.trim()
+    if (pseudo === compte.pseudo) return fermer()
+    try {
+      await sauvegarde.mutateAsync({ pseudo })
+      fermer()
+    } catch {
+      // The reason is shown under the field; what was typed stays.
+    }
+  }
+
+  return (
+    <Ligne titre="Pseudo" idTitre="ligne-pseudo">
+      {edition ? (
+        <form onSubmit={soumettre} className="flex flex-col gap-2">
+          <label className="flex flex-col gap-1.5 text-sm font-semibold text-textPrimary">
+            Nouveau pseudo
+            <input
+              ref={champ}
+              className="champ"
+              value={saisie}
+              onChange={(e) => setSaisie(e.target.value)}
+              maxLength={24}
+              autoComplete="nickname"
+              aria-describedby={idAide}
+              aria-invalid={sauvegarde.isError || undefined}
+            />
+          </label>
+          {sauvegarde.isError ? (
+            <p id={idAide} role="alert" className="text-sm text-dangerText">
+              {messageDe(sauvegarde.error)}
+            </p>
+          ) : (
+            <p id={idAide} className="text-xs text-textDim">
+              3 à 24 caractères, sans espace ni arobase. Ton avatar et IozyTest le prennent aussitôt.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" className="btn-primaire" disabled={saisie.trim() === '' || sauvegarde.isPending}>
+              Enregistrer
+            </button>
+            <button type="button" className="btn-discret" onClick={fermer}>
+              Annuler
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-base text-textPrimary">{compte.pseudo}</span>
+            {/* The address signs in, it is never shown as a name. */}
+            <span className="truncate text-xs text-textDim">{compte.email}</span>
+          </div>
+          <button
+            ref={ouvreur}
+            type="button"
+            className="btn-secondaire"
+            onClick={() => {
+              setSaisie(compte.pseudo)
+              setEdition(true)
+            }}
+          >
+            Modifier le pseudo
+          </button>
+        </div>
+      )}
+    </Ligne>
+  )
+}
+
+/** A choice among a few values: real radio buttons, drawn as glass pills. */
+function Pastilles<T extends string>({
+  nom,
+  idTitre,
+  valeur,
+  options,
+  onChoix,
+}: {
+  nom: string
+  idTitre: string
+  valeur: T
+  options: { valeur: T; libelle: string }[]
+  onChoix: (valeur: T) => void
+}) {
+  return (
+    <div role="radiogroup" aria-labelledby={idTitre} className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const choisi = option.valeur === valeur
+        return (
+          <label
+            key={option.valeur}
+            className={`iozy-teinte relative inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 text-sm font-semibold ring-1 transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${
+              choisi ? 'bg-vive text-encreVive ring-transparent' : 'bg-verre text-textPrimary ring-ligneVerre'
+            }`}
+          >
+            <input
+              type="radio"
+              name={nom}
+              value={option.valeur}
+              checked={choisi}
+              onChange={() => onChoix(option.valeur)}
+              className="sr-only"
+            />
+            {option.libelle}
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
+function LigneCouleur() {
+  const accent = useAccent()
+  return (
+    <Ligne titre="Couleur" idTitre="ligne-couleur">
+      <Pastilles<AccentCompte>
+        nom="accent"
+        idTitre="ligne-couleur"
+        valeur={accent}
+        options={[
+          { valeur: 'AUTO', libelle: 'Suit la jaquette' },
+          { valeur: 'TERRACOTTA', libelle: 'Terracotta' },
+        ]}
+        onChoix={(choix) => setAccent(choix)}
+      />
+      <p className="text-xs text-textDim">
+        {accent === 'AUTO'
+          ? 'Les boutons et ce qui manque prennent la couleur de la jaquette à l’écran.'
+          : 'La couleur d’Iozy partout, quelle que soit la jaquette.'}
+      </p>
+    </Ligne>
+  )
+}
+
+function LigneApparence() {
+  const { preference, setPreference } = useTheme()
+  return (
+    <Ligne titre="Apparence" idTitre="ligne-apparence">
+      <Pastilles<PreferenceTheme>
+        nom="apparence"
+        idTitre="ligne-apparence"
+        valeur={preference}
+        options={[
+          { valeur: 'system', libelle: 'Système' },
+          { valeur: 'dark', libelle: 'Sombre' },
+          { valeur: 'light', libelle: 'Clair' },
+        ]}
+        onChoix={setPreference}
+      />
+      {preference === 'system' && (
+        <p className="text-xs text-textDim">Suit le réglage clair ou sombre de ton appareil.</p>
+      )}
+    </Ligne>
+  )
+}
+
+function LigneTitres({ ouvrir }: { ouvrir: boolean }) {
+  const composition = useTitleComposition()
+  const [ouvert, setOuvert] = useState(ouvrir)
+  const ancre = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (ouvrir) ancre.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }, [ouvrir])
+  return (
+    <Ligne titre="Titres des mangas" idTitre="ligne-titres">
+      <div ref={ancre} className="scroll-mt-4 lg:scroll-mt-24" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-base text-textPrimary">{resumeTitres(composition)}</span>
+        <button
+          type="button"
+          className="btn-secondaire"
+          aria-expanded={ouvert}
+          aria-controls="choix-titres"
+          onClick={() => setOuvert((o) => !o)}
+        >
+          {ouvert ? 'Fermer' : 'Changer l’ordre'}
+        </button>
+      </div>
+      {ouvert && (
+        <div id="choix-titres">
+          <ChoixTitres />
+        </div>
+      )}
+    </Ligne>
+  )
+}
+
+/** IozyTest's own default, shown until the account has a sound setting. */
+const SON_PAR_DEFAUT = { enabled: true, volume: 70 }
+
+/**
+ * The blindtest sound: read by IozyTest from the account when signed in. A
+ * volume is saved once the slider rests (a drag is not twenty saves).
+ */
+function LigneSon({ compte }: { compte: Compte }) {
+  const duCompte = compte.preferences?.blindtestSound ?? null
+  const son = duCompte ?? SON_PAR_DEFAUT
+  const [volume, setVolume] = useState(son.volume)
+  const sauvegarde = useModifierCompte()
+  const { mutate } = sauvegarde
+  const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // The account changed elsewhere (IozyTest, another tab): the slider follows.
+  const [volumeLu, setVolumeLu] = useState(son.volume)
+  if (volumeLu !== son.volume) {
+    setVolumeLu(son.volume)
+    setVolume(son.volume)
+  }
+  useEffect(() => () => {
+    if (minuteur.current) clearTimeout(minuteur.current)
+  }, [])
+
+  function enregistrer(enabled: boolean, nouveauVolume: number) {
+    mutate({ preferences: { blindtestSound: { enabled, volume: nouveauVolume } } })
+  }
+
+  function surVolume(nouveau: number) {
+    setVolume(nouveau)
+    if (minuteur.current) clearTimeout(minuteur.current)
+    minuteur.current = setTimeout(() => enregistrer(son.enabled, nouveau), 400)
+  }
+
+  return (
+    <Ligne titre="Son du blindtest" idTitre="ligne-son">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-textPrimary">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={son.enabled}
+            onChange={(e) => enregistrer(e.target.checked, volume)}
+            className="h-5 w-5 accent-accent"
+          />
+          Effets sonores
+        </label>
+        <div className="flex min-w-[200px] flex-1 items-center gap-3 text-sm text-textPrimary">
+          <input
+            type="range"
+            aria-label="Volume du blindtest"
+            aria-valuetext={`${volume} %`}
+            min={0}
+            max={100}
+            step={5}
+            value={volume}
+            disabled={!son.enabled}
+            onChange={(e) => surVolume(Number(e.target.value))}
+            className="h-11 flex-1 accent-accent disabled:opacity-40"
+          />
+          {/* Read by the eye; a screen reader hears the slider's own value. */}
+          <span aria-hidden="true" className="w-14 text-right font-display text-lg font-bold tabular-nums">
+            {volume} %
+          </span>
+        </div>
+      </div>
+      {sauvegarde.isError ? (
+        <p role="alert" className="text-sm text-dangerText">
+          Pas enregistré : {messageDe(sauvegarde.error)}
+        </p>
+      ) : (
+        <p className="text-xs text-textDim">
+          {duCompte
+            ? 'IozyTest lit ce réglage : le changer là-bas le change ici.'
+            : 'Pas encore réglé sur ton compte : IozyTest garde pour l’instant le réglage de chaque appareil.'}
+        </p>
+      )}
+    </Ligne>
+  )
+}
+
+function LigneDonnees() {
+  return (
+    <Ligne titre="Mes données" idTitre="ligne-donnees">
+      <p className="text-sm text-textDim">
+        Toute ta collection dans un format ouvert, lisible sans cette app, et le chemin du retour. Restent dehors,
+        volontairement : l’historique d’analyses d’achat et les jetons de partage, qui sont des secrets.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <a href="/api/export/json" download className="btn-secondaire">
+          <Download size={16} aria-hidden="true" />
+          Télécharger en JSON
+        </a>
+        <a href="/api/export/csv" download className="btn-secondaire">
+          Télécharger en CSV (.zip)
+        </a>
+        <Link to="/profile/import" className="btn-secondaire">
+          <Upload size={16} aria-hidden="true" />
+          Importer un fichier
+        </Link>
+      </div>
+    </Ligne>
+  )
+}

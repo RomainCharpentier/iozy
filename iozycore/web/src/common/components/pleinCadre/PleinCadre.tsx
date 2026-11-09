@@ -1,7 +1,8 @@
 import { useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { Contexte } from './usePleinCadre'
 import { useTheme } from '@/common/lib/theme'
-import { deriverTeintes, enRgb } from '@/common/lib/teinte/derivation'
+import { TERRACOTTA, deriverTeintes, enRgb } from '@/common/lib/teinte/derivation'
+import { useAccent } from '@/common/lib/accent'
 import { useTeinteJaquette } from '@/common/lib/teinte/useTeinteJaquette'
 
 /**
@@ -35,7 +36,13 @@ export function PleinCadreProvider({ children }: { children: ReactNode }) {
 
   // Until the cover is read, the colors of the previous one stay: a flash of
   // terracotta between two blue series would read as a third color.
-  const teintes = useMemo(() => (connue ? deriverTeintes([r, g, b], theme) : null), [connue, r, g, b, theme])
+  // "Terracotta" chosen on the profile (lot 218): the brand tones whatever
+  // the cover. The backdrop still shows the cover; only the accent stays put.
+  const accent = useAccent()
+  const teintes = useMemo(() => {
+    if (accent === 'TERRACOTTA') return deriverTeintes(TERRACOTTA, theme)
+    return connue ? deriverTeintes([r, g, b], theme) : null
+  }, [accent, connue, r, g, b, theme])
 
   useLayoutEffect(() => {
     if (!teintes) return
@@ -54,7 +61,12 @@ export function PleinCadreProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const valeur = useMemo(() => ({ url, declarer, repli: connue ? repli : null }), [url, connue, repli])
+  // The CORS note explains a fallback the person did not choose: with the
+  // terracotta chosen, there is nothing to explain.
+  const valeur = useMemo(
+    () => ({ url, declarer, repli: connue && accent === 'AUTO' ? repli : null }),
+    [url, connue, repli, accent],
+  )
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>
 }
 

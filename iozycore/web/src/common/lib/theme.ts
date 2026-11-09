@@ -1,20 +1,43 @@
 import { useSyncExternalStore } from 'react'
+import { annoncerChoix } from './preferencesCompte'
+import type { ApparenceCompte } from '@/common/api/auth'
 
 export type Theme = 'light' | 'dark'
+
+/**
+ * What the person chose (lot 218): a theme, or "what the system says". The
+ * theme on screen is resolved from it (see {@link resoudre}).
+ */
+export type PreferenceTheme = Theme | 'system'
 
 const STORAGE_KEY = 'iozycore.theme'
 
 /** Dark by default (index.html starts with the attribute, so the first paint
  * is dark too) - the app has only known dark so far, a light first load would
- * have been a surprise for no reason. An explicit and persistent choice, never
- * a follow of `prefers-color-scheme` (same logic as the old forced single
- * mode). */
+ * have been a surprise for no reason. Following `prefers-color-scheme` is a
+ * choice the person makes on the profile ("Système", lot 218), never the
+ * default. */
 const DEFAULT_THEME: Theme = 'dark'
 
-function readStoredTheme(): Theme {
+function readStoredPreference(): PreferenceTheme {
   if (typeof window === 'undefined') return DEFAULT_THEME
-  const stored = window.localStorage.getItem(STORAGE_KEY)
-  return stored === 'light' || stored === 'dark' ? stored : DEFAULT_THEME
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY)
+    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : DEFAULT_THEME
+  } catch {
+    return DEFAULT_THEME
+  }
+}
+
+function requeteSysteme(): MediaQueryList | null {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return null
+  return window.matchMedia('(prefers-color-scheme: light)')
+}
+
+/** "Système" reads the system now; without an answer, dark, like the default. */
+function resoudre(preference: PreferenceTheme): Theme {
+  if (preference !== 'system') return preference
+  return requeteSysteme()?.matches ? 'light' : 'dark'
 }
 
 /**
@@ -47,7 +70,8 @@ function appliquerAttribut(theme: Theme): void {
  * had just left. A single store, subscribed to by `useSyncExternalStore`,
  * makes each button a view of the same fact.
  */
-let themeCourant: Theme = readStoredTheme()
+let preferenceCourante: PreferenceTheme = readStoredPreference()
+let themeCourant: Theme = resoudre(preferenceCourante)
 const abonnes = new Set<() => void>()
 
 function souscrire(rappel: () => void): () => void {
@@ -59,19 +83,37 @@ function lireTheme(): Theme {
   return themeCourant
 }
 
-/** Applies the attribute before the first React render (see the synchronous
- * call in main.tsx) - avoids a flash default-theme then stored-theme at
- * load. `data-theme` only for "dark": light is the value the charter's CSS
- * sets on :root (iozykit/css/tokens.css), no need for an attribute for
- * it. index.html starts with the attribute; this call removes it for a
- * stored light choice. */
+function lirePreference(): PreferenceTheme {
+  return preferenceCourante
+}
+
+/** While the preference is "Système", a change of the system switches the page. */
+let ecouteSysteme: (() => void) | null = null
+function suivreLeSysteme(): void {
+  ecouteSysteme?.()
+  ecouteSysteme = null
+  const requete = requeteSysteme()
+  if (preferenceCourante !== 'system' || !requete || typeof requete.addEventListener !== 'function') return
+  const auChangement = () => basculer(resoudre('system'))
+  requete.addEventListener('change', auChangement)
+  ecouteSysteme = () => requete.removeEventListener('change', auChangement)
+}
+
+/** Applies the stored theme before the first React render (see the
+ * synchronous call in main.tsx) - avoids a flash default-theme then
+ * stored-theme at load. `data-theme` only for "dark": light is the value the
+ * charter's CSS sets on :root (iozykit/css/tokens.css), no need for an
+ * attribute for it. index.html starts with the attribute; this call removes it
+ * for a stored light choice. */
 export function applyStoredTheme(): void {
-  themeCourant = readStoredTheme()
+  preferenceCourante = readStoredPreference()
+  themeCourant = resoudre(preferenceCourante)
   appliquerAttribut(themeCourant)
+  suivreLeSysteme()
 }
 
 /**
- * Switches the theme, as a crossfade when the browser can.
+ * Switches the theme on screen, as a crossfade when the browser can.
  *
  * <p>Before, every surface switched in one frame while the body took 200 ms
  * - a mixed screen for the time of a blink. The View Transitions API
@@ -81,9 +123,8 @@ export function applyStoredTheme(): void {
  * motion preference is read here too: the CSS stops the fade, but starting
  * a transition for nothing would still delay the switch by a frame.
  */
-export function setTheme(theme: Theme): void {
+function basculer(theme: Theme): void {
   themeCourant = theme
-  window.localStorage.setItem(STORAGE_KEY, theme)
   const appliquer = () => {
     appliquerAttribut(theme)
     for (const rappel of abonnes) rappel()
@@ -98,15 +139,55 @@ export function setTheme(theme: Theme): void {
   }
 }
 
+const VERS_COMPTE: Record<PreferenceTheme, ApparenceCompte> = { system: 'SYSTEM', dark: 'DARK', light: 'LIGHT' }
+const DEPUIS_COMPTE: Record<ApparenceCompte, PreferenceTheme> = { SYSTEM: 'system', DARK: 'dark', LIGHT: 'light' }
+
+/**
+ * Sets the preference: stored on this device, applied at once, and - unless
+ * it comes from the account itself - announced so the shell saves it on the
+ * account (see lib/preferencesCompte).
+ */
+export function setThemePreference(preference: PreferenceTheme, { annoncer = true } = {}): void {
+  const changement = preference !== preferenceCourante
+  preferenceCourante = preference
+  try {
+    window.localStorage.setItem(STORAGE_KEY, preference)
+  } catch {
+    // A browser that refuses storage still switches; it only forgets.
+  }
+  suivreLeSysteme()
+  const theme = resoudre(preference)
+  if (theme !== themeCourant) basculer(theme)
+  else for (const rappel of abonnes) rappel()
+  if (annoncer && changement) annoncerChoix({ appearance: VERS_COMPTE[preference] })
+}
+
+/** The account's appearance, written on the device without saving it back. */
+export function appliquerApparenceDuCompte(apparence: ApparenceCompte): void {
+  setThemePreference(DEPUIS_COMPTE[apparence], { annoncer: false })
+}
+
+/** An explicit theme, chosen by the person (the header button). */
+export function setTheme(theme: Theme): void {
+  setThemePreference(theme)
+}
+
 export function toggleTheme(): void {
   setTheme(themeCourant === 'dark' ? 'light' : 'dark')
 }
 
 /** The current theme, and the means to change it - from the header (see
- * BoutonTheme). One single source state (this module, localStorage and the
- * DOM attribute): the rest of the theme goes entirely through the CSS
- * tokens, not through conditional JS. */
-export function useTheme(): { theme: Theme; setTheme: (t: Theme) => void; toggleTheme: () => void } {
+ * BoutonTheme) and from the profile. One single source state (this module,
+ * localStorage and the DOM attribute): the rest of the theme goes entirely
+ * through the CSS tokens, not through conditional JS. */
+export function useTheme(): {
+  theme: Theme
+  preference: PreferenceTheme
+  setTheme: (t: Theme) => void
+  setPreference: (p: PreferenceTheme) => void
+  toggleTheme: () => void
+} {
   const theme = useSyncExternalStore(souscrire, lireTheme, () => DEFAULT_THEME)
-  return { theme, setTheme, toggleTheme }
+  const preference = useSyncExternalStore(souscrire, lirePreference, () => DEFAULT_THEME)
+  return { theme, preference, setTheme, setPreference: setThemePreference, toggleTheme }
 }
