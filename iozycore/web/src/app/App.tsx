@@ -73,6 +73,7 @@ const EditionsPage = page(() => import('@/pages/editions/EditionsPage'), 'Editio
 const EntityTypesPage = page(() => import('@/pages/entity-types/EntityTypesPage'), 'EntityTypesPage')
 const ImportPage = page(() => import('@/pages/profile/import/ImportPage'), 'ImportPage')
 const SharedSpacePage = page(() => import('@/pages/share/SharedSpacePage'), 'SharedSpacePage')
+const SharePage = page(() => import('@/pages/share/SharePage'), 'SharePage')
 
 /**
  * EntityTypeFormPage takes a prop: `lazy` returns a component, not an
@@ -234,6 +235,8 @@ export default function App() {
                   <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
                   <Route path="/purchase-analysis/history" element={<AnalysisHistoryPage />} />
                   <Route path="/purchase-analysis/history/:id" element={<AnalysisHistoryDetailPage />} />
+                  {/* "Partager" (lot 217): the link, its preview, the gift list and the image. */}
+                  <Route path="/share" element={<SharePage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/import-bgg" element={<ImportBggPage />} />
                   <Route path="/administration" element={<AdministrationPage />} />

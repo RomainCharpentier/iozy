@@ -63,6 +63,8 @@ const RESERVEES_AUX_COMPTES = [
   '/wishlist',
   // What to buy, this month's spending and the budget (batch 216).
   '/to-buy',
+  // Sharing one's own collection (lot 217): a visit has none.
+  '/share',
 ]
 
 /**

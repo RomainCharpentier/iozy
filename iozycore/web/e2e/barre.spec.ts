@@ -21,10 +21,11 @@ test('the top bar leads to each intention, and the search lands on the catalog',
   await expect(page).toHaveURL(/\/releases$/)
   await expect(nav.getByRole('link', { name: 'Sorties' })).toHaveAttribute('aria-current', 'page')
 
-  // --- "Partager" opens the sharing, where the share link is managed today
+  // --- "Partager" opens its own page (lot 217)
   await nav.getByRole('link', { name: 'Partager' }).click()
-  await expect(page).toHaveURL(/\/profile$/)
-  await expect(page.getByRole('heading', { name: 'Mon profil' })).toBeVisible()
+  await expect(page).toHaveURL(/\/share$/)
+  await expect(page.getByRole('heading', { name: 'Ta page publique' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Partager' })).toHaveAttribute('aria-current', 'page')
 
   // --- The search sends its text to the catalog
   const champ = page.getByRole('searchbox', { name: 'Chercher ou ajouter' }).first()

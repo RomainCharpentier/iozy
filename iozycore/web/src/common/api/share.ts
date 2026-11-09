@@ -1,5 +1,5 @@
-import { del, get, patch, post } from './client'
-import type { ShareDto, SharedSpaceDto } from '@/common/types/share'
+import { del, get, patch, post, put } from './client'
+import type { ShareDto, SharedSpaceDto, SharedValueDto } from '@/common/types/share'
 
 /**
  * Space sharing: ONE link, whose visible sections you choose.
@@ -41,4 +41,35 @@ export function removeShare(): Promise<void> {
  * backend never tells the two apart). */
 export function getSharedSpace(token: string): Promise<SharedSpaceDto> {
   return get<SharedSpaceDto>(`/public/share/${token}`)
+}
+
+// --- The "Partager" page (lot 217) ---
+
+/** The public page as visitors see it, from the current choices (also before a link exists). */
+export function getSharePreview(): Promise<SharedSpaceDto> {
+  return get<SharedSpaceDto>('/share/preview')
+}
+
+/** The gift list page as visitors see it: the wishes only. */
+export function getGiftPreview(): Promise<SharedSpaceDto> {
+  return get<SharedSpaceDto>('/share/gift/preview')
+}
+
+/** The value of the collection when enough prices back it; null (204) when they do not. */
+export async function getShareValue(): Promise<SharedValueDto | null> {
+  return (await get<SharedValueDto | undefined>('/share/value')) ?? null
+}
+
+/** Replaces "Mes 4 incontournables", in order. 400 for a fifth, a duplicate or a work not owned. */
+export function setPinnedWorks(entityIds: string[]): Promise<ShareDto> {
+  return put<ShareDto>('/share/pins', { entityIds })
+}
+
+/** Creates the gift list link, or renews it for 30 days (same token). */
+export function issueGiftLink(): Promise<ShareDto> {
+  return post<ShareDto>('/share/gift')
+}
+
+export function removeGiftLink(): Promise<void> {
+  return del('/share/gift')
 }

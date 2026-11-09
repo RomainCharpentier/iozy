@@ -390,13 +390,13 @@ export function ShelfPage() {
             </button>
             {/* Shortcut to the common sharing, not a second mechanism:
                 collection and wishes are shared by the SAME link, and this
-                shortcut therefore leads to the same settings as from Profil or
-                Envies. Entering from here does not create one more token. */}
+                shortcut leads to the "Partager" page (lot 217), like the bar.
+                Entering from here does not create one more token. */}
             <button
               type="button"
               onClick={() => {
                 setHubMenuOpen(false)
-                navigate('/profile', { state: { focusPartage: true } })
+                navigate('/share')
               }}
               className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover"
             >

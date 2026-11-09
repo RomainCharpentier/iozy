@@ -42,6 +42,10 @@ export const queryKeys = {
   // collection and wishes are two sections of it, not two links.
   share: ['share'] as const,
   sharedSpace: (token: string) => ['share', 'shared', token] as const,
+  /** The "Partager" page (lot 217): the previews and the value for the image, under 'share'. */
+  sharePreview: ['share', 'preview'] as const,
+  giftPreview: ['share', 'gift', 'preview'] as const,
+  shareValue: ['share', 'value'] as const,
   insights: {
     stats: ['insights', 'stats'] as const,
     discover: (entityTypeCode: string) => ['insights', 'discover', entityTypeCode] as const,

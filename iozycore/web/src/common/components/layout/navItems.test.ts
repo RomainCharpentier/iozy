@@ -20,6 +20,7 @@ const ROUTES: [chemin: string, destination: string][] = [
   ['/purchase-analysis', 'acheter'],
   ['/purchase-analysis/history', 'acheter'],
   ['/purchase-analysis/history/42', 'acheter'],
+  ['/share', 'partager'],
 ]
 
 function allumees(pathname: string): string[] {
@@ -55,10 +56,9 @@ describe('the list itself', () => {
     expect(iozytest?.to).toBeUndefined()
   })
 
-  it('opens the sharing where the share link is managed today', () => {
+  it('opens the "Partager" page (lot 217)', () => {
     const partager = NAV_ITEMS.find((item) => item.cle === 'partager')
-    expect(partager?.to).toBe('/profile')
-    expect(partager?.state).toEqual({ focusPartage: true })
+    expect(partager?.to).toBe('/share')
   })
 
   it('gives each entry a short label that fits in the thumb bar', () => {

@@ -63,14 +63,12 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     cle: 'partager',
-    to: '/profile',
-    state: { focusPartage: true },
+    // Its own page since lot 217.
+    to: '/share',
     label: 'Partager',
     labelCourt: 'Partager',
     icon: Share2,
-    // The profile itself is lit by the avatar: lighting "Partager" there too
-    // would name two places for one screen.
-    activeWhen: () => false,
+    activeWhen: (p) => p === '/share' || p.startsWith('/share/'),
   },
   {
     cle: 'iozytest',
