@@ -12,8 +12,9 @@ import { NAV_ITEMS, destinationsPour } from './navItems'
 /** The real routes, with the destination that must light up on each. */
 const ROUTES: [chemin: string, destination: string][] = [
   ['/', 'accueil'],
-  ['/entity/berserk', 'accueil'],
-  ['/collection/type-manga', 'accueil'],
+  ['/collection', 'collection'],
+  ['/entity/berserk', 'collection'],
+  ['/collection/type-manga', 'collection'],
   ['/releases', 'sorties'],
   ['/to-buy', 'acheter'],
   ['/to-buy/analyse', 'acheter'],
@@ -45,8 +46,8 @@ describe('the navigation highlighting', () => {
 })
 
 describe('the list itself', () => {
-  it('carries the five intentions of the site, in their order', () => {
-    expect(NAV_ITEMS.map((item) => item.label)).toEqual(['Accueil', 'Sorties', 'À acheter', 'Partager', 'IozyTest'])
+  it('carries the destinations of the site, in their order', () => {
+    expect(NAV_ITEMS.map((item) => item.label)).toEqual(['Accueil', 'Collection', 'Sorties', 'À acheter', 'Partager', 'IozyTest'])
   })
 
   it('leads to IozyTest by a plain address, outside the router of this app', () => {
@@ -74,6 +75,6 @@ describe('the navigation of a visitor', () => {
   })
 
   it('keeps everything for an account', () => {
-    expect(destinationsPour(false)).toHaveLength(5)
+    expect(destinationsPour(false)).toHaveLength(6)
   })
 })

@@ -1,4 +1,4 @@
-import { CalendarDays, Gamepad2, House, Share2, ShoppingBag, type LucideIcon } from 'lucide-react'
+import { CalendarDays, Gamepad2, House, Library, Share2, ShoppingBag, type LucideIcon } from 'lucide-react'
 import { estReserveeAuxComptes } from '@/common/lib/accesInvite'
 
 export interface NavItem {
@@ -41,7 +41,15 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Accueil',
     labelCourt: 'Accueil',
     icon: House,
-    activeWhen: (p) => p === '/' || p === '/collection' || p.startsWith('/entity/') || p.startsWith('/collection/'),
+    activeWhen: (p) => p === '/',
+  },
+  {
+    cle: 'collection',
+    to: '/collection',
+    label: 'Collection',
+    labelCourt: 'Collection',
+    icon: Library,
+    activeWhen: (p) => p === '/collection' || p.startsWith('/collection/') || p.startsWith('/entity/'),
   },
   {
     cle: 'sorties',
