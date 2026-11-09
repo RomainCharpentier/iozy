@@ -39,12 +39,13 @@ import java.util.regex.Pattern;
  * @param pseudo       the only name under which a person appears. Unique
  *                     (see migration V27), required, and never
  *                     the e-mail address: it is used to log in, not to
- *                     be shown. <b>Set at sign-up</b> and never
- *                     changed - a product decision, not a feature
- *                     put off for later: a pseudo that can be taken over
- *                     designates someone else tomorrow, and no surface that
- *                     displayed it will know. No route writes it after
- *                     {@code POST /api/auth/register}
+ *                     be shown. Set at sign-up, and changed by its owner
+ *                     only, from the common profile (lot 218, the owner's
+ *                     request: one profile for both apps). The rules are the
+ *                     sign-up ones (see {@link #withPseudo}). No IozyCore
+ *                     data stores a pseudo to designate someone (rows carry
+ *                     the account id), so a pseudo given up and taken by
+ *                     another account points to nothing old
  */
 public record AppUser(UUID id, String email, String passwordHash, String pseudo, boolean admin,
                        Instant createdAt) {
@@ -70,6 +71,10 @@ public record AppUser(UUID id, String email, String passwordHash, String pseudo,
      * people would be told apart by a pattern that nobody can read
      * out loud.
      */
+    /** The sentence that explains the form of a pseudo, at sign-up and on the profile. */
+    public static final String PSEUDO_RULE = "Le pseudo doit faire 3 à 24 caractères, sans espace ni arobase, "
+            + "et commencer par une lettre ou un chiffre.";
+
     private static final Pattern FORME_DE_PSEUDO =
             Pattern.compile("^[\\p{L}\\p{N}][\\p{L}\\p{N}._-]{2,23}$", Pattern.UNICODE_CHARACTER_CLASS);
 
@@ -138,5 +143,18 @@ public record AppUser(UUID id, String email, String passwordHash, String pseudo,
 
     public static AppUser nouveau(String email, String passwordHash, String pseudo) {
         return new AppUser(UUID.randomUUID(), email, passwordHash, pseudo, false, Instant.now());
+    }
+
+    /**
+     * The same account under another pseudo. The form is checked here; the
+     * uniqueness, which needs the other accounts, by the caller.
+     *
+     * @throws IllegalArgumentException the pseudo does not have a valid form
+     */
+    public AppUser withPseudo(String newPseudo) {
+        if (!estUnPseudoValide(newPseudo)) {
+            throw new IllegalArgumentException(PSEUDO_RULE);
+        }
+        return new AppUser(id, email, passwordHash, newPseudo.trim(), admin, createdAt);
     }
 }

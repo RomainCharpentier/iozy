@@ -15,6 +15,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -211,6 +212,39 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
         mockMvc.perform(post("/api/auth/register").with(csrf()).contentType("application/json")
                         .content(json(Map.of("email", "second@example.com", "motDePasse", "un-mot-de-passe",
                                 "pseudo", "Second"))))
+                .andExpect(status().isForbidden());
+    }
+
+    // ------------------------------------------------------- The profile
+
+    @Test
+    void nobody_changes_a_profile_without_a_session() throws Exception {
+        mockMvc.perform(patch("/api/auth/me").with(csrf()).contentType("application/json")
+                        .content(json(Map.of("pseudo", "Anonyme"))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void a_new_pseudo_is_the_one_the_session_says_from_then_on() throws Exception {
+        MockHttpSession session = connecter();
+
+        mockMvc.perform(patch("/api/auth/me").session(session).with(csrf()).contentType("application/json")
+                        .content(json(Map.of("pseudo", "Renomme"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pseudo").value("Renomme"));
+
+        mockMvc.perform(get("/api/auth/me").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pseudo").value("Renomme"))
+                .andExpect(jsonPath("$.email").value("connecte@example.com"));
+    }
+
+    @Test
+    void a_profile_change_without_the_csrf_token_is_refused() throws Exception {
+        MockHttpSession session = connecter();
+
+        mockMvc.perform(patch("/api/auth/me").session(session).contentType("application/json")
+                        .content(json(Map.of("pseudo", "Force"))))
                 .andExpect(status().isForbidden());
     }
 
