@@ -19,6 +19,8 @@ import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.core.domain.work.CollectorStatus;
 import com.iozycore.core.domain.purchase.MonthlyBudget;
 import com.iozycore.core.domain.purchase.MonthlyBudgetRepository;
+import com.iozycore.core.domain.user.AccountPreferences;
+import com.iozycore.core.domain.user.AccountPreferencesRepository;
 import com.iozycore.core.domain.work.WorkCollectorStatus;
 import com.iozycore.core.domain.work.WorkCollectorStatusRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -72,6 +74,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     @Autowired private FollowedWorkRepository suivies;
     @Autowired private WorkCollectorStatusRepository statuts;
     @Autowired private MonthlyBudgetRepository budgets;
+    @Autowired private AccountPreferencesRepository preferences;
     @Autowired private JdbcTemplate jdbc;
 
     private final List<UUID> oeuvresCreees = new ArrayList<>();
@@ -143,7 +146,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void the_followed_works_the_collector_statuses_and_the_budget_go_with_the_account() {
+    void the_followed_works_the_collector_statuses_the_budget_and_the_preferences_go_with_the_account() {
         AppUser bob = compte("bob");
         Entity serie = catalogue.save(Entity.create(EntityTypeFixtures.MANGA.id(), "Dorohedoro " + UUID.randomUUID()));
         oeuvresCreees.add(serie.id());
@@ -152,6 +155,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         suivies.save(FollowedWork.follow(serie.id(), LocalDate.now()));
         statuts.save(WorkCollectorStatus.create(serie.id(), CollectorStatus.PAUSED, Instant.now()));
         budgets.save(MonthlyBudget.create(new BigDecimal("150"), Instant.now()));
+        preferences.save(new AccountPreferences(AccountPreferences.Accent.TERRACOTTA, null, null, null));
 
         connecte(DefaultOwner.ID);
         gestion.supprimer(bob.id(), DefaultOwner.ID);
@@ -159,6 +163,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         assertThat(lignesDe("followed_work", bob.id())).isZero();
         assertThat(lignesDe("work_collector_status", bob.id())).isZero();
         assertThat(lignesDe("purchase_budget", bob.id())).isZero();
+        assertThat(lignesDe("account_preferences", bob.id())).isZero();
     }
 
     @Test

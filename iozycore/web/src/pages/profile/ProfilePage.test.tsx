@@ -1,18 +1,13 @@
 /**
- * <b>What Profil is no longer.</b>
+ * <b>The common profile: the person first, one panel, nothing borrowed.</b>
  *
- * <p>This screen long served as a list of shortcuts: it carried "Analyser
- * une annonce" (already one of the four destinations of the navigation bar),
- * "Bilan annuel" (a reading, not a setting), the Compte section (of which the
- * sign-out and the export lived elsewhere), then the links to Paramètres and
- * Administration. Each one made the screen a little less readable, without ever
- * breaking anything.
- *
- * <p>It is no longer a <b>corridor</b>: the administration has its own button
- * in the header (see GlobalShortcuts), and the settings are ON this screen
- * (batch 140) - no longer behind a "Paramètres" link. The rest concerns THIS
- * collection: its value, its rankings, its sharing.
+ * <p>Lot 218 makes this screen the profile of both apps: the pseudo, very
+ * large, then one panel of settings that follow the account. It is still not
+ * a <b>corridor</b>: no "Paramètres" link, no listing analysis, no yearly
+ * review. The administration of the instance comes back only as a discreet
+ * link, and only for the account that can use it.
  */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -21,67 +16,81 @@ import { ProfilePage } from './ProfilePage'
 
 const auth = vi.hoisted(() => ({ useAuth: vi.fn() }))
 vi.mock('@/common/hooks/useAuth', () => auth)
+vi.mock('@/common/api/home', () => ({ fetchHomeWeek: vi.fn(() => new Promise(() => {})) }))
 
 // Three live sections of this screen, each with its own queries:
-// this test is about the NAVIGATION, not about what they display.
+// this test is about what the profile carries, not about what they display.
 vi.mock('./ProfileValueHero', () => ({ ProfileValueHero: () => null }))
 vi.mock('./ProfileTierListsSection', () => ({ ProfileTierListsSection: () => null }))
 vi.mock('./ShareSection', () => ({ ShareSection: () => null }))
 
 function enrobage({ children }: { children: ReactNode }) {
-  return <MemoryRouter>{children}</MemoryRouter>
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  )
+}
+
+function afficher(admin: boolean) {
+  auth.useAuth.mockReturnValue({
+    compte: { id: 'u1', email: 'moi@example.com', pseudo: 'romain', admin, invite: false, preferences: null },
+  })
+  render(<ProfilePage />, { wrapper: enrobage })
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  auth.useAuth.mockReturnValue({ compte: { id: 'u1', email: 'moi@example.com', pseudo: 'romain', admin: true } })
-  render(<ProfilePage />, { wrapper: enrobage })
-})
-
-describe('the settings, on the page itself', () => {
-  it('carries "Mon compte" and "Cet appareil" in the open, without a Paramètres link', () => {
-    // "No sub-menu, it must be readable directly" (batch 140): what
-    // speaks of the same person does not open a second screen.
-    expect(screen.getByRole('region', { name: 'Mon compte' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Cet appareil' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Paramètres/ })).not.toBeInTheDocument()
-  })
-
-  it('no longer offers "Demander à ma collection"', () => {
-    // Batch 117, removed in batch 140: "ne sert à rien".
-    expect(screen.queryByRole('link', { name: /Demander à ma collection/ })).not.toBeInTheDocument()
-  })
-})
-
-describe('what Profil does not duplicate', () => {
-
-  it('does not put the administration back behind the profile', () => {
-    // It was already stored there, as under Paramètres and in a menu of
-    // the avatar. It now has its button in the header, and putting it back
-    // here would be the fourth time.
-    expect(screen.queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
-  })
-
-  it('does not lead to the analysis of a listing, which has its doors elsewhere', () => {
-    // It was one of the four global tabs; since batch 137 it is reached
-    // from Découvrir and from the detail page of a series. The profile
-    // has no more reason to duplicate it than before.
-    expect(screen.queryByRole('link', { name: /Analyser une annonce/ })).not.toBeInTheDocument()
-  })
-
-  it('no longer carries the yearly review, which is a reading', () => {
-    expect(screen.queryByRole('link', { name: /Bilan annuel/ })).not.toBeInTheDocument()
-  })
+  localStorage.clear()
 })
 
 describe('the identity', () => {
-  it('says whose profile it is, and the account reads below', () => {
-    // The username as subtitle: a screen called "Mon profil" must
-    // name the person. It says it again in "Mon compte", with the address -
-    // on this page since batch 140. The sign-out, for its part, stays in
-    // the header: the same button on all the screens.
-    expect(screen.getAllByText('romain')).toHaveLength(2)
+  it('names the person in large, and says the profile is the same for IozyTest', () => {
+    afficher(false)
+
+    expect(screen.getByRole('heading', { level: 1, name: 'romain' })).toBeInTheDocument()
+    expect(screen.getByText('Un seul profil pour ta collection et pour IozyTest')).toBeInTheDocument()
+    // The address signs in; it is read in the panel, never as a name.
     expect(screen.getByText('moi@example.com')).toBeInTheDocument()
+  })
+})
+
+describe('the settings, on the page itself', () => {
+  it('are one panel, without a Paramètres link', () => {
+    afficher(false)
+
+    expect(screen.getByRole('region', { name: 'Mon compte' })).toBeInTheDocument()
+    for (const ligne of ['Pseudo', 'Couleur', 'Apparence', 'Titres des mangas', 'Son du blindtest', 'Mes données']) {
+      expect(screen.getByRole('heading', { name: ligne })).toBeInTheDocument()
+    }
+    expect(screen.queryByRole('link', { name: /Paramètres/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('what the profile does not duplicate', () => {
+  it('leads neither to the listing analysis, nor to the yearly review, nor to "Demander à ma collection"', () => {
+    afficher(true)
+
+    expect(screen.queryByRole('link', { name: /Analyser une annonce/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Bilan annuel/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Demander à ma collection/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Se déconnecter/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('the administration of the instance', () => {
+  it('is a discreet link for an administrator', () => {
+    afficher(true)
+
+    expect(screen.getByRole('link', { name: 'Administration de l’instance' })).toHaveAttribute(
+      'href',
+      '/administration',
+    )
+  })
+
+  it('is not offered to an account that cannot use it', () => {
+    afficher(false)
+
+    expect(screen.queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
   })
 })

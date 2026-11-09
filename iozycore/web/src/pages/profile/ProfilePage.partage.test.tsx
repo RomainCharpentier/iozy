@@ -9,6 +9,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { ProfilePage } from './ProfilePage'
 
 const auth = vi.hoisted(() => ({ useAuth: vi.fn() }))
@@ -17,6 +19,12 @@ vi.mock('@/common/hooks/useAuth', () => auth)
 vi.mock('./ProfileValueHero', () => ({ ProfileValueHero: () => null }))
 vi.mock('./ProfileTierListsSection', () => ({ ProfileTierListsSection: () => null }))
 vi.mock('./ShareSection', () => ({ ShareSection: () => null }))
+vi.mock('./Reglages', () => ({ Reglages: () => null }))
+vi.mock('@/common/api/home', () => ({ fetchHomeWeek: vi.fn(() => new Promise(() => {})) }))
+
+function requetes({ children }: { children: ReactNode }) {
+  return <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>
+}
 
 function BoutonPartager() {
   const navigate = useNavigate()
@@ -44,6 +52,7 @@ describe('the share shortcut', () => {
           <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </MemoryRouter>,
+      { wrapper: requetes },
     )
     expect(scrollIntoView).not.toHaveBeenCalled()
 
@@ -60,6 +69,7 @@ describe('the share shortcut', () => {
           <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </MemoryRouter>,
+      { wrapper: requetes },
     )
 
     expect(scrollIntoView).toHaveBeenCalledTimes(1)

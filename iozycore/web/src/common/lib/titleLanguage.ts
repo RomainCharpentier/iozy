@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { MetadataCandidateDto } from '@/common/types/api'
+import { annoncerChoix } from './preferencesCompte'
 
 /**
  * Free composition of the displayed/saved title for the Jikan/MyAnimeList
- * candidates (manga) - persisted locally (no backend: a display setting
- * specific to this device, consistent with the single-user design without
- * accounts of the app).
+ * candidates (manga) - persisted locally, and on the account since lot 218
+ * (see lib/preferencesCompte): the local copy applies at once and stays the
+ * fallback without an account.
  *
  * A TitleComposition is an ORDERED list of the 3 languages (always the 3,
  * in the order chosen through drag and drop in Settings), each one
@@ -63,8 +64,16 @@ export function getTitleComposition(): TitleComposition {
   }
 }
 
-export function setTitleComposition(composition: TitleComposition): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(composition))
+/**
+ * Stores the composition on this device and tells the other readers. A choice
+ * of the person is also announced, so the shell saves it on the account (lot
+ * 218); the account's own value is written with `annoncer: false`.
+ */
+export function setTitleComposition(composition: TitleComposition, { annoncer = true } = {}): void {
+  const avant = localStorage.getItem(STORAGE_KEY)
+  const valeur = JSON.stringify(composition)
+  localStorage.setItem(STORAGE_KEY, valeur)
+  if (annoncer && avant !== valeur) annoncerChoix({ titleComposition: composition })
   // Only one tab at a time in practice for this app, but still notify the
   // other instances of useTitleComposition in the same page
   // (the Settings component and QuickAddPage, for example).

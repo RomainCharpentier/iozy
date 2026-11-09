@@ -1,4 +1,4 @@
-import { get, post } from './client'
+import { get, patch, post } from './client'
 
 /**
  * Sign in, sign out, know who you are.
@@ -37,6 +37,33 @@ export interface Compte {
    * is refused (403).
    */
   invite: boolean
+  /**
+   * What the account chose for both apps (lot 218). Given by `GET` and
+   * `PATCH /auth/me` only: absent from the sign-in answers and for a visit
+   * ("not said here"). A null field inside means "never chosen on the
+   * account": the device keeps its own setting.
+   */
+  preferences?: PreferencesCompte | null
+}
+
+/** The accent: the colors of the cover on screen, or the brand terracotta. */
+export type AccentCompte = 'AUTO' | 'TERRACOTTA'
+export type ApparenceCompte = 'SYSTEM' | 'DARK' | 'LIGHT'
+export type LangueTitreCompte = 'FRENCH' | 'ENGLISH' | 'ROMAJI'
+
+export interface PreferencesCompte {
+  accent: AccentCompte | null
+  appearance: ApparenceCompte | null
+  /** The three title languages, in order, each on or off. */
+  titleComposition: { language: LangueTitreCompte; enabled: boolean }[] | null
+  /** The IozyTest sound effects: on or off, and the volume from 0 to 100. */
+  blindtestSound: { enabled: boolean; volume: number } | null
+}
+
+/** A change of the profile: only the fields named change. */
+export interface ModificationCompte {
+  pseudo?: string
+  preferences?: Partial<PreferencesCompte>
 }
 
 export function lireEtatAuth(): Promise<EtatAuth> {
@@ -71,4 +98,12 @@ export function seDeconnecter(): Promise<void> {
  */
 export function entrerEnVisite(): Promise<Compte> {
   return post<Compte>('/auth/visite')
+}
+
+/**
+ * Changes the pseudo and/or the preferences of the signed-in account (lot
+ * 218). A bad or taken pseudo is refused with its reason (400).
+ */
+export function modifierCompte(modification: ModificationCompte): Promise<Compte> {
+  return patch<Compte>('/auth/me', modification)
 }

@@ -83,8 +83,7 @@ public class AuthService {
         }
         String nom = pseudo == null ? "" : pseudo.trim();
         if (!AppUser.estUnPseudoValide(nom)) {
-            throw new CreationRefusee("Le pseudo doit faire 3 à 24 caractères, sans espace ni arobase, "
-                    + "et commencer par une lettre ou un chiffre.");
+            throw new CreationRefusee(AppUser.PSEUDO_RULE);
         }
 
         boolean premier = comptes.isEmpty();

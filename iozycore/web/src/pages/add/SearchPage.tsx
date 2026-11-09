@@ -712,9 +712,8 @@ function SearchPageContenu() {
                 it says what we are going to set there. */}
             <Link
               to="/profile"
-              // The setting lives in "Cet appareil", at the bottom of Profil (batch
-              // 140): we go there directly, not to the top of a page to
-              // scroll.
+              // The setting is a row of the profile panel (lot 218): the
+              // profile opens it and scrolls to it, not to the top of a page.
               state={{ focusAppareil: true }}
               className="flex min-h-11 items-center gap-1.5 text-xs font-semibold text-accentText"
             >
