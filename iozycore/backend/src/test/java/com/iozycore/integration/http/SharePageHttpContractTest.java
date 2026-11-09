@@ -3,7 +3,9 @@ package com.iozycore.integration.http;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iozycore.core.application.CatalogEntityResolver;
 import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.catalog.Variant;
 import com.iozycore.core.domain.ownership.Ownership;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
@@ -12,10 +14,14 @@ import com.iozycore.core.domain.share.ShareSettingsRepository;
 import com.iozycore.core.domain.shared.DefaultOwner;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.manga.domain.EditionTier;
+import com.iozycore.manga.domain.MangaEdition;
+import com.iozycore.manga.domain.MangaEditionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
@@ -43,6 +49,8 @@ class SharePageHttpContractTest extends HttpContractTestBase {
     @Autowired private OwnershipRepository ownershipRepository;
     @Autowired private WishlistEntryRepository wishlistEntryRepository;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private EntityRepository entityRepository;
+    @Autowired private MangaEditionRepository mangaEditionRepository;
 
     private Entity work(String title) {
         return catalogEntityResolver.resolveOrCreate(EntityTypeFixtures.MANGA.id(),
@@ -124,6 +132,52 @@ class SharePageHttpContractTest extends HttpContractTestBase {
     }
 
     @Test
+    void a_pin_no_longer_owned_does_not_block_the_next_change() throws Exception {
+        Entity sold = owned("Ashita no Joe");
+        Entity kept = owned("Dragon Head");
+        Entity added = owned("Ping Pong");
+        mockMvc.perform(put("/api/share/pins").contentType("application/json")
+                .content("{\"entityIds\":[\"" + sold.id() + "\",\"" + kept.id() + "\"]}"))
+                .andExpect(status().isOk());
+        Ownership ownership = ownershipRepository.findAll().stream()
+                .filter(o -> o.entityId().equals(sold.id())).findFirst().orElseThrow();
+        ownership.markSold();
+        ownershipRepository.save(ownership);
+
+        // The owner no longer sees the sold work among the pins.
+        mockMvc.perform(get("/api/share"))
+                .andExpect(jsonPath("$.pinnedWorkIds.length()").value(1))
+                .andExpect(jsonPath("$.pinnedWorkIds[0]").value(kept.id().toString()));
+        // A client that still sends it is not blocked: the old pin is dropped.
+        mockMvc.perform(put("/api/share/pins").contentType("application/json")
+                        .content("{\"entityIds\":[\"" + sold.id() + "\",\"" + kept.id() + "\",\""
+                                + added.id() + "\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pinnedWorkIds.length()").value(2))
+                .andExpect(jsonPath("$.pinnedWorkIds[1]").value(added.id().toString()));
+    }
+
+    @Test
+    void four_visible_pins_plus_one_no_longer_owned_still_save() throws Exception {
+        Entity sold = owned("Kaiji");
+        mockMvc.perform(put("/api/share/pins").contentType("application/json")
+                .content("{\"entityIds\":[\"" + sold.id() + "\"]}")).andExpect(status().isOk());
+        Ownership ownership = ownershipRepository.findAll().stream()
+                .filter(o -> o.entityId().equals(sold.id())).findFirst().orElseThrow();
+        ownership.markSold();
+        ownershipRepository.save(ownership);
+
+        StringBuilder ids = new StringBuilder("\"" + sold.id() + "\"");
+        for (int i = 0; i < 4; i++) {
+            ids.append(",\"").append(owned("Gantz " + i).id()).append('"');
+        }
+        mockMvc.perform(put("/api/share/pins").contentType("application/json")
+                        .content("{\"entityIds\":[" + ids + "]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pinnedWorkIds.length()").value(4));
+    }
+
+    @Test
     void a_fifth_pinned_work_is_refused() throws Exception {
         StringBuilder ids = new StringBuilder();
         for (int i = 0; i < 5; i++) {
@@ -164,6 +218,40 @@ class SharePageHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.value").value(nullValue()));
         mockMvc.perform(get("/api/share/value")).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void the_value_comes_out_once_enough_prices_back_it_and_it_is_turned_on() throws Exception {
+        // Six owned volumes, all with a new price: above both thresholds.
+        for (int s = 0; s < 2; s++) {
+            String title = "Valeur " + UUID.randomUUID();
+            mangaEditionRepository.save(MangaEdition.create(title, "Standard", EditionTier.STANDARD, "Éditeur",
+                    10, new BigDecimal("7.90"), false, false, null));
+            Entity series = Entity.create(EntityTypeFixtures.MANGA.id(), title);
+            for (int tome = 1; tome <= 3; tome++) {
+                series.addVariant("Tome " + tome, Map.of("volumeNumber", tome, "edition", "Standard"));
+            }
+            entityRepository.save(series);
+            for (Variant variant : series.variants()) {
+                ownershipRepository.save(Ownership.acquire(series.id(), variant.id(),
+                        OwnershipCondition.NEW, LocalDate.now(), null));
+            }
+        }
+        String token = shareLink();
+
+        mockMvc.perform(get("/api/share/value"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pricedCount").value(6))
+                .andExpect(jsonPath("$.totalKnownValue").value(47.4));
+        // Off by default on the public page, even above the threshold.
+        mockMvc.perform(get("/api/public/share/{token}", token))
+                .andExpect(jsonPath("$.value").value(nullValue()));
+        mockMvc.perform(patch("/api/share").contentType("application/json").content("{\"showValue\":true}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/public/share/{token}", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.value.pricedCount").value(6))
+                .andExpect(jsonPath("$.value.totalKnownValue").value(47.4));
     }
 
     @Test

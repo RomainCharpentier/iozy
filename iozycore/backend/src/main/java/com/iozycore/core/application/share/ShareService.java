@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -77,8 +78,25 @@ public class ShareService {
 
     // ------------------------------------------------------------ Pinned works
 
+    /**
+     * The pins whose work is still owned, in order. A work sold or given away
+     * after it was pinned stays in the table but is left out here, as on the
+     * public page: the owner cannot see it, so it must not count in the four.
+     */
     public PinnedWorks pinned() {
-        return pinnedWorksRepository.find();
+        List<UUID> ids = pinnedWorksRepository.find().entityIds();
+        if (ids.isEmpty()) {
+            return new PinnedWorks(List.of());
+        }
+        Set<UUID> owned = ownedAmong(ids);
+        return new PinnedWorks(ids.stream().filter(owned::contains).toList());
+    }
+
+    private Set<UUID> ownedAmong(List<UUID> ids) {
+        return workReadModel.works(new LinkedHashSet<>(ids)).stream()
+                .filter(view -> view.ownedCount() > 0)
+                .map(WorkView::entityId)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -86,23 +104,33 @@ public class ShareService {
      * today: the public page shows a collection, and pinning a wish would put it
      * in front of visitors of a collection-only link. A work of another account
      * is not owned by this one, so it is refused the same way.
+     * <p>
+     * A work that was already pinned and is no longer owned is dropped without
+     * an error: the owner cannot see it any more, so a client that still sends
+     * it must not be blocked from every change.
      *
-     * @throws IllegalArgumentException more than four, a duplicate, or a work not owned
+     * @throws IllegalArgumentException more than four, a duplicate, or a new work not owned
      */
     @Transactional
     public PinnedWorks pin(List<UUID> entityIds) {
-        PinnedWorks pinned = new PinnedWorks(entityIds == null ? List.of() : entityIds);
-        if (!pinned.entityIds().isEmpty()) {
-            Set<UUID> owned = workReadModel.works(new LinkedHashSet<>(pinned.entityIds())).stream()
-                    .filter(view -> view.ownedCount() > 0)
-                    .map(WorkView::entityId)
-                    .collect(Collectors.toSet());
-            if (!owned.containsAll(pinned.entityIds())) {
+        List<UUID> asked = entityIds == null ? List.of() : entityIds;
+        if (asked.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("Une œuvre épinglée doit être désignée");
+        }
+        List<UUID> kept = asked;
+        if (!asked.isEmpty()) {
+            Set<UUID> owned = ownedAmong(asked);
+            Set<UUID> before = Set.copyOf(pinnedWorksRepository.find().entityIds());
+            boolean newOneNotOwned = asked.stream()
+                    .anyMatch(id -> !owned.contains(id) && !before.contains(id));
+            if (newOneNotOwned) {
                 throw new IllegalArgumentException("Un incontournable doit faire partie de ta collection");
             }
+            // Old pins no longer owned leave before the count of four is checked.
+            kept = asked.stream().filter(owned::contains).toList();
         }
-        pinnedWorksRepository.replace(pinned);
-        return pinnedWorksRepository.find();
+        pinnedWorksRepository.replace(new PinnedWorks(kept));
+        return pinned();
     }
 
     // --------------------------------------------------------------- Gift list
