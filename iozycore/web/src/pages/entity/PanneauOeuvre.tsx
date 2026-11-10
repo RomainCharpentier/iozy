@@ -46,7 +46,7 @@ export function PanneauOeuvre({
       ) : (
         <div className="flex flex-wrap items-center gap-5">
           {totalConnu && <AnneauProgression possedes={work.ownedCount} total={work.totalCount!} />}
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="flex min-w-[min(100%,14rem)] flex-1 flex-col gap-1.5">
             <p className="font-display text-6xl leading-[0.9] font-bold tracking-[-0.04em] text-textPrimary md:text-7xl">
               {/* "1 / 6" is read "1 slash 6": the figures are for the eye, the phrase for the ear. */}
               <span aria-hidden="true">{totalConnu ? `${work.ownedCount} / ${work.totalCount}` : `${work.ownedCount}`}</span>

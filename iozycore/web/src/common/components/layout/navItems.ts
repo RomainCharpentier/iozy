@@ -63,7 +63,7 @@ export const NAV_ITEMS: NavItem[] = [
     cle: 'acheter',
     to: '/to-buy',
     label: 'À acheter',
-    labelCourt: 'À acheter',
+    labelCourt: 'Achats',
     icon: ShoppingBag,
     // The listing analysis opens in a side panel of the page, and keeps its
     // own address too: both are "to buy".

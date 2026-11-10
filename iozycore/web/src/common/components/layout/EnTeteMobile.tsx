@@ -1,3 +1,4 @@
+import { Gamepad2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { GlobalShortcuts } from './GlobalShortcuts'
 
@@ -12,7 +13,10 @@ export function EnTeteMobile() {
       <Link to="/" className="iozy-verre iozy-barre__pilule iozy-barre__marque !mr-0 !px-5" aria-label="Iozy, accueil">
         Iozy
       </Link>
-      <div className="ml-auto">
+      <a href="/test/" aria-label="IozyTest" className="iozy-verre ml-auto flex h-11 w-11 items-center justify-center rounded-full text-textPrimary">
+        <Gamepad2 size={20} aria-hidden="true" />
+      </a>
+      <div>
         <GlobalShortcuts compact />
       </div>
     </header>

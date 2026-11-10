@@ -16,7 +16,9 @@ import { useModalA11y } from '@/common/hooks/useModalA11y'
 export function BarreOnglets() {
   const { pathname } = useLocation()
   const { estInvite } = useAuth()
-  const destinations = destinationsPour(estInvite)
+  // IozyTest, the other app, has its button in the top of the screen on a phone:
+  // six tabs fit the thumb, seven do not.
+  const destinations = destinationsPour(estInvite).filter((item) => item.cle !== 'iozytest')
   const [recherche, setRecherche] = useState(false)
   const feuille = useModalA11y<HTMLDivElement>(recherche, () => setRecherche(false))
 

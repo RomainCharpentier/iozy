@@ -597,12 +597,17 @@ html:active-view-transition * {
   scroll-margin-top: 124px;
   margin-bottom: 18px;
   padding: 18px var(--marge-salle) 6px;
-  border-radius: 18px;
+  border-radius: 24px;
+  /* Une salle est une vitre teintée de la couleur de sa catégorie : le champ de
+     couleur de la jaquette passe derrière, au lieu d'être caché par un aplat. */
+  border: 1px solid var(--iozy-glass-line);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--u) 20%, var(--color-surface)) 0%,
-    color-mix(in srgb, var(--u) 4%, var(--color-background)) 360px
+    color-mix(in srgb, var(--u) 22%, var(--iozy-glass-surface-strong)) 0%,
+    color-mix(in srgb, var(--u) 6%, var(--iozy-glass-surface)) 360px
   );
+  backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
+  -webkit-backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
 }
 .salle-tete {
   display: flex;

@@ -1,4 +1,4 @@
-import { CalendarDays, Gamepad2, House, PenLine, Play, Share2, ShoppingBag, type LucideIcon } from 'lucide-react'
+import { CalendarDays, Gamepad2, House, Library, PenLine, Play, Share2, ShoppingBag, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   to: string
@@ -63,8 +63,9 @@ export interface SiteItem {
  */
 export const SITE_ITEMS: SiteItem[] = [
   { href: '/core/', label: 'Accueil', icon: House, pourComptes: true },
+  { href: '/core/collection', label: 'Collection', icon: Library, pourComptes: true },
   { href: '/core/releases', label: 'Sorties', icon: CalendarDays, pourComptes: false },
-  { href: '/core/purchase-analysis', label: 'À acheter', icon: ShoppingBag, pourComptes: true },
+  { href: '/core/to-buy', label: 'À acheter', icon: ShoppingBag, pourComptes: true },
   { href: '/core/profile#partage', label: 'Partager', icon: Share2, pourComptes: true },
 ]
 

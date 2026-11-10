@@ -55,6 +55,7 @@ export function GrilleElements({
   enCours: ReadonlySet<string>
 }) {
   const [armee, setArmee] = useState<string | null>(null)
+  const [toutVoir, setToutVoir] = useState(false)
 
   useEffect(() => {
     if (!armee) return
@@ -67,9 +68,16 @@ export function GrilleElements({
 
   const colonnes = colonnesPour(forme)
 
+  // Optional elements not owned (the hundred expansions a box can have, the
+  // games of a big licence) are a catalogue, not a to-do list: the first few
+  // show, the rest wait behind one button. What is owned or counted always shows.
+  const facultatifsAbsents = elements.filter((e) => e.optional && e.state !== 'OWNED')
+  const masques = toutVoir || facultatifsAbsents.length <= PREMIERS_FACULTATIFS ? new Set<string>() : new Set(facultatifsAbsents.slice(PREMIERS_FACULTATIFS).map((e) => e.key))
+  const visibles = elements.filter((e) => !masques.has(e.key))
+
   return (
     <ul className={`grid gap-2.5 ${colonnes}`} aria-label="Éléments de l’œuvre">
-      {elements.map((element) => {
+      {visibles.map((element) => {
         const visible = element.number !== null ? String(element.number) : element.label
         const jaquette = element.coverImageUrl ?? jaquetteOeuvre
         const tuile = (
@@ -173,9 +181,19 @@ export function GrilleElements({
           </li>
         )
       })}
+      {(masques.size > 0 || (toutVoir && facultatifsAbsents.length > PREMIERS_FACULTATIFS)) && (
+        <li className="col-span-full">
+          <button type="button" className="btn-secondaire" aria-expanded={toutVoir} onClick={() => setToutVoir(!toutVoir)}>
+            {toutVoir ? 'Réduire la liste' : `Voir les ${masques.size} autres`}
+          </button>
+        </li>
+      )}
     </ul>
   )
 }
+
+/** How many optional elements not owned show before the "see the others" button. */
+const PREMIERS_FACULTATIFS = 8
 
 /** The columns follow the shape: a square box needs more room than a pocket volume. */
 function colonnesPour(forme: string | null): string {
