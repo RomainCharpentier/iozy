@@ -3,6 +3,7 @@ import { CalendarDays, Hash, Puzzle } from 'lucide-react'
 import { EtatVide } from '@/common/components/EtatVide'
 import type { HomeAlmostDoneDto, HomeFigureDto, HomeItemDto } from '@/common/types/home'
 import { Couverture } from './Couverture'
+import { NombreAnime } from '@/common/components/NombreAnime'
 import { legendeDuChiffre, ligneAussi, titrePresqueFini } from './phrases'
 
 /** The kicker of a block, in the vivid tone. */
@@ -62,7 +63,7 @@ export function BlocChiffre({ chiffre, now }: { chiffre: HomeFigureDto | null; n
       <Surtitre id="titre-chiffre">Le chiffre</Surtitre>
       <p className="mt-1 flex items-baseline gap-3">
         <span className="font-display text-7xl leading-none font-bold tracking-[-0.04em] text-textPrimary md:text-8xl">
-          {chiffre.totalObjects}
+          <NombreAnime valeur={chiffre.totalObjects} />
         </span>
         <span className="text-sm leading-snug text-textDim md:text-base">
           {libelle}

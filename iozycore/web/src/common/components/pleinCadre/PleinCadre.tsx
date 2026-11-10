@@ -51,6 +51,8 @@ export function PleinCadreProvider({ children }: { children: ReactNode }) {
     style.setProperty('--teinte-vive', enRgb(teintes.vive))
     style.setProperty('--teinte-encre', enRgb(teintes.encre))
     style.setProperty('--teinte-voile-part', `${Math.round(teintes.voileAlpha * 100)}%`)
+    // The browser bar of a phone takes the deep tone of the cover.
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', enRgb(teintes.sombre))
   }, [teintes])
 
   // The glass reflex follows the pointer: two variables on the root, read by

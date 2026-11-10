@@ -890,7 +890,15 @@ html:active-view-transition * {
    Le voile ne bouge pas, donc le contraste ne change pas. */
 @media (prefers-reduced-motion: no-preference) {
   .fond-plein-cadre__image {
-    animation: fond-derive 48s ease-in-out infinite alternate;
+    animation:
+      fond-entree 1.1s ease-out,
+      fond-derive 48s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes fond-entree {
+  from {
+    opacity: 0;
   }
 }
 

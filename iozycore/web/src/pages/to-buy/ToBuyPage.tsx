@@ -1,3 +1,4 @@
+import { NombreAnime } from '@/common/components/NombreAnime'
 import { Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useOutlet } from 'react-router-dom'
@@ -62,7 +63,7 @@ export function ToBuyPage() {
         ) : (
           <>
             <p className="font-display text-[clamp(40px,13vw,104px)] leading-[0.85] font-bold tracking-[-0.045em] [overflow-wrap:anywhere] text-textPrimary">
-              {formaterEuros(mois.data.spent)}
+              <NombreAnime valeur={mois.data.spent} format={formaterEuros} />
             </p>
             <p className="text-base text-textDim">{detailDepense(mois.data.pricedCount, mois.data.unpricedCount)}</p>
             <div className="mt-3">
