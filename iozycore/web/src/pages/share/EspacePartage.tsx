@@ -111,8 +111,8 @@ function Incontournables({
     <section aria-label="Mes incontournables" className="iozy-verre iozy-verre--fort flex flex-col gap-3 rounded-3xl p-4 sm:p-5">
       <Titre className="text-[13px] font-semibold tracking-[0.12em] text-textDim uppercase">Mes incontournables</Titre>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {oeuvres.map((oeuvre) => (
-          <li key={oeuvre.title} className="flex flex-col gap-1.5">
+        {oeuvres.map((oeuvre, i) => (
+          <li key={`${oeuvre.title}-${i}`} className="flex flex-col gap-1.5">
             <div className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface2 shadow-lg">
               <Jaquette
                 src={oeuvre.coverImageUrl}
@@ -197,7 +197,7 @@ function EnviesPartagees({ items }: { items: SharedWishlistItemDto[] }) {
 function sousTitreCollection(item: SharedCollectionItemDto): string | null {
   const progression =
     item.totalVolumes !== null
-      ? `${item.ownedVolumeCount}/${item.totalVolumes} tomes`
+      ? `${item.ownedVolumeCount}/${item.totalVolumes}`
       : item.ownedVolumeCount > 0
         ? `${item.ownedVolumeCount} tome${item.ownedVolumeCount > 1 ? 's' : ''}`
         : null

@@ -134,6 +134,9 @@ export async function dessinerBilan(contenu: ContenuBilan, jaquettes: string[], 
   ctx.font = '700 120px "Space Grotesk", sans-serif'
   ctx.fillText(contenu.titre, marge, 260, LARGEUR - 2 * marge)
 
+  // The numbers share the room between the title and the row of covers.
+  const basCouvertures = images.length > 0 ? HAUTEUR - marge - ((LARGEUR - 2 * marge - 24 * 3) / 4) * 1.5 : HAUTEUR - marge
+  const pas = Math.min(170, (basCouvertures - 60 - 420) / Math.max(1, contenu.chiffres.length))
   let y = 420
   for (const chiffre of contenu.chiffres) {
     ctx.fillStyle = '#ffffff'
@@ -142,7 +145,7 @@ export async function dessinerBilan(contenu: ContenuBilan, jaquettes: string[], 
     ctx.fillStyle = 'rgba(255,255,255,0.78)'
     ctx.font = '500 34px Inter, sans-serif'
     ctx.fillText(chiffre.libelle, marge, y + 50, LARGEUR - 2 * marge)
-    y += 170
+    y += pas
   }
 
   if (images.length > 0) {

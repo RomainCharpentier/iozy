@@ -41,7 +41,7 @@ export function BlocIncontournables({
         </p>
       </div>
 
-      <ul className="grid grid-cols-4 gap-3">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {Array.from({ length: MAX_INCONTOURNABLES }, (_, i) => choisies[i]).map((oeuvre, i) =>
           oeuvre ? (
             <li key={oeuvre.entityId} className="relative">

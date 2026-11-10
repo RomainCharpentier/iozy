@@ -29,6 +29,7 @@ export function updateShare(sections: {
   shareCollection?: boolean
   shareWishlist?: boolean
   includeTierLists?: boolean
+  showValue?: boolean
 }): Promise<ShareDto> {
   return patch<ShareDto>('/share', sections)
 }
