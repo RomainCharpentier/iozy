@@ -867,12 +867,24 @@ html:active-view-transition * {
    lib/teinte/derivation.ts). The bottom of the screen settles into the
    background tone itself, which only adds contrast. */
 .fond-plein-cadre {
+  /* Le champ de couleur : le ton vif de la jaquette, ramené à une profondeur
+     qui laisse le texte lisible (très sombre en thème sombre, très clair en
+     thème clair). La jaquette floue y est fondue en « lumière douce » : elle
+     ne peut ni éclaircir ni assombrir le champ au-delà d'une marge étroite,
+     même une jaquette toute blanche ou toute noire, mais sa matière et ses
+     couleurs se lisent enfin. */
+  --fond-base: oklch(from var(--teinte-vive, rgb(188 88 59)) 0.93 calc(min(c, 0.14) * 0.45) h);
   position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  background: var(--teinte-sombre);
+  background: var(--fond-base);
+  isolation: isolate;
+}
+
+[data-theme='dark'] .fond-plein-cadre {
+  --fond-base: oklch(from var(--teinte-vive, rgb(188 88 59)) 0.2 calc(min(c, 0.16) * 0.8) h);
 }
 
 .fond-plein-cadre__image {
@@ -881,9 +893,20 @@ html:active-view-transition * {
   width: calc(100% + 240px);
   height: calc(100% + 240px);
   object-fit: cover;
-  filter: blur(var(--iozy-glass-backdrop-blur)) saturate(var(--iozy-glass-backdrop-saturate))
-    brightness(var(--iozy-backdrop-brightness));
+  mix-blend-mode: soft-light;
+  filter: blur(var(--iozy-glass-backdrop-blur)) saturate(2.2);
   transform: scale(1.1);
+}
+
+/* Le grain : un voile de bruit, à peine visible, qui donne de la matière au
+   champ de couleur et casse les aplats. */
+.fond-plein-cadre::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* La jaquette floue dérive très lentement : le fond respire sans attirer l'œil.
@@ -919,9 +942,9 @@ html:active-view-transition * {
   position: absolute;
   inset: -25%;
   background:
-    radial-gradient(38% 34% at 16% 14%, color-mix(in srgb, var(--teinte-vive) 38%, var(--teinte-sombre)), transparent 72%),
-    radial-gradient(42% 38% at 86% 26%, color-mix(in srgb, var(--teinte-vive) 30%, var(--teinte-sombre)), transparent 72%),
-    radial-gradient(48% 36% at 42% 98%, color-mix(in srgb, var(--teinte-vive) 34%, var(--teinte-sombre)), transparent 72%);
+    radial-gradient(38% 34% at 16% 14%, color-mix(in srgb, var(--teinte-vive) 38%, var(--fond-base)), transparent 72%),
+    radial-gradient(42% 38% at 86% 26%, color-mix(in srgb, var(--teinte-vive) 30%, var(--fond-base)), transparent 72%),
+    radial-gradient(48% 36% at 42% 98%, color-mix(in srgb, var(--teinte-vive) 34%, var(--fond-base)), transparent 72%);
   transition: background 0.9s ease;
 }
 
@@ -948,8 +971,6 @@ html:active-view-transition * {
 .fond-plein-cadre__voile {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(180deg, transparent 50%, var(--teinte-sombre) 100%),
-    color-mix(in srgb, var(--teinte-sombre) var(--teinte-voile-part, 100%), transparent);
+  background: linear-gradient(180deg, transparent 55%, var(--fond-base) 100%);
 }
 

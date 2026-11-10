@@ -62,7 +62,7 @@ export function BlocChiffre({ chiffre, now }: { chiffre: HomeFigureDto | null; n
     <section aria-labelledby="titre-chiffre">
       <Surtitre id="titre-chiffre">Le chiffre</Surtitre>
       <p className="mt-1 flex items-baseline gap-3">
-        <span className="font-display text-7xl leading-none font-bold tracking-[-0.04em] text-textPrimary md:text-8xl">
+        <span className="font-display text-[clamp(5.5rem,11vw,10rem)] leading-[0.8] font-bold tracking-[-0.06em] text-textPrimary">
           <NombreAnime valeur={chiffre.totalObjects} />
         </span>
         <span className="text-sm leading-snug text-textDim md:text-base">
