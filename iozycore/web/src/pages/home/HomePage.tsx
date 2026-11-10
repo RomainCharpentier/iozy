@@ -12,7 +12,9 @@ import { useNow } from '@/common/hooks/useNow'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import { queryKeys } from '@/common/lib/queryKeys'
 import type { WorkProgressDto } from '@/common/types/api'
-import { legendeDuChiffre, titreDeSortie, titrePresqueFini } from './phrases'
+import { NombreAnime } from '@/common/components/NombreAnime'
+import { Guide, type Conseil } from './Guide'
+import { pourquoiLaUne, titreDeSortie, titrePresqueFini } from './phrases'
 import { useSemaine } from './useSemaine'
 
 const JOUR_MS = 24 * 60 * 60 * 1000
@@ -105,125 +107,146 @@ export function HomePage() {
     )
   }
 
-  const legende = chiffre ? legendeDuChiffre(chiffre, now) : null
   const formeDe = (entityTypeId: string) => getEntityTypeVisual(typesParId.get(entityTypeId)).aspectClassName
+  const kicker = 'text-[11px] font-bold tracking-[0.16em] text-accentText uppercase'
+
+  const conseils: Conseil[] = []
+  if (presque) {
+    conseils.push({ cle: 'presque', texte: titrePresqueFini(presque.work), to: `/entity/${presque.work.entityId}`, action: 'Voir ce qui manque' })
+  }
+  if (sortie) {
+    conseils.push({ cle: 'sortie', texte: <>{sortie.oeuvre.title} {dansCombien(sortie.jours)}</>, to: '/releases', action: 'Voir les sorties' })
+  }
+  if (une?.reason === 'RELEASE' && une.release) {
+    conseils.push({ cle: 'une', texte: titreDeSortie(une.work, une.release, now), to: `/entity/${une.work.entityId}`, action: 'Ouvrir la fiche' })
+  }
+  if (une?.reason === 'MOVED') {
+    conseils.push({ cle: 'arrivee', texte: <>Ton dernier arrivé : <em>{une.work.title}</em>.</>, to: `/entity/${une.work.entityId}`, action: 'Ouvrir la fiche' })
+  }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-10">
-      <section aria-labelledby="titre-semaine" className="flex flex-col">
-        <h1 id="titre-semaine" className="text-xs font-semibold tracking-[0.14em] text-textDim uppercase">
-          <span className="sr-only">Ta semaine · </span>
-          {dateDuJour(now)}
-        </h1>
-        {chiffre && legende && (
-          <Phrase to="/collection" detail={[une?.reason === 'MOVED' ? `Dernier arrivé : ${une.work.title}.` : null, ...legende.details].filter(Boolean).join(' ')}>
-            <em>{chiffre.totalObjects}</em> {chiffre.totalObjects > 1 ? 'objets' : 'objet'}.
-          </Phrase>
-        )}
-        {une?.reason === 'RELEASE' && une.release && (
-          <Phrase to={`/entity/${une.work.entityId}`} detail="Cette semaine.">
-            {titreDeSortie(une.work, une.release, now)}
-          </Phrase>
-        )}
-        {presque && (
-          <Phrase to={`/entity/${presque.work.entityId}`} detail={`${presque.missing.map((m) => m.label).join(', ')}. Leur place est dans le mur.`}>
-            {titrePresqueFini(presque.work)}
-          </Phrase>
-        )}
-        {sortie && (
-          <Phrase
-            to="/releases"
-            detail={new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${sortie.oeuvre.nextReleaseDate!.slice(0, 10)}T00:00:00`))}
-          >
-            {sortie.oeuvre.title} {dansCombien(sortie.jours)}
-          </Phrase>
-        )}
-        {rayons.length > 0 && (
-          <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-1 text-sm text-textDim lg:mt-auto lg:pt-6">
-            {rayons.map((rayon) => (
-              <li key={rayon.entityTypeId}>
-                <Link to={`/collection/${rayon.entityTypeId}`} className="inline-flex min-h-11 items-center gap-1.5 hover:text-textPrimary">
-                  <b className="font-semibold text-textPrimary">{rayon.workCount}</b>
-                  {typesParId.get(rayon.entityTypeId)?.label ?? 'Catégorie'}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5">
+      <h1 className="text-xs font-semibold tracking-[0.14em] text-textDim uppercase">
+        <span className="sr-only">Ta semaine · </span>
+        {dateDuJour(now)}
+      </h1>
+      <Guide conseils={conseils} />
 
-      <section aria-label="Ton mur" className="flex min-w-0 flex-col gap-2">
-        <ul className="flex flex-wrap gap-2 lg:h-[200px] lg:flex-nowrap lg:overflow-hidden">
-          {une && <Face oeuvre={une.work} hate />}
-          {presque && (
+      <div className="grid gap-4 lg:grid-cols-12">
+        {une && (
+          <Link to={`/entity/${une.work.entityId}`} className="tuile flex flex-col gap-5 overflow-hidden p-5 sm:flex-row sm:gap-6 lg:col-span-7 lg:p-6">
+            <Jaquette
+              src={une.work.coverImageUrl}
+              loading="eager"
+              className="h-44 w-auto shrink-0 rounded-xl shadow-[0_24px_50px_-18px_rgb(0_0_0/0.7)] lg:h-60"
+              repli={<SansImage titre={une.work.title} />}
+            />
+            <span className="flex min-w-0 flex-col justify-end">
+              <span className={kicker}>{une.reason === 'RELEASE' ? 'Cette semaine' : 'À la une'}</span>
+              <span className="mt-2 font-display text-[clamp(1.9rem,3.6vw,3.4rem)] leading-[0.95] font-bold tracking-[-0.04em] text-textPrimary [overflow-wrap:anywhere] [text-wrap:balance]">
+                {une.work.title}
+              </span>
+              <span className="mt-3 text-[15px] text-textDim">{pourquoiLaUne(une, now)}</span>
+            </span>
+          </Link>
+        )}
+
+        <Link to="/releases" className="tuile flex flex-col p-5 lg:col-span-2">
+          <span className={kicker}>Prochaine sortie</span>
+          {sortie ? (
             <>
+              <span className="mt-auto pt-4 font-display text-[5.5rem] leading-[0.8] font-bold tracking-[-0.06em] text-textPrimary">
+                <NombreAnime valeur={sortie.jours} />
+              </span>
+              <span className="mt-1 text-sm font-semibold text-textDim">{sortie.jours > 1 ? 'jours' : 'jour'}</span>
+              <span className="mt-3 line-clamp-2 font-display text-[15px] leading-tight font-semibold text-textPrimary">{sortie.oeuvre.title}</span>
+            </>
+          ) : (
+            <span className="mt-auto pt-4 text-sm text-textDim">Rien d’annoncé pour l’instant.</span>
+          )}
+        </Link>
+
+        {chiffre && (
+          <div className="tuile flex flex-col p-5 lg:col-span-3">
+            <span className={kicker}>Ta collection</span>
+            <Link to="/collection" className="mt-auto pt-4 font-display text-[5.5rem] leading-[0.8] font-bold tracking-[-0.06em] text-textPrimary hover:text-accentText">
+              <NombreAnime valeur={chiffre.totalObjects} />
+            </Link>
+            <span className="mt-1 text-sm font-semibold text-textDim">{chiffre.totalObjects > 1 ? 'objets' : 'objet'}</span>
+            <ul className="mt-2 flex flex-wrap gap-x-4 text-sm text-textDim">
+              {rayons.map((rayon) => (
+                <li key={rayon.entityTypeId}>
+                  <Link to={`/collection/${rayon.entityTypeId}`} className="inline-flex min-h-11 items-center gap-1.5 hover:text-textPrimary">
+                    <b className="font-semibold text-textPrimary">{rayon.workCount}</b>
+                    {typesParId.get(rayon.entityTypeId)?.label ?? 'Catégorie'}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {presque && (
+          <div className="tuile flex flex-col gap-4 p-5 lg:col-span-5">
+            <span className={kicker}>Presque fini</span>
+            <ul className="flex h-36 gap-2.5">
               <Face oeuvre={presque.work} />
               {presque.missing.map((element) => (
-                <li key={element.key} className="h-36 shrink-0 lg:h-full">
+                <li key={element.key} className="h-full shrink-0">
                   <Link
                     to={`/entity/${presque.work.entityId}`}
                     aria-label={`${element.label} de ${presque.work.title} : l'ajouter depuis la fiche`}
                     title={`${element.label} : l'ajouter depuis la fiche`}
-                    className={`iozy-manque flex h-full flex-col justify-end rounded-[3px] p-2.5 font-display text-xs font-semibold ${formeDe(presque.work.entityTypeId)}`}
+                    className={`iozy-manque flex h-full flex-col justify-end rounded-lg p-2.5 font-display text-xs font-semibold ${formeDe(presque.work.entityTypeId)}`}
                   >
-                    {element.number !== null && <b className="text-3xl leading-none font-bold">{element.number}</b>}
-                    <span className="line-clamp-2">{element.number !== null ? presque.work.title : element.label}</span>
+                    {element.number !== null ? <b className="text-3xl leading-none font-bold">{element.number}</b> : <span className="line-clamp-3">{element.label}</span>}
                   </Link>
                 </li>
               ))}
-            </>
-          )}
-          {sortie && (
-            <li className="relative h-36 shrink-0 lg:h-full">
-              <Link to={`/entity/${sortie.oeuvre.entityId}`} aria-label={`${sortie.oeuvre.title}, à venir`} className="block h-full">
-                <Jaquette
-                  src={sortie.oeuvre.coverImageUrl}
-                  className="h-full w-auto rounded-[3px] brightness-[0.55] grayscale"
-                  repli={<SansImage titre={sortie.oeuvre.title} />}
-                />
-                <span className="absolute inset-x-0 bottom-0 rounded-b-[3px] bg-accent px-2 py-1 font-display text-xs font-bold text-accentInk">
-                  {sortie.jours === 0 ? 'AUJOURD’HUI' : `${sortie.jours} J`}
-                </span>
-              </Link>
-            </li>
-          )}
-        </ul>
-        {reste.length > 0 && (
-          <ul className="flex h-[25.5rem] flex-wrap content-start gap-2 overflow-hidden lg:h-[544px]" aria-label="Le reste de ta collection">
-            {reste.map((oeuvre) => (
-              <Face key={oeuvre.entityId} oeuvre={oeuvre} petite />
-            ))}
-          </ul>
+            </ul>
+            <Link to={`/entity/${presque.work.entityId}`} className="font-display text-lg leading-tight font-semibold text-textPrimary hover:underline">
+              {titrePresqueFini(presque.work)}
+            </Link>
+          </div>
         )}
-        <Link to="/collection" className="btn-discret mt-1 self-start !px-0">
-          Toute ma collection
-        </Link>
-      </section>
-    </div>
-  )
-}
 
-/** One sentence of the week: large type, a line of detail, the whole block a link. */
-function Phrase({ to, detail, children }: { to: string; detail: string; children: ReactNode }) {
-  return (
-    <Link to={to} className="group block border-b border-lineStrong py-5">
-      <strong className="block font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.03em] text-textPrimary [&_em]:text-accentText [&_em]:not-italic group-hover:underline group-hover:decoration-2 group-hover:underline-offset-4">
-        {children}
-      </strong>
-      {detail && <span className="mt-1.5 block text-sm text-textDim">{detail}</span>}
-    </Link>
+        {reste.length > 0 && (
+          <section aria-label="Derniers arrivés" className={`tuile flex min-w-0 flex-col gap-4 p-5 ${presque ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className={kicker}>Derniers arrivés</span>
+              <Link to="/collection" className="inline-flex min-h-11 items-center text-sm font-semibold text-textDim hover:text-textPrimary">
+                Toute ma collection
+              </Link>
+            </div>
+            <ul className="flex h-36 flex-wrap content-start gap-2.5 overflow-hidden">
+              {reste.slice(0, 12).map((oeuvre) => (
+                <Face key={oeuvre.entityId} oeuvre={oeuvre} />
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+
+      {reste.length > 12 && (
+        <ul className="flex h-[21.625rem] flex-wrap content-start gap-2.5 overflow-hidden lg:h-[386px]" aria-label="Le reste de ta collection">
+          {reste.slice(12).map((oeuvre) => (
+            <Face key={oeuvre.entityId} oeuvre={oeuvre} petite />
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
 /** A cover in the wall, in its real proportions: the height is the row's, the width follows. */
 function Face({ oeuvre, petite, hate }: { oeuvre: { entityId: string; title: string; coverImageUrl: string | null }; petite?: boolean; hate?: boolean }) {
   return (
-    <li className={`shrink-0 ${petite ? 'h-32 lg:h-[176px]' : 'h-36 lg:h-full'}`}>
-      <Link to={`/entity/${oeuvre.entityId}`} aria-label={oeuvre.title} title={oeuvre.title} className="block h-full transition-opacity hover:opacity-85">
+    <li className={`shrink-0 ${petite ? 'h-[10.5rem] lg:h-[188px]' : 'h-full'}`}>
+      <Link to={`/entity/${oeuvre.entityId}`} aria-label={oeuvre.title} title={oeuvre.title} className="face block h-full">
         <Jaquette
           src={oeuvre.coverImageUrl}
           loading={hate ? 'eager' : 'lazy'}
-          className="h-full w-auto rounded-[3px]"
+          className="h-full w-auto rounded-lg"
           repli={<SansImage titre={oeuvre.title} />}
         />
       </Link>

@@ -863,10 +863,135 @@ html:active-view-transition * {
   }
 }
 
-/* The page background is flat and matte: the covers are the only decoration.
-   The cover of the moment is still declared by the pages (usePleinCadre), but
-   nothing is drawn behind the page any more. */
+/* The banner of the work (AniList-like): the cover of the moment, blurred,
+   across the top of the page, fading into the background. A veil of the
+   background keeps every text role readable over the lightest or darkest
+   cover. Above it, a faint glow of the accent lights the top of every page. */
 .fond-plein-cadre {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 460px;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(60% 100% at 50% 0%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%);
+  mask-image: linear-gradient(180deg, #000 30%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 100%);
+}
+
+.fond-plein-cadre__image {
+  position: absolute;
+  inset: -60px;
+  width: calc(100% + 120px);
+  height: calc(100% + 120px);
+  object-fit: cover;
+  filter: blur(48px) saturate(1.5);
+  animation: banniere-entree 0.9s ease-out;
+}
+
+.fond-plein-cadre__aurore {
   display: none;
+}
+
+.fond-plein-cadre__voile {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-background) 62%, transparent);
+}
+
+@keyframes banniere-entree {
+  from {
+    opacity: 0;
+  }
+}
+
+/* A tile (Raycast-like): a faint surface, a hairline that catches the light at
+   the top, and a lift on hover for the ones that are links. */
+.tuile {
+  position: relative;
+  border-radius: 20px;
+  border: 1px solid var(--color-ligneVerre);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-textPrimary) 7%, var(--color-background)), color-mix(in srgb, var(--color-textPrimary) 3%, var(--color-background)));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--color-textPrimary) 10%, transparent),
+    0 18px 40px -24px rgb(0 0 0 / 0.55);
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+a.tuile:hover,
+a.tuile:focus-visible {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--color-textPrimary) 14%, transparent),
+    0 24px 48px -22px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+/* A cover of the wall: it lifts under the pointer. */
+.face {
+  transition: transform 0.25s ease;
+}
+
+.face:hover,
+.face:focus-visible {
+  transform: translateY(-6px) scale(1.03);
+}
+
+/* The guide: it bobs gently and blinks. */
+@keyframes guide-flotte {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes guide-cligne {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes bulle-entree {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.guide {
+  animation: guide-flotte 3.6s ease-in-out infinite;
+}
+
+.guide__yeux {
+  transform-origin: 50% 46%;
+  animation: guide-cligne 4.2s ease-in-out infinite;
+}
+
+.guide__bulle {
+  animation: bulle-entree 0.35s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tuile,
+  .face {
+    transition: none;
+  }
+  a.tuile:hover,
+  .face:hover {
+    transform: none;
+  }
+  .guide,
+  .guide__yeux,
+  .guide__bulle,
+  .fond-plein-cadre__image {
+    animation: none;
+  }
 }
 
