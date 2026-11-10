@@ -14,6 +14,7 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import type { WorkProgressDto } from '@/common/types/api'
 import { NombreAnime } from '@/common/components/NombreAnime'
 import { Guide, type Conseil } from './Guide'
+import { Recommandations } from './Recommandations'
 import { pourquoiLaUne, titreDeSortie, titrePresqueFini } from './phrases'
 import { useSemaine } from './useSemaine'
 
@@ -237,6 +238,8 @@ export function HomePage() {
           </section>
         )}
       </div>
+
+      <Recommandations nomDuType={(id) => typesParId.get(id)?.label ?? 'Catégorie'} />
 
       {reste.length > 10 && (
         <ul className="flex h-[21.625rem] flex-wrap gap-2.5 overflow-hidden lg:h-[410px]" aria-label="Le reste de ta collection">

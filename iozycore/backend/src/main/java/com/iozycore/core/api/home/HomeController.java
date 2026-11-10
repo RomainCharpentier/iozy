@@ -34,6 +34,12 @@ public class HomeController {
         return HomeWeekResponse.from(home.week());
     }
 
+    @Operation(summary = "Works the account does not own and may like: proposed by a language model, each one confirmed by a catalog source")
+    @GetMapping("/recommendations")
+    public GuideService.Recommendations recommendations() {
+        return guide.recommend();
+    }
+
     @Operation(summary = "Izy answers a question about the collection (a language model when configured, a computed sentence otherwise)")
     @PostMapping("/guide")
     public GuideResponse guide(@RequestBody(required = false) GuideRequest request) {
