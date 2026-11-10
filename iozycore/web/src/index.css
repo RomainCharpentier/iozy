@@ -886,6 +886,23 @@ html:active-view-transition * {
   transform: scale(1.1);
 }
 
+/* La jaquette floue dérive très lentement : le fond respire sans attirer l'œil.
+   Le voile ne bouge pas, donc le contraste ne change pas. */
+@media (prefers-reduced-motion: no-preference) {
+  .fond-plein-cadre__image {
+    animation: fond-derive 48s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes fond-derive {
+  from {
+    transform: scale(1.1) translate3d(-1.5%, -1%, 0);
+  }
+  to {
+    transform: scale(1.18) translate3d(1.5%, 1.2%, 0);
+  }
+}
+
 .fond-plein-cadre__voile {
   position: absolute;
   inset: 0;

@@ -31,7 +31,7 @@ export function BlocRayons({ rayons, typesParId }: { rayons: HomeShelfDto[]; typ
           <EtatVide compact icone={LibraryBig} titre="Tes rayons sont vides." detail="Chaque catégorie où tu possèdes une œuvre aura son rayon ici." />
         </div>
       ) : (
-        <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-[repeat(auto-fit,minmax(300px,1fr))]">
           {rayons.map((rayon) => {
             const type = typesParId.get(rayon.entityTypeId)
             const aspect = getEntityTypeVisual(type).aspectClassName
@@ -49,7 +49,7 @@ export function BlocRayons({ rayons, typesParId }: { rayons: HomeShelfDto[]; typ
                       ))}
                     </span>
                   )}
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block font-display text-lg font-bold text-textPrimary">{nom}</span>
                     <span className="mt-0.5 block text-sm text-textDim">{contenuDuRayon(rayon.workCount, rayon.objectCount)}</span>
                   </span>

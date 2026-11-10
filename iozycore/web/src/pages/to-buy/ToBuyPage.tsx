@@ -48,7 +48,7 @@ export function ToBuyPage() {
 
   const nombre = lignes.length
   return (
-    <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-7">
+    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-8">
       {/* The page name for screen readers; the eye reads it from the nav and the list title. */}
       <h1 className="sr-only lg:col-span-2">À acheter</h1>
       <section aria-labelledby="titre-depense" className="flex min-w-0 flex-col gap-3 lg:pt-5">
