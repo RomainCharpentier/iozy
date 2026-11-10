@@ -299,15 +299,6 @@
     var(--iozy-glass-shadow);
   backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
   -webkit-backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
-  /* Un reflet suit le curseur sur le verre, comme une lampe passée devant une
-     vitre. Il est posé sur la fenêtre (attachment fixed) : toutes les vitres
-     le reçoivent d'un seul geste. Sans souris, il sort du cadre et disparaît. */
-  background-image: radial-gradient(
-    280px circle at var(--souris-x, -999px) var(--souris-y, -999px),
-    var(--iozy-glass-highlight),
-    transparent 70%
-  );
-  background-attachment: fixed;
 }
 
 .iozy-verre--fort {
@@ -418,12 +409,47 @@
 }
 
 .iozy-barre__lien:hover {
-  background: color-mix(in srgb, var(--iozy-text) 10%, transparent);
+  color: var(--iozy-text);
 }
 
 .iozy-barre__lien[aria-current='page'] {
-  background: var(--iozy-text);
-  color: var(--iozy-bg);
+  color: var(--iozy-text);
+  box-shadow: inset 0 -2px 0 var(--iozy-accent);
+}
+
+/* La barre de bureau : une ligne de texte sur le fond de la page, un filet
+   dessous. Ni pastille ni verre : les jaquettes sont le seul décor. */
+.iozy-barre--eclatee {
+  top: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0 32px;
+  height: 64px;
+  background: var(--iozy-bg);
+  border-bottom: 1px solid var(--iozy-line);
+}
+
+.iozy-barre--eclatee .iozy-verre,
+.iozy-barre--eclatee .iozy-barre__pilule,
+.iozy-barre--eclatee .iozy-recherche {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding-left: 0;
+}
+
+.iozy-barre--eclatee .iozy-barre__lien {
+  height: 64px;
+  padding: 0 14px;
+  border-radius: 0;
+  font-weight: 500;
+  color: var(--iozy-text-dim);
+}
+
+.iozy-barre--eclatee .iozy-recherche {
+  height: 40px;
+  border-bottom: 1px solid var(--iozy-text-muted);
 }
 
 .iozy-barre__espace {
@@ -543,32 +569,16 @@
    vive qui respire (un halo, jamais l’opacité : le libellé doit rester
    lisible). Pas d'étiquette d'état : la forme dit l'état. Sans
    mouvement (préférence du système), le contour reste, immobile. */
-@keyframes iozy-respire {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
-  50% {
-    box-shadow: 0 0 22px 2px var(--teinte-vive, var(--iozy-accent));
-  }
-}
-
 .iozy-manque {
-  border: 1.5px solid var(--teinte-vive, var(--iozy-accent));
-  background: color-mix(in srgb, var(--iozy-text) 5%, transparent);
+  border: 1.5px dashed var(--teinte-vive, var(--iozy-accent));
+  background: none;
   color: var(--teinte-vive, var(--iozy-accent-text));
-  animation: iozy-respire 2.6s ease-in-out infinite;
 }
 
 .iozy-manque:hover,
 .iozy-manque:focus-visible {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .iozy-manque {
-    animation: none;
-  }
+  border-style: solid;
+  background: color-mix(in srgb, var(--iozy-accent) 12%, transparent);
 }
 
 /* Le lien de compte, le même partout : « Connexion » sans session IozyCore,

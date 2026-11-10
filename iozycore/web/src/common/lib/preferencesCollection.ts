@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react'
  */
 export type FiltreCollection = 'tout' | 'completer' | 'suivies' | 'envies'
 /** How the rooms of Ma collection are drawn: shelves with spines, or small covers. */
-export type AffichageCollection = 'etageres' | 'compact'
+export type AffichageCollection = 'etageres' | 'compact' | 'lignes'
 
 interface PreferencesCollection {
   filtre: FiltreCollection
@@ -25,7 +25,7 @@ const CLE = 'iozycore.preferencesCollection'
 const DEFAUT: PreferencesCollection = { filtre: 'tout', affichage: 'etageres' }
 
 const FILTRES: FiltreCollection[] = ['tout', 'completer', 'suivies', 'envies']
-const AFFICHAGES: AffichageCollection[] = ['etageres', 'compact']
+const AFFICHAGES: AffichageCollection[] = ['etageres', 'compact', 'lignes']
 
 /** Validates field by field rather than as a block: a setting added later
  *  must not make the others fall back to their default. */

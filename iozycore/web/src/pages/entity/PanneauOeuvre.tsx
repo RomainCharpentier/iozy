@@ -70,7 +70,7 @@ export function PanneauOeuvre({
       {!consultation && avecGeste && work.elements.some((e) => e.state !== 'OWNED') && (
         <p className="text-[13px] text-textDim">
           {work.collectorStatus === 'ONGOING'
-            ? 'Ce qui respire te manque. Clique-le quand tu l’as.'
+            ? 'Les emplacements vides te manquent. Clique-en un quand tu l’as.'
             : 'Clique ce qui te manque quand tu l’as.'}
         </p>
       )}

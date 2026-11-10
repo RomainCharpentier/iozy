@@ -3,6 +3,7 @@ import type { AffichageCollection } from '@/common/lib/preferencesCollection'
 const AFFICHAGES: { cle: AffichageCollection; libelle: string }[] = [
   { cle: 'etageres', libelle: 'Étagères' },
   { cle: 'compact', libelle: 'Compact' },
+  { cle: 'lignes', libelle: 'Lignes' },
 ]
 
 /** Shelves with spines, or small covers: a habit, the same in a room and on a shelf page. */

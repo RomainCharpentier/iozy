@@ -7,6 +7,7 @@ import { CollectionFilters } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
 import { BasculeAffichage } from './BasculeAffichage'
 import { deplacer, sortirLesDos } from './mouvement'
+import { LignesCollection } from './LignesCollection'
 import { SalleCollection } from './SalleCollection'
 import {
   compterLesTitresParType,
@@ -304,7 +305,8 @@ export function ShelfPage() {
       )}
 
       <div ref={zone} data-affichage={preferences.affichage} className="mt-3 flex flex-col">
-        {salles.map(({ entityType, objets, nombre }) => (
+        {preferences.affichage === 'lignes' && <LignesCollection />}
+        {preferences.affichage !== 'lignes' && salles.map(({ entityType, objets, nombre }) => (
           <SalleCollection
             key={entityType.id}
             entityType={entityType}

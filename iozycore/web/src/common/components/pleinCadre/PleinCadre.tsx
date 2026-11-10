@@ -55,19 +55,6 @@ export function PleinCadreProvider({ children }: { children: ReactNode }) {
     for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', enRgb(teintes.sombre))
   }, [teintes])
 
-  // The glass reflex follows the pointer: two variables on the root, read by
-  // `.iozy-verre`. Touch screens never move it, so nothing shows there.
-  useEffect(() => {
-    const suivre = (e: PointerEvent) => {
-      if (e.pointerType === 'touch') return
-      const racine = document.documentElement.style
-      racine.setProperty('--souris-x', `${e.clientX}px`)
-      racine.setProperty('--souris-y', `${e.clientY}px`)
-    }
-    window.addEventListener('pointermove', suivre, { passive: true })
-    return () => window.removeEventListener('pointermove', suivre)
-  }, [])
-
   // Leaving the shell (signing out) gives the page back its default tones.
   useEffect(
     () => () => {

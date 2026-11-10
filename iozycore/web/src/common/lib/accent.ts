@@ -13,7 +13,7 @@ import type { AccentCompte } from '@/common/api/auth'
  * reaches the account.
  */
 const STORAGE_KEY = 'iozycore.accent'
-const DEFAULT_ACCENT: AccentCompte = 'AUTO'
+const DEFAULT_ACCENT: AccentCompte = 'TERRACOTTA'
 
 function lireStocke(): AccentCompte {
   try {
