@@ -92,6 +92,7 @@ export function FondPleinCadre() {
     <div aria-hidden="true" className="fond-plein-cadre">
       {url && <img key={url} src={url} alt="" className="fond-plein-cadre__image" decoding="async" />}
       <div className="fond-plein-cadre__voile" />
+      <div className="fond-plein-cadre__aurore" />
     </div>
   )
 }

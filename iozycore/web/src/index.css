@@ -911,6 +911,40 @@ html:active-view-transition * {
   }
 }
 
+/* L'aurore : trois nappes de la couleur vive de la jaquette, mêlées au ton
+   sombre, posées sur le voile. Elles ne dépassent jamais 38 % de vif : le
+   texte garde son contraste (le ton sombre et le vif sont déjà accordés
+   ensemble par lib/teinte). Elles dérivent à des rythmes différents. */
+.fond-plein-cadre__aurore {
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(38% 34% at 16% 14%, color-mix(in srgb, var(--teinte-vive) 38%, var(--teinte-sombre)), transparent 72%),
+    radial-gradient(42% 38% at 86% 26%, color-mix(in srgb, var(--teinte-vive) 30%, var(--teinte-sombre)), transparent 72%),
+    radial-gradient(48% 36% at 42% 98%, color-mix(in srgb, var(--teinte-vive) 34%, var(--teinte-sombre)), transparent 72%);
+  transition: background 0.9s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fond-plein-cadre__aurore {
+    animation: aurore-derive 36s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes aurore-derive {
+  from {
+    transform: translate3d(-3%, -2%, 0) rotate(-2deg) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 3%, 0) rotate(2deg) scale(1.08);
+  }
+}
+
+/* Le liseré du verre prend un peu de la couleur vive de la jaquette. */
+.iozy-verre {
+  border-color: color-mix(in srgb, var(--teinte-vive, transparent) 26%, var(--iozy-glass-line));
+}
+
 .fond-plein-cadre__voile {
   position: absolute;
   inset: 0;

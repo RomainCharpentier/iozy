@@ -811,7 +811,7 @@ export function EntityDetailPage() {
           {kicker && (
             <p className="iozy-teinte text-[13px] font-semibold tracking-[0.16em] text-vive uppercase">{kicker}</p>
           )}
-          <h1 className="font-display text-5xl leading-[0.92] font-bold tracking-[-0.035em] break-words text-textPrimary [text-shadow:0_6px_40px_rgb(0_0_0/0.25)] md:text-7xl">
+          <h1 className="font-display text-[clamp(3rem,9vw,8.5rem)] leading-[0.86] font-bold tracking-[-0.055em] break-words text-textPrimary [text-shadow:0_6px_40px_rgb(0_0_0/0.25)] [text-wrap:balance]">
             {entity.title}
           </h1>
 

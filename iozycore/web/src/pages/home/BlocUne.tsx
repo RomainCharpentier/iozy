@@ -85,7 +85,7 @@ export function BlocUne({ une, now }: { une: HomeLeadDto | null; now: Date }) {
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-accentText">{surtitreDeLaUne(une)}</p>
         <h2
           id="titre-une"
-          className="mt-3 font-display text-4xl font-bold leading-[0.98] tracking-[-0.03em] text-textPrimary md:text-5xl lg:text-6xl"
+          className="mt-3 font-display text-[clamp(2.5rem,4.8vw,4.9rem)] [overflow-wrap:anywhere] font-bold leading-[0.86] tracking-[-0.055em] text-textPrimary [text-wrap:balance]"
         >
           {titre}
         </h2>
