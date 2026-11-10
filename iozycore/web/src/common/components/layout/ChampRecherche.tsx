@@ -18,7 +18,7 @@ import { useAuth } from '@/common/hooks/useAuth'
 export function ChampRecherche({
   surSoumission,
   autoFocus = false,
-  className = 'min-w-[236px] w-auto flex-1 max-w-[340px]',
+  className = 'min-w-[300px] w-auto flex-1 max-w-[340px]',
 }: {
   surSoumission?: () => void
   autoFocus?: boolean
