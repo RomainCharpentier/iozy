@@ -66,7 +66,7 @@ export const SITE_ITEMS: SiteItem[] = [
   { href: '/core/collection', label: 'Collection', icon: Library, pourComptes: true },
   { href: '/core/releases', label: 'Sorties', icon: CalendarDays, pourComptes: false },
   { href: '/core/to-buy', label: 'À acheter', icon: ShoppingBag, pourComptes: true },
-  { href: '/core/profile#partage', label: 'Partager', icon: Share2, pourComptes: true },
+  { href: '/core/share', label: 'Partager', icon: Share2, pourComptes: true },
 ]
 
 /** Les destinations du site à montrer : sans compte, seulement celles qui
