@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
 import { EtatVide } from '@/common/components/EtatVide'
-import { CLASSE_CARTE } from '@/common/components/Carte'
 import type { HomeElementDto, HomeLeadDto } from '@/common/types/home'
 import { Couverture } from './Couverture'
 import { pourquoiLaUne, surtitreDeLaUne, titreDeSortie } from './phrases'
@@ -72,20 +71,20 @@ export function BlocUne({ une, now }: { une: HomeLeadDto | null; now: Date }) {
   const { work } = une
   const titre = une.reason === 'RELEASE' && une.release ? titreDeSortie(work, une.release, now) : work.title
   return (
-    <article aria-labelledby="titre-une" className={`${CLASSE_CARTE} flex flex-col gap-6 sm:flex-row sm:gap-8`}>
+    <article aria-labelledby="titre-une" className="flex flex-col gap-6 sm:flex-row sm:gap-10">
       <Link to={`/entity/${work.entityId}`} className="self-center sm:self-start" tabIndex={-1} aria-hidden="true">
         <Couverture
           url={work.coverImageUrl}
           titre={work.title}
           loading="eager"
-          className="aspect-[2/3] w-44 shadow-token-elevated sm:w-56 lg:w-64"
+          className="aspect-[2/3] w-44 shadow-[0_40px_90px_-30px_rgb(0_0_0/0.65)] sm:w-60 lg:w-72"
         />
       </Link>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-accentText">{surtitreDeLaUne(une)}</p>
         <h2
           id="titre-une"
-          className="mt-3 font-display text-4xl font-bold leading-[0.98] tracking-[-0.03em] text-textPrimary md:text-5xl lg:text-6xl"
+          className="mt-3 font-display text-[clamp(2.5rem,4.8vw,4.9rem)] [overflow-wrap:anywhere] font-bold leading-[0.86] tracking-[-0.055em] text-textPrimary [text-wrap:balance]"
         >
           {titre}
         </h2>

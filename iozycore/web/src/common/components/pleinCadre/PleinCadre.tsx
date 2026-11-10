@@ -1,7 +1,8 @@
 import { useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { Contexte } from './usePleinCadre'
 import { useTheme } from '@/common/lib/theme'
-import { deriverTeintes, enRgb } from '@/common/lib/teinte/derivation'
+import { TERRACOTTA, deriverTeintes, enRgb } from '@/common/lib/teinte/derivation'
+import { useAccent } from '@/common/lib/accent'
 import { useTeinteJaquette } from '@/common/lib/teinte/useTeinteJaquette'
 
 /**
@@ -35,7 +36,13 @@ export function PleinCadreProvider({ children }: { children: ReactNode }) {
 
   // Until the cover is read, the colors of the previous one stay: a flash of
   // terracotta between two blue series would read as a third color.
-  const teintes = useMemo(() => (connue ? deriverTeintes([r, g, b], theme) : null), [connue, r, g, b, theme])
+  // "Terracotta" chosen on the profile (lot 218): the brand tones whatever
+  // the cover. The backdrop still shows the cover; only the accent stays put.
+  const accent = useAccent()
+  const teintes = useMemo(() => {
+    if (accent === 'TERRACOTTA') return deriverTeintes(TERRACOTTA, theme)
+    return connue ? deriverTeintes([r, g, b], theme) : null
+  }, [accent, connue, r, g, b, theme])
 
   useLayoutEffect(() => {
     if (!teintes) return
@@ -44,7 +51,22 @@ export function PleinCadreProvider({ children }: { children: ReactNode }) {
     style.setProperty('--teinte-vive', enRgb(teintes.vive))
     style.setProperty('--teinte-encre', enRgb(teintes.encre))
     style.setProperty('--teinte-voile-part', `${Math.round(teintes.voileAlpha * 100)}%`)
+    // The browser bar of a phone takes the deep tone of the cover.
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', enRgb(teintes.sombre))
   }, [teintes])
+
+  // The glass reflex follows the pointer: two variables on the root, read by
+  // `.iozy-verre`. Touch screens never move it, so nothing shows there.
+  useEffect(() => {
+    const suivre = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return
+      const racine = document.documentElement.style
+      racine.setProperty('--souris-x', `${e.clientX}px`)
+      racine.setProperty('--souris-y', `${e.clientY}px`)
+    }
+    window.addEventListener('pointermove', suivre, { passive: true })
+    return () => window.removeEventListener('pointermove', suivre)
+  }, [])
 
   // Leaving the shell (signing out) gives the page back its default tones.
   useEffect(
@@ -54,7 +76,12 @@ export function PleinCadreProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const valeur = useMemo(() => ({ url, declarer, repli: connue ? repli : null }), [url, connue, repli])
+  // The CORS note explains a fallback the person did not choose: with the
+  // terracotta chosen, there is nothing to explain.
+  const valeur = useMemo(
+    () => ({ url, declarer, repli: connue && accent === 'AUTO' ? repli : null }),
+    [url, connue, repli, accent],
+  )
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>
 }
 
@@ -65,6 +92,7 @@ export function FondPleinCadre() {
     <div aria-hidden="true" className="fond-plein-cadre">
       {url && <img key={url} src={url} alt="" className="fond-plein-cadre__image" decoding="async" />}
       <div className="fond-plein-cadre__voile" />
+      <div className="fond-plein-cadre__aurore" />
     </div>
   )
 }

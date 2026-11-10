@@ -13,6 +13,24 @@ import { settingsService } from '@/services/settingsService'
  */
 export interface IozyAccount {
   pseudo: string
+  /**
+   * Le son du blindtest réglé sur le compte (profil commun d'Iozy), ou null
+   * quand le compte ne l'a jamais réglé : l'appareil garde alors le sien.
+   */
+  sound: AccountSound | null
+}
+
+/** Le son tel que le compte le garde : activé ou non, volume de 0 à 100. */
+export interface AccountSound {
+  enabled: boolean
+  volume: number
+}
+
+function lireSon(valeur: unknown): AccountSound | null {
+  if (!valeur || typeof valeur !== 'object') return null
+  const { enabled, volume } = valeur as { enabled?: unknown; volume?: unknown }
+  if (typeof enabled !== 'boolean' || typeof volume !== 'number') return null
+  return { enabled, volume: Math.min(100, Math.max(0, Math.round(volume))) }
 }
 
 /** La longueur maximale d'un nom de joueur (voir UsernamePage). */
@@ -34,11 +52,64 @@ export async function fetchIozyAccount(): Promise<IozyAccount | null> {
       signal: controller.signal,
     })
     if (!response.ok) return null
-    const compte = (await response.json()) as { pseudo?: unknown; invite?: unknown }
+    const compte = (await response.json()) as {
+      pseudo?: unknown
+      invite?: unknown
+      preferences?: { blindtestSound?: unknown } | null
+    }
     if (compte.invite || typeof compte.pseudo !== 'string' || !compte.pseudo.trim()) return null
-    return { pseudo: compte.pseudo.trim() }
+    return { pseudo: compte.pseudo.trim(), sound: lireSon(compte.preferences?.blindtestSound) }
   } catch {
     return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
+ * Le son du compte devient celui de l'appareil : le compte fait foi quand il
+ * en a un, et la copie locale sert de secours (sans compte, ou IozyCore muet).
+ */
+export function adoptAccountSound(sound: AccountSound | null): void {
+  if (!sound) return
+  const settings = settingsService.getSettings()
+  if (settings.soundEnabled !== sound.enabled || settings.soundVolume !== sound.volume) {
+    settingsService.saveSettings({ soundEnabled: sound.enabled, soundVolume: sound.volume })
+  }
+}
+
+/** Le jeton anti-CSRF que l'API d'IozyCore pose dans un cookie lisible (même site). */
+function jetonCsrf(): string | undefined {
+  return document.cookie
+    .split('; ')
+    .find((morceau) => morceau.startsWith('XSRF-TOKEN='))
+    ?.slice('XSRF-TOKEN='.length)
+}
+
+/**
+ * Enregistre le son sur le compte (le même réglage que le profil d'IozyCore).
+ * Rend false quand le compte n'a pas répondu : le réglage reste alors sur
+ * l'appareil, et l'écran le dit.
+ */
+export async function saveAccountSound(sound: AccountSound): Promise<boolean> {
+  if (standalone()) return false
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ACCOUNT_TIMEOUT_MS)
+  const jeton = jetonCsrf()
+  try {
+    const response = await fetch('/api/auth/me', {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...(jeton ? { 'X-XSRF-TOKEN': decodeURIComponent(jeton) } : {}),
+      },
+      body: JSON.stringify({ preferences: { blindtestSound: sound } }),
+      signal: controller.signal,
+    })
+    return response.ok
+  } catch {
+    return false
   } finally {
     clearTimeout(timer)
   }
@@ -69,7 +140,7 @@ export function loginUrl(returnTo: string): string {
   return `/core/?next=${encodeURIComponent(returnTo)}`
 }
 
-/** Le profil du compte, sur IozyCore : c'est là que le pseudo se change. */
+/** Le profil du compte, sur IozyCore : c'est là que le pseudo se change, et le son aussi. */
 export const PROFILE_URL = '/core/profile'
 
 const IozyAccountContext = createContext<IozyAccount | null>(null)
@@ -86,8 +157,10 @@ export function IozyAccountProvider({ children }: { children: ReactNode }) {
     let alive = true
     fetchIozyAccount().then((found) => {
       if (!alive) return
-      if (found) adoptAccountName(found.pseudo)
-      else dropAccountName()
+      if (found) {
+        adoptAccountName(found.pseudo)
+        adoptAccountSound(found.sound)
+      } else dropAccountName()
       setAccount(found)
     })
     return () => {

@@ -1,6 +1,6 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
 import styles from '@/pages/SettingsPage/SettingsMenu.module.scss'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Moon, RotateCcw, Sun, Volume2 } from 'lucide-react'
 import { settingsService, UserSettings } from '@/services/settingsService'
@@ -10,7 +10,10 @@ import ConfirmDialog from '@/components/common/ConfirmDialog'
 import BackLink from '@/components/common/BackLink'
 import SectionHeader from '@/components/common/SectionHeader'
 import { destinationLabelFor } from '@/components/layout/navItems'
-import { PROFILE_URL, useIozyAccount } from '@/lib/account/IozyAccount'
+import { PROFILE_URL, saveAccountSound, useIozyAccount } from '@/lib/account/IozyAccount'
+
+/** Le temps qu'un curseur de volume se pose avant d'écrire sur le compte. */
+const SOUND_SAVE_DELAY_MS = 400
 
 /** Les réglages, comme la page Profil d'IozyCore : une colonne étroite, une
  *  carte par sujet, chaque changement enregistré aussitôt (pas de bouton
@@ -24,11 +27,34 @@ export default function SettingsMenu() {
   const [showResetDialog, setShowResetDialog] = useState(false)
   // Même règle que getLocalPlayerAvatar : rien de choisi = l'avatar par défaut.
   const currentAvatar = isAvatarChoice(settings.avatar) ? settings.avatar : DEFAULT_AVATAR
+  // Avec un compte, le son est le réglage du profil commun d'Iozy : il part
+  // aussi sur le compte. Sans réponse, il reste sur l'appareil, et on le dit.
+  const [soundSaveFailed, setSoundSaveFailed] = useState(false)
+  const soundTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(
+    () => () => {
+      if (soundTimer.current) clearTimeout(soundTimer.current)
+    },
+    []
+  )
+
+  const shareSound = (enabled: boolean, volume: number) => {
+    if (!account) return
+    if (soundTimer.current) clearTimeout(soundTimer.current)
+    // Un glissé du curseur n'est pas vingt enregistrements : on attend qu'il se pose.
+    soundTimer.current = setTimeout(() => {
+      void saveAccountSound({ enabled, volume }).then((ok) => setSoundSaveFailed(!ok))
+    }, SOUND_SAVE_DELAY_MS)
+  }
 
   const handleSettingChange = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     const newSettings = { ...settings, [key]: value }
     setSettings(newSettings)
     settingsService.updateSetting(key, value)
+
+    if (key === 'soundEnabled' || key === 'soundVolume') {
+      shareSound(newSettings.soundEnabled, newSettings.soundVolume)
+    }
 
     // settingsService applique déjà le son ; on ne fait qu'entendre le changement.
     if (key === 'soundEnabled') {
@@ -46,6 +72,8 @@ export default function SettingsMenu() {
     settingsService.resetSettings()
     const defaultSettings = settingsService.getSettings()
     setSettings(defaultSettings)
+    // Le son d'origine vaut aussi pour le compte : sinon il reviendrait au prochain chargement.
+    shareSound(defaultSettings.soundEnabled, defaultSettings.soundVolume)
     soundManager.playClick()
     setShowResetDialog(false)
   }
@@ -56,7 +84,11 @@ export default function SettingsMenu() {
       <SectionHeader
         level={1}
         title="Réglages"
-        subtitle="Ces réglages restent sur cet appareil et s'appliquent aussitôt."
+        subtitle={
+          account
+            ? "Ils s'appliquent aussitôt. Le son suit ton compte Iozy ; le reste reste sur cet appareil."
+            : "Ces réglages restent sur cet appareil et s'appliquent aussitôt."
+        }
       />
 
       <section className={`${ds.card} ${styles.card}`} aria-labelledby="settings-account">
@@ -120,6 +152,18 @@ export default function SettingsMenu() {
           title={<span id="settings-sound">Son</span>}
           subtitle="Les sons de l'interface : clics, départ de manche, bonne réponse."
         />
+        {account && (
+          <p className={styles.hint} role="status">
+            {soundSaveFailed ? (
+              "Ton compte n'a pas répondu : le son reste réglé sur cet appareil pour l'instant."
+            ) : (
+              <>
+                Réglage partagé avec <a href={PROFILE_URL}>ton profil Iozy</a> : le changer ici le
+                change là-bas.
+              </>
+            )}
+          </p>
+        )}
 
         <div className={styles.row}>
           <label htmlFor="soundEnabled" className={styles.rowLabel}>

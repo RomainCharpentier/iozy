@@ -86,11 +86,12 @@ public class ReleaseRefreshService {
     public ReleaseRefreshService(List<ReleaseRefreshSource> sources, ReleaseRefreshRunRepository runs,
                                  @Value("${iozycore.releases.refresh.enabled:true}") boolean scheduledEnabled,
                                  @Value("${iozycore.releases.refresh.cron:" + DEFAULT_CRON + "}") String cron,
+                                 @Value("${iozycore.releases.refresh.zone:Europe/Paris}") String zone,
                                  @Value("${iozycore.releases.refresh.catch-up-after-hours:24}") long catchUpAfterHours,
                                  @Value("${iozycore.releases.refresh.retry-after-hours:6}") long retryAfterHours,
                                  @Value("${iozycore.releases.refresh.max-pass-minutes:30}") long maxPassMinutes) {
         this(sources, runs, scheduledEnabled, Clock.systemUTC(), ReleaseRefreshService::startOnOwnThread,
-                cron, ZoneId.systemDefault(), Duration.ofHours(catchUpAfterHours), Duration.ofHours(retryAfterHours),
+                cron, ZoneId.of(zone), Duration.ofHours(catchUpAfterHours), Duration.ofHours(retryAfterHours),
                 Duration.ofMinutes(maxPassMinutes));
     }
 
@@ -173,7 +174,7 @@ public class ReleaseRefreshService {
     }
 
     /** The night job. Recorded as skipped when another pass is still running. */
-    @Scheduled(cron = "${iozycore.releases.refresh.cron:" + DEFAULT_CRON + "}")
+    @Scheduled(cron = "${iozycore.releases.refresh.cron:" + DEFAULT_CRON + "}", zone = "${iozycore.releases.refresh.zone:Europe/Paris}")
     public void nightly() {
         if (!isScheduled()) {
             return;

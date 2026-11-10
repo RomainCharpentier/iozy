@@ -18,6 +18,8 @@ iozycore:
       enabled: ${RELEASES_REFRESH_ENABLED:true}
       # At 4:30, server time: nobody looks for volumes at that hour.
       cron: "0 30 4 * * *"
+      # The night slot is read in this zone, not in the one of the container (UTC).
+      zone: ${RELEASES_REFRESH_ZONE:Europe/Paris}
       series-per-run: ${RELEASES_REFRESH_SERIES_PER_NIGHT:10}
       # A series re-read less than a week ago is not re-read again.
       stale-after-days: 7

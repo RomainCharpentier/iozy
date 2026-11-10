@@ -299,6 +299,15 @@
     var(--iozy-glass-shadow);
   backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
   -webkit-backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
+  /* Un reflet suit le curseur sur le verre, comme une lampe passée devant une
+     vitre. Il est posé sur la fenêtre (attachment fixed) : toutes les vitres
+     le reçoivent d'un seul geste. Sans souris, il sort du cadre et disparaît. */
+  background-image: radial-gradient(
+    280px circle at var(--souris-x, -999px) var(--souris-y, -999px),
+    var(--iozy-glass-highlight),
+    transparent 70%
+  );
+  background-attachment: fixed;
 }
 
 .iozy-verre--fort {

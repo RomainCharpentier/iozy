@@ -1,3 +1,4 @@
+import { NombreAnime } from '@/common/components/NombreAnime'
 import { Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useOutlet } from 'react-router-dom'
@@ -48,7 +49,7 @@ export function ToBuyPage() {
 
   const nombre = lignes.length
   return (
-    <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-7">
+    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-8">
       {/* The page name for screen readers; the eye reads it from the nav and the list title. */}
       <h1 className="sr-only lg:col-span-2">À acheter</h1>
       <section aria-labelledby="titre-depense" className="flex min-w-0 flex-col gap-3 lg:pt-5">
@@ -62,7 +63,7 @@ export function ToBuyPage() {
         ) : (
           <>
             <p className="font-display text-[clamp(40px,13vw,104px)] leading-[0.85] font-bold tracking-[-0.045em] [overflow-wrap:anywhere] text-textPrimary">
-              {formaterEuros(mois.data.spent)}
+              <NombreAnime valeur={mois.data.spent} format={formaterEuros} />
             </p>
             <p className="text-base text-textDim">{detailDepense(mois.data.pricedCount, mois.data.unpricedCount)}</p>
             <div className="mt-3">

@@ -1,9 +1,11 @@
 package com.iozycore.core.api.auth;
 
+import com.iozycore.core.application.auth.AccountProfile;
 import com.iozycore.core.application.auth.AppUserDetailsService;
 import com.iozycore.core.application.auth.AuthService;
 import com.iozycore.core.application.auth.Invite;
 import com.iozycore.core.application.auth.Visite;
+import com.iozycore.core.domain.user.AccountPreferences;
 import com.iozycore.core.domain.user.AppUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +22,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -73,6 +77,7 @@ public class AuthController {
     private final AuthenticationManager authentification;
     private final SecurityContextRepository contextes;
     private final FailedAttemptThrottle throttle;
+    private final AccountProfile profile;
 
     /** The state of an instance, for a client that does not yet know what to show. */
     public record EtatReponse(boolean aucunCompte, boolean creationOuverte) {
@@ -94,18 +99,89 @@ public class AuthController {
      * separate shapes would have forced each screen to ask "which of the
      * two?" before even knowing whether there is someone.
      */
-    public record CompteReponse(UUID id, String email, String pseudo, boolean admin, boolean invite) {
+    public record CompteReponse(UUID id, String email, String pseudo, boolean admin, boolean invite,
+                                PreferencesDto preferences) {
         static CompteReponse de(AppUser compte) {
-            return new CompteReponse(compte.id(), compte.email(), compte.pseudo(), compte.admin(), false);
+            return new CompteReponse(compte.id(), compte.email(), compte.pseudo(), compte.admin(), false, null);
+        }
+
+        /**
+         * The account with its preferences (lot 218): what {@code GET /me} and
+         * {@code PATCH /me} answer. The other routes leave {@code preferences}
+         * null: "not said here", which a client tells from "nothing chosen"
+         * (an object whose fields are null).
+         */
+        static CompteReponse de(AppUser compte, AccountPreferences preferences) {
+            return new CompteReponse(compte.id(), compte.email(), compte.pseudo(), compte.admin(), false,
+                    PreferencesDto.from(preferences));
         }
 
         /** A visitor: no id, no address, no account. Just a word to name them. */
         static CompteReponse pourUnVisiteur() {
-            return new CompteReponse(null, null, "Visiteur", false, true);
+            return new CompteReponse(null, null, "Visiteur", false, true, null);
         }
 
         static CompteReponse de(AppUserDetailsService.Principal principal) {
-            return new CompteReponse(principal.id(), principal.email(), principal.pseudo(), principal.admin(), false);
+            return new CompteReponse(principal.id(), principal.email(), principal.pseudo(), principal.admin(), false,
+                    null);
+        }
+    }
+
+    /**
+     * A change of the common profile. Every field is optional: null keeps
+     * what the account has.
+     */
+    public record UpdateRequest(String pseudo, PreferencesDto preferences) {
+    }
+
+    /**
+     * The preferences of an account, for both apps. A null field: never
+     * chosen on the account, the client keeps its local setting.
+     *
+     * @param accent           {@code AUTO} (the cover colors) or {@code TERRACOTTA}
+     * @param appearance       {@code SYSTEM}, {@code DARK} or {@code LIGHT}
+     * @param titleComposition the three title languages, in order
+     * @param blindtestSound   the IozyTest sound effects
+     */
+    public record PreferencesDto(String accent, String appearance, List<TitleChoiceDto> titleComposition,
+                                 SoundDto blindtestSound) {
+
+        static PreferencesDto from(AccountPreferences preferences) {
+            return new PreferencesDto(
+                    preferences.accent() == null ? null : preferences.accent().name(),
+                    preferences.appearance() == null ? null : preferences.appearance().name(),
+                    preferences.titleComposition() == null ? null : preferences.titleComposition().stream()
+                            .map(c -> new TitleChoiceDto(c.language().name(), c.enabled())).toList(),
+                    preferences.blindtestSound() == null ? null
+                            : new SoundDto(preferences.blindtestSound().enabled(),
+                            preferences.blindtestSound().volume()));
+        }
+
+        /** @throws IllegalArgumentException a value the account cannot hold (400, with the reason) */
+        AccountPreferences toDomain() {
+            return new AccountPreferences(
+                    accent == null ? null : AccountPreferences.Accent.parse(accent),
+                    appearance == null ? null : AccountPreferences.Appearance.parse(appearance),
+                    titleComposition == null ? null : titleComposition.stream().map(TitleChoiceDto::toDomain).toList(),
+                    blindtestSound == null ? null : blindtestSound.toDomain());
+        }
+    }
+
+    public record TitleChoiceDto(String language, Boolean enabled) {
+        AccountPreferences.TitleChoice toDomain() {
+            if (enabled == null) {
+                throw new IllegalArgumentException("Chaque langue de titre doit dire si elle est cochée.");
+            }
+            return new AccountPreferences.TitleChoice(AccountPreferences.TitleLanguage.parse(language), enabled);
+        }
+    }
+
+    public record SoundDto(Boolean enabled, Integer volume) {
+        AccountPreferences.BlindtestSound toDomain() {
+            if (enabled == null || volume == null) {
+                throw new IllegalArgumentException("Le son du blindtest se règle en entier : activé et volume.");
+            }
+            return new AccountPreferences.BlindtestSound(enabled, volume);
         }
     }
 
@@ -206,7 +282,7 @@ public class AuthController {
      * type - so it arrived null, and a perfectly set up visitor
      * got a 401 from the only route meant to tell them who they are.
      */
-    @Operation(summary = "The signed-in account or the current visit (invite=true), or 401.")
+    @Operation(summary = "The signed-in account with its preferences, or the current visit (invite=true), or 401.")
     @GetMapping("/me")
     public CompteReponse me(Authentication authentifie) {
         Object qui = authentifie == null ? null : authentifie.getPrincipal();
@@ -214,9 +290,42 @@ public class AuthController {
             return CompteReponse.pourUnVisiteur();
         }
         if (qui instanceof AppUserDetailsService.Principal principal) {
-            return CompteReponse.de(principal);
+            // Read again, not taken from the session: the pseudo can change
+            // after sign-in (lot 218), from this tab or from another one.
+            return CompteReponse.de(profile.account(principal.id()), profile.preferences());
         }
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * Changes the pseudo and the preferences of the signed-in account (lot
+     * 218). A visit is refused before reaching here (read-only, see
+     * SecurityConfig).
+     */
+    @Operation(summary = "Change the pseudo and/or the preferences of the signed-in account. "
+            + "Null fields are kept. 400 with the reason for a bad or taken pseudo or a bad value.")
+    @PatchMapping("/me")
+    public CompteReponse update(@RequestBody UpdateRequest requete, Authentication authentifie,
+                                HttpServletRequest requeteHttp, HttpServletResponse reponseHttp) {
+        if (!(authentifie != null && authentifie.getPrincipal() instanceof AppUserDetailsService.Principal principal)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        AccountPreferences change = requete == null || requete.preferences() == null
+                ? null
+                : requete.preferences().toDomain();
+        AppUser compte = profile.update(principal.id(), requete == null ? null : requete.pseudo(), change);
+        if (!compte.pseudo().equals(principal.pseudo())) {
+            // The session keeps the principal written at sign-in: it gets the
+            // new pseudo too, so nothing reads the old one later.
+            var renomme = new AppUserDetailsService.Principal(principal.id(), principal.email(),
+                    principal.motDePasseHache(), compte.pseudo(), principal.admin());
+            SecurityContext contexte = SecurityContextHolder.createEmptyContext();
+            contexte.setAuthentication(new UsernamePasswordAuthenticationToken(renomme, null,
+                    authentifie.getAuthorities()));
+            SecurityContextHolder.setContext(contexte);
+            contextes.saveContext(contexte, requeteHttp, reponseHttp);
+        }
+        return CompteReponse.de(compte, profile.preferences());
     }
 
     @Operation(summary = "Close the session.")

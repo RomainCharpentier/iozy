@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, LibraryBig } from 'lucide-react'
-import { CLASSE_CARTE } from '@/common/components/Carte'
 import { EtatVide } from '@/common/components/EtatVide'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import type { EntityTypeDto } from '@/common/types/api'
@@ -15,7 +14,7 @@ import { contenuDuRayon } from './phrases'
  */
 export function BlocRayons({ rayons, typesParId }: { rayons: HomeShelfDto[]; typesParId: Map<string, EntityTypeDto> }) {
   return (
-    <section aria-labelledby="titre-rayons" className={CLASSE_CARTE}>
+    <section aria-labelledby="titre-rayons" className="border-t-2 border-textPrimary/80 pt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 id="titre-rayons" className="text-xs font-bold uppercase tracking-[0.14em] text-accentText">
           Dans tes rayons
@@ -31,7 +30,7 @@ export function BlocRayons({ rayons, typesParId }: { rayons: HomeShelfDto[]; typ
           <EtatVide compact icone={LibraryBig} titre="Tes rayons sont vides." detail="Chaque catégorie où tu possèdes une œuvre aura son rayon ici." />
         </div>
       ) : (
-        <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-[repeat(auto-fit,minmax(300px,1fr))]">
           {rayons.map((rayon) => {
             const type = typesParId.get(rayon.entityTypeId)
             const aspect = getEntityTypeVisual(type).aspectClassName
@@ -49,7 +48,7 @@ export function BlocRayons({ rayons, typesParId }: { rayons: HomeShelfDto[]; typ
                       ))}
                     </span>
                   )}
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block font-display text-lg font-bold text-textPrimary">{nom}</span>
                     <span className="mt-0.5 block text-sm text-textDim">{contenuDuRayon(rayon.workCount, rayon.objectCount)}</span>
                   </span>

@@ -23,6 +23,8 @@ import com.iozycore.core.domain.share.GiftLink;
 import com.iozycore.core.domain.share.GiftLinkRepository;
 import com.iozycore.core.domain.share.PinnedWorks;
 import com.iozycore.core.domain.share.PinnedWorksRepository;
+import com.iozycore.core.domain.user.AccountPreferences;
+import com.iozycore.core.domain.user.AccountPreferencesRepository;
 import com.iozycore.core.domain.work.WorkCollectorStatus;
 import com.iozycore.core.domain.work.WorkCollectorStatusRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -78,6 +80,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     @Autowired private MonthlyBudgetRepository budgets;
     @Autowired private GiftLinkRepository giftLinks;
     @Autowired private PinnedWorksRepository pins;
+    @Autowired private AccountPreferencesRepository preferences;
     @Autowired private JdbcTemplate jdbc;
 
     private final List<UUID> oeuvresCreees = new ArrayList<>();
@@ -149,7 +152,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void the_followed_works_the_collector_statuses_and_the_budget_go_with_the_account() {
+    void the_followed_works_the_collector_statuses_the_budget_and_the_preferences_go_with_the_account() {
         AppUser bob = compte("bob");
         Entity serie = catalogue.save(Entity.create(EntityTypeFixtures.MANGA.id(), "Dorohedoro " + UUID.randomUUID()));
         oeuvresCreees.add(serie.id());
@@ -160,6 +163,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         budgets.save(MonthlyBudget.create(new BigDecimal("150"), Instant.now()));
         giftLinks.save(GiftLink.issue(bob.id(), Instant.now()));
         pins.replace(new PinnedWorks(List.of(serie.id())));
+        preferences.save(new AccountPreferences(AccountPreferences.Accent.TERRACOTTA, null, null, null));
 
         connecte(DefaultOwner.ID);
         gestion.supprimer(bob.id(), DefaultOwner.ID);
@@ -169,6 +173,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         assertThat(lignesDe("purchase_budget", bob.id())).isZero();
         assertThat(lignesDe("gift_link", bob.id())).isZero();
         assertThat(lignesDe("share_pin", bob.id())).isZero();
+        assertThat(lignesDe("account_preferences", bob.id())).isZero();
     }
 
     @Test

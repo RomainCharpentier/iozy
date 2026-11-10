@@ -33,7 +33,7 @@ export function HomePage() {
     <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6">
       <header>
         <div className="flex flex-wrap items-end gap-x-6 gap-y-1">
-          <h1 className="font-display text-5xl leading-[0.9] font-bold tracking-[-0.04em] text-textPrimary md:text-6xl">
+          <h1 className="font-display text-[clamp(3.5rem,10.5vw,9rem)] leading-[0.8] font-bold tracking-[-0.06em] text-textPrimary">
             Ta semaine
           </h1>
           <p className="pb-1 text-sm text-textDim">{dateDuJour(now)} · composée avec ta collection</p>
@@ -62,7 +62,7 @@ export function HomePage() {
         <>
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
             <BlocUne une={semaine.une} now={now} />
-            <aside aria-label="Le reste de ta semaine" className={`${CLASSE_CARTE} flex flex-col gap-6`}>
+            <aside aria-label="Le reste de ta semaine" className="flex flex-col gap-7 lg:border-l lg:border-textPrimary/20 lg:pl-8">
               <BlocAussi aussi={semaine.aussi} now={now} />
               <div aria-hidden="true" className="h-px bg-textPrimary/20" />
               <BlocChiffre chiffre={semaine.chiffre} now={now} />

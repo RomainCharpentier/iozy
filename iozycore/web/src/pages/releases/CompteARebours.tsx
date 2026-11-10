@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { NombreAnime } from '@/common/components/NombreAnime'
 import { Jaquette } from '@/common/components/Jaquette'
 import { titreDuJour } from '@/common/lib/releaseDate'
 import type { Retour } from '@/common/lib/retour'
@@ -53,7 +54,7 @@ export function CompteARebours({
               /^\d+$/.test(nombre) ? 'text-[112px] md:text-[168px]' : 'text-6xl md:text-8xl'
             }`}
           >
-            {nombre}
+            {/^\d+$/.test(nombre) ? <NombreAnime valeur={Number(nombre)} /> : nombre}
           </span>
           {mot && <span aria-hidden="true" className="pb-2 text-xl font-semibold text-textDim md:pb-3.5">{mot}</span>}
         </p>

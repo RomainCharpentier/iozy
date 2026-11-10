@@ -193,6 +193,18 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
         return sessionOuverte(creation);
     }
 
+    @Test
+    void a_visitor_has_no_profile_to_change() throws Exception {
+        MockHttpSession visite = entrerEnVisite();
+
+        mockMvc.perform(patch("/api/auth/me").session(visite).with(csrf()).contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("pseudo", "Intrus"))))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/auth/me").session(visite))
+                .andExpect(jsonPath("$.pseudo").value("Visiteur"))
+                .andExpect(jsonPath("$.preferences").doesNotExist());
+    }
+
     private MockHttpSession entrerEnVisite() throws Exception {
         return sessionOuverte(mockMvc.perform(post("/api/auth/visite").with(csrf()))
                 .andExpect(status().isOk())

@@ -7,6 +7,7 @@ import { EnTeteMobile } from './EnTeteMobile'
 import { PiedDePage } from './PiedDePage'
 import { FondPleinCadre, PleinCadreProvider } from '@/common/components/pleinCadre/PleinCadre'
 import { useRefusDeVisite } from '@/common/hooks/useRefusDeVisite'
+import { usePreferencesCompte } from '@/common/hooks/usePreferencesCompte'
 
 /** Single switch point between the thumb bar (BarreOnglets, at the bottom,
  * fixed) and the top bar (BarreDuHaut, floating at the top) - see
@@ -95,7 +96,7 @@ function contentWidthFor(pathname: string): ContentWidth {
   // The detail page of a work has its own width - see `detail` above.
   // `/apercu` is the same page, read from the provider: same width, otherwise
   // the hero band would overhang a narrower column.
-  if (pathname.startsWith('/entity/') || pathname === '/apercu') return 'detail'
+  if (pathname.startsWith('/entity/') || pathname === '/apercu' || pathname.startsWith('/to-buy') || pathname.startsWith('/releases')) return 'detail'
   // The catalogue (lot 198) lays its works out as covers, like a shelf of
   // Ma collection: seven per row at 1,280 px, cramped in 672 px.
   if (
@@ -115,7 +116,8 @@ function contentWidthFor(pathname: string): ContentWidth {
   // The release calendar places a seven-column grid and, next to it,
   // the list of everything coming during the year (batch 146): two columns that
   // do not fit in 672 px.
-  if (pathname.startsWith('/releases')) return 'medium'
+  // The common profile (lot 218): the person on the left, the settings beside.
+  if (pathname === '/profile') return 'medium'
   return 'narrow'
 }
 
@@ -132,6 +134,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Here because it is the only component that wraps ALL the
   // private screens: a visit refusal must be explained wherever it comes from.
   useRefusDeVisite()
+  // The theme, the accent and the title languages follow the account (lot 218).
+  usePreferencesCompte()
   return (
     // No background here: the page is painted by the full-screen backdrop
     // (FondPleinCadre, fixed under everything), the cover of the moment.
