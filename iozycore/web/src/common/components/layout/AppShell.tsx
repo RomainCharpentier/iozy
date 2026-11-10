@@ -96,7 +96,7 @@ function contentWidthFor(pathname: string): ContentWidth {
   // The detail page of a work has its own width - see `detail` above.
   // `/apercu` is the same page, read from the provider: same width, otherwise
   // the hero band would overhang a narrower column.
-  if (pathname.startsWith('/entity/') || pathname === '/apercu' || pathname.startsWith('/to-buy') || pathname.startsWith('/releases')) return 'detail'
+  if (pathname.startsWith('/entity/') || pathname === '/apercu' || pathname.startsWith('/to-buy') || pathname === '/share' || pathname.startsWith('/releases')) return 'detail'
   // The catalogue (lot 198) lays its works out as covers, like a shelf of
   // Ma collection: seven per row at 1,280 px, cramped in 672 px.
   if (
