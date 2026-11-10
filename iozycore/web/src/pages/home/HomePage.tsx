@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { listWorks } from '@/common/api/works'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
@@ -125,60 +125,71 @@ export function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5">
-      <h1 className="text-xs font-semibold tracking-[0.14em] text-textDim uppercase">
-        <span className="sr-only">Ta semaine · </span>
-        {dateDuJour(now)}
-      </h1>
+    <div className="flex w-full flex-col gap-4">
+      <h1 className="sr-only">Ta semaine, {dateDuJour(now)}</h1>
       <Guide conseils={conseils} />
 
       <div className="grid gap-4 lg:grid-cols-12">
         {une && (
-          <Link to={`/entity/${une.work.entityId}`} className="tuile flex flex-col gap-5 overflow-hidden p-5 sm:flex-row sm:gap-6 lg:col-span-7 lg:p-6">
+          <Link to={`/entity/${une.work.entityId}`} className="tuile relative flex items-center gap-6 overflow-hidden p-5 lg:col-span-6 lg:h-[300px] lg:gap-8 lg:p-6">
+            {une.work.coverImageUrl && (
+              <img src={une.work.coverImageUrl} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-25 blur-2xl" />
+            )}
             <Jaquette
               src={une.work.coverImageUrl}
               loading="eager"
-              className="h-44 w-auto shrink-0 rounded-xl shadow-[0_24px_50px_-18px_rgb(0_0_0/0.7)] lg:h-60"
+              className="relative h-40 w-auto shrink-0 rounded-xl shadow-[0_24px_50px_-18px_rgb(0_0_0/0.7)] lg:h-full"
               repli={<SansImage titre={une.work.title} />}
             />
-            <span className="flex min-w-0 flex-col justify-end">
+            <span className="relative flex min-w-0 flex-col">
               <span className={kicker}>{une.reason === 'RELEASE' ? 'Cette semaine' : 'À la une'}</span>
-              <span className="mt-2 font-display text-[clamp(1.9rem,3.6vw,3.4rem)] leading-[0.95] font-bold tracking-[-0.04em] text-textPrimary [overflow-wrap:anywhere] [text-wrap:balance]">
+              <span className="mt-2 font-display text-[clamp(1.7rem,2.6vw,3rem)] leading-[0.98] font-bold tracking-[-0.04em] text-textPrimary [overflow-wrap:anywhere] [text-wrap:balance]">
                 {une.work.title}
               </span>
               <span className="mt-3 text-[15px] text-textDim">{pourquoiLaUne(une, now)}</span>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accentText">
+                Ouvrir la fiche <ArrowRight size={15} aria-hidden="true" />
+              </span>
             </span>
           </Link>
         )}
 
-        <Link to="/releases" className="tuile flex flex-col p-5 lg:col-span-2">
-          <span className={kicker}>Prochaine sortie</span>
-          {sortie ? (
-            <>
-              <span className="mt-auto pt-4 font-display text-[5.5rem] leading-[0.8] font-bold tracking-[-0.06em] text-textPrimary">
-                <NombreAnime valeur={sortie.jours} />
-              </span>
-              <span className="mt-1 text-sm font-semibold text-textDim">{sortie.jours > 1 ? 'jours' : 'jour'}</span>
-              <span className="mt-3 line-clamp-2 font-display text-[15px] leading-tight font-semibold text-textPrimary">{sortie.oeuvre.title}</span>
-            </>
-          ) : (
-            <span className="mt-auto pt-4 text-sm text-textDim">Rien d’annoncé pour l’instant.</span>
+        <Link to="/releases" className="tuile flex items-end justify-between gap-4 overflow-hidden p-5 lg:col-span-3 lg:h-[300px]">
+          <span className="flex min-w-0 flex-col self-stretch">
+            <span className={kicker}>Prochaine sortie</span>
+            {sortie ? (
+              <>
+                <span className="mt-auto font-display text-[6.5rem] leading-[0.8] font-bold tracking-[-0.06em] text-textPrimary">
+                  <NombreAnime valeur={sortie.jours} />
+                </span>
+                <span className="mt-2 text-sm font-semibold text-textDim">{sortie.jours > 1 ? 'jours' : 'jour'}</span>
+                <span className="mt-1 line-clamp-2 font-display text-[15px] leading-tight font-semibold text-textPrimary">{sortie.oeuvre.title}</span>
+              </>
+            ) : (
+              <span className="mt-auto text-sm text-textDim">Rien d’annoncé pour l’instant.</span>
+            )}
+          </span>
+          {sortie && (
+            <Jaquette src={sortie.oeuvre.coverImageUrl} className="h-32 w-auto shrink-0 rounded-lg lg:h-44" repli={<span />} />
           )}
         </Link>
 
         {chiffre && (
-          <div className="tuile flex flex-col p-5 lg:col-span-3">
+          <div className="tuile flex flex-col p-5 lg:col-span-3 lg:h-[300px]">
             <span className={kicker}>Ta collection</span>
-            <Link to="/collection" className="mt-auto pt-4 font-display text-[5.5rem] leading-[0.8] font-bold tracking-[-0.06em] text-textPrimary hover:text-accentText">
+            <Link to="/collection" className="mt-3 font-display text-[6.5rem] leading-[0.8] font-bold tracking-[-0.06em] text-textPrimary hover:text-accentText">
               <NombreAnime valeur={chiffre.totalObjects} />
             </Link>
-            <span className="mt-1 text-sm font-semibold text-textDim">{chiffre.totalObjects > 1 ? 'objets' : 'objet'}</span>
-            <ul className="mt-2 flex flex-wrap gap-x-4 text-sm text-textDim">
+            <span className="mt-2 text-sm font-semibold text-textDim">{chiffre.totalObjects > 1 ? 'objets' : 'objet'}</span>
+            <ul className="mt-auto flex flex-col gap-1.5">
               {rayons.map((rayon) => (
                 <li key={rayon.entityTypeId}>
-                  <Link to={`/collection/${rayon.entityTypeId}`} className="inline-flex min-h-11 items-center gap-1.5 hover:text-textPrimary">
-                    <b className="font-semibold text-textPrimary">{rayon.workCount}</b>
-                    {typesParId.get(rayon.entityTypeId)?.label ?? 'Catégorie'}
+                  <Link to={`/collection/${rayon.entityTypeId}`} className="group grid min-h-7 grid-cols-[2rem_7.5rem_1fr] items-center gap-2 text-sm text-textDim hover:text-textPrimary">
+                    <b className="font-display font-semibold text-textPrimary">{rayon.workCount}</b>
+                    <span className="truncate">{typesParId.get(rayon.entityTypeId)?.label ?? 'Catégorie'}</span>
+                    <span aria-hidden="true" className="h-1.5 rounded-full bg-softBtn">
+                      <span className="block h-full rounded-full bg-accent" style={{ width: `${Math.max(6, (rayon.objectCount / Math.max(1, chiffre.totalObjects)) * 100)}%` }} />
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -187,9 +198,9 @@ export function HomePage() {
         )}
 
         {presque && (
-          <div className="tuile flex flex-col gap-4 p-5 lg:col-span-5">
+          <div className="tuile flex flex-col gap-4 p-5 lg:col-span-4">
             <span className={kicker}>Presque fini</span>
-            <ul className="flex h-36 gap-2.5">
+            <ul className="flex h-40 gap-2.5">
               <Face oeuvre={presque.work} />
               {presque.missing.map((element) => (
                 <li key={element.key} className="h-full shrink-0">
@@ -211,26 +222,26 @@ export function HomePage() {
         )}
 
         {reste.length > 0 && (
-          <section aria-label="Derniers arrivés" className={`tuile flex min-w-0 flex-col gap-4 p-5 ${presque ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
-            <div className="flex items-baseline justify-between gap-3">
+          <section aria-label="Derniers arrivés" className={`tuile flex min-w-0 flex-col gap-4 p-5 ${presque ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+            <div className="flex items-center justify-between gap-3">
               <span className={kicker}>Derniers arrivés</span>
-              <Link to="/collection" className="inline-flex min-h-11 items-center text-sm font-semibold text-textDim hover:text-textPrimary">
-                Toute ma collection
+              <Link to="/collection" className="inline-flex min-h-7 items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary">
+                Toute ma collection <ArrowRight size={15} aria-hidden="true" />
               </Link>
             </div>
-            <ul className="flex h-36 flex-wrap content-start gap-2.5 overflow-hidden">
-              {reste.slice(0, 12).map((oeuvre) => (
-                <Face key={oeuvre.entityId} oeuvre={oeuvre} />
+            <ul className="flex h-40 flex-wrap gap-2.5 overflow-hidden">
+              {reste.slice(0, 10).map((oeuvre) => (
+                <Face key={oeuvre.entityId} oeuvre={oeuvre} hauteur={160} ratio={ratioDe(formeDe(oeuvre.entityTypeId))} />
               ))}
             </ul>
           </section>
         )}
       </div>
 
-      {reste.length > 12 && (
-        <ul className="flex h-[21.625rem] flex-wrap content-start gap-2.5 overflow-hidden lg:h-[386px]" aria-label="Le reste de ta collection">
-          {reste.slice(12).map((oeuvre) => (
-            <Face key={oeuvre.entityId} oeuvre={oeuvre} petite />
+      {reste.length > 10 && (
+        <ul className="flex h-[21.625rem] flex-wrap gap-2.5 overflow-hidden lg:h-[410px]" aria-label="Le reste de ta collection">
+          {reste.slice(10).map((oeuvre) => (
+            <Face key={oeuvre.entityId} oeuvre={oeuvre} hauteur={200} ratio={ratioDe(formeDe(oeuvre.entityTypeId))} petite />
           ))}
         </ul>
       )}
@@ -238,15 +249,43 @@ export function HomePage() {
   )
 }
 
-/** A cover in the wall, in its real proportions: the height is the row's, the width follows. */
-function Face({ oeuvre, petite, hate }: { oeuvre: { entityId: string; title: string; coverImageUrl: string | null }; petite?: boolean; hate?: boolean }) {
+/** The width over height of an aspect class of a type ("aspect-[2/3]", "aspect-square"). */
+function ratioDe(forme: string): number {
+  const lu = /aspect-\[(\d+)\/(\d+)\]/.exec(forme)
+  if (lu) return Number(lu[1]) / Number(lu[2])
+  return forme.includes('square') ? 1 : 2 / 3
+}
+
+/**
+ * A cover in the wall. With a ratio, it is a brick of a justified row: it
+ * starts at its natural width and grows to fill the row, so every row ends
+ * flush on the right (the cover is cropped by a few pixels at most). Without
+ * a ratio, it keeps its exact proportions at the height of its row.
+ */
+function Face({
+  oeuvre,
+  petite,
+  hate,
+  hauteur,
+  ratio,
+}: {
+  oeuvre: { entityId: string; title: string; coverImageUrl: string | null }
+  petite?: boolean
+  hate?: boolean
+  hauteur?: number
+  ratio?: number
+}) {
+  const brique = hauteur !== undefined && ratio !== undefined
   return (
-    <li className={`shrink-0 ${petite ? 'h-[10.5rem] lg:h-[188px]' : 'h-full'}`}>
+    <li
+      className={brique ? `min-w-0 grow ${petite ? 'h-[10.5rem] lg:h-[200px]' : 'h-full'}` : 'h-full shrink-0'}
+      style={brique ? { flexBasis: Math.round(hauteur * ratio), maxWidth: Math.round(hauteur * ratio * 1.3) } : undefined}
+    >
       <Link to={`/entity/${oeuvre.entityId}`} aria-label={oeuvre.title} title={oeuvre.title} className="face block h-full">
         <Jaquette
           src={oeuvre.coverImageUrl}
           loading={hate ? 'eager' : 'lazy'}
-          className="h-full w-auto rounded-lg"
+          className={brique ? 'h-full w-full rounded-lg object-cover' : 'h-full w-auto rounded-lg'}
           repli={<SansImage titre={oeuvre.title} />}
         />
       </Link>
@@ -256,7 +295,7 @@ function Face({ oeuvre, petite, hate }: { oeuvre: { entityId: string; title: str
 
 function SansImage({ titre }: { titre: string }) {
   return (
-    <span className="flex aspect-[2/3] h-full items-end rounded-[3px] bg-surface2 p-2 font-display text-xs leading-tight font-bold text-textDim">
+    <span className="flex aspect-[2/3] h-full items-end rounded-lg bg-surface2 p-2 font-display text-xs leading-tight font-bold text-textDim">
       {titre}
     </span>
   )

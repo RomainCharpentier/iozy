@@ -31,6 +31,7 @@ export function Guide({ conseils }: { conseils: Conseil[] }) {
   const { estInvite } = useAuth()
   const [rang, setRang] = useState(0)
   const [question, setQuestion] = useState('')
+  const [ouvert, setOuvert] = useState(false)
   const demande = useMutation({ mutationFn: (q: string | null) => askGuide(q) })
   const conseil = conseils.length > 0 ? conseils[rang % conseils.length] : null
   const plusieurs = conseils.length > 1
@@ -54,19 +55,19 @@ export function Guide({ conseils }: { conseils: Conseil[] }) {
   }
 
   return (
-    <section aria-label="Izy, ton guide" className="flex items-start gap-4">
+    <section aria-label="Izy, ton guide" className="flex items-center gap-3">
       <button
         type="button"
         onClick={suivant}
         disabled={!plusieurs && !reponse}
         aria-label={plusieurs ? 'Izy : conseil suivant' : 'Izy'}
         title={plusieurs ? 'Conseil suivant' : undefined}
-        className="guide mt-1 h-16 w-16 shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-default"
+        className="guide h-14 w-14 shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-default"
       >
         <Izy />
       </button>
-      <div className="tuile flex min-w-0 flex-1 flex-col gap-3 rounded-[22px] rounded-tl-md px-5 py-4 lg:max-w-3xl">
-        <div aria-live="polite" key={demande.isPending ? 'attente' : reponse ? reponse.text : (conseil?.cle ?? 'vide')} className="guide__bulle">
+      <div className="tuile flex min-w-0 flex-1 flex-col gap-x-6 gap-y-2 rounded-[22px] px-5 py-2.5 lg:flex-row lg:items-center">
+        <div aria-live="polite" key={demande.isPending ? 'attente' : reponse ? reponse.text : (conseil?.cle ?? 'vide')} className="guide__bulle min-w-0 flex-1">
           {demande.isPending ? (
             <p className="font-display text-lg font-semibold text-textDim">Izy regarde ta collection…</p>
           ) : demande.isError ? (
@@ -92,7 +93,7 @@ export function Guide({ conseils }: { conseils: Conseil[] }) {
           )}
         </div>
         {!estInvite && (
-          <>
+          <div className="relative lg:w-[400px] lg:shrink-0">
             <form onSubmit={envoyer} className="flex items-center gap-2">
               <label htmlFor="question-izy" className="sr-only">
                 Ta question à Izy
@@ -101,7 +102,10 @@ export function Guide({ conseils }: { conseils: Conseil[] }) {
                 id="question-izy"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
+                onFocus={() => setOuvert(true)}
+                onBlur={() => setOuvert(false)}
                 maxLength={300}
+                autoComplete="off"
                 placeholder="Demande quelque chose à Izy"
                 className="champ min-w-0 flex-1"
               />
@@ -109,21 +113,24 @@ export function Guide({ conseils }: { conseils: Conseil[] }) {
                 <Send size={16} aria-hidden="true" />
               </button>
             </form>
-            <ul className="flex flex-wrap gap-2" aria-label="Questions proposées">
-              {SUGGESTIONS.map((suggestion) => (
-                <li key={suggestion}>
-                  <button
-                    type="button"
-                    disabled={demande.isPending}
-                    onClick={() => demander(suggestion)}
-                    className="min-h-11 rounded-full border border-ligneVerre px-3.5 text-sm font-medium text-textDim hover:border-accent hover:text-textPrimary disabled:opacity-60"
-                  >
-                    {suggestion}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
+            {ouvert && (
+              <ul aria-label="Questions proposées" className="tuile absolute inset-x-0 top-full z-30 mt-2 flex flex-col gap-0.5 !bg-surface p-1.5">
+                {SUGGESTIONS.map((suggestion) => (
+                  <li key={suggestion}>
+                    <button
+                      type="button"
+                      disabled={demande.isPending}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => demander(suggestion)}
+                      className="min-h-11 w-full rounded-xl px-3 text-left text-sm font-medium text-textDim hover:bg-rowHover hover:text-textPrimary disabled:opacity-60"
+                    >
+                      {suggestion}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
     </section>
