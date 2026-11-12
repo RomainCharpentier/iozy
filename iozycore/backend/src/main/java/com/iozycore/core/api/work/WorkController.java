@@ -7,6 +7,7 @@ import com.iozycore.core.api.dto.WorkDtos.WorkProgressResponse;
 import com.iozycore.core.api.dto.WorkDtos.WorkResponse;
 import com.iozycore.core.application.work.WorkElementOwning;
 import com.iozycore.core.application.work.WorkReadModel;
+import com.iozycore.core.application.work.WorkStoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,13 @@ public class WorkController {
 
     private final WorkReadModel works;
     private final WorkElementOwning owning;
+    private final WorkStoryService story;
+
+    @Operation(summary = "What the work is about and, for a series, the story up to the last volume owned (written by a language model; says why when absent)")
+    @GetMapping("/{entityId}/story")
+    public WorkStoryService.Story story(@PathVariable UUID entityId) {
+        return story.story(entityId);
+    }
 
     @Operation(summary = "Every work the account owns or wishes, with its counts, most recently moved first")
     @GetMapping

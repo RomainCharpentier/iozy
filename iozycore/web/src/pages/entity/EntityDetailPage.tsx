@@ -1,3 +1,4 @@
+import { ResumeOeuvre } from './ResumeOeuvre'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
@@ -892,6 +893,7 @@ export function EntityDetailPage() {
           ) : (
             <div className="iozy-verre iozy-verre--fort h-64 animate-pulse rounded-[28px]" aria-hidden="true" />
           )}
+          {id && <ResumeOeuvre entityId={id} />}
           {(ajoutTome.isError || ajoutOeuvre.isError || possederElement.isError || retraitTome.isError) && (
             <ErrorBanner
               message={

@@ -26,7 +26,7 @@ function garder(donnees: RecommendationsDto): void {
 }
 
 /**
- * "Izy te recommande": works the account does not own and may like. A language
+ * "Recommandé pour toi": works the account does not own and may like. A language
  * model proposes them from the collection, and the server keeps only those a
  * catalog source confirms - so every card is a real work, with its cover, and
  * opens the add screen on it. Each one says why, by naming works already owned.
@@ -56,7 +56,7 @@ export function Recommandations({ nomDuType }: { nomDuType: (entityTypeId: strin
     <section aria-labelledby="titre-recos" className="tuile flex flex-col gap-4 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="titre-recos" className={kicker}>
-          Izy te recommande
+          Recommandé pour toi
         </h2>
         <button
           type="button"
@@ -65,7 +65,7 @@ export function Recommandations({ nomDuType }: { nomDuType: (entityTypeId: strin
           className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary disabled:opacity-60"
         >
           <RefreshCw size={14} aria-hidden="true" className={enCours ? 'animate-spin motion-reduce:animate-none' : ''} />
-          {enCours ? 'Izy cherche…' : 'D’autres idées'}
+          {enCours ? 'Recherche…' : 'D’autres idées'}
         </button>
       </div>
 
@@ -73,7 +73,7 @@ export function Recommandations({ nomDuType }: { nomDuType: (entityTypeId: strin
         <p className="text-sm text-dangerText">Les recommandations n’ont pas pu être chargées : {recos.error.message}</p>
       ) : !recos.data ? (
         <p aria-busy="true" className="text-[15px] text-textDim">
-          Izy parcourt ta collection et vérifie chaque idée dans le catalogue. Cela prend quelques dizaines de secondes.
+          Lecture de ta collection, puis vérification de chaque idée dans le catalogue. Cela prend quelques dizaines de secondes.
         </p>
       ) : recos.data.items.length === 0 ? (
         <p className="text-[15px] text-textDim">{recos.data.note ?? 'Rien à proposer pour l’instant.'}</p>

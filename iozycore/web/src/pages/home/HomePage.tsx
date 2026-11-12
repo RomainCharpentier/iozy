@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -13,9 +12,8 @@ import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import { queryKeys } from '@/common/lib/queryKeys'
 import type { WorkProgressDto } from '@/common/types/api'
 import { NombreAnime } from '@/common/components/NombreAnime'
-import { Guide, type Conseil } from './Guide'
 import { Recommandations } from './Recommandations'
-import { pourquoiLaUne, titreDeSortie, titrePresqueFini } from './phrases'
+import { pourquoiLaUne, titrePresqueFini } from './phrases'
 import { useSemaine } from './useSemaine'
 
 const JOUR_MS = 24 * 60 * 60 * 1000
@@ -41,12 +39,6 @@ function prochaineSortie(oeuvres: WorkProgressDto[], now: Date): { oeuvre: WorkP
     if (jours >= 0 && (!trouvee || jours < trouvee.jours)) trouvee = { oeuvre, jours }
   }
   return trouvee
-}
-
-function dansCombien(jours: number): ReactNode {
-  if (jours === 0) return <>sort <em>aujourd’hui</em>.</>
-  if (jours === 1) return <>sort <em>demain</em>.</>
-  return <>dans <em>{jours}</em> jours.</>
 }
 
 /**
@@ -111,24 +103,9 @@ export function HomePage() {
   const formeDe = (entityTypeId: string) => getEntityTypeVisual(typesParId.get(entityTypeId)).aspectClassName
   const kicker = 'text-[11px] font-bold tracking-[0.16em] text-accentText uppercase'
 
-  const conseils: Conseil[] = []
-  if (presque) {
-    conseils.push({ cle: 'presque', texte: titrePresqueFini(presque.work), to: `/entity/${presque.work.entityId}`, action: 'Voir ce qui manque' })
-  }
-  if (sortie) {
-    conseils.push({ cle: 'sortie', texte: <>{sortie.oeuvre.title} {dansCombien(sortie.jours)}</>, to: '/releases', action: 'Voir les sorties' })
-  }
-  if (une?.reason === 'RELEASE' && une.release) {
-    conseils.push({ cle: 'une', texte: titreDeSortie(une.work, une.release, now), to: `/entity/${une.work.entityId}`, action: 'Ouvrir la fiche' })
-  }
-  if (une?.reason === 'MOVED') {
-    conseils.push({ cle: 'arrivee', texte: <>Ton dernier arrivé : <em>{une.work.title}</em>.</>, to: `/entity/${une.work.entityId}`, action: 'Ouvrir la fiche' })
-  }
-
   return (
     <div className="flex w-full flex-col gap-4">
       <h1 className="sr-only">Ta semaine, {dateDuJour(now)}</h1>
-      <Guide conseils={conseils} />
 
       <div className="grid gap-4 lg:grid-cols-12">
         {une && (

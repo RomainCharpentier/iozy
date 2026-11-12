@@ -36,3 +36,17 @@ export function ownWorkElement(entityId: string, elementKey: string): Promise<Wo
     `/works/${encodeURIComponent(entityId)}/elements/${encodeURIComponent(elementKey)}/own`,
   )
 }
+
+/** What a work is about and where the collector stopped; texts are null when none can be given (see `note`). */
+export interface WorkStoryDto {
+  summary: string | null
+  soFar: string | null
+  upTo: number | null
+  ai: boolean
+  note: string | null
+}
+
+/** The summary of a work, written by a language model on the server. Slow: ask it on demand. */
+export function fetchWorkStory(entityId: string): Promise<WorkStoryDto> {
+  return get<WorkStoryDto>(`/works/${entityId}/story`)
+}

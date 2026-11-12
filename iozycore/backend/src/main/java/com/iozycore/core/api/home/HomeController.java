@@ -21,13 +21,6 @@ public class HomeController {
     private final HomeWeekService home;
     private final GuideService guide;
 
-    /** A question to Izy; a missing or blank question asks what deserves attention. */
-    public record GuideRequest(String question) {
-    }
-
-    public record GuideResponse(String text, boolean ai, String note) {
-    }
-
     @Operation(summary = "This week: the lead, also this week, the number, almost done, the shelves (each may be empty)")
     @GetMapping("/week")
     public HomeWeekResponse week() {
@@ -38,12 +31,5 @@ public class HomeController {
     @GetMapping("/recommendations")
     public GuideService.Recommendations recommendations() {
         return guide.recommend();
-    }
-
-    @Operation(summary = "Izy answers a question about the collection (a language model when configured, a computed sentence otherwise)")
-    @PostMapping("/guide")
-    public GuideResponse guide(@RequestBody(required = false) GuideRequest request) {
-        GuideService.GuideAnswer answer = guide.ask(request == null ? null : request.question());
-        return new GuideResponse(answer.text(), answer.ai(), answer.note());
     }
 }
