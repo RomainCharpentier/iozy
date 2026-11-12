@@ -200,8 +200,36 @@ export function HomePage() {
           </div>
         )}
 
+        {entreesMenu.length > 1 && reduit && (
+          <nav aria-label="Filtrer le mur" className="mt-8 hidden flex-col lg:flex">
+            {entreesMenu.map((entree) => {
+              const actif = entree.cle === filtreActif
+              return (
+                <button
+                  key={entree.cle}
+                  type="button"
+                  aria-pressed={actif}
+                  onClick={() => {
+                    setFiltre(entree.cle)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  className={`group flex min-h-14 items-baseline justify-between gap-4 border-t border-lineStrong py-2.5 text-left font-display text-[1.75rem] leading-none font-bold tracking-[-0.03em] transition-colors ${
+                    actif ? 'text-accentText' : 'text-textDim hover:text-textPrimary'
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span aria-hidden="true" className={`h-2 w-2 rounded-full transition-opacity ${actif ? 'bg-accent opacity-100' : 'opacity-0'}`} />
+                    {entree.libelle}
+                  </span>
+                  {entree.nombre !== null && <span className="text-lg font-semibold text-faint">{entree.nombre}</span>}
+                </button>
+              )
+            })}
+          </nav>
+        )}
+
         {entreesMenu.length > 1 && (
-          <nav aria-label="Filtrer le mur" className="mt-5 flex flex-wrap gap-2">
+          <nav aria-label="Filtrer le mur" className={`mt-5 flex flex-wrap gap-2 ${reduit ? 'lg:hidden' : ''}`}>
             {entreesMenu.map((entree) => {
               const actif = entree.cle === filtreActif
               return (
@@ -227,7 +255,7 @@ export function HomePage() {
           </nav>
         )}
 
-        <div className="mt-5 flex flex-wrap gap-2.5">
+        <div className="mt-6 flex flex-wrap gap-2.5">
           <Link to="/add" className="btn-primaire">
             Chercher ou ajouter
           </Link>

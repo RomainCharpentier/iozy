@@ -144,7 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <FondPleinCadre />
       {/* A veil behind the bars: what scrolls under them fades out instead of
           showing through, and the bar texts stay readable over any cover. */}
-      <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-30 h-20 bg-gradient-to-b from-background via-background/90 to-transparent lg:h-24" />
+      <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-30 h-24 bg-gradient-to-b from-background from-55% via-background/85 to-transparent lg:h-28" />
       <BarreDuHaut />
       <EnTeteMobile />
       {/* Below the headers and outside `<main>`: it is information about the
