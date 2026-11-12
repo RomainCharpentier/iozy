@@ -43,7 +43,7 @@ export function useIdees() {
     enabled: !estInvite,
   })
   return {
-    idees: (idees.data?.items ?? []).map((i) => ({ title: i.title, imageUrl: i.imageUrl })),
+    idees: (idees.data?.items ?? []).map((i) => ({ title: i.title, imageUrl: i.imageUrl, entityTypeId: i.entityTypeId })),
     enCours: idees.isFetching,
   }
 }

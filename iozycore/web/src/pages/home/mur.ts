@@ -15,6 +15,8 @@ export interface Tuile {
   titre: string
   couverture: string | null
   to: string
+  /** The type of the work, to filter the wall by category. */
+  entityTypeId: string | null
   signe: SigneTuile | null
   /** Days before a release, for the sign "SORTIE". */
   jours?: number
@@ -23,6 +25,7 @@ export interface Tuile {
 export interface Idee {
   title: string
   imageUrl: string | null
+  entityTypeId: string | null
 }
 
 const JOUR_MS = 24 * 60 * 60 * 1000
@@ -92,7 +95,7 @@ export function construireMur(oeuvres: WorkProgressDto[], idees: Idee[], now: Da
   const oeuvresTuiles: Tuile[] = oeuvres
     .filter((o) => o.ownedCount > 0 || o.wishedCount > 0)
     .map((o) => {
-      const base = { cle: o.entityId, titre: o.title, couverture: o.coverImageUrl, to: `/entity/${o.entityId}` }
+      const base = { cle: o.entityId, titre: o.title, couverture: o.coverImageUrl, to: `/entity/${o.entityId}`, entityTypeId: o.entityTypeId }
       if (sorties.has(o.entityId)) return { ...base, signe: 'SORTIE' as const, jours: sorties.get(o.entityId) }
       if (o.ownedCount === 0) return { ...base, signe: 'ENVIE' as const }
       if (o.entityId === nouveauId) return { ...base, signe: 'NOUVEAU' as const }
@@ -107,6 +110,7 @@ export function construireMur(oeuvres: WorkProgressDto[], idees: Idee[], now: Da
       titre: idee.title,
       couverture: idee.imageUrl,
       to: `/add?q=${encodeURIComponent(idee.title)}`,
+      entityTypeId: idee.entityTypeId,
       signe: 'IDEE',
     })
   })
