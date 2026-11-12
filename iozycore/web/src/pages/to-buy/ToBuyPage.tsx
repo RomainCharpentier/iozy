@@ -49,11 +49,11 @@ export function ToBuyPage() {
 
   const nombre = lignes.length
   return (
-    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-8">
+    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 lg:grid lg:grid-cols-[440px_minmax(0,1fr)] lg:items-stretch lg:gap-0">
       {/* The page name for screen readers; the eye reads it from the nav and the list title. */}
       <h1 className="sr-only lg:col-span-2">À acheter</h1>
-      <section aria-labelledby="titre-depense" className="flex min-w-0 flex-col gap-3 lg:pt-5">
-        <h2 id="titre-depense" className="iozy-teinte text-[13px] font-semibold tracking-[0.16em] text-accentText uppercase">
+      <section aria-labelledby="titre-depense" className="flex min-w-0 flex-col gap-3 bg-accent p-7 text-accentInk lg:min-h-[34rem] lg:p-9 [&_.iozy-verre]:!bg-background [&_.iozy-verre]:text-textPrimary">
+        <h2 id="titre-depense" className="iozy-teinte text-[13px] font-bold tracking-[0.16em] uppercase">
           {mois.data ? libelleMoisDepense(mois.data.month) : 'Dépensé ce mois-ci'}
         </h2>
         {mois.isPending ? (
@@ -62,10 +62,10 @@ export function ToBuyPage() {
           <ErrorBanner message={mois.error.message} />
         ) : (
           <>
-            <p className="font-display text-[clamp(40px,13vw,104px)] leading-[0.85] font-bold tracking-[-0.045em] [overflow-wrap:anywhere] text-textPrimary">
+            <p className="font-display text-[clamp(56px,15vw,150px)] leading-[0.85] font-bold tracking-[-0.06em] [overflow-wrap:anywhere]">
               <NombreAnime valeur={mois.data.spent} format={formaterEuros} />
             </p>
-            <p className="text-base text-textDim">{detailDepense(mois.data.pricedCount, mois.data.unpricedCount)}</p>
+            <p className="text-base font-medium">{detailDepense(mois.data.pricedCount, mois.data.unpricedCount)}</p>
             <div className="mt-3">
               <BlocBudget
                 depense={mois.data.spent}
@@ -77,17 +77,17 @@ export function ToBuyPage() {
           </>
         )}
         <div className="mt-2 flex flex-wrap gap-2">
-          <Link to="analyse" className="btn-secondaire">
+          <Link to="analyse" className="btn-secondaire !bg-background !text-textPrimary">
             <ScanSearch size={16} />
             Analyser une annonce
           </Link>
         </div>
       </section>
 
-      <section aria-labelledby="titre-liste" className="flex min-w-0 flex-col gap-3">
+      <section aria-labelledby="titre-liste" className="flex min-w-0 flex-col gap-3 lg:pl-10">
         <div className="flex items-baseline justify-between gap-3 px-1">
           <h2 id="titre-liste" className="font-display text-xl font-bold text-textPrimary">
-            Ta liste
+            À trouver
           </h2>
           {nombre > 0 && (
             <p className="text-sm text-textDim">

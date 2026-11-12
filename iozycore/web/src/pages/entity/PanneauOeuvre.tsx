@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react'
 import type { CollectorStatus, WorkDto } from '@/common/types/api'
-import { AnneauProgression } from './AnneauProgression'
 import { LIBELLES_STATUT, phraseDesManques, phraseDuCompte, phraseProchaineSortie } from './elementsOeuvre'
 
 /**
@@ -44,25 +43,31 @@ export function PanneauOeuvre({
           {totalConnu ? `${work.totalCount} au catalogue` : `${work.elements.length} au catalogue`}
         </p>
       ) : (
-        <div className="flex flex-wrap items-center gap-5">
-          {totalConnu && <AnneauProgression possedes={work.ownedCount} total={work.totalCount!} />}
-          <div className="flex min-w-[min(100%,14rem)] flex-1 flex-col gap-1.5">
-            <p className="font-display text-6xl leading-[0.9] font-bold tracking-[-0.04em] text-textPrimary md:text-7xl">
+        <>
+          {/* The count is a flat block of the cover colour, in ink: the number is
+              the first thing seen. The editable total and the shelving gestures,
+              which have their own surfaces, sit under it. */}
+          <div className="-mx-5 -mt-5 flex flex-col gap-2 rounded-t-[28px] bg-accent p-6 text-accentInk md:-mx-6 md:-mt-6 md:p-8">
+            <p className="font-display text-[clamp(4.5rem,11vw,8.5rem)] leading-[0.85] font-bold tracking-[-0.06em]">
               {/* "1 / 6" is read "1 slash 6": the figures are for the eye, the phrase for the ear. */}
               <span aria-hidden="true">{totalConnu ? `${work.ownedCount} / ${work.totalCount}` : `${work.ownedCount}`}</span>
               <span className="sr-only">{phraseDuCompte(work)}</span>
             </p>
-            {total}
-            <p className="font-display text-xl font-bold text-textPrimary">{phraseDesManques(work)}</p>
+            <p className="font-display text-xl font-bold">{phraseDesManques(work)}</p>
             {work.nextRelease && (
-              <p className="text-[15px] text-textDim">
-                <span className="font-semibold text-textPrimary">Prochaine sortie : </span>
+              <p className="text-[15px] font-medium">
+                <span className="font-bold">Prochaine sortie : </span>
                 {phraseProchaineSortie(work.nextRelease)}
               </p>
             )}
           </div>
-          {miseDeCote}
-        </div>
+          {(total || miseDeCote) && (
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {total}
+              {miseDeCote}
+            </div>
+          )}
+        </>
       )}
       {statut}
       {grille}
