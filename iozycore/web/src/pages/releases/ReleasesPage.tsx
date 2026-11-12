@@ -93,6 +93,23 @@ export function ReleasesPage() {
     if (rangee.current && aujourdhuiRef.current) rangee.current.scrollLeft = Math.max(0, aujourdhuiRef.current.offsetLeft - 150)
   }, [aVenir.length, entrees.length])
 
+  // The wheel moves the row sideways while the pointer is over it, so one can
+  // scroll it without a trackpad. At either end the wheel goes back to the page.
+  useEffect(() => {
+    const element = rangee.current
+    if (!element) return
+    const surRoulette = (event: WheelEvent) => {
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
+      const max = element.scrollWidth - element.clientWidth
+      const versLaDroite = event.deltaY > 0
+      if (max <= 0 || (versLaDroite && element.scrollLeft >= max - 1) || (!versLaDroite && element.scrollLeft <= 0)) return
+      event.preventDefault()
+      element.scrollLeft += event.deltaY
+    }
+    element.addEventListener('wheel', surRoulette, { passive: false })
+    return () => element.removeEventListener('wheel', surRoulette)
+  }, [aVenir.length, entrees.length])
+
   const jeLAi = useJeLAiSortie()
   const onJeLAi = estInvite ? undefined : (entry: ReleaseEntryDto) => jeLAi.mutate(entry)
   const enCours = (entry: ReleaseEntryDto) => jeLAi.isPending && jeLAi.variables === entry
