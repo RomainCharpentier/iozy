@@ -123,7 +123,7 @@ export function ReleasesPage() {
 
       {toutes.length > 0 && (
         <>
-          <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+          <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 pt-3">
             <div>
               <p className="font-display text-[clamp(4.5rem,11vw,9rem)] leading-[0.85] font-bold tracking-[-0.06em] text-textPrimary">Sorties</p>
               <p className="mt-2 text-[15px] text-textDim">
@@ -146,7 +146,7 @@ export function ReleasesPage() {
             )}
           </header>
 
-          <section aria-label="Frise des sorties" className="relative -mx-4 md:-mx-6">
+          <section aria-label="Frise des sorties" className="relative -mx-4 [mask-image:linear-gradient(90deg,transparent,#000_24px,#000_calc(100%-56px),transparent)] md:-mx-6">
             <div ref={rangee} className="defilement-discret flex items-end gap-5 overflow-x-auto px-4 pb-6 md:px-6">
               {entrees.length > 0 && (
                 <ul aria-label="Ce qui est entré" className="flex shrink-0 items-end gap-4 opacity-80">
@@ -168,7 +168,7 @@ export function ReleasesPage() {
                 </ul>
               )}
 
-              <div ref={aujourdhuiRef} aria-hidden="true" className="relative mx-2 flex h-[26rem] w-1 shrink-0 self-end rounded-full bg-textPrimary">
+              <div ref={aujourdhuiRef} aria-hidden="true" className="relative mx-2 flex h-[21rem] w-1 shrink-0 self-end rounded-full bg-textPrimary">
                 <span className="absolute top-0 right-4 w-32 text-right text-[11px] font-bold tracking-[0.16em] text-textPrimary uppercase">Aujourd’hui</span>
               </div>
 
@@ -185,9 +185,10 @@ export function ReleasesPage() {
                   </li>
                 ))}
               </ul>
+              <p className="w-44 shrink-0 pb-10 text-sm text-textDim">
+                {aVenir.length > 3 ? 'C’est tout pour l’année.' : 'Rien d’autre d’annoncé pour l’instant.'}
+              </p>
             </div>
-            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-background to-transparent" />
-            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-background to-transparent" />
           </section>
         </>
       )}
@@ -219,7 +220,7 @@ function Sortie({
   const jours = auJour ? joursAvant(entry.date, aujourdHui) : null
   const [a, m] = entry.date.split('-').map(Number)
   const mois = MOIS_COURT.format(new Date(Date.UTC(a, m - 1, 1)))
-  const largeur = grande ? 'w-60 md:w-72' : 'w-36 md:w-44'
+  const largeur = grande ? 'w-52 md:w-60' : 'w-36 md:w-44'
   const nom = `${nomDeSortie(entry)}, ${auJour ? (jours === 0 ? "aujourd'hui" : `dans ${jours} jour${(jours ?? 0) > 1 ? 's' : ''}`) : `en ${mois}, date à préciser`}${manquante && onJeLAi ? " : je l'ai précommandé" : ''}`
 
   const contenu = (
@@ -233,7 +234,7 @@ function Sortie({
       </span>
       <span
         aria-hidden="true"
-        className={`mt-3 block font-display leading-[0.85] font-bold tracking-[-0.05em] text-textPrimary ${grande ? 'text-[5.5rem] md:text-[7rem]' : 'text-5xl'}`}
+        className={`mt-3 block font-display leading-[0.85] font-bold tracking-[-0.05em] text-textPrimary ${grande ? 'text-[4.5rem] md:text-[6rem]' : 'text-5xl'}`}
       >
         {jours !== null ? (
           jours <= 0 ? (
