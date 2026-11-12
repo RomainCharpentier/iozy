@@ -9,7 +9,7 @@ import { GlobalShortcuts } from './GlobalShortcuts'
  */
 export function EnTeteMobile() {
   return (
-    <header className="flex items-center gap-3 px-4 pt-3 lg:hidden">
+    <header className="relative z-40 flex items-center gap-3 px-4 pt-3 lg:hidden">
       <Link to="/" className="iozy-verre iozy-barre__pilule iozy-barre__marque !mr-0 !px-5" aria-label="Iozy, accueil">
         Iozy
       </Link>
