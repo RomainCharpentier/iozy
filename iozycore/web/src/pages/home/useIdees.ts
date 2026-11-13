@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchRecommendations, type RecommendationsDto } from '@/common/api/home'
 import { useAuth } from '@/common/hooks/useAuth'
+import type { Idee } from './mur'
 
-const CLE = 'iozycore.recommandations'
+const CLE = 'iozycore.recommandations.v2'
 
 /** The ideas kept for the day in this browser: asking again costs a model call and several searches. */
 function duJour(): RecommendationsDto | undefined {
@@ -42,8 +44,11 @@ export function useIdees() {
     retry: false,
     enabled: !estInvite,
   })
-  return {
-    idees: (idees.data?.items ?? []).map((i) => ({ title: i.title, imageUrl: i.imageUrl, entityTypeId: i.entityTypeId })),
-    enCours: idees.isFetching,
-  }
+  // The same array while the data does not change: the wall is composed again only when it must.
+  const items = idees.data?.items
+  const liste = useMemo<Idee[]>(
+    () => (items ?? []).map((i) => ({ title: i.title, imageUrl: i.imageUrl, entityTypeId: i.entityTypeId, why: i.why })),
+    [items],
+  )
+  return { idees: liste, enCours: idees.isFetching }
 }

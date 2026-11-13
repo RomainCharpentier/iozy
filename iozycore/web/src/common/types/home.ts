@@ -2,7 +2,7 @@ import type { CollectorStatus, UUID, WorkElementState } from './api'
 
 // --- The home page "ta semaine" (lot 212): GET /api/home/week ---
 // Every block may be empty (null or []). The server says WHY a work is there;
-// the sentences are written on the client, in French (see pages/home/phrases).
+// the sentences are written on the client, in French.
 
 /** A work as a home block shows it. */
 export interface HomeWorkDto {
