@@ -10,8 +10,6 @@ on:
     paths:
       - "iozycore/web/package.json"
       - "iozycore/web/package-lock.json"
-      - "iozytest/package.json"
-      - "iozytest/package-lock.json"
       - ".github/workflows/dependency-audit.yml"
   schedule:
     - cron: "0 6 * * 1"
@@ -30,7 +28,6 @@ jobs:
       matrix:
         folder:
           - iozycore/web
-          - iozytest
     defaults:
       run:
         working-directory: ${{ matrix.folder }}

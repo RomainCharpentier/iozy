@@ -115,13 +115,14 @@ la réinstaller depuis `/core/` la ramène à son écran.
 Le blindtest vit sous `https://ton-nom.synology.me/test`. Rien à
 ajouter côté DSM : l'entrée de reverse proxy ci-dessus suffit, nginx (conteneur
 `web`) achemine `/test/` vers le conteneur `iozytest`, WebSocket compris. Son
-image `ghcr.io/romaincharpentier/iozytest-app` est construite depuis `iozytest/` de
-ce dépôt par le workflow de déploiement, et Watchtower la suit comme les deux
-autres (`docker-compose.nas.yml`). Ses questions vivent dans le volume
+image `ghcr.io/romaincharpentier/iozytest-app` a été publiée par ce dépôt
+jusqu'au 2026-11-13. IozyTest a désormais son propre dépôt, qui n'a pas encore
+de workflow de publication : cette image ne suit plus le code tant qu'il n'en a
+pas (`docker-compose.nas.yml` la tire toujours). Ses questions vivent dans le volume
 `iozyplay_data`.
 
-En local, le même montage vient avec `docker compose up --build`, puis
-`http://localhost:8081/test/`.
+En local, le même montage vient avec `docker compose up --build` (IozyTest
+cloné à côté de ce dépôt, dans `../iozytest`), puis `http://localhost:8081/test/`.
 
 La page d'accueil est construite avec le web (`iozycore/web/home/`) et servie
 par le même nginx à la racine. Dans chaque app, la marque en haut à gauche

@@ -1,15 +1,13 @@
 {
   "name": "iozy",
   "private": true,
-  "description": "Root shortcuts only. No workspaces: each folder keeps its own package.json and lockfile.",
+  "description": "Root shortcuts only. IozyTest and IozyKit have their own repositories since 2026-11-13.",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "check": "npm run check:kit && npm run check:web && npm run check:test",
-    "check:kit": "npm --prefix iozykit test",
+    "check": "npm run check:web",
     "check:web": "npm --prefix iozycore/web test && npm --prefix iozycore/web run typecheck && npm --prefix iozycore/web run lint",
-    "check:test": "npm --prefix iozytest run typecheck && npm --prefix iozytest run lint && npm --prefix iozytest test && npm --prefix iozytest run test:unit",
     "up": "docker compose -f iozycore/backend/docker-compose.yml up --build -d"
   }
 }

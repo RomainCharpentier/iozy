@@ -1,0 +1,9 @@
+# The web image is built from this folder (see Dockerfile): keep the context
+# small and free of local state.
+node_modules
+dist
+test-results
+playwright-report
+e2e/.auth
+*.local.md
+.env

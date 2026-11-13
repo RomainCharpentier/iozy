@@ -62,7 +62,7 @@
       "name": "iozytest-server",
       "runtimeExecutable": "node",
       "runtimeArgs": [
-        "iozytest/server/index.js"
+        "../iozytest/server/index.js"
       ],
       "port": 3001
     },
@@ -73,7 +73,7 @@
         "run",
         "dev",
         "--prefix",
-        "iozytest",
+        "../iozytest",
         "--",
         "--port",
         "5175",

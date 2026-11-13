@@ -77,10 +77,8 @@ services:
       - media_data:/app/media
 
   web:
-    # Context = the repository root: the image needs iozykit/ there.
     build:
-      context: ../..
-      dockerfile: iozycore/web/Dockerfile
+      context: ../web
     restart: unless-stopped
     depends_on:
       - iozycore-api
@@ -88,11 +86,12 @@ services:
       - "8081:80"
 
   # IozyTest (the blindtest), served by the same nginx under /test: one
-  # address for every Iozy app. Built from iozytest/ of this repository.
+  # address for every Iozy app. IozyTest has its own repository since
+  # 2026-11-13: it is built from a clone of it NEXT TO this one
+  # (Projets/iozytest beside the folder of this repository).
   iozytest:
     build:
-      context: ../..
-      dockerfile: iozytest/Dockerfile
+      context: ../../../iozytest
     restart: unless-stopped
     volumes:
       - iozyplay_data:/app/data

@@ -125,9 +125,9 @@ services:
       com.centurylinklabs.watchtower.enable: "true"
 
   # IozyTest (the blindtest), under /test behind the same nginx: one address,
-  # one certificate, one reverse proxy entry. Its image is built from
-  # iozytest/ of this repository by the deploy workflow, like the two others;
-  # watchtower follows it the same way. The questions added from the app live
+  # one certificate, one reverse proxy entry. Its image was published by this
+  # repository until 2026-11-13; IozyTest now has its own repository, with no
+  # publish workflow yet, so this tag no longer follows its code. The questions added from the app live
   # in the volume.
   iozytest:
     image: ghcr.io/romaincharpentier/iozytest-app:latest

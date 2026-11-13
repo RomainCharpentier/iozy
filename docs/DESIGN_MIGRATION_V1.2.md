@@ -2212,3 +2212,20 @@ Le menu du sélecteur n'apparaît que sous /core/ et /test/ (seule à la racine,
 
 Vérifié : `npm run check` à la racine (kit 142 paires AA, IozyCore 752 tests, IozyTest 260 tests
 front), tests du serveur IozyTest, typecheck et lint des deux apps ; 28 parcours e2e d'IozyCore.
+
+### Lot 235 — IozyTest et IozyKit reprennent leur dépôt
+
+Le propriétaire a voulu séparer les apps : un catalogue de collection et un jeu de blindtest n'ont ni
+les mêmes utilisateurs ni le même rythme. IozyTest et IozyKit quittent ce dépôt avec leur historique
+(`git filter-repo`), relié à celui de leurs anciens dépôts par un commit de fusion, sans rien
+réécrire : IozyKit retrouve `IozyKit` (tag `v0.1.0`), IozyTest retrouve `blindtest-webapp`, renommé
+`iozytest`. Ce dépôt redevient celui d'IozyCore et du site.
+
+Le web lit la charte depuis l'archive HTTPS du tag (pas `github:`, qui exigerait git et une clé SSH
+dans l'image et en CI) ; son image se construit depuis `iozycore/web`. La pile locale construit
+IozyTest depuis le clone voisin `../iozytest`. La CI ne garde que les contrôles et les images
+d'IozyCore ; IozyTest a ses propres contrôles. L'image `iozytest-app` du NAS n'est plus publiée.
+
+Vérifié : 752 tests web, typecheck, lint, contraste AA, frontières, build sous /core ; 28 parcours
+e2e ; pile Docker reconstruite depuis les nouveaux contextes, 34 contrôles de déploiement sur :8081 ;
+IozyTest seul (lint, build, 150 tests serveur, 260 tests front, image Docker) dans son dépôt.

@@ -1,19 +1,19 @@
-# Iozy
+# IozyCore
 
-Un seul dépôt pour trois dossiers de même rang, réunis le 2026-10-17 en gardant leur historique :
+Le dépôt d'IozyCore et du site. IozyTest et IozyKit l'ont partagé du 2026-10-17 au 2026-11-13 ; ils ont repris leur propre dépôt, avec leur historique, et se clonent **à côté** de celui-ci (`Projets/iozytest`, `Projets/iozykit`).
 
 - `iozycore/` : IozyCore, le catalogue de collection (backend Spring Boot, client web React, app iOS hors service, maquettes). Son `CLAUDE.md` décrit l'architecture ; lis-le quand tu y travailles.
-- `iozytest/` : IozyTest, le blindtest (serveur Node + front React). Son `CLAUDE.md`.
-- `iozykit/` : la charte graphique commune, dépendance locale des deux apps (`file:` vers ce dossier).
+- IozyKit, la charte commune : une dépendance du web épinglée sur un tag (archive HTTPS `IozyKit/archive/refs/tags/vX.Y.Z.tar.gz` dans `iozycore/web/package.json`). Changer la charte : un commit et un tag dans IozyKit, puis la nouvelle adresse ici et `npm install`.
+- IozyTest, le blindtest, une app voisine : la pile Docker locale le construit depuis le clone voisin `../iozytest`.
 - `docs/` : les documents communs (déploiement, exploitation, conception, journal des lots).
 - `tools/` : outillage personnel, hors produit (lab Claude, Nomik). Aucune app n'en dépend.
 
-Le site est une seule adresse : `/` la page d'accueil, `/core/` IozyCore, `/test/` IozyTest, `/api/` l'API. Le nginx d'IozyCore (`iozycore/web/nginx.conf`) route tout ; `iozycore/backend/docker-compose.yml` lance la pile complète en local.
+Le site reste une seule adresse : `/` la page d'accueil, `/core/` IozyCore, `/test/` IozyTest, `/api/` l'API. Le nginx d'IozyCore (`iozycore/web/nginx.conf`) route tout ; `iozycore/backend/docker-compose.yml` lance la pile complète en local.
 
 ## Règles qui valent partout
 
 - **Langue** :
-  - **En anglais** : le code et tout ce qui s'y rattache (identifiants nouveaux, commentaires, noms de tests, messages de log) et les **messages de commit**. Anglais simple : phrases courtes, mots courants, pas d'idiomes. Exception : `iozytest/` et `iozykit/` ont gardé leurs commentaires et leurs commits en français ; suis l'usage du dossier.
+  - **En anglais** : le code et tout ce qui s'y rattache (identifiants nouveaux, commentaires, noms de tests, messages de log) et les **messages de commit**. Anglais simple : phrases courtes, mots courants, pas d'idiomes. (IozyTest et IozyKit, dans leurs dépôts, gardent leurs commentaires et commits en français.)
   - **En français** : **tous les fichiers `.md`**, les **textes que lit l'utilisateur** (libellés, messages, aides) et la discussion avec le propriétaire.
   - Les identifiants existants sont en partie français. **Ne renomme pas en masse** : le nouveau code est en anglais, et en modifiant une ligne existante tu n'anglicises que ce que tu touches déjà.
   - Un nom déjà public ou stocké reste tel quel : une route, une clé d'URL, une colonne livrée. Ne modifie jamais une migration Flyway déjà livrée.
@@ -28,9 +28,7 @@ Le site est une seule adresse : `/` la page d'accueil, `/core/` IozyCore, `/test
 | `iozycore/web/` | `npm test`, `npm run typecheck`, `npm run lint` (voir `iozycore/web/CLAUDE.md`) |
 | `iozycore/backend/` | un sous-ensemble ciblé de tests (voir `iozycore/backend/CLAUDE.md`) |
 | un parcours d'écran | `npm run test:e2e` dans `iozycore/web/` |
-| `iozytest/` | `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:unit` (voir `iozytest/CLAUDE.md`) |
-| `iozykit/` | `npm test` (régénère le CSS et vérifie le contraste AA) |
-| plusieurs dossiers | `npm run check` à la racine : kit, IozyCore web, IozyTest (pas le backend) |
+| la version du kit | `npm install` dans `iozycore/web/`, puis `npm test`, `npm run check:contrast` |
 | nginx, Dockerfile, compose | `docker compose up --build` dans `iozycore/backend/`, puis `npm run check:deploiement http://localhost:8081` dans `iozycore/web/` |
 
 Une vérification qui ne s'exécute pas ne vaut rien : plusieurs commandes évidentes ne contrôlent rien ici (`npx tsc --noEmit`, `mvn` sans Docker). Voir les pièges dans chaque sous-dossier.
@@ -48,6 +46,6 @@ Une vérification qui ne s'exécute pas ne vaut rien : plusieurs commandes évid
 
 Le propriétaire peut commiter **directement sur `main`**. Pour tout le reste (autre intervenant, travail expérimental, changement risqué ou à relire), travaille sur une branche et laisse la fusion au propriétaire, par commit de fusion. Ne pousse jamais de force.
 
-Messages de commit : Conventional Commits, `type: subject`, impératif, sans point final, ~65 caractères, terminés par la ligne `Co-Authored-By` que la session impose. **Un commit = une intention.** Le détail est dans le skill `/commit`. Le type décide du numéro de version d'IozyCore (`feat` = mineur, `!` = majeur, le reste = patch ; les commits sous `iozytest/` ne comptent pas) : voir « Numéro de version » dans `docs/DEPLOIEMENT.md`. IozyTest porte son propre numéro dans son `package.json`.
+Messages de commit : Conventional Commits, `type: subject`, impératif, sans point final, ~65 caractères, terminés par la ligne `Co-Authored-By` que la session impose. **Un commit = une intention.** Le détail est dans le skill `/commit`. Le type décide du numéro de version d'IozyCore (`feat` = mineur, `!` = majeur, le reste = patch) : voir « Numéro de version » dans `docs/DEPLOIEMENT.md`.
 
 L'historique d'avant ces règles est en français : ne le réécris pas (ni rebase, ni `--amend` sur du déjà poussé).

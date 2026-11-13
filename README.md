@@ -1,12 +1,10 @@
 # Iozy
 
-Les apps Iozy, dans un seul dépôt : des apps personnelles, auto-hébergées, servies à une seule adresse.
+IozyCore et le site des apps Iozy : des apps personnelles, auto-hébergées, servies à une seule adresse. IozyTest ([dépôt](https://github.com/RomainCharpentier/iozytest)) et IozyKit ([dépôt](https://github.com/RomainCharpentier/IozyKit)) ont chacun leur dépôt depuis le 2026-11-13.
 
 | Dossier | Ce que c'est | Où ça vit sur le site |
 |---|---|---|
 | `iozycore/` | **IozyCore**, le catalogue de collection : mangas, jeux vidéo, jeux de société, ce qu'il te manque et ce que vaut une annonce. Backend Spring Boot, client web React, app iOS (hors service). | `/core/` (et `/api/`) |
-| `iozytest/` | **IozyTest**, le blindtest entre amis : serveur Node + Socket.IO, front React. | `/test/` |
-| `iozykit/` | **IozyKit**, la charte graphique commune : couleurs des deux thèmes, polices, formes, composants de base, marques. Dépendance locale des deux apps. | — |
 | `docs/` | Déploiement, exploitation, conception, journal des lots. | — |
 | `tools/` | Outillage personnel, hors produit : lab d'entraînement à l'API Claude, graphe de code Nomik. | — |
 
@@ -14,7 +12,13 @@ La racine du site, `/`, est la page d'accueil ; dans chaque app, la marque en ha
 
 ## Lancer tout en local
 
-Docker Desktop, puis :
+Docker Desktop, et IozyTest cloné à côté de ce dépôt (la pile le construit depuis `../iozytest`) :
+
+```bash
+git clone https://github.com/RomainCharpentier/iozytest.git ../iozytest
+```
+
+Puis :
 
 ```bash
 cd iozycore/backend && docker compose up --build
@@ -24,13 +28,13 @@ cd iozycore/backend && docker compose up --build
 - http://localhost:8081/core/ : IozyCore (API sur :8080)
 - http://localhost:8081/test/ : IozyTest
 
-Depuis la racine, `npm run up` lance la même pile en arrière-plan et `npm run check` enchaîne les contrôles du kit, d'IozyCore et d'IozyTest (après un `npm ci` dans chacun de leurs dossiers ; pas de workspaces, chaque dossier garde son `package.json`).
+Depuis la racine, `npm run up` lance la même pile en arrière-plan et `npm run check` lance les contrôles du web d'IozyCore (après un `npm ci` dans `iozycore/web`).
 
-Pour développer une app avec rechargement à chaud, lis le README de son dossier : `iozycore/README.md` (le guide de démarrage complet d'IozyCore), `iozytest/README.md`, `iozykit/README.md`.
+Pour développer avec rechargement à chaud, lis `iozycore/README.md` (le guide de démarrage complet d'IozyCore) ; IozyTest et IozyKit ont le leur dans leur dépôt.
 
 ## Mettre en ligne et faire tourner
 
-`docs/DEPLOIEMENT.md` (sur un NAS Synology, ou chez un hébergeur) et `docs/EXPLOITATION.md` (démarrer, arrêter, lire une panne, sauvegarder). À chaque push sur `main`, GitHub Actions teste tout et publie trois images (`iozycore-api`, `iozycore-web`, `iozytest-app`) que le NAS tire tout seul.
+`docs/DEPLOIEMENT.md` (sur un NAS Synology, ou chez un hébergeur) et `docs/EXPLOITATION.md` (démarrer, arrêter, lire une panne, sauvegarder). À chaque push sur `main`, GitHub Actions teste IozyCore et publie ses deux images (`iozycore-api`, `iozycore-web`).
 
 ## Reprendre le code
 

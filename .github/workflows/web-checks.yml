@@ -1,16 +1,15 @@
 name: IozyCore web
 
 # The gate for BRANCHES that touch the IozyCore web client, like
-# backend-tests.yml for the backend and iozytest-checks.yml for IozyTest.
+# backend-tests.yml for the backend.
 # Without it, a pull request that only touches iozycore/web got no check at
 # all: the same steps ran only on `main`, in deploiement.yml.
-# The web client uses the charter as a local dependency (`file:../../iozykit`),
-# so a charter change runs these checks too.
+# The charter is pinned on a tag of the IozyKit repository: a new charter
+# arrives as a change of package.json, which runs these checks.
 on:
   pull_request:
     paths:
       - "iozycore/web/**"
-      - "iozykit/**"
       - ".github/workflows/web-checks.yml"
   workflow_dispatch:
 
