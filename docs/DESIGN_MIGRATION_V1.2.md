@@ -2045,8 +2045,9 @@ sombre et clair, sur une collection de démonstration de la pile e2e.
 
 Sur le mur, un clic (ou un toucher, ou Entrée) sur une jaquette retourne la tuile, au lieu d'ouvrir
 la fiche : le dos dit pourquoi elle est là, et son titre mène à la fiche. Le bouton rond n'apparaît
-plus que sur la tuile retournée, pour la remettre ; un clic sur le dos hors de ses liens, ou Échap,
-la remet aussi. L'appui long au doigt disparaît, devenu inutile.
+plus que sur la tuile retournée, après le demi-tour, pour la remettre ; Échap ou un clic hors de la
+tuile la remet aussi, mais pas un clic sur son dos (un double-clic la défaisait aussitôt). Le focus
+suit sans faire défiler la page. L'appui long au doigt disparaît, devenu inutile.
 
 Vérifié : 762 tests web (dont `TuileMur.test.tsx`, mutation attrapée ; les 3 échecs de
 `ReleasesPage.test.tsx` précèdent ce lot), typecheck, lint ; parcours e2e de l'accueil.
