@@ -38,3 +38,9 @@ tmp/
 # NOMIK
 docker/data/
 docker/logs/
+
+# graphify output
+graphify-out/
+
+# Codex local config (absolute paths)
+.codex/
