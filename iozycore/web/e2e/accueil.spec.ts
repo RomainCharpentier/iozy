@@ -3,13 +3,17 @@ import { serieAvecEdition } from './amorcage'
 import { CODE_INVITATION } from './compte'
 
 /**
- * The home page "ta semaine" (lot 212), on an account of its own.
+ * The home page, "le mur" (lot 219), on an account of its own.
  *
- * <p>The account of the suite is shared by every journey: its week is
+ * <p>The account of the suite is shared by every journey: its wall is
  * whatever the other files added before this one. A new account is the only
- * place where every block is surely empty, then surely filled by what this
- * test adds. It is deleted at the end, by the administrator, as in
+ * place where the wall is surely empty, then surely filled by what this test
+ * adds. It is deleted at the end, by the administrator, as in
  * import.spec.ts - which counts on being the only account to delete.
+ *
+ * <p>The stack has no model key: no idea comes, and the wall says nothing of
+ * them. What is checked is the journey of a series to complete, from its
+ * block to "J'ai le tome 4" on the back of the tile.
  */
 const COMPTE_ACCUEIL = {
   email: 'accueil-e2e@iozycore.test',
@@ -30,41 +34,49 @@ async function creerLeCompte(browser: Browser) {
   return { contexte, page }
 }
 
-test('a new week is empty block by block, then shows what was added', async ({ page, browser }) => {
-  const titre = `Semaine ${Date.now()}`
+test('a new wall is empty, then follows a series to complete until it is', async ({ page, browser }) => {
+  const titre = `Mur ${Date.now()}`
   const compte = await creerLeCompte(browser)
   try {
     const accueil = compte.page
 
-    // --- A new account: the shape of the week, and where to start
-    await expect(accueil.getByRole('heading', { name: 'Ta semaine', exact: true })).toBeVisible()
-    await expect(accueil.getByText('Ta semaine commence ici.')).toBeVisible()
-    await expect(accueil.getByText("Rien d'autre cette semaine.")).toBeVisible()
-    await expect(accueil.getByText("Aucun objet pour l'instant.")).toBeVisible()
-    await expect(accueil.getByText("Rien de presque fini pour l'instant.")).toBeVisible()
-    await expect(accueil.getByText('Tes rayons sont vides.')).toBeVisible()
+    // --- A new account: one big place, and where to start
+    await expect(accueil.getByRole('heading', { name: /Ta première jaquette/ })).toBeVisible()
+    await expect(accueil.getByRole('link', { name: 'Chercher un titre' })).toBeVisible()
 
-    // --- Three volumes out of four: the work moved last, one is missing
+    // --- Three volumes out of four: the fourth is missing
     await serieAvecEdition(accueil, { titre, edition: 'Standard', totalVolumes: 4, tomesPossedes: [1, 2, 3] })
     await accueil.goto('/')
 
-    // The lead: the work that moved last, where the collector stands.
-    await expect(accueil.getByRole('heading', { name: titre, exact: true })).toBeVisible()
-    await expect(accueil.getByText(/Tu en as 3 sur 4\./).first()).toBeVisible()
-    // The number: the objects of the collection.
-    await expect(accueil.getByText(/objets dans ta collection./).first()).toBeVisible()
-    // Almost done: the missing volume, which leads to the detail page.
-    await expect(accueil.getByRole('link', { name: `${titre} : il n'en manque plus qu'un.` })).toBeVisible()
-    await accueil.getByRole('link', { name: "Tome 4 : l'ajouter depuis la fiche" }).click()
+    // The poster counts it, and the wall shows the series as one block.
+    await expect(accueil.getByRole('heading', { name: '1 chose à suivre' })).toBeVisible()
+    await expect(accueil.getByText('tome à acheter pour finir 1 série.')).toBeVisible()
+    const bloc = accueil.getByRole('link', { name: `${titre} : Le dernier qui te manque` })
+    await expect(bloc).toBeVisible()
+    // A block of colour says the same in a figure, and leads to what there is to buy.
+    await expect(accueil.getByRole('link', { name: `1 tome et ${titre} est à jour.` })).toBeVisible()
+
+    // --- The back of the tile: why it is there, and its one action
+    await accueil.getByRole('button', { name: `Retourner ${titre} : en savoir plus` }).click()
+    const dos = accueil.getByRole('group', { name: titre })
+    await expect(dos.getByText('Tome 4.')).toBeVisible()
+    // The focus goes to the back, and Escape turns it back.
+    await expect(dos.getByRole('link', { name: titre })).toBeFocused()
+    await accueil.keyboard.press('Escape')
+    await expect(accueil.getByRole('button', { name: `Retourner ${titre} : en savoir plus` })).toBeFocused()
+
+    await accueil.getByRole('button', { name: `Retourner ${titre} : en savoir plus` }).click()
+    await accueil.getByRole('group', { name: titre }).getByRole('button', { name: 'J’ai le tome 4' }).click()
+    await expect(accueil.getByText(`${titre}, tome 4 : dans ta collection`)).toBeVisible()
+
+    // Complete now: no longer a series to complete, an arrival of today.
+    await expect(bloc).toHaveCount(0)
+    await expect(accueil.getByRole('link', { name: `${titre} : Arrivé aujourd’hui` })).toBeVisible()
+
+    // A click on a cover opens the work.
+    await accueil.getByRole('link', { name: `${titre} : Arrivé aujourd’hui` }).click()
     await expect(accueil).toHaveURL(/\/entity\/[0-9a-f-]{36}$/)
     await expect(accueil.getByRole('heading', { name: titre })).toBeVisible()
-
-    // The shelves: the category, its counts, and the whole collection.
-    await accueil.goto('/')
-    await expect(accueil.getByText('1 œuvre · 3 objets')).toBeVisible()
-    await accueil.getByRole('link', { name: /Toute ma collection/ }).click()
-    await expect(accueil).toHaveURL(/\/collection$/)
-    await expect(accueil.getByRole('heading', { name: 'Ma collection' })).toBeVisible()
   } finally {
     await compte.contexte.close()
     // --- Leave the instance as it was: one account to delete for import.spec.ts

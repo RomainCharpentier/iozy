@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { etatBudget, montantSaisi } from './libelles'
+import { etatBudget, montantSaisi } from '@/common/lib/libellesAchat'
 import { formaterEuros } from '@/common/lib/formats'
 
 /**

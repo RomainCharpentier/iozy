@@ -3,8 +3,9 @@ import { formaterEuros } from '@/common/lib/formats'
 import { libelleJour, parseReleaseDate } from '@/common/lib/releaseDate'
 
 /**
- * The words of the "À acheter" page (lot 216), kept apart from the JSX so
- * that each one can be checked as the text a person reads.
+ * The words of what there is to buy (lot 216), kept apart from the JSX so
+ * that each one can be checked as the text a person reads. The "À acheter"
+ * page and the wall of the home page both say them.
  */
 
 const TOME = /^Tome (\d+)$/

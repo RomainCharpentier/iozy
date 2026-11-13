@@ -12,8 +12,8 @@ test('the top bar leads to each intention, and the search lands on the catalog',
   await page.goto('/')
   const nav = page.getByRole('navigation', { name: 'Navigation principale' })
 
-  // --- The five intentions, Accueil lit at home
-  await expect(nav.getByRole('link')).toHaveText(['Accueil', 'Sorties', 'À acheter', 'Partager', 'IozyTest'])
+  // --- The six intentions, Accueil lit at home
+  await expect(nav.getByRole('link')).toHaveText(['Accueil', 'Collection', 'Sorties', 'À acheter', 'Partager', 'IozyTest'])
   await expect(nav.getByRole('link', { name: 'Accueil' })).toHaveAttribute('aria-current', 'page')
   await expect(nav.getByRole('link', { name: 'IozyTest' })).toHaveAttribute('href', '/test/')
 

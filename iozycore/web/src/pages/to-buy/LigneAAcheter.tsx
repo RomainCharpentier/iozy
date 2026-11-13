@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Jaquette } from '@/common/components/Jaquette'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import type { EntityTypeDto, ToBuyLineDto } from '@/common/types/api'
-import { nomJeLAi, sousTitreLigne, titreLigne } from './libelles'
+import { nomJeLAi, sousTitreLigne, titreLigne } from '@/common/lib/libellesAchat'
 
 /**
  * One thing to buy: its cover, what it is, why it is there, and "Je l'ai".

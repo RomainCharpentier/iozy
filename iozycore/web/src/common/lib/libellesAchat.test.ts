@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ToBuyElementDto, ToBuyLineDto } from '@/common/types/api'
-import { detailDepense, etatBudget, libelleElements, libelleMoisDepense, sousTitreLigne, titreLigne } from './libelles'
+import { detailDepense, etatBudget, libelleElements, libelleMoisDepense, sousTitreLigne, titreLigne } from './libellesAchat'
 
 function tome(n: number, state: ToBuyElementDto['state'] = 'MISSING'): ToBuyElementDto {
   return { key: `volume-${n}`, label: `Tome ${n}`, number: n, coverImageUrl: null, state, releaseDate: null }

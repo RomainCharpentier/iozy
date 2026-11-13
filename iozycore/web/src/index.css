@@ -132,6 +132,23 @@
   --color-universeRoseTint: rgb(163 62 104 / 12%);
   --color-universeCyanTint: rgb(43 106 115 / 12%);
   --color-universeArdoiseTint: rgb(88 100 111 / 12%);
+
+  /* The palette of the wall of the home page (lot 219): five fills for the
+     blocks of colour, the tints of the ideas and the figures on the covers.
+     The same in both themes - they sit on covers or are a fill themselves,
+     always with the dark ink. As TEXT on the page (the figures of the left
+     column) each one has a deeper version in the light theme. */
+  --color-murOcre: #e3b341;
+  --color-murVert: #4fbfae;
+  --color-murRose: #ec86b4;
+  --color-murBleu: #8fa0f0;
+  --color-murOrange: #ef8a5f;
+  --color-murEncre: #16120f;
+  --color-murOcreText: #7a5c10;
+  --color-murVertText: #2b6a73;
+  --color-murRoseText: #a33e68;
+  --color-murBleuText: #3f4c80;
+  --color-murOrangeText: #a2452c;
 }
 
 /* Tier Lists rank scale (S to F) - exact values of DS v1.1
@@ -219,6 +236,12 @@ html {
   --color-softPress: rgb(244 238 231 / 19%);
   --color-rowHover: rgb(244 238 231 / 6%);
   --color-handle: rgb(244 238 231 / 24%);
+
+  --color-murOcreText: #e3b341;
+  --color-murVertText: #4fbfae;
+  --color-murRoseText: #ec86b4;
+  --color-murBleuText: #8fa0f0;
+  --color-murOrangeText: #ef8a5f;
 
   --color-universeManga: #e0805f;
   --color-universeVideoGame: #8fa0dd;
@@ -996,22 +1019,28 @@ a.tuile:focus-visible {
 }
 
 
-/* The wall of the home page: a tile appears when it enters the screen (the
-   column sets its delay, so a row unfolds from left to right), and the cover
-   zooms slowly under the pointer. Without motion, everything is just there. */
-.mur-tuile {
+/* The wall of the home page (lot 219).
+   - A tile comes in when it enters the screen: the grid sets its rank, so a
+     row unfolds from left to right.
+   - Under the pointer the cover zooms slowly, the tint of an idea falls away
+     to show the real cover, and the title slides down from the top edge.
+   - The small round button turns the tile over: a 3D half-turn, the back
+     made only while it is shown (see TuileMur).
+   - Waiting tiles breathe while the ideas are asked.
+   Without motion, every state is simply there. */
+.mur-case {
   opacity: 0;
 }
 
-.mur-tuile--vue {
+.mur-case--vue {
   animation: mur-entree 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(var(--rang, 0) * 70ms);
+  animation-delay: calc(var(--rang, 0) * 45ms);
 }
 
 @keyframes mur-entree {
   from {
     opacity: 0;
-    transform: translateY(26px) scale(0.95);
+    transform: translateY(18px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -1019,12 +1048,159 @@ a.tuile:focus-visible {
   }
 }
 
+.mur-scene {
+  perspective: 1400px;
+}
+
+.mur-carte {
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.mur-carte--retournee {
+  transform: rotateY(180deg);
+}
+
+.mur-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.mur-dos {
+  transform: rotateY(180deg);
+  container-type: size;
+}
+
+/* A low back (a band on a phone) keeps the title, the state and the
+   action: the extra sentence would sit under the button. */
+@container (max-height: 130px) {
+  .mur-dos-detail {
+    display: none;
+  }
+}
+
+.mur-image {
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.mur-recto:hover .mur-image,
+.mur-recto:focus-visible .mur-image {
+  transform: scale(1.06);
+}
+
+/* The tint of an idea is two layers: `color` takes the hue of the cover,
+   `multiply` reaches its whites, which `color` alone leaves white (a pale
+   cover would read as owned). */
+.mur-teinte {
+  mix-blend-mode: color;
+  transition: opacity 0.45s ease;
+}
+
+.mur-teinte--blancs {
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+.mur-recto:hover .mur-teinte,
+.mur-recto:focus-visible .mur-teinte {
+  opacity: 0;
+}
+
+.mur-nom {
+  opacity: 0;
+  transform: translateY(-100%);
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.mur-recto:hover .mur-nom,
+.mur-recto:focus-visible .mur-nom {
+  opacity: 1;
+  transform: none;
+}
+
+.mur-tourner {
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.mur-case:hover .mur-tourner,
+.mur-tourner:focus-visible,
+.mur-tourner[aria-expanded='true'] {
+  opacity: 1;
+}
+
+/* A finger has no hover: no button on every cover (twenty round buttons
+   would cover the wall). A long press turns the tile; the button shows only
+   on the tile already turned, to turn it back. Hidden, it stays in the page
+   for a screen reader, which cannot long-press. */
+@media (hover: none) {
+  .mur-tourner:not([aria-expanded='true']) {
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .mur-recto {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
+.mur-pave {
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+a.mur-pave:hover {
+  filter: brightness(1.07);
+}
+
+a.mur-pave:active {
+  transform: scale(0.98);
+}
+
+.mur-attente {
+  animation: mur-respire 1.8s ease-in-out infinite;
+  animation-delay: calc(var(--rang, 0) * 160ms);
+}
+
+@keyframes mur-respire {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .mur-tuile {
+  .mur-case {
     opacity: 1;
   }
 
-  .mur-tuile--vue {
+  .mur-case--vue,
+  .mur-attente {
     animation: none;
+  }
+
+  .mur-carte,
+  .mur-image,
+  .mur-teinte,
+  .mur-nom,
+  .mur-tourner,
+  .mur-pave {
+    transition: none;
+  }
+
+  .mur-recto:hover .mur-image,
+  .mur-recto:focus-visible .mur-image {
+    transform: none;
   }
 }
