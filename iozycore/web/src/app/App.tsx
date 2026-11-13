@@ -47,7 +47,6 @@ const ShelfPage = page(() => import('@/pages/collection/ShelfPage'), 'ShelfPage'
 const SearchPage = page(() => import('@/pages/add/SearchPage'), 'SearchPage')
 const EntityDetailPage = page(() => import('@/pages/entity/EntityDetailPage'), 'EntityDetailPage')
 const ApercuOeuvrePage = page(() => import('@/pages/entity/apercu/ApercuOeuvrePage'), 'ApercuOeuvrePage')
-const DiscoverPage = page(() => import('@/pages/discover/DiscoverPage'), 'DiscoverPage')
 const TierListsScreen = page(() => import('@/pages/tier-lists/TierListsScreen'), 'TierListsScreen')
 const GeneralTierBoardPage = page(() => import('@/pages/tier-lists/board/GeneralTierBoardPage'), 'GeneralTierBoardPage')
 const CustomTierBoardPage = page(() => import('@/pages/tier-lists/board/CustomTierBoardPage'), 'CustomTierBoardPage')
@@ -63,9 +62,7 @@ const ImportBggPage = page(() => import('@/pages/profile/import-bgg/ImportBggPag
 const AdministrationPage = page(() => import('@/pages/profile/administration/AdministrationPage'), 'AdministrationPage')
 const ComptesPage = page(() => import('@/pages/profile/administration/ComptesPage'), 'ComptesPage')
 const TagsPage = page(() => import('@/pages/profile/administration/TagsPage'), 'TagsPage')
-const SuggestionsPage = page(() => import('@/pages/suggestions/SuggestionsPage'), 'SuggestionsPage')
 const ReleasesPage = page(() => import('@/pages/releases/ReleasesPage'), 'ReleasesPage')
-const CollectionRecapPage = page(() => import('@/pages/recap/CollectionRecapPage'), 'CollectionRecapPage')
 const ScanPage = page(() => import('@/pages/scan/ScanPage'), 'ScanPage')
 const ImportPhotoPage = page(() => import('@/pages/import-photo/ImportPhotoPage'), 'ImportPhotoPage')
 const StatsPage = page(() => import('@/pages/stats/StatsPage'), 'StatsPage')
@@ -224,7 +221,6 @@ export default function App() {
                   {/* The preview of a work that is not owned: the same page,
                       read from the provider, without writing anything to the database. */}
                   <Route path="/apercu" element={<ApercuOeuvrePage />} />
-                  <Route path="/discover" element={<DiscoverPage />} />
                   <Route path="/tier-lists" element={<TierListsScreen />} />
                   <Route path="/tier-lists/general/:entityTypeId" element={<GeneralTierBoardPage />} />
                   <Route path="/tier-lists/:id" element={<CustomTierBoardPage />} />
@@ -242,9 +238,7 @@ export default function App() {
                   <Route path="/administration" element={<AdministrationPage />} />
                   <Route path="/administration/comptes" element={<ComptesPage />} />
                   <Route path="/administration/tags" element={<TagsPage />} />
-                  <Route path="/suggestions" element={<SuggestionsPage />} />
                   <Route path="/releases" element={<ReleasesPage />} />
-                  <Route path="/recap" element={<CollectionRecapPage />} />
                   <Route path="/scan" element={<ScanPage />} />
                   <Route path="/import-photo" element={<ImportPhotoPage />} />
                   {/* The Wishes screen disappeared into My collection (batch C) - but
@@ -262,6 +256,11 @@ export default function App() {
                       merged with its neighbour. */}
                   <Route path="/settings" element={<Navigate to="/profile" replace />} />
                   <Route path="/settings/import" element={<Navigate to="/profile/import" replace />} />
+                  {/* Pages that left with the redesign (lot 222): their content
+                      lives on the wall, on À acheter and on Partager. */}
+                  <Route path="/discover" element={<Navigate to="/" replace />} />
+                  <Route path="/suggestions" element={<Navigate to="/to-buy" replace />} />
+                  <Route path="/recap" element={<Navigate to="/share" replace />} />
                   <Route path="/profile/import" element={<ImportPage />} />
                   {/* The fallback, last: without it an unknown URL rendered
                       an empty `<main>` with the navigation around it - a screen that

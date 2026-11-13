@@ -30,12 +30,12 @@ import { formaterEuros } from '@/common/lib/formats'
 import { invalidateAfterPurchaseAnalysis } from '@/common/lib/invalidations'
 
 /**
- * Where we come back from: Découvrir, which carries the door to this screen since
- * batch 137, or the series when we arrive from its detail page (it names its return).
+ * Where we come back from: À acheter, which carries the door to this screen since
+ * Découvrir left (lot 222), or the series when we arrive from its detail page (it names its return).
  * The screen used to be a navigation destination, with no return to offer;
  * it no longer is, and it is a manga flow that the bar does not name.
  */
-const RETOUR_PAR_DEFAUT = { to: '/discover', libelle: 'Découvrir' }
+const RETOUR_PAR_DEFAUT = { to: '/to-buy', libelle: 'À acheter' }
 
 interface QueuedItem {
   seriesTitle: string

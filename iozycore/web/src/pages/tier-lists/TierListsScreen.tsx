@@ -53,9 +53,10 @@ export function TierListsScreen() {
 
   return (
     <div className="flex flex-col gap-5">
-      <button type="button" onClick={() => navigate('/discover')} className="flex min-h-11 w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
+      {/* The tier lists are reached from the profile since Découvrir left (lot 222). */}
+      <button type="button" onClick={() => navigate('/profile')} className="flex min-h-11 w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
         <ArrowLeft size={15} />
-        Découvrir
+        Profil
       </button>
 
       <div className="flex flex-wrap items-start justify-between gap-3">

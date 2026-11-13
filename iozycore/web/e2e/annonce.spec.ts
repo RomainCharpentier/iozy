@@ -26,17 +26,14 @@ test('enter a listing, and see the already owned volumes correct the verdict', a
     prixNeufAuTome: 8,
   })
 
-  // --- From Découvrir: this is where the analysis lives since it left the
-  //     navigation bar (batch 137), together with a series detail page. The
-  //     bar no longer names it - one destination less, not one shortcut
-  //     more.
-  await page.goto('/discover')
-  await page.getByRole('link', { name: /Analyser une annonce/ }).click()
-  await expect(page).toHaveURL(/\/purchase-analysis$/)
+  // --- The full screen of the analysis: À acheter opens it in a side panel,
+  //     and its own address keeps working. With no page to come back to,
+  //     its return leads to À acheter, where its door is (lot 222). The bar
+  //     does not name it - one destination less, not one shortcut more.
+  await page.goto('/purchase-analysis')
   await expect(page.getByRole('heading', { name: 'Analyser une annonce' })).toBeVisible()
   await expect(page.getByRole('navigation').getByRole('link', { name: /Analyser une annonce/ })).toHaveCount(0)
-  // And the screen knows where we come from.
-  await expect(page.getByRole('button', { name: 'Découvrir' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'À acheter' })).toBeVisible()
 
   // --- The bundle: six volumes, two of which we already have
   // `getByRole('textbox')` and not `getByLabel`: the button "Ajouter une autre

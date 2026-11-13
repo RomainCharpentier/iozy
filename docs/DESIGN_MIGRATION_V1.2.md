@@ -2064,3 +2064,23 @@ qui ne garde que sa catégorie ; le précommandé sur ce qui manque, un lien sur
 
 Vérifié : 766 tests web sur 766 (mutations de l'ordre et du filtre attrapées), typecheck, lint ;
 29 parcours e2e sur 29.
+
+### Lot 222 — Passe de captures, et les pages qui sont parties
+
+Passe de captures sur la pile d'aperçu (copie des données du propriétaire), bureau sombre et clair,
+téléphone sombre. Deux défauts corrigés : sur À acheter, « 0,00 € » se cassait avant le signe
+euro (la taille suivait la fenêtre, pas le panneau de 440 px ; elle se règle maintenant sur la
+largeur du panneau et la longueur du montant) ; une série au total inconnu dit « Il t'en manque
+au moins 44 », puisqu'on ne compte que les trous avant le dernier tome possédé.
+
+Découvrir, Suggestions et le Bilan comme page étaient devenus inatteignables depuis la barre ; la
+refonte les retire comme pages. Leur contenu vit ailleurs : séries à compléter et idées sur le mur,
+analyse d'annonce sur À acheter, sorties sur Sorties, bilan en image sur Partager, Tier Lists depuis
+le Profil. Les anciennes adresses mènent à l'accueil, à À acheter et à Partager. Ce qui ne revient
+nulle part : le coût estimé pour finir une série (« 18 € théorique ») de l'écran Suggestions.
+
+Vu sans être un défaut : les jaquettes BnF manquent quand la BnF coupe la connexion après une
+rafale (le repli s'affiche), et une jaquette externe lente laisse sa case vide jusqu'à son fondu.
+
+Vérifié : 753 tests web, typecheck, lint, frontières ; 27 parcours e2e sur 27 (celui de Suggestions
+part avec sa page) ; redirections et retours sur le serveur de dev branché sur la pile d'aperçu.

@@ -8,13 +8,13 @@ import { expect, test } from '@playwright/test'
  * Books, IGDB - which a throwaway stack without a key cannot exercise) and the
  * date entered on a detail page, for any category. This second path is the one
  * that this journey crosses from end to end: the detail page writes, the
- * calendar reads, Découvrir announces it - three screens, a single piece of
+ * calendar reads, the agenda feed carries it - three places, a single piece of
  * data. A field wired to the wrong key or a cache that we forget to invalidate
  * breaks no rule: the date would simply stay invisible.
  */
 
 const AUJOURDHUI = new Date()
-/** In twenty days: far enough to be "upcoming", close enough to fit in the Découvrir preview. */
+/** In twenty days: far enough to be "upcoming". */
 const SORTIE = new Date(AUJOURDHUI.getFullYear(), AUJOURDHUI.getMonth(), AUJOURDHUI.getDate() + 20)
 
 function iso(date: Date): string {
@@ -27,7 +27,7 @@ function libelle(options: Intl.DateTimeFormatOptions): string {
   )
 }
 
-test('date a work on its detail page, then find it again in Sorties, in the agenda feed and on Découvrir', async ({ page, playwright }) => {
+test('date a work on its detail page, then find it again in Sorties and in the agenda feed', async ({ page, playwright }) => {
   const univers = `Vinyle ${Date.now()}`
   const oeuvre = `Random Access Memories ${Date.now()}`
 
@@ -96,23 +96,16 @@ test('date a work on its detail page, then find it again in Sorties, in the agen
   expect((await agenda.get(lien)).status()).toBe(404)
   await agenda.dispose()
 
-  // --- 4. Découvrir announces it among the next releases, and "Tout voir" brings back here
-  await page.goto('/discover')
-  //     On mobile the panel is a sub-tab; on desktop (the test browser) it is
-  //     already expanded, and the tab does not exist on the screen.
-  const onglet = page.getByRole('tab', { name: 'Sorties' })
-  if (await onglet.isVisible()) await onglet.click()
-  await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
-
-  //     The line says the sources were never read (a fresh instance), and refreshing on demand
-  //     leaves a date behind. The test stack has no provider and no manga: the pass is instant and empty.
+  // --- 4. The line under the timeline says the sources were never read (a fresh
+  //     instance), and refreshing on demand leaves a date behind. The test stack
+  //     has no provider and no manga: the pass is instant and empty, and the
+  //     date entered by hand stays on the timeline.
   await expect(page.getByText("Les sources de sorties n'ont pas encore été consultées.")).toBeVisible()
   await page.getByRole('button', { name: 'Mettre à jour maintenant' }).click()
   await expect(page.getByText("Sorties mises à jour à l'instant")).toBeVisible()
-  await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
+  await expect(ceQuiSort.getByRole('link', { name: `${oeuvre}, dans 20 jours` })).toBeVisible()
 
-  //     Three panels of Découvrir say "Tout voir": the right one sits under the heading of this panel.
-  const releasesPanel = page.locator('section', { has: page.getByRole('heading', { name: 'Dernières sorties' }) })
-  await releasesPanel.getByRole('link', { name: 'Tout voir' }).click()
-  await expect(page).toHaveURL(/\/releases/)
+  // --- 5. Découvrir left with the redesign (lot 222): its old address leads home.
+  await page.goto('/discover')
+  await expect(page).toHaveURL(/\/$/)
 })

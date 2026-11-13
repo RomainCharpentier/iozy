@@ -18,15 +18,25 @@
 
 ## 1. Architecture réelle des points d'entrée
 
-La navigation ne compte que **trois destinations**, identiques en desktop et en
-mobile (`navItems.ts`, une seule liste lue par `DesktopHeader` et `TabBar`), et
-**aucune ne nomme un univers** (lot 137) :
+> **Depuis la refonte (lots 207 à 222)**, la barre compte cinq destinations
+> d'IozyCore plus IozyTest, lues dans `navItems.ts` : **Accueil** `/` (le mur),
+> **Collection** `/collection` (et les fiches `/entity/:id`), **Sorties**
+> `/releases`, **À acheter** `/to-buy` (avec l'analyse d'annonce en panneau,
+> `/to-buy/analyse`) et **Partager** `/share`. Découvrir, Suggestions et le
+> Bilan comme page ont disparu au lot 222 : `/discover` mène à l'accueil,
+> `/suggestions` à À acheter, `/recap` à Partager. Les Tier Lists se
+> rejoignent depuis le Profil. Les parcours décrits plus bas qui partent de
+> Découvrir datent d'avant ; le code et les parcours e2e font foi.
+
+Avant la refonte, la navigation ne comptait que **trois destinations**,
+identiques en desktop et en mobile, et **aucune ne nommait un univers**
+(lot 137) :
 
 | Destination | Route | Couvre aussi |
 |---|---|---|
 | **Ma collection** | `/` | `/entity/:id`, `/collection/:type` |
 | **Catalogue** | `/add` | `/scan`, `/apercu` |
-| **Découvrir** | `/discover` | `/tier-lists*`, `/suggestions`, `/purchase-analysis*` |
+| **Découvrir** (retiré au lot 222) | `/discover` | `/tier-lists*`, `/suggestions`, `/purchase-analysis*` |
 
 Tout le reste est atteint par des **raccourcis** ou depuis l'espace auquel il
 appartient :
@@ -945,6 +955,10 @@ Suppression idempotente.
 ---
 
 ## 7. Parcours — Découvrir
+
+> **Retiré au lot 222.** Ces parcours décrivent l'écran tel qu'il était ; leur
+> contenu vit désormais sur le mur (séries à compléter, idées), sur À acheter
+> (analyse d'annonce), sur Sorties et sur Partager (bilan en image).
 
 ### 42. Parcourir Découvrir
 **Résultat** : quatre panneaux — Tier Lists, Opportunités, **Découvertes**
