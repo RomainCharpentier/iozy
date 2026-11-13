@@ -5,7 +5,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EtatVide } from '@/common/components/EtatVide'
 import { LienRetour } from '@/common/components/LienRetour'
 import { SqueletteGrille } from '@/common/components/Squelette'
-import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
+import { GrandTitre } from '@/common/components/GrandTitre'
 import {
   usePreferencesCollection,
   type AffichageCollection,
@@ -44,7 +44,6 @@ export function CategoryPage() {
   const zone = useRef<HTMLDivElement>(null)
 
   const entityType = donnees.entityTypes.find((t) => t.id === entityTypeId)
-  const visual = getEntityTypeVisual(entityType)
   const { etats, manquants, objetDe } = useObjetsCollection(donnees, preferences.filtre)
   const { entities: allEntities, progression } = donnees
 
@@ -105,14 +104,11 @@ export function CategoryPage() {
           the screen (see lib/retour), otherwise the natural parent. */}
       <LienRetour parDefaut={{ to: '/collection', libelle: 'Ma collection' }} />
 
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex items-center gap-2.5">
-          <span className="h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: visual.color }} />
-          <h1 className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">
-            {entityType?.label ?? '…'}
-          </h1>
-          {!isLoading && <span className="text-sm text-faint">{objets.length}</span>}
-        </div>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <GrandTitre
+          titre={entityType?.label ?? '…'}
+          sousTitre={isLoading ? 'Chargement…' : `${objets.length} ${objets.length > 1 ? 'titres' : 'titre'}`}
+        />
 
         <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
           <BarreVues

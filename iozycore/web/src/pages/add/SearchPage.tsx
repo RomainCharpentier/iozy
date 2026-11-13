@@ -19,7 +19,7 @@ import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle, resolvePri
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/coverImage'
 import { BarcodeLookupField } from './BarcodeLookupField'
 import type { EntityResponse, EntityTypeDto, MetadataCandidateDto } from '@/common/types/api'
-import { EnTeteSection } from '@/common/components/EnTeteSection'
+import { GrandTitre } from '@/common/components/GrandTitre'
 import type { EtatRetour } from '@/common/lib/retour'
 import { indicesDe } from '@/common/lib/indicesOeuvre'
 import { nomDeSource } from '@/common/lib/sources'
@@ -502,8 +502,7 @@ function SearchPageContenu() {
           lib/accesInvite): offering them would have sent them back here without a word,
           which reads as a breakdown. It is the general rule of this
           visit - we do not show a door that bounces. */}
-      <EnTeteSection
-        niveau={1}
+      <GrandTitre
         titre="Catalogue"
         sousTitre={
           catalogueEnChargement

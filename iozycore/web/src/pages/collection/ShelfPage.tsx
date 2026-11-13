@@ -26,7 +26,7 @@ import {
 
 import { useModalA11y } from '@/common/hooks/useModalA11y'
 import { useNow } from '@/common/hooks/useNow'
-import { EnTeteSection } from '@/common/components/EnTeteSection'
+import { GrandTitre } from '@/common/components/GrandTitre'
 import { EtatVide } from '@/common/components/EtatVide'
 import { useDonneesCollection } from './useDonneesCollection'
 import { useFiltresCollection } from './useFiltresCollection'
@@ -196,9 +196,8 @@ export function ShelfPage() {
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <EnTeteSection
-          niveau={1}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <GrandTitre
           titre="Ma collection"
           sousTitre={
             !isLoading ? (

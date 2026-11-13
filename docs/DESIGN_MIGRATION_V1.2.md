@@ -2096,3 +2096,15 @@ sans édition chiffrée n'affiche rien, jamais une estimation inventée.
 Vérifié : 758 tests web (mutation du calcul attrapée), typecheck, lint, frontières ; parcours e2e
 d'À acheter (deux tomes à 9 € : « ~18,00 € (théorique) ») ; sur la copie des données, Death Note
 affiche ~30,00 € (marché), le chiffre de l'ancien Découvrir.
+
+### Lot 224 — Les destinations sous un même grand titre
+
+Côte à côte, les écrans de la barre ne se ressemblaient pas : Sorties s'ouvrait sur son nom en très
+grand, Collection, ses salles et le Catalogue sur le petit titre de 24 px des écrans d'outils. Un
+composant commun, `GrandTitre` (sur-titre facultatif, nom en police d'affichage de 3,25 à 8,5 rem,
+ligne qui compte, commandes à droite), porte maintenant Sorties, Ma collection, chaque salle et le
+Catalogue. Les écrans d'outils (Éditions, Types, Réglages) gardent `EnTeteSection`. La salle perd sa
+pastille de couleur : le nom suffit, et son compte devient « 7 titres ».
+
+Vérifié : 758 tests web, typecheck, lint, contraste AA (156 combinaisons), frontières ; 28 parcours
+e2e sur 28 ; captures avant et après à 1 280 px et 390 px sur la copie des données, sans débordement.

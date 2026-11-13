@@ -10,6 +10,7 @@ import { isoLocal, periodeSurUnAn } from '@/common/lib/releaseDate'
 import { useNow } from '@/common/hooks/useNow'
 import { useAuth } from '@/common/hooks/useAuth'
 import { Chip } from '@/common/components/Chip'
+import { GrandTitre } from '@/common/components/GrandTitre'
 import { EtatVide } from '@/common/components/EtatVide'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { Jaquette } from '@/common/components/Jaquette'
@@ -116,7 +117,8 @@ export function ReleasesPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <h1 className="sr-only">Sorties</h1>
+      {/* The visible title comes with the timeline; an empty year still names the page. */}
+      {toutes.length === 0 && <h1 className="sr-only">Sorties</h1>}
 
       {calendrierQuery.isError && <ErrorBanner message={calendrierQuery.error.message} />}
       {calendrierQuery.isLoading && <Squelette lignes={4} />}
@@ -140,14 +142,11 @@ export function ReleasesPage() {
 
       {toutes.length > 0 && (
         <>
-          <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 pt-3">
-            <div>
-              <p className="font-display text-[clamp(4.5rem,11vw,9rem)] leading-[0.85] font-bold tracking-[-0.06em] text-textPrimary">Sorties</p>
-              <p className="mt-2 text-[15px] text-textDim">
-                {visibles.length} à venir sur l’année · {entrees.length > 0 ? `${entrees.length} entrées récentes` : 'aucune entrée récente'}
-              </p>
-            </div>
-            {comptes.size > 1 && (
+          <GrandTitre
+            titre="Sorties"
+            sousTitre={`${visibles.length} à venir sur l’année · ${entrees.length > 0 ? `${entrees.length} entrées récentes` : 'aucune entrée récente'}`}
+            action={
+              comptes.size > 1 && (
               <div className="defilement-discret flex max-w-full gap-2 overflow-x-auto" role="group" aria-label="Filtrer par catégorie">
                 <Chip label="Tout" isActive={categorieActive === null} onClick={() => setCategorie(null)} count={toutes.length} />
                 {[...comptes.entries()].map(([typeId, compte]) => (
@@ -160,8 +159,9 @@ export function ReleasesPage() {
                   />
                 ))}
               </div>
-            )}
-          </header>
+              )
+            }
+          />
 
           <section aria-label="Frise des sorties" className="relative -mx-4 [mask-image:linear-gradient(90deg,transparent,#000_24px,#000_calc(100%-56px),transparent)] md:-mx-6">
             <div ref={rangee} className="defilement-discret flex items-end gap-5 overflow-x-auto px-4 pb-6 md:px-6">
