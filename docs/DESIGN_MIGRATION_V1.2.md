@@ -2153,3 +2153,28 @@ apparence, titres, son, données, administration discrète) ne les prévoyait pa
 
 Vérifié (228 et 229) : 751 tests web, typecheck, lint, contraste AA, frontières, build ; 28 parcours
 e2e sur 28 ; captures sur la copie des données.
+
+### Lot 230 — À acheter et Partager sur le fond
+
+La liste d'À acheter quitte son panneau de verre : ses lignes se posent sur le fond, un filet entre
+elles, ses vignettes à angle droit, son titre à 28 px. Sur Partager, les quatre sections (ce que
+montre la page, incontournables, cadeaux, bilan) perdent leurs panneaux et prennent le même titre de
+28 px ; l'aperçu de la page publique garde son cadre, puisqu'il montre une autre page.
+
+### Lot 231 — Le Catalogue en rayons nus
+
+Les rayons du Catalogue perdent leur dégradé arrondi et prennent la tête des salles de Collection
+(nom à 28 px, compte à côté). `CoverTile`, la jaquette du Catalogue, passe à l'angle droit.
+
+### Lot 232 — Le gabarit Outil partout
+
+Trois leviers communs : le titre de niveau 1 d'`EnTeteSection` passe à 48 px, la largeur par défaut
+des écrans d'outils de 672 à 760 px (la largeur `narrow` disparaît), et `CLASSE_CARTE` devient un
+groupe sur le fond, un filet au-dessus. Les cartes `bg-surface` de Tier Lists, Éditions, Types et de
+l'analyse d'annonce suivent ; feuilles, menus et sous-boîtes de formulaire, qui sont des commandes,
+restent. Les champs deviennent des pilules, comme les boutons. Le titre du classement général passe
+à 48 px.
+
+Vérifié (230 à 232) : 751 tests web, typecheck, lint, contraste AA, frontières, build ; 28 parcours
+e2e sur 28 ; tailles des titres mesurées sur neuf écrans d'outils (48 px) ; captures sur la copie
+des données, page de connexion comprise.

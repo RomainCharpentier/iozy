@@ -22,10 +22,10 @@ const NAV_BREAKPOINT_PX = 1024
  * in the JSX (see the requested layout rework - "explicit notion" rather than
  * hacks). `wide` = "visual library" screens that must be able to
  * take up a significant part of a wide screen (Ma Collection, detail
- * page); `narrow` = everything else (forms, Settings, Profile...),
- * which stays at the original reading width - never asked to be wider and
- * often less readable when stretched (floating form fields, long
- * lists of links). `medium` is used for "Évaluer un achat".
+ * page); `outil` = everything else (forms, Profile, the tools), a 760 px
+ * column since lot 232 - it was `narrow`, 672 px - never stretched, since
+ * form fields and long lists of links read worse when wide. `medium` is
+ * used for "Évaluer un achat".
  *
  * `detail` is the 4th value that the previous comment kept in reserve
  * "the day the need appears". It appeared, and with proof: a
@@ -36,7 +36,7 @@ const NAV_BREAKPOINT_PX = 1024
  * caps at 792px and its actions at 420px, which is 1244px of real content.
  * Wider outer margins rather than inner holes - the former
  * read as a layout, the latter as a defect. */
-type ContentWidth = 'wide' | 'detail' | 'medium' | 'outil' | 'narrow'
+type ContentWidth = 'wide' | 'detail' | 'medium' | 'outil'
 
 /** Complete and literal classes (never a number interpolated in a
  * template string): Tailwind scans the SOURCE CODE statically to know
@@ -54,7 +54,6 @@ const CONTAINER_CLASS: Record<ContentWidth, string> = {
   medium: 'grid grid-cols-[1fr_min(100%_-_2rem,960px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,960px)_1fr] [--largeur-page:960px]',
   // The tool template (lot 225): a 760 px column, the title at 48 px, no box.
   outil: 'grid grid-cols-[1fr_min(100%_-_2rem,760px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,760px)_1fr] [--largeur-page:760px]',
-  narrow: 'grid grid-cols-[1fr_min(100%_-_2rem,672px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,672px)_1fr] [--largeur-page:672px]',
 }
 
 /**
@@ -120,7 +119,8 @@ function contentWidthFor(pathname: string): ContentWidth {
   // do not fit in 672 px.
   // The common profile, in the tool template since lot 229: one 760 px column.
   if (pathname === '/profile') return 'outil'
-  return 'narrow'
+  // Every other screen is a tool (lot 232): the same 760 px column as the profile.
+  return 'outil'
 }
 
 /** Root layout: scrollable content + navigation, mobile (BarreOnglets,

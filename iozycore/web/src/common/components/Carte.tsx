@@ -26,7 +26,8 @@ import type { ReactNode } from 'react'
  * over the worst cover (iozykit check:contrast). The light glass line keeps
  * the edge the border used to draw.
  */
-export const CLASSE_CARTE = 'iozy-verre iozy-verre--fort rounded-[20px] p-5 sm:p-6'
+// Lot 232, direction "fond nu, un aplat": a card is a group on the backdrop, a rule above it.
+export const CLASSE_CARTE = 'border-t border-ligneVerre pt-6'
 
 /** Same card, in a danger zone: no shadow or border, a tinted background
  *  that signals by itself that we are no longer in the ordinary content (see the

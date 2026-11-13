@@ -37,8 +37,17 @@ export function EnTeteSection({
   return (
     <div className={`flex flex-wrap items-end justify-between gap-x-7 gap-y-3 ${className}`}>
       <div className="min-w-0">
-        <Titre className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">{titre}</Titre>
-        {sousTitre && <p className="mt-1 text-sm text-textDim">{sousTitre}</p>}
+        <Titre
+          className={
+            niveau === 1
+              ? // The title of a tool screen (lot 232): 48 px, the step under the giant one.
+                'font-display text-outil font-bold tracking-[-0.045em] text-textPrimary'
+              : 'font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary'
+          }
+        >
+          {titre}
+        </Titre>
+        {sousTitre && <p className="text-secondaire mt-2 text-textDim">{sousTitre}</p>}
       </div>
       {/* `shrink-0` without `ml-auto`: `justify-between` already places the action on
           the right, and an `ml-auto` would push it to the right AGAIN after a line

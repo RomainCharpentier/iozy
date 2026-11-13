@@ -86,7 +86,7 @@ export function EntityTypesPage() {
         {(entityTypesQuery.data ?? []).map((type) => {
           const Icon = iconFor(type.code)
           return (
-            <li key={type.id} className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+            <li key={type.id} className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
               <div className="flex items-center gap-3">
                 <Icon size={20} className="shrink-0 text-accentText" />
                 <button

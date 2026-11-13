@@ -6,7 +6,6 @@ import { Zap } from 'lucide-react'
 import { getGeneralBoard, setGeneralRank } from '@/common/api/tierLists'
 import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
-import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { TierBoard } from '@/pages/tier-lists/TierBoard'
 import { TierPicker } from '@/common/components/TierPicker'
@@ -30,7 +29,6 @@ export function GeneralTierBoardPage() {
   })
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const entityType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
-  const visual = getEntityTypeVisual(entityType)
 
   // "Classer mes éléments" (Découvrir/Tier Lists) asks for the quick
   // ranking, not only the opening of the board (see DS v1.1 section 50) - the queue
@@ -70,8 +68,7 @@ export function GeneralTierBoardPage() {
       <LienRetour parDefaut={{ to: '/tier-lists', libelle: 'Tier Lists' }} />
 
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: visual.color }} />
-        <h1 className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">
+        <h1 className="font-display text-outil font-bold tracking-[-0.045em] text-textPrimary">
           {entityType ? `Classement général · ${entityType.label}` : '…'}
         </h1>
         {boardQuery.data && boardQuery.data.unranked.length > 0 && (

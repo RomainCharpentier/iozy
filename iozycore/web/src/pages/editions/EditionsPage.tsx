@@ -82,7 +82,7 @@ export function EditionsPage() {
       {bySeries.map(([seriesTitle, editions]) => (
         <section key={seriesTitle} className="flex flex-col gap-2">
           <h2 className="font-display text-base font-semibold text-textPrimary">{seriesTitle}</h2>
-          <div className="flex flex-col gap-2 rounded-2xl border border-surface2 bg-surface p-2 shadow-token-sm">
+          <div className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
             {editions.map((edition) => (
               <div key={edition.id} className="flex flex-col gap-1.5 rounded-xl p-2.5">
                 <div className="flex items-start justify-between gap-3">

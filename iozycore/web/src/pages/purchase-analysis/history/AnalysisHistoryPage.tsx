@@ -56,7 +56,7 @@ export function AnalysisHistoryPage() {
 
       <ul className="flex flex-col gap-2">
         {sorted.map((analysis) => (
-          <li key={analysis.id} className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+          <li key={analysis.id} className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
             <div className="flex items-start gap-2">
               <button
                 type="button"

@@ -118,7 +118,7 @@ export function ListingUrlField({
   const echec = preview && !reussite
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+    <div className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
       <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="listing-url">
         Lien de l'annonce (facultatif)
         <input

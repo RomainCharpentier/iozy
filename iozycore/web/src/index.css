@@ -451,8 +451,9 @@ button, a, input, textarea, select {
 }
 
 /* The input field: 44 px, inner line, accent ring on focus. */
+/* A pill since lot 232, like every control one touches; no multi-line text uses it. */
 @utility champ {
-  @apply min-h-11 rounded-xl bg-surface2 px-3.5 py-2 text-sm text-textPrimary ring-1 ring-fieldBorder ring-inset transition-shadow duration-150 placeholder:text-faint focus:ring-2 focus:ring-accent focus:outline-none disabled:opacity-50;
+  @apply min-h-11 rounded-full bg-surface2 px-4.5 py-2 text-sm text-textPrimary ring-1 ring-fieldBorder ring-inset transition-shadow duration-150 placeholder:text-faint focus:ring-2 focus:ring-accent focus:outline-none disabled:opacity-50;
 }
 
 /* The compact buttons of a pill of gestures (the volume pulled out of its

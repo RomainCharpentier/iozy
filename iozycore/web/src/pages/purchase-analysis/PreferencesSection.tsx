@@ -18,7 +18,7 @@ export function PreferencesSection() {
   })
 
   return (
-    <details className="rounded-xl bg-surface p-4">
+    <details className="border-t border-ligneVerre pt-4">
       <summary className="cursor-pointer text-sm font-medium text-textPrimary">Ce qui compte pour toi</summary>
       {preferencesQuery.isPending && <p className="mt-3 text-sm text-textDim">Chargement…</p>}
       {preferencesQuery.isError && (

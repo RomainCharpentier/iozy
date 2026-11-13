@@ -90,7 +90,7 @@ export function SeriesBreakdownItem({
   const ownedOutsideLot = Math.max(0, covered - includedInEdition)
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+    <div className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-display text-sm font-semibold text-textPrimary">{item.item.series.title}</p>

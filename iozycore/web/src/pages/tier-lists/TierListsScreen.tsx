@@ -115,7 +115,7 @@ export function TierListsScreen() {
             {counts.total > 0 && (
               <Link
                 to={`/tier-lists/general/${entityType.id}`}
-                className="flex flex-col gap-3 rounded-2xl border border-surface2 bg-surface p-4 shadow-token-sm transition-transform hover:-translate-y-0.5"
+                className="flex flex-col gap-3 border-t border-ligneVerre pt-4 transition-colors hover:text-vive"
               >
                 <div className="flex items-center gap-2.5">
                   <ListOrdered size={16} className="text-textDim" />
@@ -149,7 +149,7 @@ export function TierListsScreen() {
             )}
 
             {lists.length > 0 && (
-              <div className="flex flex-col gap-2 rounded-2xl border border-surface2 bg-surface p-2 shadow-token-sm">
+              <div className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
                 {lists.map((list) => (
                   <Link
                     key={list.id}
@@ -181,7 +181,7 @@ export function TierListsScreen() {
           </div>
 
           {crossUniverseLists.length > 0 ? (
-            <div className="flex flex-col gap-2 rounded-2xl border border-surface2 bg-surface p-2 shadow-token-sm">
+            <div className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
               {crossUniverseLists.map((list) => (
                 <Link
                   key={list.id}

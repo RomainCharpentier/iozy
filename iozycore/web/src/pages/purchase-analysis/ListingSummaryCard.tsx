@@ -63,7 +63,7 @@ export function ListingSummaryCard({
   const total = prixConnu ? prix + (port ?? 0) + (protection ?? 0) : null
 
   return (
-    <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+    <section className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-xs uppercase tracking-wide text-textDim">

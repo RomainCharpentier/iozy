@@ -523,7 +523,7 @@ export function PurchaseAnalysisPage({ enPanneau = false }: { enPanneau?: boolea
             question that counts - what does this batch contain. */}
         {infosDepliees ? (
           <>
-                    <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
+                    <section className="flex flex-col gap-3 border-t border-ligneVerre pt-4">
                       <h2 className="font-display text-sm font-semibold text-textPrimary">Annonce</h2>
 
                       <div className="flex flex-col gap-1.5">
@@ -686,7 +686,7 @@ export function PurchaseAnalysisPage({ enPanneau = false }: { enPanneau?: boolea
           />
         )}
 
-        <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
+        <section className="flex flex-col gap-3 border-t border-ligneVerre pt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2
               ref={titreLotRef}
@@ -797,7 +797,7 @@ export function PurchaseAnalysisPage({ enPanneau = false }: { enPanneau?: boolea
             to someone who, eight times out of ten, will not touch them. The name of the
             choice is still read, so checkable at a glance - the information does not
             disappear, only the six ways to change it. */}
-        <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+        <section className="flex flex-col gap-2 border-t border-ligneVerre pt-4">
           {etatDeplie ? (
             <>
               <h2 className="font-display text-sm font-semibold text-textPrimary">État déclaré</h2>
