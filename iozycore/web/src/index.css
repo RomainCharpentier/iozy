@@ -1120,9 +1120,22 @@ a.tuile:focus-visible {
   transform: none;
 }
 
-/* The round button exists only on the tile turned over, to turn it back. */
+/* The round button exists only on the tile turned over, to turn it back. It
+   fades in once the half-turn is nearly done, not over a card still turning. */
 .mur-tourner {
   transition: background-color 0.2s ease;
+  animation: mur-tourner-entree 0.2s ease 0.4s both;
+}
+
+@keyframes mur-tourner-entree {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .mur-pave {
@@ -1160,7 +1173,8 @@ a.mur-pave:active {
   }
 
   .mur-case--vue,
-  .mur-attente {
+  .mur-attente,
+  .mur-tourner {
     animation: none;
   }
 
