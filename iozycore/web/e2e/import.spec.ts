@@ -45,8 +45,7 @@ async function creerLeCompteB(browser: Browser) {
   await page.getByLabel('Pseudo').fill(COMPTE_B.pseudo)
   await page.getByLabel('Code d’invitation').fill(CODE_INVITATION)
   await page.getByRole('button', { name: 'Créer mon compte' }).click()
-  await expect(page.getByRole('heading', { name: 'Ta semaine' })).toBeVisible()
-  await expect(page.getByText('Ta semaine commence ici.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Ta première jaquette/ })).toBeVisible()
   return { contexte, page }
 }
 

@@ -24,7 +24,7 @@ test('change the pseudo, and the avatar says the new one', async ({ browser }) =
   await page.getByLabel('Pseudo').fill(avant)
   await page.getByLabel('Code d’invitation').fill(CODE_INVITATION)
   await page.getByRole('button', { name: 'Créer mon compte' }).click()
-  await expect(page.getByRole('heading', { name: 'Ta semaine' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Ta première jaquette/ })).toBeVisible()
 
   // By the avatar, as a person would.
   await page.getByRole('link', { name: `Mon profil — ${avant}` }).first().click()

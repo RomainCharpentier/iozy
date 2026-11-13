@@ -47,7 +47,7 @@ test('a wish is on the list, and "Je l\'ai" moves it to the collection', async (
   // The wish it closed is gone too: it no longer comes back on reload.
   await page.reload()
   await expect(page.getByRole('heading', { name: 'À acheter', level: 1 })).toBeAttached()
-  await expect(page.getByRole('heading', { name: 'Ta liste', level: 2 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'À trouver', level: 2 })).toBeVisible()
   await expect(page.getByRole('button', { name: `${titre} : je l'ai` })).toHaveCount(0)
 })
 
