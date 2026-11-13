@@ -2229,3 +2229,16 @@ d'IozyCore ; IozyTest a ses propres contrôles. L'image `iozytest-app` du NAS n'
 Vérifié : 752 tests web, typecheck, lint, contraste AA, frontières, build sous /core ; 28 parcours
 e2e ; pile Docker reconstruite depuis les nouveaux contextes, 34 contrôles de déploiement sur :8081 ;
 IozyTest seul (lint, build, 150 tests serveur, 260 tests front, image Docker) dans son dépôt.
+
+### Lot 236 — Passe bureau après la refonte
+
+Passe de captures en 1 280 × 900, sombre et clair, des 25 écrans d IozyCore sur la copie des données du propriétaire
+(pile d aperçu reconstruite depuis `main`). Un seul défaut réel : l étagère débordait de 26 px dans une gouttière de
+24 px, donc la Collection et chaque rayon défilaient de 2 px sur le côté. La marge suit maintenant la gouttière.
+
+Pas des défauts : les couvertures de la BnF qui échouent (la BnF coupe l IP après quelques dizaines de requêtes ; le
+proxy répond 502 et l écran montre la lettre de repli) et les rails du bas vides sur une capture pleine page
+(`content-visibility`, pleins dès qu on défile). Le script `tools/apercu-captures.mjs` refait cette passe ; le thème se
+règle par `localStorage` (`iozycore.theme`), pas par `prefers-color-scheme`.
+
+Vérifié : 0 débordement sur les 25 écrans après correction, 28 parcours e2e. Pas relu au niveau du mobile (lot suivant).
