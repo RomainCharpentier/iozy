@@ -38,7 +38,8 @@ export function Reglages({ ouvrirTitres = false }: { ouvrirTitres?: boolean }) {
     <div className="flex flex-col gap-3">
       <section
         aria-labelledby="section-mon-compte"
-        className="iozy-verre iozy-verre--fort flex flex-col rounded-[26px] px-5 py-2 sm:px-6"
+        // Lot 229, the tool template: the rows sit on the backdrop, a rule between them, no pane.
+        className="flex flex-col border-t border-ligneVerre"
       >
         <h2 id="section-mon-compte" className="sr-only">
           Mon compte

@@ -2136,3 +2136,20 @@ leurs arrondis.
 
 Vérifié (225 à 227) : 758 tests web, typecheck, lint, contraste AA ; 28 parcours e2e sur 28 ;
 captures sur la copie des données à 1 280, 2 000 et 390 px (manga, jeu vidéo, jeu de société).
+
+### Lot 228 — Statistiques en affiche
+
+Statistiques quitte la colonne de 672 px pour le gabarit des destinations : l'aplat « 96 exemplaires
+possédés », puis, sur le fond, les œuvres, les envies et les expériences en chiffres géants, le
+graphique des entrées sur toute la largeur dans la couleur de la jaquette, la valeur et un bilan par
+rayon. Les tags se lisent en liste, plus en boîtes.
+
+### Lot 229 — Profil en gabarit d'outil
+
+Le Profil passe à la colonne de 760 px : le pseudo à 48 px, les réglages en lignes sur le fond. Les
+trois cartes du bas (réglages de partage, Tier Lists, valeur) font doublon avec Partager (lot 217) et
+Statistiques : trois lignes y mènent désormais. La spécification du Profil commun (pseudo, couleur,
+apparence, titres, son, données, administration discrète) ne les prévoyait pas.
+
+Vérifié (228 et 229) : 751 tests web, typecheck, lint, contraste AA, frontières, build ; 28 parcours
+e2e sur 28 ; captures sur la copie des données.
