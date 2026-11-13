@@ -874,7 +874,9 @@ html:active-view-transition * {
 }
 @media (min-width: 768px) {
   .salle {
-    --marge-salle: 26px;
+    /* No wider than the page gutter (1.5rem from md): the shelf bleeds into it,
+       and a wider bleed pushed the page 2px past the window. */
+    --marge-salle: 24px;
     scroll-margin-top: 132px;
     padding-top: 26px;
     padding-bottom: 12px;
