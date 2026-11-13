@@ -28,8 +28,8 @@ export function CollectionValueSection() {
   // say so, not leave the section out as if there were nothing to show.
   if (valueQuery.isError || valueQuery.isPending) {
     return (
-      <section className="flex flex-col gap-2">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Valeur de la collection</h2>
+      <section className="flex flex-col gap-3">
+        <h2 className="font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">Valeur de la collection</h2>
         {valueQuery.isError ? (
           <ErrorBanner message={`Valeur indisponible : ${valueQuery.error.message}`} />
         ) : (
@@ -44,17 +44,17 @@ export function CollectionValueSection() {
   const fullyCovered = pricedOwnershipCount === totalActiveOwnershipCount
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-display text-lg font-semibold text-textPrimary">Valeur de la collection</h2>
-      <div className="rounded-xl bg-surface p-3">
-        <p className="font-display text-3xl font-bold text-textPrimary">{formaterEuros(totalKnownValue)}</p>
-        <p className="text-sm text-textDim">
+    <section className="flex flex-col gap-3">
+      <h2 className="font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">Valeur de la collection</h2>
+      <div>
+        <p className="font-display text-outil font-bold tracking-[-0.05em] text-textPrimary tabular-nums">{formaterEuros(totalKnownValue)}</p>
+        <p className="text-secondaire mt-2 text-textDim">
           {fullyCovered
             ? `Au prix neuf, sur les ${totalActiveOwnershipCount} possession${totalActiveOwnershipCount > 1 ? 's' : ''} actuelles`
             : `Prix neuf connu sur ${pricedOwnershipCount}/${totalActiveOwnershipCount} — le total réel est plus élevé`}
         </p>
         {byType.length > 1 && (
-          <ul className="mt-2 flex flex-col gap-0.5 text-sm text-textDim">
+          <ul className="text-secondaire mt-3 flex flex-col gap-0.5 text-textDim">
             {byType.map((type) => (
               <li key={type.entityTypeLabel}>
                 {/* No price known for this type: "0,00 €" would read as a real

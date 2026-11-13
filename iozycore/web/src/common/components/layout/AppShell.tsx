@@ -98,7 +98,8 @@ function contentWidthFor(pathname: string): ContentWidth {
   // The detail page of a work has its own width - see `detail` above.
   // `/apercu` is the same page, read from the provider: same width, otherwise
   // the hero band would overhang a narrower column.
-  if (pathname.startsWith('/entity/') || pathname === '/apercu' || pathname.startsWith('/to-buy') || pathname === '/share' || pathname.startsWith('/releases')) return 'detail'
+  // Statistiques joined the destinations in lot 228: a poster and its figures, not a 672 px column.
+  if (pathname.startsWith('/entity/') || pathname === '/apercu' || pathname.startsWith('/to-buy') || pathname === '/share' || pathname.startsWith('/releases') || pathname === '/stats') return 'detail'
   // The catalogue (lot 198) lays its works out as covers, like a shelf of
   // Ma collection: seven per row at 1,280 px, cramped in 672 px.
   if (
@@ -117,8 +118,8 @@ function contentWidthFor(pathname: string): ContentWidth {
   // The release calendar places a seven-column grid and, next to it,
   // the list of everything coming during the year (batch 146): two columns that
   // do not fit in 672 px.
-  // The common profile (lot 218): the person on the left, the settings beside.
-  if (pathname === '/profile') return 'medium'
+  // The common profile, in the tool template since lot 229: one 760 px column.
+  if (pathname === '/profile') return 'outil'
   return 'narrow'
 }
 

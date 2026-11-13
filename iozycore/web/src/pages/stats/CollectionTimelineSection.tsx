@@ -23,8 +23,8 @@ export function CollectionTimelineSection() {
   // A failed or slow load says so; only a truly empty timeline hides the section.
   if (timelineQuery.isError || timelineQuery.isPending) {
     return (
-      <section className="flex flex-col gap-2">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Évolution de ma collection</h2>
+      <section className="flex flex-col gap-4">
+        <h2 className="font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">Évolution de ma collection</h2>
         {timelineQuery.isError ? (
           <ErrorBanner message={`Évolution indisponible : ${timelineQuery.error.message}`} />
         ) : (
@@ -39,19 +39,19 @@ export function CollectionTimelineSection() {
   const maxCount = Math.max(...points.map((p) => p.tomesAdded))
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-display text-lg font-semibold text-textPrimary">Évolution de ma collection</h2>
-      <div className="defilement-discret overflow-x-auto rounded-xl bg-surface p-3">
-        <div className="flex h-32 min-w-fit items-end gap-2">
+    <section className="flex flex-col gap-4">
+      <h2 className="font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">Évolution de ma collection</h2>
+      <div className="defilement-discret overflow-x-auto">
+        <div className="flex h-60 min-w-fit items-end gap-2">
           {points.map((point) => (
-            <div key={point.month} className="flex w-8 shrink-0 flex-col items-center gap-1">
-              <span className="text-[11px] text-textDim">{point.tomesAdded}</span>
+            <div key={point.month} className="flex min-w-10 flex-1 flex-col items-center gap-1.5">
+              <span className="text-mention text-textDim tabular-nums">{point.tomesAdded}</span>
               <div
                 title={`${point.tomesAdded} tome${point.tomesAdded > 1 ? 's' : ''} en ${formatMonth(point.month)}`}
-                className="w-full rounded-t bg-accent"
-                style={{ height: `${Math.max(4, (point.tomesAdded / maxCount) * 80)}px` }}
+                className="iozy-teinte w-full bg-vive"
+                style={{ height: `${Math.max(4, (point.tomesAdded / maxCount) * 180)}px` }}
               />
-              <span className="whitespace-nowrap text-[11px] text-textDim">{formatMonth(point.month)}</span>
+              <span className="text-mention whitespace-nowrap text-faint">{formatMonth(point.month)}</span>
             </div>
           ))}
         </div>
