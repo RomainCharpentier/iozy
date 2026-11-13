@@ -2,7 +2,7 @@
 
 Base de connaissances personnelle, auto-hébergée, pour cataloguer une collection (mangas, jeux vidéo, jeux de société, types personnalisés). Chaque compte a sa collection ; le catalogue des œuvres est partagé.
 
-Ce dossier est IozyCore, une app du monorepo Iozy : `backend/` (Spring Boot, la référence), `web/` (React, le client vivant), `ios/` (SwiftUI, **hors service** depuis le 2026-08-29). Les règles communes à toutes les apps (langue, dépôt public, git, façon de travailler, comment vérifier) sont dans `../CLAUDE.md` ; `backend/` et `web/` ont chacun leur `CLAUDE.md` : lis celui du dossier où tu travailles.
+Ce dossier est IozyCore, le cœur de ce dépôt (IozyTest et IozyKit ont le leur depuis le 2026-11-13, clonés à côté) : `backend/` (Spring Boot, la référence), `web/` (React, le client vivant), `ios/` (SwiftUI, **hors service** depuis le 2026-08-29). Les règles communes à toutes les apps (langue, dépôt public, git, façon de travailler, comment vérifier) sont dans `../CLAUDE.md` ; `backend/` et `web/` ont chacun leur `CLAUDE.md` : lis celui du dossier où tu travailles.
 
 ## Où chercher
 

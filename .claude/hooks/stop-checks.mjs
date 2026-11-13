@@ -7,13 +7,10 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
-// One entry per app: its folder and the npm scripts that must pass.
-// iozykit is left out on purpose: its test rewrites a generated file, so the
-// hook would see "changes" for ever. Backend tests need Docker and are too slow here.
-const apps = [
-  { dir: 'iozycore/web', scripts: ['typecheck', 'lint'] },
-  { dir: 'iozytest', scripts: ['typecheck', 'test:unit'] },
-]
+// One entry per app of this repository: its folder and the npm scripts that
+// must pass. IozyTest and IozyKit have their own repositories since 2026-11-13.
+// Backend tests need Docker and are too slow here.
+const apps = [{ dir: 'iozycore/web', scripts: ['typecheck', 'lint'] }]
 
 function changedCode(dir) {
   const out = execFileSync('git', ['status', '--porcelain', '--', dir], { cwd: root, encoding: 'utf8' })
