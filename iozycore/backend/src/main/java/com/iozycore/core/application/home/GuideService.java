@@ -67,8 +67,10 @@ public class GuideService {
         this.clock = Clock.system(ZONE);
     }
 
-    static final int ASKED = 10;
-    static final int KEPT = 4;
+    // The wall of the home page gives ideas about a third of its tiles: eight kept, asked with a
+    // margin because the catalog sources drop the titles they cannot confirm.
+    static final int ASKED = 14;
+    static final int KEPT = 8;
 
     static final String RECOMMEND = """
             Voici la collection d'une personne. Propose %d œuvres qu'elle \
