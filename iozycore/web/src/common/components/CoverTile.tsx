@@ -112,7 +112,7 @@ export function CoverTile({
         className={`group flex w-full min-w-0 flex-col text-left ${onClick ? 'cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]' : 'cursor-default'}`}
       >
         <div
-          className={`relative w-full overflow-hidden rounded-2xl ring-1 ring-line shadow-token-sm transition-shadow duration-200 group-hover:shadow-token-md ${aspectClassName} ${etat ? CADRE_PAR_ETAT[etat] : ''}`}
+          className={`relative w-full overflow-hidden ring-1 ring-line shadow-token-sm transition-shadow duration-200 group-hover:shadow-token-md ${aspectClassName} ${etat ? CADRE_PAR_ETAT[etat] : ''}`}
           // The gradient stays UNDER the cover: it is what shows while the
           // image fades in, and what remains when it fails.
           style={{ background: gradientFor(gradientKey ?? title) }}

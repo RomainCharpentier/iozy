@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
 import type { EntityTypeDto } from '@/common/types/api'
 
 /**
@@ -39,24 +38,20 @@ export function RayonCatalogue({
   nommer?: boolean
   children: ReactNode
 }) {
-  const visual = getEntityTypeVisual(entityType)
   if (compact) {
     return (
       <section className="flex flex-col gap-1.5">
-        {nommer && <h2 className="text-xs font-medium text-textDim">{entityType.label}</h2>}
+        {nommer && <h2 className="text-secondaire font-semibold text-textDim">{entityType.label}</h2>}
         <div className={CLASSE_GRILLE_CATALOGUE}>{children}</div>
       </section>
     )
   }
   return (
-    <section
-      className="relative -mx-3.5 rounded-3xl px-3.5 pt-0.5 pb-3.5"
-      style={{ background: `radial-gradient(120% 90% at 0% 0%, ${visual.tint}, transparent 62%)` }}
-    >
-      <div className="flex items-center gap-2.5 py-3.5">
-        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: visual.color }} />
-        <h2 className="font-display text-lg font-semibold text-textPrimary">{entityType.label}</h2>
-        <span className="text-sm text-faint">{nombre}</span>
+    // Lot 231: a shelf sits on the backdrop like a room of Collection, its name at 28 px.
+    <section className="flex flex-col gap-4">
+      <div className="flex items-baseline gap-3">
+        <h2 className="font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">{entityType.label}</h2>
+        <span className="text-section text-faint tabular-nums">{nombre}</span>
       </div>
       <div className={CLASSE_GRILLE_CATALOGUE}>{children}</div>
     </section>
