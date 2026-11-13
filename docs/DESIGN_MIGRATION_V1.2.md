@@ -2084,3 +2084,15 @@ rafale (le repli s'affiche), et une jaquette externe lente laisse sa case vide j
 
 Vérifié : 753 tests web, typecheck, lint, frontières ; 27 parcours e2e sur 27 (celui de Suggestions
 part avec sa page) ; redirections et retours sur le serveur de dev branché sur la pile d'aperçu.
+
+### Lot 223 — Le coût pour finir une série, sur À acheter
+
+Le coût estimé pour compléter une série, que montrait l'écran Suggestions retiré au lot 222, revient
+sur les lignes « à compléter » d'À acheter : « il t'en manque 4 · ~30,00 € (marché) », avec sa base
+(marché, théorique, estimation IA). Le serveur chiffre une édition de référence connue ; la ligne ne
+liste que les tomes déjà parus, donc le coût est ramené à ses tomes, au même prix moyen. Une série
+sans édition chiffrée n'affiche rien, jamais une estimation inventée.
+
+Vérifié : 758 tests web (mutation du calcul attrapée), typecheck, lint, frontières ; parcours e2e
+d'À acheter (deux tomes à 9 € : « ~18,00 € (théorique) ») ; sur la copie des données, Death Note
+affiche ~30,00 € (marché), le chiffre de l'ancien Découvrir.

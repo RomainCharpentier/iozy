@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { jetonCsrf } from './amorcage'
+import { jetonCsrf, serieAvecEdition } from './amorcage'
 
 /**
  * <b>"À acheter" (lot 216): wish something, see it to buy, then "Je l'ai".</b>
@@ -65,4 +65,15 @@ test('the listing analysis opens beside the list, and closes back to it', async 
   // The analysis keeps its own address.
   await page.goto('/purchase-analysis')
   await expect(page.getByRole('heading', { name: 'Analyser une annonce' })).toBeVisible()
+})
+
+test('a series to complete says what its missing volumes cost, and on what basis', async ({ page }) => {
+  // Taken over from the Suggestions screen (lot 223): two volumes at 9 € of reference
+  // price, with no market reading, are 18 €, and the basis is NAMED.
+  const titre = `Pluto ${Date.now()}`
+  await serieAvecEdition(page, { titre, edition: 'Standard', totalVolumes: 8, tomesPossedes: [1, 2, 3, 4, 5, 6], prixNeufAuTome: 9 })
+
+  await page.goto('/to-buy')
+  const ligne = page.getByRole('link', { name: `${titre}, tomes 7 et 8 : ouvrir la fiche` })
+  await expect(ligne).toContainText(/il t’en manque 2 · ~18,00\s€ \(théorique\)/)
 })

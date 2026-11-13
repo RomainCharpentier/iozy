@@ -26,6 +26,8 @@ const possessions = vi.hoisted(() => ({ deleteOwnership: vi.fn() }))
 const envies = vi.hoisted(() => ({ addToWishlist: vi.fn() }))
 
 vi.mock('@/common/api/purchases', () => api)
+const analyse = vi.hoisted(() => ({ getNearCompleteSuggestions: vi.fn() }))
+vi.mock('@/common/api/purchaseAnalysis', () => analyse)
 vi.mock('@/common/api/ownerships', () => possessions)
 vi.mock('@/common/api/wishlist', () => envies)
 vi.mock('@/common/api/entityTypes', () => ({ listEntityTypes: vi.fn().mockResolvedValue([]) }))
@@ -86,6 +88,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   api.listToBuy.mockResolvedValue([FRIEREN, CATAN])
   api.fetchMonthSpending.mockResolvedValue(mois())
+  analyse.getNearCompleteSuggestions.mockResolvedValue([])
 })
 
 describe('the to-buy page', () => {
@@ -158,6 +161,18 @@ describe('the to-buy page', () => {
     expect(await screen.findByText('Frieren, tomes 11 et 12')).toBeInTheDocument()
     expect(screen.getByText('il t’en manque 2')).toBeInTheDocument()
     expect(screen.getByText('Catan : Marins')).toBeInTheDocument()
+    expect(screen.getByText('dans tes envies')).toBeInTheDocument()
+  })
+
+  it('says what finishing a series costs, and keeps the line as it was when nothing is priced', async () => {
+    analyse.getNearCompleteSuggestions.mockResolvedValue([
+      {
+        entityId: 'frieren', seriesTitle: 'Frieren', editionName: 'Ki-oon', ownedCount: 10, totalVolumes: 12, missingCount: 2,
+        missingVolumeNumbers: [11, 12], cataloguedMissingVolumeNumbers: [], estimatedCostToComplete: 15.9, costToCompleteBasis: 'OBSERVED_MARKET',
+      },
+    ])
+    afficher()
+    expect(await screen.findByText(/^il t’en manque 2 · ~15,90\s€ \(marché\)$/)).toBeInTheDocument()
     expect(screen.getByText('dans tes envies')).toBeInTheDocument()
   })
 

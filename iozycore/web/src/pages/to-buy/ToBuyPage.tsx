@@ -7,6 +7,7 @@ import { cleLigne } from '@/common/hooks/useJeLAi'
 import { useAcheter } from './useAcheter'
 import { BlocBudget } from './BlocBudget'
 import { LigneAAcheter } from './LigneAAcheter'
+import { coutPourFinir } from './coutPourFinir'
 import { PanneauLateral } from './PanneauLateral'
 import { detailDepense, libelleMoisDepense } from '@/common/lib/libellesAchat'
 import { usePleinCadre } from '@/common/components/pleinCadre/usePleinCadre'
@@ -49,7 +50,7 @@ function tailleDuMontant(montant: string): string {
  * The cover of the first thing to buy: what the page is about right now.
  */
 export function ToBuyPage() {
-  const { liste, mois, jeLAi, budget } = useAcheter()
+  const { liste, mois, couts, jeLAi, budget } = useAcheter()
   const panneau = useOutlet()
   const navigate = useNavigate()
   const types = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
@@ -122,6 +123,7 @@ export function ToBuyPage() {
                 key={cleLigne(ligne)}
                 ligne={ligne}
                 type={types.data?.find((t) => t.id === ligne.entityTypeId)}
+                cout={coutPourFinir(ligne, couts)}
                 onJeLAi={() => jeLAi.mutate(ligne)}
               />
             ))}

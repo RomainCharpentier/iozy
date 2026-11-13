@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchMonthSpending, listToBuy, setBudget } from '@/common/api/purchases'
+import { getNearCompleteSuggestions } from '@/common/api/purchaseAnalysis'
 import { useJeLAi } from '@/common/hooks/useJeLAi'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { useToast } from '@/common/lib/toast'
@@ -15,6 +16,8 @@ export function useAcheter() {
   // change made elsewhere (another device) must not wait for the cache to age.
   const liste = useQuery({ queryKey: queryKeys.purchases.toBuy, queryFn: listToBuy, refetchOnMount: 'always' })
   const mois = useQuery({ queryKey: queryKeys.purchases.month, queryFn: fetchMonthSpending, refetchOnMount: 'always' })
+  // What finishing a series costs (lot 223): optional, a line without it reads as before.
+  const couts = useQuery({ queryKey: queryKeys.purchaseAnalysis.nearCompleteSuggestions, queryFn: getNearCompleteSuggestions, retry: false })
   const jeLAi = useJeLAi()
 
   const budget = useMutation({
@@ -26,5 +29,5 @@ export function useAcheter() {
     onError: (error) => toast(`Impossible d'enregistrer le budget : ${error.message}`),
   })
 
-  return { liste, mois, jeLAi, budget }
+  return { liste, mois, couts: couts.data ?? [], jeLAi, budget }
 }

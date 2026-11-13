@@ -12,11 +12,14 @@ import { nomJeLAi, sousTitreLigne, titreLigne } from '@/common/lib/libellesAchat
 export function LigneAAcheter({
   ligne,
   type,
+  cout = null,
   onJeLAi,
 }: {
   ligne: ToBuyLineDto
   /** The type of the work: its `aspectKey` gives the shape of the cover. Unknown while loading. */
   type: EntityTypeDto | undefined
+  /** What the volumes of the line cost, with its basis ("~18,00 € (théorique)"); null when unknown. */
+  cout?: string | null
   onJeLAi: () => void
 }) {
   const couverture = ligne.elements[0]?.coverImageUrl ?? ligne.coverImageUrl
@@ -45,7 +48,10 @@ export function LigneAAcheter({
         />
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-[15px] font-bold text-textPrimary sm:text-base">{titre}</span>
-          <span className="truncate text-[13px] text-textDim">{sousTitreLigne(ligne)}</span>
+          <span className="truncate text-[13px] text-textDim">
+            {sousTitreLigne(ligne)}
+            {cout && ` · ${cout}`}
+          </span>
         </span>
       </Link>
       <button
