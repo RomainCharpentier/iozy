@@ -18,6 +18,15 @@ import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
 
 /**
+ * The size of the month spent: as big as it gets, but always on one line in
+ * its panel. A digit of the display font is about 0.58 of its size wide, so
+ * the size is the width of the panel (`cqi`) shared among the characters.
+ */
+function tailleDuMontant(montant: string): string {
+  return `min(150px, calc(100cqi / ${(montant.length * 0.58).toFixed(2)}))`
+}
+
+/**
  * "À acheter" (lot 216): the third goal of the owner, managing purchases.
  *
  * <h2>Three things, one screen</h2>
@@ -53,7 +62,7 @@ export function ToBuyPage() {
     <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 lg:grid lg:grid-cols-[440px_minmax(0,1fr)] lg:items-stretch lg:gap-0">
       {/* The page name for screen readers; the eye reads it from the nav and the list title. */}
       <h1 className="sr-only lg:col-span-2">À acheter</h1>
-      <section aria-labelledby="titre-depense" className="flex min-w-0 flex-col gap-3 bg-accent p-7 text-accentInk lg:min-h-[34rem] lg:p-9 [&_.iozy-verre]:!bg-background [&_.iozy-verre]:text-textPrimary">
+      <section aria-labelledby="titre-depense" className="flex min-w-0 flex-col gap-3 bg-accent [container-type:inline-size] p-7 text-accentInk lg:min-h-[34rem] lg:p-9 [&_.iozy-verre]:!bg-background [&_.iozy-verre]:text-textPrimary">
         <h2 id="titre-depense" className="iozy-teinte text-[13px] font-bold tracking-[0.16em] uppercase">
           {mois.data ? libelleMoisDepense(mois.data.month) : 'Dépensé ce mois-ci'}
         </h2>
@@ -63,7 +72,7 @@ export function ToBuyPage() {
           <ErrorBanner message={mois.error.message} />
         ) : (
           <>
-            <p className="font-display text-[clamp(56px,15vw,150px)] leading-[0.85] font-bold tracking-[-0.06em] [overflow-wrap:anywhere]">
+            <p className="font-display leading-[0.85] font-bold tracking-[-0.06em] whitespace-nowrap" style={{ fontSize: tailleDuMontant(formaterEuros(mois.data.spent)) }}>
               <NombreAnime valeur={mois.data.spent} format={formaterEuros} />
             </p>
             <p className="text-base font-medium">{detailDepense(mois.data.pricedCount, mois.data.unpricedCount)}</p>
