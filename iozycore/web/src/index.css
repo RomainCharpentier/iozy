@@ -1024,7 +1024,7 @@ a.tuile:focus-visible {
      row unfolds from left to right.
    - Under the pointer the cover zooms slowly, the tint of an idea falls away
      to show the real cover, and the title slides down from the top edge.
-   - The small round button turns the tile over: a 3D half-turn, the back
+   - A click on the cover turns the tile over: a 3D half-turn, the back
      made only while it is shown (see TuileMur).
    - Waiting tiles breathe while the ideas are asked.
    Without motion, every state is simply there. */
@@ -1120,35 +1120,9 @@ a.tuile:focus-visible {
   transform: none;
 }
 
+/* The round button exists only on the tile turned over, to turn it back. */
 .mur-tourner {
-  opacity: 0;
-  transition:
-    opacity 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.mur-case:hover .mur-tourner,
-.mur-tourner:focus-visible,
-.mur-tourner[aria-expanded='true'] {
-  opacity: 1;
-}
-
-/* A finger has no hover: no button on every cover (twenty round buttons
-   would cover the wall). A long press turns the tile; the button shows only
-   on the tile already turned, to turn it back. Hidden, it stays in the page
-   for a screen reader, which cannot long-press. */
-@media (hover: none) {
-  .mur-tourner:not([aria-expanded='true']) {
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
-  .mur-recto {
-    -webkit-touch-callout: none;
-    user-select: none;
-  }
+  transition: background-color 0.2s ease;
 }
 
 .mur-pave {

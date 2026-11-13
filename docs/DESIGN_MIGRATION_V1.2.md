@@ -2040,3 +2040,13 @@ Vérifié : 760 tests web (les 3 échecs de `ReleasesPage.test.tsx` précèdent 
 sorties a été refaite sans ses tests), typecheck, lint, contraste AA (156 combinaisons), frontières ;
 28 parcours e2e sur 29 (`releases.spec.ts`, même cause) ; captures bureau et téléphone, thèmes
 sombre et clair, sur une collection de démonstration de la pile e2e.
+
+### Lot 220 — La tuile se retourne au clic
+
+Sur le mur, un clic (ou un toucher, ou Entrée) sur une jaquette retourne la tuile, au lieu d'ouvrir
+la fiche : le dos dit pourquoi elle est là, et son titre mène à la fiche. Le bouton rond n'apparaît
+plus que sur la tuile retournée, pour la remettre ; un clic sur le dos hors de ses liens, ou Échap,
+la remet aussi. L'appui long au doigt disparaît, devenu inutile.
+
+Vérifié : 762 tests web (dont `TuileMur.test.tsx`, mutation attrapée ; les 3 échecs de
+`ReleasesPage.test.tsx` précèdent ce lot), typecheck, lint ; parcours e2e de l'accueil.

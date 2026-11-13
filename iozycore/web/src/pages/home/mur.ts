@@ -62,7 +62,7 @@ export interface Tuile {
   /** One more sentence, on the back. */
   detail: string | null
   teinte: Teinte
-  /** Where a click on the front leads. */
+  /** Where the title on the back leads: the work. */
   lien: string
   images: ImageTuile[]
   action: ActionTuile | null

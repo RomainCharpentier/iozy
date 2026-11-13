@@ -5,11 +5,10 @@ import {
   type CSSProperties,
   type KeyboardEvent,
   type MouseEvent,
-  type PointerEvent,
   type TransitionEvent,
 } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, RotateCw, Sparkles, X } from 'lucide-react'
+import { Plus, Sparkles, X } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
 import type { EtatImage, ImageTuile, Teinte, Tuile } from './mur'
 
@@ -36,9 +35,6 @@ const FILTRE: Record<EtatImage, string> = {
   aAcheter: 'brightness(0.42) saturate(0.85)',
   aVenir: 'grayscale(1) brightness(0.5)',
 }
-
-/** How long a finger stays on a cover to turn it: the length of a context menu. */
-const APPUI_LONG_MS = 450
 
 const COLONNES: Record<Tuile['largeur'], string> = { 1: 'col-span-1', 2: 'col-span-2', 3: 'col-span-3' }
 const RANGEES: Record<Tuile['hauteur'], string> = { 1: 'row-span-1', 2: 'row-span-2' }
@@ -141,12 +137,12 @@ function Pave({ tuile }: { tuile: Tuile }) {
  * One tile of the wall.
  *
  * <h2>Front and back</h2>
- * The front is the cover, and a click on it opens the work, as everywhere in
- * the app. The small round button turns the tile over: the back says why the
- * tile is there and offers its one action ("J'ai le tome 108", "Ajouter à mes
- * envies"). Only one tile is turned at a time (the wall decides), Escape turns
- * it back, and the focus follows: onto the back when it opens, back onto the
- * button when it closes.
+ * The front is the cover, and a click on it (or a tap, or Enter) turns the tile
+ * over: the back says why the tile is there, links to the work by its title,
+ * and offers its one action ("J'ai le tome 108", "Ajouter à mes envies"). Only
+ * one tile is turned at a time (the wall decides). The round button, a click on
+ * the back outside its links, or Escape turns it back, and the focus follows:
+ * onto the back when it opens, back onto the cover when it closes.
  *
  * <h2>The back exists only while it is seen</h2>
  * Hidden by `backface-visibility`, a back that stayed in the page would still
@@ -169,10 +165,8 @@ export function TuileMur({
   actionEnCours: boolean
 }) {
   const [ref, vu] = useVu<HTMLLIElement>()
-  const bouton = useRef<HTMLButtonElement>(null)
+  const recto = useRef<HTMLButtonElement>(null)
   const dos = useRef<HTMLDivElement>(null)
-  const appui = useRef<number | null>(null)
-  const retourneeAuDoigt = useRef(false)
   const [dosMonte, setDosMonte] = useState(ouverte)
   const [etaitOuverte, setEtaitOuverte] = useState(ouverte)
   if (etaitOuverte !== ouverte) {
@@ -184,14 +178,6 @@ export function TuileMur({
   useEffect(() => {
     if (ouverte && dosMonte) dos.current?.querySelector<HTMLElement>('a, button')?.focus()
   }, [ouverte, dosMonte])
-
-  // A press still running when the tile leaves the page must not fire later.
-  useEffect(
-    () => () => {
-      if (appui.current !== null) window.clearTimeout(appui.current)
-    },
-    [],
-  )
 
   const placement = `${COLONNES[tuile.largeur]} ${RANGEES[tuile.hauteur]}`
   const style = { '--rang': rang } as CSSProperties
@@ -235,52 +221,37 @@ export function TuileMur({
     if (event.target === event.currentTarget && event.propertyName === 'transform' && !ouverte) setDosMonte(false)
   }
 
-  // A finger has no hover and no button: a long press turns the tile, and the
-  // click that ends it must not open the work.
-  function debutAppui(event: PointerEvent<HTMLAnchorElement>) {
-    if (event.pointerType !== 'touch') return
-    retourneeAuDoigt.current = false
-    appui.current = window.setTimeout(() => {
-      retourneeAuDoigt.current = true
-      basculer(tuile.cle)
-      navigator.vibrate?.(8)
-    }, APPUI_LONG_MS)
+  function remettre() {
+    basculer(null)
+    recto.current?.focus()
   }
 
-  function finAppui() {
-    if (appui.current !== null) window.clearTimeout(appui.current)
-    appui.current = null
-  }
-
-  function clic(event: MouseEvent<HTMLAnchorElement>) {
-    if (!retourneeAuDoigt.current) return
-    event.preventDefault()
-    retourneeAuDoigt.current = false
+  // A click on the back outside its link and its button turns the tile back.
+  function clicSurLeDos(event: MouseEvent<HTMLDivElement>) {
+    if ((event.target as HTMLElement).closest('a, button')) return
+    remettre()
   }
 
   function touche(event: KeyboardEvent<HTMLLIElement>) {
     if (event.key === 'Escape' && ouverte) {
       event.stopPropagation()
-      basculer(null)
-      bouton.current?.focus()
+      remettre()
     }
   }
 
   return (
     <li ref={ref} style={style} className={`${classeCase} mur-scene`} onKeyDown={touche} data-tuile={tuile.cle}>
       <div className={`mur-carte absolute inset-0 ${ouverte ? 'mur-carte--retournee' : ''}`} onTransitionEnd={finDeRotation}>
-        <Link
-          to={tuile.lien}
+        <button
+          ref={recto}
+          type="button"
           tabIndex={ouverte ? -1 : 0}
           aria-hidden={ouverte || undefined}
+          aria-expanded={ouverte}
+          aria-controls={dosMonte ? idDos : undefined}
           aria-label={`${tuile.titre} : ${tuile.etat}`}
-          onPointerDown={debutAppui}
-          onPointerUp={finAppui}
-          onPointerCancel={finAppui}
-          onPointerLeave={finAppui}
-          onClick={clic}
-          onContextMenu={(event) => retourneeAuDoigt.current && event.preventDefault()}
-          className="mur-face mur-recto absolute inset-0 flex overflow-hidden bg-surface2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-textPrimary"
+          onClick={() => basculer(tuile.cle)}
+          className="mur-face mur-recto absolute inset-0 flex cursor-pointer overflow-hidden bg-surface2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-textPrimary"
         >
           {tuile.images.map((image) => (
             <Image key={image.cle} image={image} teinte={tuile.teinte} grande={grande} />
@@ -291,7 +262,7 @@ export function TuileMur({
           >
             {tuile.titre}
           </span>
-        </Link>
+        </button>
 
         {dosMonte && (
           <div
@@ -299,6 +270,7 @@ export function TuileMur({
             id={idDos}
             role="group"
             aria-label={tuile.titre}
+            onClick={clicSurLeDos}
             className={`mur-face mur-dos absolute inset-0 flex flex-col overflow-hidden text-murEncre ${FOND[tuile.teinte]} ${
               grande ? 'gap-2.5 p-6' : 'gap-1.5 p-3'
             }`}
@@ -339,17 +311,16 @@ export function TuileMur({
         )}
       </div>
 
-      <button
-        ref={bouton}
-        type="button"
-        onClick={() => basculer(ouverte ? null : tuile.cle)}
-        aria-expanded={ouverte}
-        aria-controls={dosMonte ? idDos : undefined}
-        aria-label={ouverte ? `Remettre ${tuile.titre}` : `Retourner ${tuile.titre} : en savoir plus`}
-        className="mur-tourner absolute top-1.5 right-1.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(22_18_15/0.82)] text-[#f4eee7] hover:bg-[rgb(22_18_15/0.95)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f4eee7]"
-      >
-        {ouverte ? <X aria-hidden="true" size={16} /> : <RotateCw aria-hidden="true" size={15} />}
-      </button>
+      {ouverte && (
+        <button
+          type="button"
+          onClick={remettre}
+          aria-label={`Remettre ${tuile.titre}`}
+          className="mur-tourner absolute top-1.5 right-1.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(22_18_15/0.82)] text-[#f4eee7] hover:bg-[rgb(22_18_15/0.95)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f4eee7]"
+        >
+          <X aria-hidden="true" size={16} />
+        </button>
+      )}
     </li>
   )
 }

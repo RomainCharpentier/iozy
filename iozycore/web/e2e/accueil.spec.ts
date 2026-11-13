@@ -51,30 +51,31 @@ test('a new wall is empty, then follows a series to complete until it is', async
     // The poster counts it, and the wall shows the series as one block.
     await expect(accueil.getByRole('heading', { name: '1 chose à suivre' })).toBeVisible()
     await expect(accueil.getByText('tome à acheter pour finir 1 série.')).toBeVisible()
-    const bloc = accueil.getByRole('link', { name: `${titre} : Le dernier qui te manque` })
+    const bloc = accueil.getByRole('button', { name: `${titre} : Le dernier qui te manque` })
     await expect(bloc).toBeVisible()
     // A block of colour says the same in a figure, and leads to what there is to buy.
     await expect(accueil.getByRole('link', { name: `1 tome et ${titre} est à jour.` })).toBeVisible()
 
-    // --- The back of the tile: why it is there, and its one action
-    await accueil.getByRole('button', { name: `Retourner ${titre} : en savoir plus` }).click()
+    // --- A click on the cover turns the tile: why it is there, and its one action
+    await bloc.click()
     const dos = accueil.getByRole('group', { name: titre })
     await expect(dos.getByText('Tome 4.')).toBeVisible()
     // The focus goes to the back, and Escape turns it back.
     await expect(dos.getByRole('link', { name: titre })).toBeFocused()
     await accueil.keyboard.press('Escape')
-    await expect(accueil.getByRole('button', { name: `Retourner ${titre} : en savoir plus` })).toBeFocused()
+    await expect(bloc).toBeFocused()
 
-    await accueil.getByRole('button', { name: `Retourner ${titre} : en savoir plus` }).click()
+    await bloc.click()
     await accueil.getByRole('group', { name: titre }).getByRole('button', { name: 'J’ai le tome 4' }).click()
     await expect(accueil.getByText(`${titre}, tome 4 : dans ta collection`)).toBeVisible()
 
     // Complete now: no longer a series to complete, an arrival of today.
     await expect(bloc).toHaveCount(0)
-    await expect(accueil.getByRole('link', { name: `${titre} : Arrivé aujourd’hui` })).toBeVisible()
+    await expect(accueil.getByRole('button', { name: `${titre} : Arrivé aujourd’hui` })).toBeVisible()
 
-    // A click on a cover opens the work.
-    await accueil.getByRole('link', { name: `${titre} : Arrivé aujourd’hui` }).click()
+    // The title on the back opens the work.
+    await accueil.getByRole('button', { name: `${titre} : Arrivé aujourd’hui` }).click()
+    await accueil.getByRole('group', { name: titre }).getByRole('link', { name: titre }).click()
     await expect(accueil).toHaveURL(/\/entity\/[0-9a-f-]{36}$/)
     await expect(accueil.getByRole('heading', { name: titre })).toBeVisible()
   } finally {
