@@ -107,7 +107,11 @@ describe('the rooms', () => {
     render(<ShelfPage />, { wrapper: enrobage })
 
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Jeu vidéo', 'Manga'])
-    expect(screen.getByRole('navigation', { name: 'Catégories' })).toHaveTextContent('Jeu vidéo3')
+    // Two indexes, one per width (the poster column on a desktop, the sticky bar on a
+    // phone, the other hidden by CSS): both name each room with its count.
+    const index = screen.getAllByRole('navigation', { name: 'Catégories' })
+    expect(index).toHaveLength(2)
+    for (const nav of index) expect(nav).toHaveTextContent(/Jeu vidéo\s*3|3\s*Jeu vidéo/)
   })
 
   it('with one category, says neither its name nor a bar: the page already is that room', () => {

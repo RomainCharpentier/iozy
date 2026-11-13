@@ -26,7 +26,7 @@ import {
 
 import { useModalA11y } from '@/common/hooks/useModalA11y'
 import { useNow } from '@/common/hooks/useNow'
-import { GrandTitre } from '@/common/components/GrandTitre'
+import { AplatChiffre, PageAffiche } from '@/common/components/PageAffiche'
 import { EtatVide } from '@/common/components/EtatVide'
 import { useDonneesCollection } from './useDonneesCollection'
 import { useFiltresCollection } from './useFiltresCollection'
@@ -177,6 +177,8 @@ export function ShelfPage() {
    */
   const isLoading = donnees.chargement
   const affiches = triees.length
+  // The figure of the page: the copies the collector holds, whatever the view.
+  const objetsPossedes = useMemo(() => ownerships.filter((o) => o.status === 'OWNED').length, [ownerships])
   const vide = messageVide(filtre, filtres.nombreActifs > 0)
 
   const ouvrir = useOuvrirOeuvre({
@@ -195,12 +197,19 @@ export function ShelfPage() {
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-        <GrandTitre
+    <>
+    <PageAffiche
+      affiche={
+        <>
+        {/* The figure of the page (lot 226): how many things the collection holds, in its
+            one flat block; what the current view counts follows, under it. */}
+        <AplatChiffre
           titre="Ma collection"
-          sousTitre={
-            !isLoading ? (
+          chiffre={isLoading ? '…' : objetsPossedes}
+          legende={isLoading ? 'Chargement...' : `${objetsPossedes > 1 ? 'objets' : 'objet'} dans ta collection`}
+        >
+          <p className="text-secondaire font-medium opacity-80">
+            {!isLoading ? (
               <>
                 {affiches} {LIBELLES_DECOMPTE[filtre](affiches)}
                 {filtre !== 'envies' &&
@@ -210,17 +219,24 @@ export function ShelfPage() {
             ) : (
               // Takes the same line so that nothing jumps when the real
               // count arrives.
-              'Chargement...'
-            )
-          }
-        />
+              ' '
+            )}
+          </p>
+        </AplatChiffre>
 
-        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+        {!unSeulType && salles.length > 1 && (
+          <div className="hidden lg:block">
+            <BarreCategories colonne salles={salles.map((s) => ({ entityType: s.entityType, nombre: s.nombre }))} />
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
           <BarreVues
             filtre={filtre}
             onFiltre={choisirFiltre}
             comptes={!isLoading ? comptes : null}
             avecCompleter={avecCompleter}
+            pleineLargeur
           />
           <BasculeAffichage affichage={preferences.affichage} onChoisir={choisirAffichage} />
           {/* Without any tag there is nothing to filter on: no button at all. */}
@@ -257,8 +273,10 @@ export function ShelfPage() {
             <MoreHorizontal size={16} />
           </button>
         </div>
-      </div>
-
+        </>
+      }
+    >
+      <div className="flex flex-col gap-1">
       {donnees.erreurs.map((message) => (
         <ErrorBanner key={message} message={message} />
       ))}
@@ -299,8 +317,11 @@ export function ShelfPage() {
         </div>
       )}
 
+      {/* On a phone the poster has no room for the index: the rooms keep their sticky bar. */}
       {!unSeulType && salles.length > 1 && (
-        <BarreCategories salles={salles.map((s) => ({ entityType: s.entityType, nombre: s.nombre }))} />
+        <div className="lg:hidden">
+          <BarreCategories salles={salles.map((s) => ({ entityType: s.entityType, nombre: s.nombre }))} />
+        </div>
       )}
 
       <div ref={zone} data-affichage={preferences.affichage} className="mt-3 flex flex-col">
@@ -317,6 +338,8 @@ export function ShelfPage() {
           />
         ))}
       </div>
+      </div>
+    </PageAffiche>
 
       <CollectionFilters
         open={filtres.ouverts}
@@ -407,6 +430,6 @@ export function ShelfPage() {
           </div>
         </>
       )}
-    </div>
+    </>
   )
 }

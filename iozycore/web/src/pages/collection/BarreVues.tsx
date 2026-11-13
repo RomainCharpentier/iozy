@@ -35,6 +35,7 @@ export function BarreVues({
   onFiltre,
   comptes,
   avecCompleter = true,
+  pleineLargeur = false,
 }: {
   filtre: FiltreCollection
   onFiltre: (filtre: FiltreCollection) => void
@@ -47,12 +48,14 @@ export function BarreVues({
   comptes: Record<FiltreCollection, number> | null
   /** "À compléter" only speaks to what has volumes: a collection of games never sees it. */
   avecCompleter?: boolean
+  /** In a narrow column (the poster of Collection, lot 226): the four share the width at every size. */
+  pleineLargeur?: boolean
 }) {
   return (
     <div
       role="radiogroup"
       aria-label="Filtrer ma collection"
-      className="flex w-full items-center gap-1 rounded-full bg-softBtn p-1 sm:w-auto"
+      className={`flex w-full items-center gap-1 rounded-full bg-softBtn p-1 ${pleineLargeur ? '' : 'sm:w-auto'}`}
     >
       {FILTRES.filter(({ cle }) => avecCompleter || cle !== 'completer').map(({ cle, libelle }) => {
         const actif = cle === filtre
@@ -63,7 +66,7 @@ export function BarreVues({
             role="radio"
             aria-checked={actif}
             onClick={() => onFiltre(cle)}
-            className={`flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 text-[12px] whitespace-nowrap transition-colors sm:flex-none sm:gap-1.5 sm:px-3.5 sm:text-[13px] ${
+            className={`flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 text-[12px] whitespace-nowrap transition-colors ${pleineLargeur ? '' : 'sm:flex-none sm:gap-1.5 sm:px-3.5 sm:text-[13px]'} ${
               actif ? 'bg-surface font-semibold text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
             }`}
           >
