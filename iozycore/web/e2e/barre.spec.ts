@@ -12,10 +12,10 @@ test('the top bar leads to each intention, and the search lands on the catalog',
   await page.goto('/')
   const nav = page.getByRole('navigation', { name: 'Navigation principale' })
 
-  // --- The six intentions, Accueil lit at home
-  await expect(nav.getByRole('link')).toHaveText(['Accueil', 'Collection', 'Sorties', 'À acheter', 'Partager', 'IozyTest'])
+  // --- The five intentions, Accueil lit at home. IozyTest is a neighbour app since lot
+  //     234: the brand's app switcher leads there, not the bar.
+  await expect(nav.getByRole('link')).toHaveText(['Accueil', 'Collection', 'Sorties', 'À acheter', 'Partager'])
   await expect(nav.getByRole('link', { name: 'Accueil' })).toHaveAttribute('aria-current', 'page')
-  await expect(nav.getByRole('link', { name: 'IozyTest' })).toHaveAttribute('href', '/test/')
 
   await nav.getByRole('link', { name: 'Sorties' }).click()
   await expect(page).toHaveURL(/\/releases$/)

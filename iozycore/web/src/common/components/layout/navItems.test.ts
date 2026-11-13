@@ -48,13 +48,11 @@ describe('the navigation highlighting', () => {
 
 describe('the list itself', () => {
   it('carries the destinations of the site, in their order', () => {
-    expect(NAV_ITEMS.map((item) => item.label)).toEqual(['Accueil', 'Collection', 'Sorties', 'À acheter', 'Partager', 'IozyTest'])
+    expect(NAV_ITEMS.map((item) => item.label)).toEqual(['Accueil', 'Collection', 'Sorties', 'À acheter', 'Partager'])
   })
 
-  it('leads to IozyTest by a plain address, outside the router of this app', () => {
-    const iozytest = NAV_ITEMS.find((item) => item.cle === 'iozytest')
-    expect(iozytest?.href).toBe('/test/')
-    expect(iozytest?.to).toBeUndefined()
+  it('leaves IozyTest out: a neighbour app, reached by the app switcher (lot 234)', () => {
+    expect(NAV_ITEMS.some((item) => item.label === 'IozyTest' || item.href === '/test/')).toBe(false)
   })
 
   it('opens the "Partager" page (lot 217)', () => {
@@ -71,10 +69,10 @@ describe('the list itself', () => {
 
 describe('the navigation of a visitor', () => {
   it('keeps only what needs no account', () => {
-    expect(destinationsPour(true).map((item) => item.cle)).toEqual(['sorties', 'iozytest'])
+    expect(destinationsPour(true).map((item) => item.cle)).toEqual(['sorties'])
   })
 
   it('keeps everything for an account', () => {
-    expect(destinationsPour(false)).toHaveLength(6)
+    expect(destinationsPour(false)).toHaveLength(5)
   })
 })

@@ -18,7 +18,7 @@ export function BarreOnglets() {
   const { estInvite } = useAuth()
   // IozyTest, the other app, has its button in the top of the screen on a phone:
   // six tabs fit the thumb, seven do not.
-  const destinations = destinationsPour(estInvite).filter((item) => item.cle !== 'iozytest')
+  const destinations = destinationsPour(estInvite)
   const [recherche, setRecherche] = useState(false)
   const feuille = useModalA11y<HTMLDivElement>(recherche, () => setRecherche(false))
 

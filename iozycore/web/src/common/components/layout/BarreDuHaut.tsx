@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import { AppSwitcher } from './AppSwitcher'
 import { ChampRecherche } from './ChampRecherche'
 import { GlobalShortcuts } from './GlobalShortcuts'
 import { LienNav } from './LienNav'
@@ -23,9 +24,11 @@ export function BarreDuHaut() {
   return (
     <header className="iozy-barre iozy-barre--eclatee max-lg:!hidden">
       <div className="iozy-verre iozy-barre__pilule iozy-teinte shrink-0">
-        <Link to="/" className="iozy-barre__marque" aria-label="Iozy, accueil">
-          Iozy
-        </Link>
+        {/* IozyTest is a neighbour app since lot 234: not a destination of this bar,
+            but the other entry of the app switcher the brand opens. */}
+        <div className="iozy-barre__marque">
+          <AppSwitcher />
+        </div>
         <nav className="iozy-barre__nav" aria-label="Navigation principale">
           {destinations.map((item) => (
             <LienNav key={item.cle} item={item} active={item.activeWhen(pathname)} className="iozy-barre__lien iozy-teinte">

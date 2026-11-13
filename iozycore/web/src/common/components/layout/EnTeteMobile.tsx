@@ -1,5 +1,4 @@
-import { Gamepad2 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { AppSwitcher } from './AppSwitcher'
 import { GlobalShortcuts } from './GlobalShortcuts'
 
 /**
@@ -10,13 +9,11 @@ import { GlobalShortcuts } from './GlobalShortcuts'
 export function EnTeteMobile() {
   return (
     <header className="relative z-40 flex items-center gap-3 px-4 pt-3 lg:hidden">
-      <Link to="/" className="iozy-verre iozy-barre__pilule iozy-barre__marque !mr-0 !px-5" aria-label="Iozy, accueil">
-        Iozy
-      </Link>
-      <a href="/test/" aria-label="IozyTest" className="iozy-verre ml-auto flex h-11 w-11 items-center justify-center rounded-full text-textPrimary">
-        <Gamepad2 size={20} aria-hidden="true" />
-      </a>
-      <div>
+      {/* The brand opens the other Iozy apps (lot 234): IozyTest is a neighbour, no longer a button here. */}
+      <div className="iozy-verre iozy-barre__pilule !mr-0 !px-5">
+        <AppSwitcher compact />
+      </div>
+      <div className="ml-auto">
         <GlobalShortcuts compact />
       </div>
     </header>
