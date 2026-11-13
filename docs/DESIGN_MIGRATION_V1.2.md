@@ -2009,3 +2009,34 @@ ancienne analyse d'achat au score plat de 50 n'affiche plus de verdict. Migratio
 
 Vérifié (les six lots réunis) : 1 559 tests backend, 738 tests web, typecheck, lint, contraste AA
 (124 combinaisons), frontières, build ; kit ; IozyTest 150 + 252 tests et build ; 28 parcours e2e.
+
+### Lot 219 — Le mur en couleurs
+
+L'accueil ne montre plus que ce qui bouge : les arrivées des trente derniers jours, les sorties à
+moins de 90 jours (grises, avec leurs jours), les séries à compléter (un seul bloc : la jaquette de
+la série puis les tomes qui manquent, assombris et numérotés, « +N » au-delà de deux), les envies et
+les idées de l'IA, teintées d'une couleur de la palette (une couche « couleur » et une couche
+« multiplier », pour que même une jaquette blanche se teinte). Une série terminée, abandonnée ou
+simplement possédée reste dans la collection. Des pavés de couleur glissent entre les jaquettes ce
+que les images ne disent pas (prochaine sortie, tomes pour être à jour, budget, arrivées du mois),
+chacun seulement quand son chiffre existe. L'ordre suit un motif fixe de genres : les couleurs et
+les tailles alternent quelles que soient les données, la grille comble ses trous. À gauche,
+l'affiche : le nombre de choses à suivre, leur détail, la légende. Sur téléphone, l'affiche se
+réduit au chiffre et à la légende pour que le mur commence au premier écran.
+
+Un clic ouvre la fiche ; le petit bouton rond retourne la tuile (demi-tour 3D) : pourquoi elle est
+là et son action, « J'ai le tome N » (le « Je l'ai » de « À acheter », partagé dans
+`common/hooks/useJeLAi`) ou « Ajouter à mes envies ». Échap la remet, le focus suit, le dos n'existe
+que pendant qu'il se voit. Au doigt, pas de bouton sur chaque jaquette : un appui long retourne. Le
+serveur garde 8 idées au lieu de 4 (une sur trois au moins) ; pendant qu'elles arrivent, des
+carrés qui respirent gardent leur place. La page « À acheter » relit sa liste à chaque arrivée,
+puisque l'accueil la garde en cache.
+
+Retirés : `useSemaine` et `phrases`, morts depuis le mur. Les parcours e2e qui attendaient encore
+« Ta semaine » (création de compte, porte, profil, import), la barre à cinq liens et le titre « Ta
+liste » de « À acheter » suivent l'interface actuelle.
+
+Vérifié : 760 tests web (les 3 échecs de `ReleasesPage.test.tsx` précèdent ce lot : la page des
+sorties a été refaite sans ses tests), typecheck, lint, contraste AA (156 combinaisons), frontières ;
+28 parcours e2e sur 29 (`releases.spec.ts`, même cause) ; captures bureau et téléphone, thèmes
+sombre et clair, sur une collection de démonstration de la pile e2e.
