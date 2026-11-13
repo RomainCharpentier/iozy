@@ -55,8 +55,8 @@ export function BlocBilan({ jaquettes }: { jaquettes: string[] }) {
   }
 
   return (
-    <section aria-labelledby="titre-bilan" className="iozy-verre iozy-verre--fort flex flex-col gap-3 rounded-3xl p-5">
-      <h2 id="titre-bilan" className="flex items-center gap-2 font-display text-xl font-bold text-textPrimary">
+    <section aria-labelledby="titre-bilan" className="flex flex-col gap-3 border-t border-ligneVerre pt-6">
+      <h2 id="titre-bilan" className="flex items-center gap-2 font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">
         <ImageIcon size={20} aria-hidden="true" />
         Mon bilan en image
       </h2>

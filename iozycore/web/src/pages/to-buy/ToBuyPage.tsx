@@ -97,11 +97,11 @@ export function ToBuyPage() {
 
       <section aria-labelledby="titre-liste" className="flex min-w-0 flex-col gap-3 lg:pl-10">
         <div className="flex items-baseline justify-between gap-3 px-1">
-          <h2 id="titre-liste" className="font-display text-xl font-bold text-textPrimary">
+          <h2 id="titre-liste" className="font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">
             À trouver
           </h2>
           {nombre > 0 && (
-            <p className="text-sm text-textDim">
+            <p className="text-secondaire text-textDim">
               {nombre} ligne{nombre > 1 ? 's' : ''}
             </p>
           )}
@@ -117,7 +117,8 @@ export function ToBuyPage() {
             detail="Tes envies, ce qui manque à tes collections en cours et les sorties à venir arriveront ici."
           />
         ) : (
-          <ul className="iozy-verre iozy-verre--fort flex flex-col rounded-[28px] px-4 py-1.5 sm:px-6">
+          // Lot 230: the lines sit on the backdrop, a rule between them (direction "fond nu, un aplat").
+          <ul className="flex flex-col border-t border-ligneVerre">
             {lignes.map((ligne) => (
               <LigneAAcheter
                 key={cleLigne(ligne)}

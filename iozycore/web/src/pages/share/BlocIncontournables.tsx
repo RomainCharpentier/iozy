@@ -31,9 +31,9 @@ export function BlocIncontournables({
   const proposees = candidats(oeuvres, epinglees, recherche).slice(0, 12)
 
   return (
-    <section aria-labelledby="titre-incontournables" className="iozy-verre iozy-verre--fort flex flex-col gap-4 rounded-3xl p-5">
+    <section aria-labelledby="titre-incontournables" className="flex flex-col gap-4 border-t border-ligneVerre pt-6">
       <div className="flex flex-col gap-1">
-        <h2 id="titre-incontournables" className="text-[13px] font-semibold tracking-[0.12em] text-textDim uppercase">
+        <h2 id="titre-incontournables" className="font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">
           Mes incontournables
         </h2>
         <p className="text-sm text-textDim">

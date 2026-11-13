@@ -210,8 +210,8 @@ function BlocSections({
     !!share.token &&
     (section === 'collection' ? share.shareCollection && !share.shareWishlist : share.shareWishlist && !share.shareCollection)
   return (
-    <section aria-labelledby="titre-sections" className="iozy-verre iozy-verre--fort flex flex-col gap-1 rounded-3xl p-4">
-      <h2 id="titre-sections" className="px-2 pb-1 text-[13px] font-semibold tracking-[0.12em] text-textDim uppercase">
+    <section aria-labelledby="titre-sections" className="flex flex-col gap-2 border-t border-ligneVerre pt-6">
+      <h2 id="titre-sections" className="pb-1 font-display text-bloc font-bold tracking-[-0.03em] text-textPrimary">
         Ce que montre ta page
       </h2>
       <Interrupteur

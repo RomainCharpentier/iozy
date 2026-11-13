@@ -26,7 +26,7 @@ export function LigneAAcheter({
   const titre = titreLigne(ligne)
   // Same height for every line; the width follows the shape of the type
   // (a book is tall, a board game box is square).
-  const forme = `h-[74px] max-w-[132px] shrink-0 rounded-lg ${getEntityTypeVisual(type).aspectClassName}`
+  const forme = `h-[74px] max-w-[132px] shrink-0 ${getEntityTypeVisual(type).aspectClassName}`
   return (
     <li className="flex items-center gap-3 border-b border-ligneVerre py-2.5 last:border-b-0 sm:gap-4">
       <Link
