@@ -28,7 +28,7 @@ export default function SectionHeader({
   return (
     <div className={`${styles.header} ${className}`.trim()}>
       <div className={styles.text}>
-        <Title className={styles.title}>{title}</Title>
+        <Title className={level === 1 ? styles.titleEcran : styles.title}>{title}</Title>
         {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
       </div>
       {action && <div className={styles.action}>{action}</div>}

@@ -38,17 +38,11 @@
   width: 100%;
 }
 
+/* « Fond nu, un aplat » (lot 234, comme IozyCore) : un groupe se pose sur le
+   fond, un filet au-dessus, sans boîte ni ombre. */
 .card {
-  composes: iozy-card from global;
-  transition:
-    border-color var(--transition-base),
-    box-shadow var(--transition-base),
-    transform var(--transition-base);
-}
-
-.card:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-md);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
 }
 
 .cardHeader {

@@ -10,18 +10,27 @@
   min-width: 0;
 }
 
+/* L'échelle des apps Iozy (lot 234, comme IozyCore) : 28 px pour un titre de
+   section, 48 px pour le titre d'un écran. */
 .title {
   margin: 0;
   font-family: var(--font-family-display);
-  font-size: var(--font-size-2xl);
+  font-size: 1.75rem;
   font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   color: var(--text-primary);
 }
 
+.titleEcran {
+  composes: title;
+  font-size: 3rem;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
 .subtitle {
-  margin: 0.25rem 0 0;
+  margin: 0.5rem 0 0;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }

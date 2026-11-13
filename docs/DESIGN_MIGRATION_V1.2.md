@@ -2193,3 +2193,22 @@ d'affiche passent à la couleur de la page. La palette disparaît du CSS et du s
 Vérifié : 752 tests web (mutation de la règle des pavés attrapée), typecheck, lint, contraste AA
 (124 combinaisons), frontières, build ; 28 parcours e2e sur 28 ; accueil capturé en sombre et en clair
 sur la copie des données.
+
+### Lot 234 — IozyTest, app voisine
+
+IozyTest faisait tache : une pastille de la barre d'IozyCore, au rang de Collection ou Sorties, alors
+qu'il ne touche à rien de la collection. Le propriétaire en a fait une app voisine. IozyCore ne garde
+que ses cinq destinations ; sa marque ouvre le sélecteur d'apps (IozyCore, IozyTest, toutes les apps),
+sur bureau comme sur téléphone, où le bouton manette disparaît. IozyTest ne recopie plus la barre de
+la collection ni son champ « Chercher ou ajouter » : sa barre porte ses destinations, Jouer et
+Éditeur, et sa marque le même sélecteur. Le raccourci Éditeur de son en-tête, en double, part.
+
+IozyTest suit le système : titres d'écran à 48 px et de section à 28 px, ses cartes (`ds.card`) et
+l'éditeur posés sur le fond. Dans IozyKit, `iozy-btn` et `iozy-field` deviennent des pilules. Le test
+de navigation d'IozyTest, périmé (il attendait quatre liens vers IozyCore), est remplacé.
+
+Reste : les contrôles internes de l'éditeur d'IozyTest (une vingtaine de rayons écrits à la main).
+Le menu du sélecteur n'apparaît que sous /core/ et /test/ (seule à la racine, chaque app n'a qu'un lien).
+
+Vérifié : `npm run check` à la racine (kit 142 paires AA, IozyCore 752 tests, IozyTest 260 tests
+front), tests du serveur IozyTest, typecheck et lint des deux apps ; 28 parcours e2e d'IozyCore.

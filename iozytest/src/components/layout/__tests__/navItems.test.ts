@@ -1,18 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { siteItemsPour } from '@/components/layout/navItems'
+import { NAV_ITEMS, destinationLabelFor } from '@/components/layout/navItems'
 
 /**
- * La barre du site ne montre pas une porte qui renvoie à la connexion :
- * sans compte, seules les pages d'IozyCore ouvertes sans compte restent.
+ * IozyTest est une app voisine d'IozyCore (lot 234) : sa barre ne montre que
+ * ses destinations, jamais celles de la collection, qu'on rejoint par la marque.
  */
-describe('les destinations du site', () => {
-  it('sans compte, ne garde que Sorties', () => {
-    expect(siteItemsPour(false).map((item) => item.label)).toEqual(['Sorties'])
+describe('les destinations de l’app', () => {
+  it('ne sont que les siennes : jouer, et l’éditeur qui nourrit le jeu', () => {
+    expect(NAV_ITEMS.map((item) => item.label)).toEqual(['Jouer', 'Éditeur'])
+    expect(NAV_ITEMS.every((item) => !item.to.startsWith('/core'))).toBe(true)
   })
 
-  it('avec un compte, garde les quatre, et Partager mène au partage du profil', () => {
-    const items = siteItemsPour(true)
-    expect(items.map((item) => item.label)).toEqual(['Accueil', 'Sorties', 'À acheter', 'Partager'])
-    expect(items.find((item) => item.label === 'Partager')?.href).toBe('/core/profile#partage')
+  it('allument « Jouer » sur les thèmes et le salon', () => {
+    const jouer = NAV_ITEMS.find((item) => item.label === 'Jouer')!
+    expect(['/', '/categories', '/room/create'].every((p) => jouer.activeWhen(p))).toBe(true)
+    expect(jouer.activeWhen('/editor')).toBe(false)
+  })
+
+  it('nomment la destination d’un lien retour', () => {
+    expect(destinationLabelFor('/editor/import-video')).toEqual({ to: '/editor', label: 'Éditeur' })
+    expect(destinationLabelFor('/settings')).toEqual({ to: '/settings', label: 'Réglages' })
   })
 })

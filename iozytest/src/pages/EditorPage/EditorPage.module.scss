@@ -44,11 +44,9 @@
 }
 
 .editorContentWrapper {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  padding: 1.5rem;
+  /* Sur le fond (lot 234) : l'éditeur n'est plus une boîte dans la page. */
+  border-top: 1px solid var(--border);
+  padding: 1.5rem 0 0;
   width: 100%;
   margin: 0 auto;
 }
