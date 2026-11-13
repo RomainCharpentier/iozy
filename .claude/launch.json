@@ -33,6 +33,15 @@
       "port": 5174
     },
     {
+      "name": "web-apercu",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set IOZYCORE_API=http://127.0.0.1:8181&& npm run dev --prefix iozycore/web -- --host 127.0.0.1 --port 5176 --strictPort"
+      ],
+      "port": 5176
+    },
+    {
       "name": "web-e2e-mac",
       "runtimeExecutable": "env",
       "runtimeArgs": [
