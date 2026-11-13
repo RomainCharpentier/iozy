@@ -86,6 +86,10 @@ describe('the line under the count', () => {
     expect(phraseDesManques(oeuvre())).toBe('Il t’en manque 4')
   })
 
+  it('says "at least" when the total is unknown: the series may go on after the last volume owned', () => {
+    expect(phraseDesManques(oeuvre({ totalCount: null, totalKnown: false, missingCount: 44 }))).toBe('Il t’en manque au moins 44')
+  })
+
   it('says a paused or dropped work counts nothing, even with gaps', () => {
     expect(phraseDesManques(oeuvre({ collectorStatus: 'PAUSED', missingCount: 0 }))).toBe(
       'En pause : ce qui manque ne compte plus',

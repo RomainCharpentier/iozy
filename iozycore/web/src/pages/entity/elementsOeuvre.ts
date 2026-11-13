@@ -71,7 +71,9 @@ export function phraseDesManques(work: WorkDto): string {
   if (work.collectorStatus !== 'ONGOING') {
     return `${LIBELLES_STATUT[work.collectorStatus]} : ce qui manque ne compte plus`
   }
-  if (work.missingCount > 0) return `Il t’en manque ${work.missingCount}`
+  // Without a known total, only the gaps before the last volume owned are
+  // counted: the series may go on, so it is a floor, not the number missing.
+  if (work.missingCount > 0) return `Il t’en manque ${work.totalKnown ? '' : 'au moins '}${work.missingCount}`
   if (work.totalKnown && work.totalCount !== null && work.ownedCount >= work.totalCount) return 'Complet'
   return 'Rien ne manque à ce qui est connu'
 }
