@@ -175,8 +175,10 @@ export function TuileMur({
     else if (!mouvementAutorise()) setDosMonte(false)
   }
 
+  // The focus follows the turn, but never scrolls the page: the tile is where
+  // the click was, and a page that jumps under the pointer loses it.
   useEffect(() => {
-    if (ouverte && dosMonte) dos.current?.querySelector<HTMLElement>('a, button')?.focus()
+    if (ouverte && dosMonte) dos.current?.querySelector<HTMLElement>('a, button')?.focus({ preventScroll: true })
   }, [ouverte, dosMonte])
 
   const placement = `${COLONNES[tuile.largeur]} ${RANGEES[tuile.hauteur]}`
@@ -223,7 +225,7 @@ export function TuileMur({
 
   function remettre() {
     basculer(null)
-    recto.current?.focus()
+    recto.current?.focus({ preventScroll: true })
   }
 
   // A click on the back outside its link and its button turns the tile back.
