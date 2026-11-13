@@ -25,7 +25,6 @@ import type { MonthSpendingDto, ToBuyLineDto, WorkProgressDto } from '@/common/t
  * (`grid-auto-flow: dense`), so the pattern never leaves a gap in the middle.
  */
 
-export type Teinte = 'ocre' | 'vert' | 'rose' | 'bleu' | 'orange'
 export type EtatImage = 'possede' | 'aAcheter' | 'aVenir' | 'idee'
 export type GenreTuile = 'ARRIVEE' | 'SORTIE' | 'COMPLETER' | 'ENVIE' | 'IDEE' | 'ATTENTE' | 'PAVE' | 'AJOUTER'
 
@@ -61,7 +60,8 @@ export interface Tuile {
   etat: string
   /** One more sentence, on the back. */
   detail: string | null
-  teinte: Teinte
+  /** The cover whose tone colours the tile (lot 233); null: the colour of the page. */
+  couleurDe: string | null
   /** Where the title on the back leads: the work. */
   lien: string
   images: ImageTuile[]
@@ -72,7 +72,6 @@ export interface Tuile {
 export interface LigneAffiche {
   valeur: number
   texte: string
-  teinte: Teinte
 }
 
 export interface Mur {
@@ -96,7 +95,6 @@ const JOUR_MS = 24 * 60 * 60 * 1000
 export const ARRIVEE_JOURS = 30
 export const SORTIE_JOURS = 90
 const MAX = { ARRIVEE: 3, SORTIE: 4, COMPLETER: 3, ENVIE: 3, ATTENTE: 4 }
-const TEINTES_IDEES: Teinte[] = ['rose', 'vert', 'ocre', 'bleu', 'orange']
 const TOME = /^Tome (\d+)$/
 
 /**
@@ -184,8 +182,10 @@ function libelleJeLAi(ligne: ToBuyLineDto): string {
   return premier && TOME.test(premier.label) && premier.number != null ? `J’ai le tome ${premier.number}` : 'Je l’ai'
 }
 
-function tuileDeBase(patch: Partial<Tuile> & Pick<Tuile, 'cle' | 'genre' | 'titre' | 'etat' | 'teinte' | 'lien'>): Tuile {
-  return { largeur: 1, hauteur: 1, detail: null, images: [], action: null, pave: null, ...patch }
+function tuileDeBase(patch: Partial<Tuile> & Pick<Tuile, 'cle' | 'genre' | 'titre' | 'etat' | 'lien'>): Tuile {
+  // A tile wears the tone of its own cover, unless it says otherwise (a block of colour).
+  const couleurDe = patch.couleurDe !== undefined ? patch.couleurDe : (patch.images?.[0]?.src ?? null)
+  return { largeur: 1, hauteur: 1, detail: null, images: [], action: null, pave: null, ...patch, couleurDe }
 }
 
 /** The tiles of each kind, the most pressing first, before the pattern sets them. */
@@ -244,7 +244,6 @@ export function composerMur(entrees: EntreesMur): Mur {
         titre: o.title,
         etat: `Arrivé ${quandArrive(o.lastMovedAt!, now)}`,
         detail,
-        teinte: 'bleu',
         lien: `/entity/${o.entityId}`,
         images: [{ cle: o.entityId, src: o.coverImageUrl, titre: o.title, etat: 'possede', chiffre: null }],
       }),
@@ -260,7 +259,6 @@ export function composerMur(entrees: EntreesMur): Mur {
         titre: titreLigne({ ...ligne, elements: [ligne.elements[0]] }),
         etat: phraseSortie(sortie.date, sortie.jours),
         detail: voulu ? 'Il est dans tes envies.' : 'Il suit ta collection.',
-        teinte: 'vert',
         lien: `/entity/${ligne.entityId}`,
         images: [
           {
@@ -293,7 +291,6 @@ export function composerMur(entrees: EntreesMur): Mur {
         titre: ligne.title,
         etat: n === 1 ? 'Le dernier qui te manque' : `Il t’en manque ${n}`,
         detail: `${libelleElements(ligne.elements)}.`,
-        teinte: 'ocre',
         lien: `/entity/${ligne.entityId}`,
         images: [{ cle: 'oeuvre', src: ligne.coverImageUrl, titre: ligne.title, etat: 'possede', chiffre: null }, ...manquants],
         action: { type: 'jeLAi', ligne, libelle: libelleJeLAi(ligne) },
@@ -308,7 +305,6 @@ export function composerMur(entrees: EntreesMur): Mur {
         genre: 'ENVIE',
         titre: titreLigne(ligne),
         etat: 'Dans tes envies',
-        teinte: 'orange',
         lien: `/entity/${ligne.entityId}`,
         images: [{ cle: ligne.elements[0].key, src: couverture(ligne), titre: ligne.title, etat: 'aAcheter', chiffre: null }],
         action: { type: 'jeLAi', ligne, libelle: libelleJeLAi(ligne) },
@@ -328,7 +324,6 @@ export function composerMur(entrees: EntreesMur): Mur {
         titre: idee.title,
         etat: 'Idée d’une IA',
         detail: idee.why || null,
-        teinte: TEINTES_IDEES[i % TEINTES_IDEES.length],
         lien: `/add?q=${encodeURIComponent(idee.title)}`,
         images: [{ cle: 'idee', src: idee.imageUrl, titre: idee.title, etat: 'idee', chiffre: null }],
         action: idee.entityTypeId ? { type: 'envie', idee, libelle: 'Ajouter à mes envies' } : null,
@@ -344,7 +339,6 @@ export function composerMur(entrees: EntreesMur): Mur {
           genre: 'ATTENTE',
           titre: 'Une idée arrive',
           etat: 'Une IA cherche des idées dans le catalogue',
-          teinte: TEINTES_IDEES[i % TEINTES_IDEES.length],
           lien: '',
         }),
       )
@@ -369,7 +363,7 @@ export function composerMur(entrees: EntreesMur): Mur {
   }
   if (tuiles.length > 0) {
     tuiles.push(
-      tuileDeBase({ cle: 'ajouter', genre: 'AJOUTER', titre: 'Ajouter une œuvre', etat: 'Chercher ou ajouter', teinte: 'ocre', lien: '/add' }),
+      tuileDeBase({ cle: 'ajouter', genre: 'AJOUTER', titre: 'Ajouter une œuvre', etat: 'Chercher ou ajouter', lien: '/add' }),
     )
   }
 
@@ -379,7 +373,6 @@ export function composerMur(entrees: EntreesMur): Mur {
     g.idees.length > 0 && {
       valeur: g.idees.length,
       texte: `${pluriel(g.idees.length, 'idée', 'idées')} pour toi, ${pluriel(g.idees.length, 'choisie', 'choisies')} par une IA.`,
-      teinte: 'rose' as Teinte,
     },
     g.sorties.length > 0 && {
       valeur: g.sorties.length,
@@ -390,22 +383,18 @@ export function composerMur(entrees: EntreesMur): Mur {
           : premiere?.jours != null
             ? `, la première dans ${premiere.jours} ${pluriel(premiere.jours, 'jour', 'jours')}.`
             : '.'),
-      teinte: 'vert' as Teinte,
     },
     tomes > 0 && {
       valeur: tomes,
       texte: `${pluriel(tomes, 'tome', 'tomes')} à acheter pour finir ${g.completer.length} ${pluriel(g.completer.length, 'série', 'séries')}.`,
-      teinte: 'ocre' as Teinte,
     },
     g.envies.length > 0 && {
       valeur: g.envies.length,
       texte: `${pluriel(g.envies.length, 'envie qui attend', 'envies qui attendent')}.`,
-      teinte: 'orange' as Teinte,
     },
     g.arrivees.length > 0 && {
       valeur: g.arrivees.length,
       texte: `${pluriel(g.arrivees.length, 'arrivée', 'arrivées')} ces trente derniers jours.`,
-      teinte: 'bleu' as Teinte,
     },
   ].filter((l): l is LigneAffiche => !!l)
 
@@ -423,10 +412,10 @@ function paves(g: ReturnType<typeof parGenre>, mois: MonthSpendingDto | null, no
     paves.push(
       tuileDeBase({
         cle: 'pave-sortie',
+        couleurDe: prochaine.ligne.elements[0]?.coverImageUrl ?? prochaine.ligne.coverImageUrl,
         genre: 'PAVE',
         titre: 'La prochaine sortie',
         etat: jours === 0 ? `${titre} sort aujourd’hui.` : `${jours} ${pluriel(jours, 'jour', 'jours')} avant ${titre}.`,
-        teinte: 'vert',
         lien: '/releases',
         pave: { grand: chiffreJours(jours), petit: jours === 0 ? `${titre} sort aujourd’hui.` : `avant ${titre}.` },
       }),
@@ -440,11 +429,11 @@ function paves(g: ReturnType<typeof parGenre>, mois: MonthSpendingDto | null, no
     paves.push(
       tuileDeBase({
         cle: 'pave-completer',
+        couleurDe: proche.coverImageUrl,
         genre: 'PAVE',
         largeur: 2,
         titre: 'À acheter',
         etat: `${combien} et ${proche.title} est à jour.`,
-        teinte: 'ocre',
         lien: '/to-buy',
         pave: { grand: combien, petit: `et ${proche.title} est à jour.` },
       }),
@@ -457,7 +446,7 @@ function paves(g: ReturnType<typeof parGenre>, mois: MonthSpendingDto | null, no
     const petit =
       ecart == null ? 'dépensés ce mois-ci.' : ecart >= 0 ? 'de budget restant ce mois-ci.' : 'au-dessus de ton budget ce mois-ci.'
     paves.push(
-      tuileDeBase({ cle: 'pave-budget', genre: 'PAVE', titre: 'Ton budget', etat: `${grand} ${petit}`, teinte: 'orange', lien: '/to-buy', pave: { grand, petit } }),
+      tuileDeBase({ cle: 'pave-budget', genre: 'PAVE', couleurDe: null, titre: 'Ton budget', etat: `${grand} ${petit}`, lien: '/to-buy', pave: { grand, petit } }),
     )
   }
   const ceMois = g.arrivees.filter((o) => {
@@ -468,10 +457,10 @@ function paves(g: ReturnType<typeof parGenre>, mois: MonthSpendingDto | null, no
     paves.push(
       tuileDeBase({
         cle: 'pave-arrivees',
+        couleurDe: g.arrivees[0]?.coverImageUrl ?? null,
         genre: 'PAVE',
         titre: 'Ce mois-ci',
         etat: `${ceMois} arrivées ce mois-ci.`,
-        teinte: 'bleu',
         lien: '/collection',
         pave: { grand: String(ceMois), petit: 'œuvres arrivées ce mois-ci.' },
       }),

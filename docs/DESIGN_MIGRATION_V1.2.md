@@ -2178,3 +2178,18 @@ restent. Les champs deviennent des pilules, comme les boutons. Le titre du class
 Vérifié (230 à 232) : 751 tests web, typecheck, lint, contraste AA, frontières, build ; 28 parcours
 e2e sur 28 ; tailles des titres mesurées sur neuf écrans d'outils (48 px) ; captures sur la copie
 des données, page de connexion comprise.
+
+### Lot 233 — Le mur prend la couleur des jaquettes
+
+La dernière entorse à « une seule source de couleur » : les tuiles de couleur du mur suivaient une
+palette fixe de cinq teintes, sans lien avec les jaquettes voisines. Le propriétaire a choisi la
+jaquette. Chaque tuile se colore maintenant d'une jaquette : la sienne, ou celle de l'œuvre dont parle
+un pavé (la prochaine sortie, la série la plus proche d'être complète, la dernière arrivée) ; le pavé
+du budget, qui ne parle d'aucune œuvre, prend la couleur de la page. Même dérivation que le fond
+(`deriverTeintes`), donc mêmes règles de contraste : la teinte vive et son encre pour un aplat, la
+teinte du thème sombre pour un chiffre posé sur une jaquette assombrie. Les chiffres de la colonne
+d'affiche passent à la couleur de la page. La palette disparaît du CSS et du script de contraste.
+
+Vérifié : 752 tests web (mutation de la règle des pavés attrapée), typecheck, lint, contraste AA
+(124 combinaisons), frontières, build ; 28 parcours e2e sur 28 ; accueil capturé en sombre et en clair
+sur la copie des données.

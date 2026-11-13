@@ -1,15 +1,8 @@
 import { Link } from 'react-router-dom'
 import { NombreAnime } from '@/common/components/NombreAnime'
-import type { LigneAffiche, Teinte } from './mur'
+import type { LigneAffiche } from './mur'
 
 /** The figure of a line, in its colour: deep in the light theme, bright in the dark one. */
-const TEXTE_TEINTE: Record<Teinte, string> = {
-  ocre: 'text-murOcreText',
-  vert: 'text-murVertText',
-  rose: 'text-murRoseText',
-  bleu: 'text-murBleuText',
-  orange: 'text-murOrangeText',
-}
 
 /**
  * The left column of the wall: one big figure, what it is made of, and the
@@ -45,7 +38,7 @@ export function Affiche({
         <ul className="mt-6 hidden lg:block">
           {lignes.map((ligne) => (
             <li key={ligne.texte} className="flex items-baseline gap-3 border-t border-lineStrong py-3">
-              <span className={`min-w-9 shrink-0 font-display text-[2rem] leading-none font-bold tracking-[-0.04em] ${TEXTE_TEINTE[ligne.teinte]}`}>
+              <span className={`min-w-9 shrink-0 font-display text-[2rem] leading-none font-bold tracking-[-0.04em] iozy-teinte text-accentText`}>
                 {ligne.valeur}
               </span>
               <span className="text-[15px] leading-snug text-textPrimary">{ligne.texte}</span>

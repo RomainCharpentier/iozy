@@ -160,6 +160,25 @@ describe('the wall of the home page', () => {
     expect(paves['pave-budget']?.petit).toBe('de budget restant ce mois-ci.')
   })
 
+  it('colours each tile from a cover: its own, or the one of the work a block talks about (lot 233)', () => {
+    const mois: MonthSpendingDto = { month: '2026-11', spent: 42.3, pricedCount: 3, unpricedCount: 0, monthlyBudget: 50 }
+    const { tuiles } = mur({
+      aAcheter: [
+        ligne({ entityId: 'bl', title: 'Blue Lock', coverImageUrl: '/c/bl.jpg', kind: 'UPCOMING', releaseDate: '2026-11-13', elements: [tome(27, 'UPCOMING')] }),
+        ligne({ entityId: 'op', elements: [tome(108), tome(109)] }),
+      ],
+      mois,
+    })
+    const couleur = Object.fromEntries(tuiles.map((t) => [t.cle, t.couleurDe]))
+    // The block of the next release wears the cover of that volume, the block to complete the series'.
+    expect(couleur['pave-sortie']).toBe('/c/27.jpg')
+    expect(couleur['pave-completer']).toBe('/c/op.jpg')
+    // The budget talks about no work: the colour of the page.
+    expect(couleur['pave-budget']).toBeNull()
+    // A tile with a cover wears its own.
+    expect(couleur['completer-op']).toBe('/c/op.jpg')
+  })
+
   it('counts on the poster what the wall follows, in works', () => {
     const { lignes, total } = mur({
       aAcheter: [

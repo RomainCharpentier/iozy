@@ -9,23 +9,13 @@ import {
 import { Link } from 'react-router-dom'
 import { Plus, Sparkles, X } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
-import type { EtatImage, ImageTuile, Teinte, Tuile } from './mur'
+import type { EtatImage, ImageTuile, Tuile } from './mur'
+import { useCouleursTuile } from './couleursTuile'
 
-/** The fill of each colour of the palette, and the same colour as text on a dark ground. */
-const FOND: Record<Teinte, string> = {
-  ocre: 'bg-murOcre',
-  vert: 'bg-murVert',
-  rose: 'bg-murRose',
-  bleu: 'bg-murBleu',
-  orange: 'bg-murOrange',
-}
-const ENCRE_CLAIRE: Record<Teinte, string> = {
-  ocre: 'text-murOcre',
-  vert: 'text-murVert',
-  rose: 'text-murRose',
-  bleu: 'text-murBleu',
-  orange: 'text-murOrange',
-}
+/** The colours of a tile come from a cover (see couleursTuile, lot 233): a flat block, its ink, and a light tone on a darkened cover. */
+const FOND = 'bg-[var(--mur-fond)]'
+const ENCRE = 'text-[var(--mur-encre)]'
+const CLAIR = 'text-[var(--mur-clair)]'
 
 /** What each state does to a cover: an idea keeps its colours under its tint. */
 const FILTRE: Record<EtatImage, string> = {
@@ -72,7 +62,7 @@ function useVu<T extends HTMLElement>() {
  * tint is left out while the tile turns (`teinter` false), both ways; under
  * the pointer it is already faded out, so nothing is seen to change.
  */
-function Image({ image, teinte, grande, teinter }: { image: ImageTuile; teinte: Teinte; grande: boolean; teinter: boolean }) {
+function Image({ image, grande, teinter }: { image: ImageTuile; grande: boolean; teinter: boolean }) {
   return (
     <span className="relative min-w-0 flex-1 overflow-hidden">
       <span className="absolute inset-0" style={{ filter: FILTRE[image.etat] }}>
@@ -88,14 +78,14 @@ function Image({ image, teinte, grande, teinter }: { image: ImageTuile; teinte: 
       </span>
       {image.etat === 'idee' && teinter && (
         <>
-          <span aria-hidden="true" className={`mur-teinte mur-teinte--blancs absolute inset-0 ${FOND[teinte]}`} />
-          <span aria-hidden="true" className={`mur-teinte absolute inset-0 ${FOND[teinte]}`} />
+          <span aria-hidden="true" className={`mur-teinte mur-teinte--blancs absolute inset-0 ${FOND}`} />
+          <span aria-hidden="true" className={`mur-teinte absolute inset-0 ${FOND}`} />
         </>
       )}
       {image.chiffre && (
         <span
           aria-hidden="true"
-          className={`absolute bottom-2 left-3 font-display leading-[0.85] font-bold tracking-[-0.05em] [text-shadow:0_2px_16px_rgb(0_0_0/0.75)] ${ENCRE_CLAIRE[teinte]} ${
+          className={`absolute bottom-2 left-3 font-display leading-[0.85] font-bold tracking-[-0.05em] [text-shadow:0_2px_16px_rgb(0_0_0/0.75)] ${CLAIR} ${
             grande ? 'text-[4.5rem]' : 'text-[2.5rem]'
           }`}
         >
@@ -126,7 +116,7 @@ function Pave({ tuile }: { tuile: Tuile }) {
       </span>
     </>
   )
-  const classes = `mur-pave flex h-full w-full flex-col justify-between p-3.5 text-murEncre ${FOND[tuile.teinte]}`
+  const classes = `mur-pave flex h-full w-full flex-col justify-between p-3.5 ${ENCRE} ${FOND}`
   return tuile.lien ? (
     <Link to={tuile.lien} aria-label={`${pave.grand} ${pave.petit}`} className={classes}>
       {contenu}
@@ -190,7 +180,8 @@ export function TuileMur({
   }, [ouverte, dosMonte])
 
   const placement = `${COLONNES[tuile.largeur]} ${RANGEES[tuile.hauteur]}`
-  const style = { '--rang': rang } as CSSProperties
+  const couleurs = useCouleursTuile(tuile.couleurDe)
+  const style = { ...couleurs, '--rang': rang } as CSSProperties
   const classeCase = `mur-case relative ${vu ? 'mur-case--vue' : ''} ${placement}`
 
   if (tuile.genre === 'PAVE') {
@@ -217,8 +208,8 @@ export function TuileMur({
   if (tuile.genre === 'ATTENTE') {
     return (
       <li ref={ref} style={style} className={classeCase} aria-hidden="true">
-        <span className={`mur-attente flex h-full w-full items-center justify-center ${FOND[tuile.teinte]}`}>
-          <Sparkles size={22} className="text-murEncre" />
+        <span className={`mur-attente flex h-full w-full items-center justify-center ${FOND}`}>
+          <Sparkles size={22} className={ENCRE} />
         </span>
       </li>
     )
@@ -258,11 +249,11 @@ export function TuileMur({
           className="mur-face mur-recto absolute inset-0 flex cursor-pointer overflow-hidden bg-surface2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-textPrimary"
         >
           {tuile.images.map((image) => (
-            <Image key={image.cle} image={image} teinte={tuile.teinte} grande={grande} teinter={!dosMonte} />
+            <Image key={image.cle} image={image} grande={grande} teinter={!dosMonte} />
           ))}
           <span
             aria-hidden="true"
-            className={`mur-nom absolute top-0 left-0 max-w-[calc(100%-2.75rem)] truncate bg-[rgb(22_18_15/0.88)] px-2.5 py-1.5 text-[12px] font-bold ${ENCRE_CLAIRE[tuile.teinte]}`}
+            className={`mur-nom absolute top-0 left-0 max-w-[calc(100%-2.75rem)] truncate bg-[rgb(22_18_15/0.88)] px-2.5 py-1.5 text-[12px] font-bold ${CLAIR}`}
           >
             {tuile.titre}
           </span>
@@ -274,7 +265,7 @@ export function TuileMur({
             id={idDos}
             role="group"
             aria-label={tuile.titre}
-            className={`mur-face mur-dos absolute inset-0 flex flex-col overflow-hidden text-murEncre ${FOND[tuile.teinte]} ${
+            className={`mur-face mur-dos absolute inset-0 flex flex-col overflow-hidden ${ENCRE} ${FOND} ${
               grande ? 'gap-2.5 p-6' : 'gap-1.5 p-3'
             }`}
           >
@@ -303,7 +294,7 @@ export function TuileMur({
                 tabIndex={ouverte ? 0 : -1}
                 disabled={actionEnCours}
                 onClick={() => agir(tuile)}
-                className={`mt-auto inline-flex items-center self-start rounded-[10px] bg-murEncre font-bold whitespace-nowrap transition-transform active:scale-[0.97] disabled:opacity-60 ${ENCRE_CLAIRE[tuile.teinte]} ${
+                className={`mt-auto inline-flex items-center self-start rounded-full bg-[var(--mur-encre)] font-bold whitespace-nowrap text-[var(--mur-fond)] transition-transform active:scale-[0.97] disabled:opacity-60 ${
                   grande ? 'min-h-11 px-4 text-sm' : 'min-h-9 px-2.5 text-[12px]'
                 }`}
               >

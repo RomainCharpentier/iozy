@@ -133,22 +133,6 @@
   --color-universeCyanTint: rgb(43 106 115 / 12%);
   --color-universeArdoiseTint: rgb(88 100 111 / 12%);
 
-  /* The palette of the wall of the home page (lot 219): five fills for the
-     blocks of colour, the tints of the ideas and the figures on the covers.
-     The same in both themes - they sit on covers or are a fill themselves,
-     always with the dark ink. As TEXT on the page (the figures of the left
-     column) each one has a deeper version in the light theme. */
-  --color-murOcre: #e3b341;
-  --color-murVert: #4fbfae;
-  --color-murRose: #ec86b4;
-  --color-murBleu: #8fa0f0;
-  --color-murOrange: #ef8a5f;
-  --color-murEncre: #16120f;
-  --color-murOcreText: #7a5c10;
-  --color-murVertText: #2b6a73;
-  --color-murRoseText: #a33e68;
-  --color-murBleuText: #3f4c80;
-  --color-murOrangeText: #a2452c;
 }
 
 /* Tier Lists rank scale (S to F) - exact values of DS v1.1
@@ -237,11 +221,6 @@ html {
   --color-rowHover: rgb(244 238 231 / 6%);
   --color-handle: rgb(244 238 231 / 24%);
 
-  --color-murOcreText: #e3b341;
-  --color-murVertText: #4fbfae;
-  --color-murRoseText: #ec86b4;
-  --color-murBleuText: #8fa0f0;
-  --color-murOrangeText: #ef8a5f;
 
   --color-universeManga: #e0805f;
   --color-universeVideoGame: #8fa0dd;

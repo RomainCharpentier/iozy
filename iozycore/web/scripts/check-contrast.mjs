@@ -52,8 +52,6 @@ const TEXTES = [
   'accentText', 'vive', 'dangerText', 'ok', 'warning',
   'universeManga', 'universeVideoGame', 'universeBoardGame', 'universeBook',
   'universeViolet', 'universeRose', 'universeCyan', 'universeArdoise',
-  // The figures of the left column of the wall (lot 219).
-  'murOcreText', 'murVertText', 'murRoseText', 'murBleuText', 'murOrangeText',
 ]
 
 /** The three backgrounds a text can meet. */
@@ -69,8 +67,7 @@ const ENCRES = [
   { encre: 'warningInk', fonds: ['warning'] },
   // The primary button since lot 210 (btn-primaire): the ink of the cover tone on its vivid fill.
   { encre: 'encreVive', fonds: ['vive'] },
-  // The blocks of colour of the wall (lot 219): dark ink on each fill, in both themes.
-  { encre: 'murEncre', fonds: ['murOcre', 'murVert', 'murRose', 'murBleu', 'murOrange'] },
+  // The tiles of the wall take the same pair since lot 233 (see pages/home/couleursTuile).
 ]
 
 /**

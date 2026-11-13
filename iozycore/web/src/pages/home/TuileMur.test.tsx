@@ -14,7 +14,7 @@ const tuile: Tuile = {
   titre: 'Frieren',
   etat: 'Le dernier qui te manque',
   detail: 'Tome 4.',
-  teinte: 'ocre',
+  couleurDe: null,
   lien: '/entity/frieren',
   images: [{ cle: 'frieren', src: null, titre: 'Frieren', etat: 'possede', chiffre: null }],
   action: null,
