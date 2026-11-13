@@ -2047,7 +2047,10 @@ Sur le mur, un clic (ou un toucher, ou Entrée) sur une jaquette retourne la tui
 la fiche : le dos dit pourquoi elle est là, et son titre mène à la fiche. Le bouton rond n'apparaît
 plus que sur la tuile retournée, après le demi-tour, pour la remettre ; Échap ou un clic hors de la
 tuile la remet aussi, mais pas un clic sur son dos (un double-clic la défaisait aussitôt). Le focus
-suit sans faire défiler la page. L'appui long au doigt disparaît, devenu inutile.
+suit sans faire défiler la page. L'appui long au doigt disparaît, devenu inutile. Sous Firefox
+(Zen), les idées semblaient tourner deux fois : leur teinte se mélange (`mix-blend-mode`), ce qui
+aplatit la 3D de la carte. La teinte est retirée le temps du retournement, aller et retour, puis
+revient en fondu ; au survol elle était déjà effacée. Les clés des idées perdent leurs espaces.
 
 Vérifié : 762 tests web (dont `TuileMur.test.tsx`, mutation attrapée ; les 3 échecs de
 `ReleasesPage.test.tsx` précèdent ce lot), typecheck, lint ; parcours e2e de l'accueil.

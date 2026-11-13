@@ -320,7 +320,8 @@ export function composerMur(entrees: EntreesMur): Mur {
     const grande = i === 0 && g.idees.length >= 3
     files.IDEE.push(
       tuileDeBase({
-        cle: `idee-${normaliser(idee.title)}`,
+        // No spaces: the key also names the id of the back (`aria-controls`).
+        cle: `idee-${normaliser(idee.title).replaceAll(' ', '-')}`,
         genre: 'IDEE',
         largeur: grande ? 2 : 1,
         hauteur: grande ? 2 : 1,

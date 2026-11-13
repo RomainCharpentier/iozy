@@ -1094,6 +1094,14 @@ a.tuile:focus-visible {
 .mur-teinte {
   mix-blend-mode: color;
   transition: opacity 0.45s ease;
+  /* Back after a turn (see TuileMur): it fades in rather than pops. */
+  animation: mur-teinte-retour 0.45s ease;
+}
+
+@keyframes mur-teinte-retour {
+  from {
+    opacity: 0;
+  }
 }
 
 .mur-teinte--blancs {
@@ -1174,7 +1182,8 @@ a.mur-pave:active {
 
   .mur-case--vue,
   .mur-attente,
-  .mur-tourner {
+  .mur-tourner,
+  .mur-teinte {
     animation: none;
   }
 

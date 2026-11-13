@@ -64,8 +64,15 @@ function useVu<T extends HTMLElement>() {
   return [ref, vu] as const
 }
 
-/** One cover of a tile: the image full bleed, its state, its tint, its figure. */
-function Image({ image, teinte, grande }: { image: ImageTuile; teinte: Teinte; grande: boolean }) {
+/**
+ * One cover of a tile: the image full bleed, its state, its tint, its figure.
+ *
+ * The tint of an idea blends (`mix-blend-mode`), and Firefox flattens the 3D
+ * of a card that holds a blended layer: the tile seemed to turn twice. So the
+ * tint is left out while the tile turns (`teinter` false), both ways; under
+ * the pointer it is already faded out, so nothing is seen to change.
+ */
+function Image({ image, teinte, grande, teinter }: { image: ImageTuile; teinte: Teinte; grande: boolean; teinter: boolean }) {
   return (
     <span className="relative min-w-0 flex-1 overflow-hidden">
       <span className="absolute inset-0" style={{ filter: FILTRE[image.etat] }}>
@@ -79,7 +86,7 @@ function Image({ image, teinte, grande }: { image: ImageTuile; teinte: Teinte; g
           }
         />
       </span>
-      {image.etat === 'idee' && (
+      {image.etat === 'idee' && teinter && (
         <>
           <span aria-hidden="true" className={`mur-teinte mur-teinte--blancs absolute inset-0 ${FOND[teinte]}`} />
           <span aria-hidden="true" className={`mur-teinte absolute inset-0 ${FOND[teinte]}`} />
@@ -251,7 +258,7 @@ export function TuileMur({
           className="mur-face mur-recto absolute inset-0 flex cursor-pointer overflow-hidden bg-surface2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-textPrimary"
         >
           {tuile.images.map((image) => (
-            <Image key={image.cle} image={image} teinte={tuile.teinte} grande={grande} />
+            <Image key={image.cle} image={image} teinte={tuile.teinte} grande={grande} teinter={!dosMonte} />
           ))}
           <span
             aria-hidden="true"
