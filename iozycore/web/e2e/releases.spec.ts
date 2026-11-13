@@ -62,18 +62,18 @@ test('date a work on its detail page, then find it again in Sorties, in the agen
   const dateLisible = libelle({ day: 'numeric', month: 'long', year: 'numeric' })
   await expect(page.getByText(dateLisible)).toBeVisible()
 
-  // --- 3. Sorties counts down to it: the only release of the year is the next one
+  // --- 3. Sorties sets it on the timeline, with its days left
   await page.goto('/releases')
   //     Other specs may date works of their own universes on the same account: the
   //     universe made here gets its chip (filters come from the data), and keeps only this work.
-  await expect(page.getByRole('heading', { level: 2, name: 'À venir' })).toBeVisible()
+  const ceQuiSort = page.getByRole('list', { name: 'Ce qui sort' })
+  await expect(ceQuiSort).toBeVisible()
   const filtres = page.getByRole('group', { name: 'Filtrer par catégorie' })
   if (await filtres.isVisible()) await filtres.getByRole('button', { name: new RegExp(univers) }).click()
-  await expect(page.getByRole('heading', { level: 2, name: oeuvre })).toBeVisible()
-  await expect(page.getByText('Dans 20 jours')).toBeVisible()
-  //     Owned: nothing to pre-order, the hero leads to its detail page.
-  await expect(page.getByRole('button', { name: "Je l'ai précommandé" })).toHaveCount(0)
-  await expect(page.locator('section', { has: page.getByRole('heading', { level: 2, name: oeuvre }) })).toContainText(univers)
+  //     Owned: nothing to pre-order, the release leads to its detail page.
+  await expect(ceQuiSort.getByRole('listitem')).toHaveCount(1)
+  await expect(ceQuiSort.getByRole('link', { name: `${oeuvre}, dans 20 jours` })).toBeVisible()
+  await expect(ceQuiSort.getByRole('button', { name: /je l'ai précommandé/ })).toHaveCount(0)
 
   // --- 3b. The agenda subscription: a secret link, read with no session, cut by "Nouveau lien"
   await page.getByRole('button', { name: "S'abonner dans mon agenda" }).click()

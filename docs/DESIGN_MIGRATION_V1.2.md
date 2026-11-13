@@ -2054,3 +2054,13 @@ revient en fondu ; au survol elle était déjà effacée. Les clés des idées p
 
 Vérifié : 762 tests web (dont `TuileMur.test.tsx`, mutation attrapée ; les 3 échecs de
 `ReleasesPage.test.tsx` précèdent ce lot), typecheck, lint ; parcours e2e de l'accueil.
+
+### Lot 221 — Les tests des sorties suivent la frise
+
+La page des sorties est devenue une frise autour d'aujourd'hui sans que ses tests suivent : trois
+tests unitaires et le parcours e2e attendaient encore le grand compte à rebours. Ils gardent
+maintenant les règles de la frise : ce qui sort, dans l'ordre des dates et avec ses jours ; un filtre
+qui ne garde que sa catégorie ; le précommandé sur ce qui manque, un lien sur ce qu'on possède.
+
+Vérifié : 766 tests web sur 766 (mutations de l'ordre et du filtre attrapées), typecheck, lint ;
+29 parcours e2e sur 29.

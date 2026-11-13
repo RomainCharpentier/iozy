@@ -1,8 +1,8 @@
 /**
- * <b>Sorties: the countdown to the next release, everything to come month
- * by month, filters read from the data, and the agenda subscription.</b>
+ * <b>Sorties: a timeline around today, what comes out in the order of its
+ * dates, filters read from the data, and the agenda subscription.</b>
  *
- * <p>What breaks silently here: a countdown on the wrong release, a category
+ * <p>What breaks silently here: releases out of order or with the wrong days, a category
  * that gets no chip because it is not one of the known universes, a missing
  * release that no longer offers the pre-order, an owned one that offers it,
  * an empty year that says "nothing" when the sources were never read, a
@@ -78,6 +78,14 @@ function rendre() {
   return render(<ReleasesPage />, { wrapper: enrobage })
 }
 
+/** What the timeline says comes out, in its order: the name each release gives a screen reader. */
+async function ceQuiSort(): Promise<string[]> {
+  const liste = await screen.findByRole('list', { name: 'Ce qui sort' })
+  return within(liste)
+    .getAllByRole('listitem')
+    .map((item) => item.querySelector('a, button')?.getAttribute('aria-label') ?? '')
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   auth.estInvite = false
@@ -86,15 +94,16 @@ beforeEach(() => {
 })
 
 describe('ReleasesPage', () => {
-  it('counts down to the next release, and asks the server for the coming year', async () => {
+  it('sets what comes out in the order of the dates, with its days, and asks the server for the coming year', async () => {
     servir([DISQUE, FRIEREN, VINLAND])
     rendre()
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Vinland Saga' })).toBeInTheDocument()
-    expect(screen.getByText('Dans 5 jours')).toBeInTheDocument()
+    expect(await ceQuiSort()).toEqual([
+      "Vinland Saga, Tome 15 · Kurokawa, dans 5 jours : je l'ai précommandé",
+      "Frieren, Tome 15 · Ki-oon, dans 12 jours : je l'ai précommandé",
+      'Random Access Memories, dans 40 jours',
+    ])
     expect(insights.getReleaseCalendar).toHaveBeenCalledWith(dans(0), expect.any(String))
-    // The next one is the hero, not a card of the list too.
-    expect(screen.queryByRole('button', { name: /^Vinland Saga, Tome 15/ })).not.toBeInTheDocument()
   })
 
   it('offers one chip per category that has a release, a custom type included', async () => {
@@ -105,9 +114,8 @@ describe('ReleasesPage', () => {
     expect(within(filtres).getAllByRole('button').map((b) => b.textContent)).toEqual(['Tout3', 'Manga2', 'Vinyle1'])
 
     await userEvent.click(within(filtres).getByRole('button', { name: /Vinyle/ }))
-    // Filtered on the vinyl, the countdown is about the record.
-    expect(await screen.findByRole('heading', { level: 2, name: 'Random Access Memories' })).toBeInTheDocument()
-    expect(screen.queryByText('Frieren')).not.toBeInTheDocument()
+    // Filtered on the vinyl, the timeline keeps the record only.
+    expect(await ceQuiSort()).toEqual(['Random Access Memories, dans 40 jours'])
   })
 
   it('pre-orders a missing release in one click through quick-add, and leaves an owned one as a link', async () => {
@@ -125,11 +133,8 @@ describe('ReleasesPage', () => {
       edition: 'Ki-oon',
     })
 
-    expect(screen.getByRole('link', { name: /^Random Access Memories, le / })).toHaveAttribute('href', '/entity/ram')
+    expect(screen.getByRole('link', { name: 'Random Access Memories, dans 40 jours' })).toHaveAttribute('href', '/entity/ram')
     expect(screen.queryByRole('button', { name: /Random Access Memories.*je l'ai/ })).not.toBeInTheDocument()
-
-    // The hero offers it too.
-    expect(screen.getByRole('button', { name: "Je l'ai précommandé" })).toBeInTheDocument()
   })
 
   it('lets a guest look without writing', async () => {
