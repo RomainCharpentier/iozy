@@ -415,26 +415,39 @@ button, a, input, textarea, select {
    Radii: 12 px (buttons, fields, chips, rows), 16 px (tiles, common
    cards), 20 px (large cards), 24 px (sheets and panels). Height
    of controls: 44 px. Press: the surface shrinks by 2 %.
+
+   Lot 225 (direction "fond nu, un aplat"): what one touches is a pill,
+   what carries an image or a colour has square corners. The buttons
+   below are pills; `aplat` is the one block of colour of a screen.
    ═══════════════════════════════════════════════════════════════════════ */
+
+/* The one flat block of a screen: the vivid tone of the cover, square,
+   its ink on it. It carries the figure of the page and nothing else. */
+@utility aplat {
+  @apply bg-vive text-encreVive;
+  transition:
+    background-color 0.7s ease,
+    color 0.7s ease;
+}
 
 /* The primary button: the vivid tone of the cover, filled, its ink on it. */
 @utility btn-primaire {
-  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-vive px-4 text-sm font-semibold whitespace-nowrap text-encreVive shadow-token-accent transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-vive px-4 text-sm font-semibold whitespace-nowrap text-encreVive shadow-token-accent transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
 /* The secondary button: a piece of light glass (lot 210). */
 @utility btn-secondaire {
-  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-verre px-4 text-sm font-semibold whitespace-nowrap text-textPrimary ring-1 ring-ligneVerre shadow-token-sm backdrop-blur-xl backdrop-saturate-150 transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-verre px-4 text-sm font-semibold whitespace-nowrap text-textPrimary ring-1 ring-ligneVerre shadow-token-sm backdrop-blur-xl backdrop-saturate-150 transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
 /* The discreet button: text, nothing around it - for "Annuler", action links. */
 @utility btn-discret {
-  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold whitespace-nowrap text-textDim transition duration-150 select-none hover:text-textPrimary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap text-textDim transition duration-150 select-none hover:text-textPrimary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
 /* The danger button: filled, for what destroys and has already said so. */
 @utility btn-danger {
-  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-danger px-4 text-sm font-semibold whitespace-nowrap text-dangerInk transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold whitespace-nowrap text-dangerInk transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
 /* The input field: 44 px, inner line, accent ring on focus. */
@@ -504,6 +517,22 @@ button, a, input, textarea, select {
 
 @theme {
   --ease-sortie: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* The type scale (lot 225, direction "fond nu, un aplat"): seven steps,
+     the giant one drawn by GrandTitre and AplatChiffre. Eighteen sizes lived
+     side by side before it; a new text takes one of these. */
+  --text-mention: 0.75rem;
+  --text-mention--line-height: 1.35;
+  --text-secondaire: 0.875rem;
+  --text-secondaire--line-height: 1.45;
+  --text-corps: 1rem;
+  --text-corps--line-height: 1.55;
+  --text-section: 1.25rem;
+  --text-section--line-height: 1.2;
+  --text-bloc: 1.75rem;
+  --text-bloc--line-height: 1.1;
+  --text-outil: 3rem;
+  --text-outil--line-height: 1;
 }
 
 @keyframes entree-ecran {
@@ -618,19 +647,11 @@ html:active-view-transition * {
 .salle {
   --marge-salle: 14px;
   scroll-margin-top: 124px;
-  margin-bottom: 18px;
-  padding: 18px var(--marge-salle) 6px;
-  border-radius: 24px;
-  /* Une salle est une vitre teintée de la couleur de sa catégorie : le champ de
-     couleur de la jaquette passe derrière, au lieu d'être caché par un aplat. */
-  border: 1px solid var(--iozy-glass-line);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--u) 22%, var(--iozy-glass-surface-strong)) 0%,
-    color-mix(in srgb, var(--u) 6%, var(--iozy-glass-surface)) 360px
-  );
-  backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
-  -webkit-backdrop-filter: blur(var(--iozy-glass-blur)) saturate(var(--iozy-glass-saturate));
+  /* Lot 225, direction "fond nu, un aplat": a room sits straight on the
+     backdrop. It used to be a pane of glass tinted by its category; the
+     covers did the work, the pane only added a frame around them. */
+  margin-bottom: 44px;
+  padding: 0;
 }
 .salle-tete {
   display: flex;
@@ -640,9 +661,10 @@ html:active-view-transition * {
   margin-bottom: 10px;
 }
 .salle-titre {
-  font-size: 26px;
+  font-size: var(--text-bloc);
   line-height: 1.1;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.03em;
+  font-weight: 700;
 }
 /* A shelf far from the screen is not rendered: 300 series cost what the screen
    shows. The margins give the shadows and the lift of an object room, because

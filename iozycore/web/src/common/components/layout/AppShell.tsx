@@ -36,7 +36,7 @@ const NAV_BREAKPOINT_PX = 1024
  * caps at 792px and its actions at 420px, which is 1244px of real content.
  * Wider outer margins rather than inner holes - the former
  * read as a layout, the latter as a defect. */
-type ContentWidth = 'wide' | 'detail' | 'medium' | 'narrow'
+type ContentWidth = 'wide' | 'detail' | 'medium' | 'outil' | 'narrow'
 
 /** Complete and literal classes (never a number interpolated in a
  * template string): Tailwind scans the SOURCE CODE statically to know
@@ -52,6 +52,8 @@ const CONTAINER_CLASS: Record<ContentWidth, string> = {
   wide: 'grid grid-cols-[1fr_min(100%_-_2rem,1600px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1600px)_1fr] [--largeur-page:1600px]',
   detail: 'grid grid-cols-[1fr_min(100%_-_2rem,1320px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1320px)_1fr] [--largeur-page:1320px]',
   medium: 'grid grid-cols-[1fr_min(100%_-_2rem,960px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,960px)_1fr] [--largeur-page:960px]',
+  // The tool template (lot 225): a 760 px column, the title at 48 px, no box.
+  outil: 'grid grid-cols-[1fr_min(100%_-_2rem,760px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,760px)_1fr] [--largeur-page:760px]',
   narrow: 'grid grid-cols-[1fr_min(100%_-_2rem,672px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,672px)_1fr] [--largeur-page:672px]',
 }
 
