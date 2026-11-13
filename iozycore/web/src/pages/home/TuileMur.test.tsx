@@ -55,6 +55,18 @@ describe('TuileMur', () => {
     expect(screen.getByRole('heading', { name: 'Fiche de Frieren' })).toBeInTheDocument()
   })
 
+  it('stays turned on a second click on its back, as in a double click', async () => {
+    const user = userEvent.setup()
+    rendre()
+    const recto = screen.getByRole('button', { name: 'Frieren : Le dernier qui te manque' })
+
+    await user.dblClick(recto)
+    await user.click(screen.getByText('Tome 4.'))
+
+    expect(recto).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('group', { name: 'Frieren' })).toBeInTheDocument()
+  })
+
   it('turns back on Escape, and gives the focus back to the cover', async () => {
     const user = userEvent.setup()
     rendre()

@@ -4,7 +4,6 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent,
-  type MouseEvent,
   type TransitionEvent,
 } from 'react'
 import { Link } from 'react-router-dom'
@@ -140,9 +139,11 @@ function Pave({ tuile }: { tuile: Tuile }) {
  * The front is the cover, and a click on it (or a tap, or Enter) turns the tile
  * over: the back says why the tile is there, links to the work by its title,
  * and offers its one action ("J'ai le tome 108", "Ajouter à mes envies"). Only
- * one tile is turned at a time (the wall decides). The round button, a click on
- * the back outside its links, or Escape turns it back, and the focus follows:
- * onto the back when it opens, back onto the cover when it closes.
+ * one tile is turned at a time (the wall decides). The round button, Escape or
+ * a click outside the tile turns it back; a click on the back itself does not,
+ * so a second click (to read, or a double click) never undoes the first. The
+ * focus follows: onto the back when it opens, back onto the cover when it
+ * closes.
  *
  * <h2>The back exists only while it is seen</h2>
  * Hidden by `backface-visibility`, a back that stayed in the page would still
@@ -228,12 +229,6 @@ export function TuileMur({
     recto.current?.focus({ preventScroll: true })
   }
 
-  // A click on the back outside its link and its button turns the tile back.
-  function clicSurLeDos(event: MouseEvent<HTMLDivElement>) {
-    if ((event.target as HTMLElement).closest('a, button')) return
-    remettre()
-  }
-
   function touche(event: KeyboardEvent<HTMLLIElement>) {
     if (event.key === 'Escape' && ouverte) {
       event.stopPropagation()
@@ -272,7 +267,6 @@ export function TuileMur({
             id={idDos}
             role="group"
             aria-label={tuile.titre}
-            onClick={clicSurLeDos}
             className={`mur-face mur-dos absolute inset-0 flex flex-col overflow-hidden text-murEncre ${FOND[tuile.teinte]} ${
               grande ? 'gap-2.5 p-6' : 'gap-1.5 p-3'
             }`}
