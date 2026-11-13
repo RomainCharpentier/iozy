@@ -2108,3 +2108,31 @@ pastille de couleur : le nom suffit, et son compte devient « 7 titres ».
 
 Vérifié : 758 tests web, typecheck, lint, contraste AA (156 combinaisons), frontières ; 28 parcours
 e2e sur 28 ; captures avant et après à 1 280 px et 390 px sur la copie des données, sans débordement.
+
+### Lot 225 — Le socle « fond nu, un aplat »
+
+L'audit d'harmonie (18 tailles de texte, 50 boutons, 8 rayons, 3 largeurs) a montré deux directions
+appliquées sans règle : le verre du plein cadre et les aplats de la couleur franche. Le propriétaire a
+retenu « fond nu, un aplat » : le contenu se pose sur le fond, un seul aplat de couleur par écran
+porte son chiffre, le verre ne sert qu'aux commandes ; angle droit pour les images et la couleur,
+pilule pour ce qu'on touche. Le socle : une échelle de sept tailles (`text-mention`, `-secondaire`,
+`-corps`, `-section`, `-bloc`, `-outil`, et le géant), les quatre boutons en pilule, l'utilitaire
+`aplat`, le gabarit `PageAffiche` et son `AplatChiffre`, et une largeur Outil de 760 px.
+
+### Lot 226 — Collection en affiche
+
+Ma collection reprend le gabarit de l'accueil et d'À acheter : à gauche, l'aplat « 96 objets dans ta
+collection », l'index des rayons avec leurs comptes en grand (celui qu'on lit s'allume), puis les vues
+et les filtres ; à droite, les salles posées sur le fond, sans leur vitre teintée. Sur téléphone,
+l'affiche passe au-dessus et la barre des rayons reste collée.
+
+### Lot 227 — La fiche, les tomes d'abord
+
+Une seule colonne : le titre et une petite jaquette, puis le chiffre en bandeau (aplat carré) avec
+le statut et la mise de côté sur la même ligne, puis tous les tomes sur toute la largeur, au-dessus
+de la ligne de flottaison à 1 280 px. « De quoi ça parle » et « Où j'en étais » sont ouverts d'emblée,
+sous les tomes (le serveur garde chaque texte en mémoire). Les faits perdent leurs boîtes, les tomes
+leurs arrondis.
+
+Vérifié (225 à 227) : 758 tests web, typecheck, lint, contraste AA ; 28 parcours e2e sur 28 ;
+captures sur la copie des données à 1 280, 2 000 et 390 px (manga, jeu vidéo, jeu de société).

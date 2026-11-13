@@ -37,39 +37,44 @@ export function PanneauOeuvre({
 }) {
   const totalConnu = work.totalCount !== null
   return (
-    <section aria-label="Ma collection de cette œuvre" className="iozy-verre iozy-verre--fort flex flex-col gap-5 rounded-[28px] p-5 md:p-6">
+    <section aria-label="Ma collection de cette œuvre" className="flex flex-col gap-5">
       {consultation ? (
-        <p className="font-display text-2xl font-bold text-textPrimary">
+        <p className="font-display text-bloc font-bold text-textPrimary">
           {totalConnu ? `${work.totalCount} au catalogue` : `${work.elements.length} au catalogue`}
         </p>
       ) : (
         <>
-          {/* The count is a flat block of the cover colour, in ink: the number is
-              the first thing seen. The editable total and the shelving gestures,
-              which have their own surfaces, sit under it. */}
-          <div className="-mx-5 -mt-5 flex flex-col gap-2 rounded-t-[28px] bg-accent p-6 text-accentInk md:-mx-6 md:-mt-6 md:p-8">
-            <p className="font-display text-[clamp(4.5rem,11vw,8.5rem)] leading-[0.85] font-bold tracking-[-0.06em]">
-              {/* "1 / 6" is read "1 slash 6": the figures are for the eye, the phrase for the ear. */}
-              <span aria-hidden="true">{totalConnu ? `${work.ownedCount} / ${work.totalCount}` : `${work.ownedCount}`}</span>
-              <span className="sr-only">{phraseDuCompte(work)}</span>
-            </p>
-            <p className="font-display text-xl font-bold">{phraseDesManques(work)}</p>
-            {work.nextRelease && (
-              <p className="text-[15px] font-medium">
-                <span className="font-bold">Prochaine sortie : </span>
-                {phraseProchaineSortie(work.nextRelease)}
+          {/* Lot 227, "les tomes d'abord": the count is the one flat block of the page, a
+              band in the cover colour - the figure, then what is missing. The status and
+              the shelving gesture sit on the same line, the volumes right under it. */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="aplat flex flex-wrap items-baseline gap-x-5 gap-y-1 px-6 py-4">
+              <p className="font-display text-[clamp(3.5rem,6vw,5rem)] leading-[0.85] font-bold tracking-[-0.06em] tabular-nums">
+                {/* "1 / 6" is read "1 slash 6": the figures are for the eye, the phrase for the ear. */}
+                <span aria-hidden="true">{totalConnu ? `${work.ownedCount} / ${work.totalCount}` : `${work.ownedCount}`}</span>
+                <span className="sr-only">{phraseDuCompte(work)}</span>
               </p>
+              <div className="flex flex-col">
+                <p className="text-section font-bold">{phraseDesManques(work)}</p>
+                {work.nextRelease && (
+                  <p className="text-secondaire font-medium">
+                    <span className="font-bold">Prochaine sortie : </span>
+                    {phraseProchaineSortie(work.nextRelease)}
+                  </p>
+                )}
+              </div>
+            </div>
+            {(statut || miseDeCote) && (
+              <div className="flex flex-wrap items-center gap-3">
+                {statut}
+                {miseDeCote}
+              </div>
             )}
           </div>
-          {(total || miseDeCote) && (
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              {total}
-              {miseDeCote}
-            </div>
-          )}
+          {total}
         </>
       )}
-      {statut}
+      {consultation && statut}
       {grille}
       {question}
       {!consultation && avecGeste && work.elements.some((e) => e.state !== 'OWNED') && (

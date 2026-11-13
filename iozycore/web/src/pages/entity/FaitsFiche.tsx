@@ -5,11 +5,11 @@ import type { Fait } from './faitsDeLOeuvre'
 export function FaitsFiche({ faits }: { faits: Fait[] }) {
   if (faits.length === 0) return null
   return (
-    <dl className="grid gap-2.5 pt-5 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
+    <dl className="grid gap-x-8 gap-y-4 border-t border-ligneVerre pt-5 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
       {faits.map(({ libelle, valeur, large }, index) => (
-        <div key={`${libelle}-${index}`} className={`min-w-0 rounded-[14px] bg-surface/80 px-4 py-3.5 ${large ? 'sm:col-span-2' : ''}`}>
-          <dt className="text-[12.5px] text-faint">{libelle}</dt>
-          <dd className="mt-0.5 font-display text-[20px] leading-tight font-semibold break-words text-textPrimary">
+        <div key={`${libelle}-${index}`} className={`min-w-0 ${large ? 'sm:col-span-2' : ''}`}>
+          <dt className="text-mention text-faint">{libelle}</dt>
+          <dd className="mt-0.5 font-display text-section font-semibold break-words text-textPrimary">
             {valeur}
           </dd>
         </div>

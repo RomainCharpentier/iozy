@@ -107,7 +107,7 @@ export function GrilleElements({
                 aria-expanded={retirable ? armeeIci : undefined}
                 disabled={!retirable}
                 onClick={() => setArmee(armeeIci ? null : element.key)}
-                className="block w-full rounded-xl text-left transition-transform duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 motion-reduce:transform-none disabled:cursor-default disabled:hover:translate-y-0"
+                className="block w-full text-left transition-transform duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 motion-reduce:transform-none disabled:cursor-default disabled:hover:translate-y-0"
               >
                 {tuile}
               </button>
@@ -157,7 +157,7 @@ export function GrilleElements({
               <span
                 role="img"
                 aria-label={element.label}
-                className={`iozy-manque iozy-teinte relative flex items-end overflow-hidden rounded-xl p-2 font-display font-bold ${
+                className={`iozy-manque iozy-teinte relative flex items-end overflow-hidden p-2 font-display font-bold ${
                   immobile ? 'animate-none!' : ''
                 } ${forme ?? 'p-0'}`}
               >
@@ -217,11 +217,11 @@ function TuileJaquette({
 }) {
   const repli = (
     <span
-      className={`flex w-full items-end rounded-xl bg-[color-mix(in_srgb,var(--color-textPrimary)_10%,transparent)] p-2 ${forme ?? 'aspect-[2/3]'}`}
+      className={`flex w-full items-end bg-[color-mix(in_srgb,var(--color-textPrimary)_10%,transparent)] p-2 ${forme ?? 'aspect-[2/3]'}`}
     />
   )
   return (
-    <span className={`relative block overflow-hidden rounded-xl shadow-token-sm ${forme ?? ''}`}>
+    <span className={`relative block overflow-hidden shadow-token-sm ${forme ?? ''}`}>
       <Jaquette
         src={jaquette}
         repli={repli}

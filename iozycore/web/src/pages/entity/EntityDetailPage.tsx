@@ -789,8 +789,10 @@ export function EntityDetailPage() {
 
   return (
     <>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(240px,340px)] lg:gap-12">
-        <div className="flex min-w-0 flex-col gap-4">
+      {/* Lot 227, "les tomes d'abord": one column. The title and a small sleeve open the
+          page, then the count, then every volume across the whole width - what one
+          comes for - and what the work is about under them. */}
+      <div className="flex min-w-0 flex-col gap-6">
           {/* Always there: an app installed in full screen has no Back button. A
               received link or a reload has no origin: the natural parent, then. */}
           <button
@@ -809,12 +811,34 @@ export function EntityDetailPage() {
             {retour?.libelle ?? (estInvite ? 'Catalogue' : 'Ma collection')}
           </button>
 
-          {kicker && (
-            <p className="iozy-teinte text-[13px] font-semibold tracking-[0.16em] text-vive uppercase">{kicker}</p>
-          )}
-          <h1 className="font-display text-[clamp(3rem,9vw,8.5rem)] leading-[0.86] font-bold tracking-[-0.055em] break-words text-textPrimary [text-shadow:0_6px_40px_rgb(0_0_0/0.25)] [text-wrap:balance]">
-            {entity.title}
-          </h1>
+          <div className="flex items-end justify-between gap-6 lg:gap-12">
+            <div className="flex min-w-0 flex-col gap-4">
+              {kicker && (
+                <p className="iozy-teinte text-mention font-bold tracking-[0.16em] text-vive uppercase">{kicker}</p>
+              )}
+              <h1 className="font-display text-[clamp(3rem,8vw,8rem)] leading-[0.86] font-bold tracking-[-0.055em] break-words text-textPrimary [text-shadow:0_6px_40px_rgb(0_0_0/0.25)] [text-wrap:balance]">
+                {entity.title}
+              </h1>
+            </div>
+            {/* The sharp cover, a sleeve beside the title: square corners, as every image. */}
+            <figure
+              ref={refJaquette}
+              className={`relative w-[104px] shrink-0 overflow-hidden shadow-[0_30px_70px_rgb(0_0_0/0.45)] md:w-[180px] ${forme ?? ''}`}
+            >
+              <Jaquette
+                src={couvertureUrl}
+                loading="eager"
+                className={forme ? 'absolute inset-0 h-full w-full object-cover' : 'block h-auto w-full'}
+                repli={
+                  <div
+                    className={`w-full ${forme ?? 'aspect-[2/3]'}`}
+                    style={{ background: gradientFor(entity.title) }}
+                    aria-hidden="true"
+                  />
+                }
+              />
+            </figure>
+          </div>
 
           {!avecTomes && faitsAffiches.length > 0 && <FaitsFiche faits={faitsAffiches} />}
 
@@ -867,7 +891,7 @@ export function EntityDetailPage() {
                     type="button"
                     disabled={wishlist.isPending}
                     onClick={() => wishlist.addMany(ciblesDeCote.map((paire) => paire.cible))}
-                    className="iozy-teinte min-h-12 rounded-full bg-vive px-5 text-[15px] font-bold text-encreVive disabled:opacity-60"
+                    className="btn-primaire"
                   >
                     {ciblesDeCote.length === 1
                       ? `Mettre ${ciblesDeCote[0].element.label} de côté`
@@ -926,30 +950,6 @@ export function EntityDetailPage() {
               <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
             )}
           </div>
-        </div>
-
-        {/* The sharp cover, laid over its own blurred backdrop like a sleeve. */}
-        <div className="order-first lg:order-none">
-          <div className="lg:sticky lg:top-24">
-            <figure
-              ref={refJaquette}
-              className={`relative w-[46%] max-w-[340px] overflow-hidden rounded-[22px] shadow-[0_40px_90px_rgb(0_0_0/0.45),0_0_0_1px_rgb(255_255_255/0.12)] lg:w-full ${forme ?? ''}`}
-            >
-              <Jaquette
-                src={couvertureUrl}
-                loading="eager"
-                className={forme ? 'absolute inset-0 h-full w-full object-cover' : 'block h-auto w-full'}
-                repli={
-                  <div
-                    className={`w-full ${forme ?? 'aspect-[2/3]'}`}
-                    style={{ background: gradientFor(entity.title) }}
-                    aria-hidden="true"
-                  />
-                }
-              />
-            </figure>
-          </div>
-        </div>
       </div>
 
       <VoletFiche ouvert={voletOuvert} onFermer={fermerVolet} retourFocus={refBoutonVolet}>
