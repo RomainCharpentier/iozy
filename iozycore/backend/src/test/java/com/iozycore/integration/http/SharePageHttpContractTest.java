@@ -225,13 +225,14 @@ class SharePageHttpContractTest extends HttpContractTestBase {
         // Six owned volumes, all with a new price: above both thresholds.
         for (int s = 0; s < 2; s++) {
             String title = "Valeur " + UUID.randomUUID();
-            mangaEditionRepository.save(MangaEdition.create(title, "Standard", EditionTier.STANDARD, "Éditeur",
-                    10, new BigDecimal("7.90"), false, false, null));
             Entity series = Entity.create(EntityTypeFixtures.MANGA.id(), title);
             for (int tome = 1; tome <= 3; tome++) {
                 series.addVariant("Tome " + tome, Map.of("volumeNumber", tome, "edition", "Standard"));
             }
             entityRepository.save(series);
+            // Linked to the saved series: the value is read per (series, edition).
+            mangaEditionRepository.save(MangaEdition.create(series.id(), title, "Standard", EditionTier.STANDARD,
+                    "Éditeur", 10, new BigDecimal("7.90"), false, false, null));
             for (Variant variant : series.variants()) {
                 ownershipRepository.save(Ownership.acquire(series.id(), variant.id(),
                         OwnershipCondition.NEW, LocalDate.now(), null));
